@@ -1,0 +1,15 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const {spawn} = require('node:child_process');
+const root=path.resolve(__dirname,'..');
+const runtime=path.resolve(root,process.argv[2]||'verified');
+const library=path.join(root,'test-output','native-'+Date.now());
+const input=[{action:'folders'},{action:'unknown'},{action:'save',name:'Synthetic native protocol test',data:fs.readFileSync(path.join(root,'dependencies','qingjie-icon.png')).toString('base64'),duplicateAction:'reuse',source:'https://example.com/test'}];
+const child=spawn(path.join(runtime,'Mori.exe'),['--native-test',library],{windowsHide:true,stdio:['pipe','pipe','pipe']});
+const replies=[];let buffer=Buffer.alloc(0),error='';
+child.stdout.on('data',b=>{buffer=Buffer.concat([buffer,b]);while(buffer.length>=4){const length=buffer.readUInt32LE();assert(length<1048576);if(buffer.length<length+4)return;replies.push(JSON.parse(buffer.subarray(4,length+4).toString()));buffer=buffer.subarray(length+4);}});
+child.stderr.on('data',b=>error+=b);
+const timer=setTimeout(()=>{child.kill();throw Error('Native protocol timeout');},20000);
+child.on('exit',code=>{clearTimeout(timer);assert.equal(code,0,error);assert.equal(replies.length,3);assert.equal(replies[0].ok,true);assert.equal(replies[1].ok,false);assert.equal(replies[2].ok,true,JSON.stringify(replies[2]));assert.equal(replies[2].name,'Synthetic native protocol test');assert.equal(buffer.length,0);console.log('PASS: isolated native protocol folders / error / actual image save / clean shutdown. Library: '+library);});
+for(const message of input){const body=Buffer.from(JSON.stringify(message));const size=Buffer.alloc(4);size.writeUInt32LE(body.length);child.stdin.write(Buffer.concat([size,body]));}child.stdin.end();

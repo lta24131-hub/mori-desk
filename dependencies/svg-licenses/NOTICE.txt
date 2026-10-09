@@ -1,0 +1,21 @@
+Mori SVG rendering dependencies (unmodified binaries)
+
+SVG.NET 3.4.8
+https://github.com/svg-net/SVG
+Commit 9d564f47c82780df4b703ee0bf2436c6a2276f5c
+Copyright 2009 Microsoft. All Rights Reserved.
+Copyright 2011 vvvv Group. All Rights Reserved.
+Copyright 2021 SVG.NET Contributors.
+License: Microsoft Public License (Svg-MS-PL.txt)
+
+ExCSS 4.2.3 by Tyler Brinks and contributors
+https://github.com/TylerBrinks/ExCSS
+License: MIT (ExCSS-MIT.txt)
+
+System.Memory 4.5.5; System.Buffers 4.5.1;
+System.Numerics.Vectors 4.5.0; System.Runtime.CompilerServices.Unsafe 4.5.3
+Copyright Microsoft Corporation. All rights reserved.
+License: MIT (Microsoft-MIT.txt)
+
+Package sources and fixed SHA-256 digests: tools/Restore-Svg.ps1.
+No image files, screenshots, library data or credentials are included in these dependencies.

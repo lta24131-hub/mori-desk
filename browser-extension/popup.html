@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mori</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <header><button id="back" class="icon hidden" aria-label="返回">←</button><strong id="heading">Mori</strong><span class="version"></span></header>
+  <main>
+    <section id="home">
+      <div id="status" class="status" role="status"></div>
+      <button id="import-bookmarks" class="nav">导入 Chrome 书签</button>
+      <div id="bookmark-review" class="card hidden"><p id="bookmark-count"></p><p class="note">保留文件夹层级，重复网址使用已有条目，不修改浏览器书签。导入时请保持此窗口打开。</p><button id="bookmark-confirm">确认导入</button> <button id="bookmark-cancel">取消</button></div>
+      <p id="bookmark-progress" class="note" role="status"></p>
+      <div class="row"><label for="drag-mode" data-i18n="drag">拖拽收藏</label><select id="drag-mode" disabled><option value="enabled" data-i18n="enabled">启用</option><option value="page" data-i18n="page">在此页面禁用</option><option value="host" data-i18n="host">在此网站禁用</option><option value="disabled" disabled data-i18n="disabledAll">已全局禁用</option></select></div>
+      <p id="page-note" class="note"></p>
+      <button id="open-settings" class="nav"><span data-i18n="preferences">偏好设置</span><span aria-hidden="true">›</span></button>
+      <p class="note" data-i18n="help">右键图片或拖到收藏区，保存到本机图库。</p>
+    </section>
+    <section id="settings" class="hidden">
+      <h2 data-i18n="interface">界面设置</h2>
+      <div class="card">
+        <fieldset><legend class="sr-only" data-i18n="theme">主题</legend><div class="choices">
+          <label><input type="radio" name="theme" value="light"><span><i class="theme-preview light"></i><b data-i18n="light">浅色</b></span></label>
+          <label><input type="radio" name="theme" value="dark"><span><i class="theme-preview dark"></i><b data-i18n="dark">深色</b></span></label>
+          <label><input type="radio" name="theme" value="system"><span><i class="theme-preview system"></i><b data-i18n="system">跟随系统</b></span></label>
+        </div></fieldset>
+        <div class="row"><label for="language" data-i18n="language">语言</label><select id="language"><option value="auto" data-i18n="browser">跟随浏览器</option><option value="zh-CN">简体中文</option><option value="en">English</option></select></div>
+      </div>
+      <h2 data-i18n="collection">收藏设置</h2>
+      <div class="card">
+        <fieldset><legend class="sr-only" data-i18n="layout">收藏区布局</legend><div class="choices">
+          <label><input type="radio" name="collector" value="popup"><span><i class="layout-preview floating"></i><b data-i18n="popup">弹窗式</b></span></label>
+          <label><input type="radio" name="collector" value="bottom"><span><i class="layout-preview dock"></i><b data-i18n="bottom">吸底式</b></span></label>
+          <label><input type="radio" name="collector" value="disabled"><span><i class="layout-preview off">⊘</i><b data-i18n="disabled">禁用</b></span></label>
+        </div></fieldset>
+        <label class="row toggle-row"><span data-i18n="edit">保存前显示编辑窗口</span><input id="edit" type="checkbox" role="switch"></label>
+        <p class="note" data-i18n="editHint">确认名称、分类和来源；取消不会保存图片。</p>
+      </div>
+      <p class="note" data-i18n="scopeHint">禁用只影响拖拽收藏，右键收藏仍可使用。</p>
+      <details id="exclusions"><summary data-i18n="exclusions">已禁用的页面与网站</summary><div id="rules"></div></details>
+    </section>
+    <p id="message" role="status" aria-live="polite"></p>
+  </main>
+  <script src="preferences.js"></script><script src="bookmarks.js"></script><script src="popup.js"></script>
+</body></html>

@@ -1,0 +1,62 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
+using Mori;
+namespace MoriDesk {
+ public sealed class ReferencePage : Grid {
+  readonly ReferenceStore store;readonly Window owner;readonly Action<string> status;readonly Action<string,string> open;
+  readonly ListBox folders=new ListBox{MinWidth=150,BorderThickness=new Thickness(0)};
+  readonly ListView files=new ListView{SelectionMode=SelectionMode.Extended,BorderThickness=new Thickness(0)};
+  readonly TextBox search=new TextBox{MinWidth=220,Margin=new Thickness(6),Padding=new Thickness(8)};
+  readonly TextBlock info=new TextBlock{Margin=new Thickness(10),TextWrapping=TextWrapping.Wrap};
+  string folder="*";bool refreshing;volatile int version;
+  public ReferencePage(Window owner,ReferenceStore store,Action back,Action<string> status,Action<string,string> open){
+   this.owner=owner;this.store=store;this.status=status;this.open=open;SetResourceReference(BackgroundProperty,"Canvas");
+   RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});RowDefinitions.Add(new RowDefinition());RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
+   var header=new WrapPanel{Margin=new Thickness(16,12,16,0)};header.Children.Add(Button("← 素材库",back));header.Children.Add(new TextBlock{Text="本地文件",FontSize=23,Margin=new Thickness(12,4,18,4)});header.Children.Add(Button("收藏文件…",ChooseFiles));header.Children.Add(Button("收藏文件夹…",ChooseDirectory));header.Children.Add(Button("新建分类",NewFolder));header.Children.Add(Button("刷新",Refresh));header.Children.Add(search);search.ToolTip="搜索文件名、路径";Children.Add(header);
+   var hint=new TextBlock{Text="拖入文件或文件夹，仅保存快捷引用，不复制原件。分类与移除不会改动电脑上的文件。",Margin=new Thickness(26,8,16,14),TextWrapping=TextWrapping.Wrap};hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");SetRow(hint,1);Children.Add(hint);
+   var body=new Grid{Margin=new Thickness(16,0,16,0)};body.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(210)});body.ColumnDefinitions.Add(new ColumnDefinition());SetRow(body,2);Children.Add(body);body.Children.Add(folders);SetColumn(files,1);body.Children.Add(files);
+   folders.SetResourceReference(Control.BackgroundProperty,"Panel");folders.SetResourceReference(Control.ForegroundProperty,"Text");files.SetResourceReference(Control.BackgroundProperty,"Canvas");files.SetResourceReference(Control.ForegroundProperty,"Text");
+   var grid=new GridView();var headerStyle=new Style(typeof(GridViewColumnHeader));headerStyle.Setters.Add(new Setter(Control.BackgroundProperty,new DynamicResourceExtension("Panel")));headerStyle.Setters.Add(new Setter(Control.ForegroundProperty,new DynamicResourceExtension("Muted")));headerStyle.Setters.Add(new Setter(Control.BorderBrushProperty,new DynamicResourceExtension("Divider")));headerStyle.Setters.Add(new Setter(Control.PaddingProperty,new Thickness(10,9,10,9)));headerStyle.Setters.Add(new Setter(Control.HorizontalContentAlignmentProperty,HorizontalAlignment.Left));grid.ColumnHeaderContainerStyle=headerStyle;grid.Columns.Add(Column("名称",240,"Name"));grid.Columns.Add(Column("格式",65,"Kind"));grid.Columns.Add(Column("状态",130,"State"));grid.Columns.Add(Column("原始位置",500,"Path"));files.View=grid;
+   var rowStyle=new Style(typeof(ListViewItem));rowStyle.Setters.Add(new Setter(Control.PaddingProperty,new Thickness(8,8,8,8)));rowStyle.Setters.Add(new Setter(Control.ForegroundProperty,new DynamicResourceExtension("Text")));files.ItemContainerStyle=rowStyle;var folderStyle=new Style(typeof(ListBoxItem));folderStyle.Setters.Add(new Setter(Control.PaddingProperty,new Thickness(12,10,12,10)));folders.ItemContainerStyle=folderStyle;
+   VirtualizingStackPanel.SetIsVirtualizing(files,true);VirtualizingStackPanel.SetVirtualizationMode(files,VirtualizationMode.Recycling);
+   files.MouseDoubleClick+=(s,e)=>{var row=ItemsControl.ContainerFromElement(files,e.OriginalSource as DependencyObject)as ListViewItem;if(row!=null)Open((FileReference)row.DataContext);};
+   files.PreviewMouseRightButtonDown+=(s,e)=>{var row=ItemsControl.ContainerFromElement(files,e.OriginalSource as DependencyObject)as ListViewItem;if(row!=null&&!row.IsSelected){files.SelectedItems.Clear();row.IsSelected=true;}};
+   files.PreviewMouseLeftButtonDown+=(s,e)=>{if(ItemsControl.ContainerFromElement(files,e.OriginalSource as DependencyObject)==null&&!(e.OriginalSource is System.Windows.Controls.Primitives.Thumb))files.SelectedItems.Clear();};
+   files.ContextMenu=new ContextMenu();files.ContextMenuOpening+=(s,e)=>BuildFileMenu();
+   folders.SelectionChanged+=(s,e)=>{if(refreshing)return;var f=folders.SelectedItem as ReferenceFolder;if(f!=null){folder=f.Id;RefreshFiles();}};
+   folders.PreviewMouseRightButtonDown+=(s,e)=>{var item=ItemsControl.ContainerFromElement(folders,e.OriginalSource as DependencyObject)as ListBoxItem;if(item!=null)item.IsSelected=true;};
+   folders.ContextMenu=new ContextMenu();folders.ContextMenuOpening+=(s,e)=>BuildFolderMenu();search.TextChanged+=(s,e)=>RefreshFiles();
+   SetRow(info,3);Children.Add(info);files.SelectionChanged+=(s,e)=>info.Text=files.SelectedItems.Count+" 项已选 · Ctrl / Shift 多选 · Delete 移除收藏 · Ctrl+Z 撤销 · 不删除原件";
+   IsVisibleChanged+=(s,e)=>{if(IsVisible)Refresh();else version++;};
+  }
+  static GridViewColumn Column(string title,double width,string binding){return new GridViewColumn{Header=title,Width=width,DisplayMemberBinding=new Binding(binding)};}
+  public static Button Button(string title,Action action){var button=new Button{Content=title,Margin=new Thickness(4),Padding=new Thickness(12,7,12,7)};button.SetResourceReference(Control.BackgroundProperty,"Control");button.SetResourceReference(Control.ForegroundProperty,"Text");button.Template=(ControlTemplate)System.Windows.Markup.XamlReader.Parse("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Button'><Border x:Name='Surface' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' CornerRadius='6' Background='{TemplateBinding Background}' Padding='{TemplateBinding Padding}'><ContentPresenter HorizontalAlignment='Center' VerticalAlignment='Center'/></Border><ControlTemplate.Triggers><Trigger Property='IsMouseOver' Value='True'><Setter TargetName='Surface' Property='Background' Value='{DynamicResource Hover}'/></Trigger><Trigger Property='IsEnabled' Value='False'><Setter TargetName='Surface' Property='Opacity' Value='0.45'/></Trigger></ControlTemplate.Triggers></ControlTemplate>");button.Click+=(s,e)=>action();return button;}
+  void Try(Action action){try{action();}catch(Exception ex){MessageBox.Show(owner,ex.Message,"本地文件");}}
+  public void Refresh(){string selected=folder;refreshing=true;var list=new List<ReferenceFolder>{new ReferenceFolder{Id="*",Name="全部本地文件"},new ReferenceFolder{Id="",Name="未分类"}};list.AddRange(store.Folders());folders.ItemsSource=list;folders.SelectedItem=list.FirstOrDefault(f=>f.Id==selected)??list[0];folder=((ReferenceFolder)folders.SelectedItem).Id;refreshing=false;RefreshFiles();}
+  async void RefreshFiles(){int stamp=++version;string query=search.Text.Trim();var rows=store.All().Where(r=>(folder=="*"||r.Folder==folder)&&(r.Name+" "+r.Path).IndexOf(query,StringComparison.OrdinalIgnoreCase)>=0).ToList();foreach(var r in rows)r.State="检查中…";files.ItemsSource=rows;info.Text=rows.Count+" 个快捷收藏 · 原件仍在原位置 · 更换电脑需要同时迁移原件";
+   // Keep IO off the UI thread (disconnected disks/network shares may be slow).
+   await Task.Run(()=>{foreach(var r in rows){if(stamp!=version)return;r.State=r.Exists?"可打开":"失效 / 暂不可访问";}});if(stamp==version)files.Items.Refresh();
+  }
+  public void DropFiles(string[] paths){Try(()=>{int count=store.Add(paths,folder=="*"?"":folder);Refresh();status("已收藏 "+count+" 个本地引用；重复路径已跳过，没有复制原件。");});}
+  void ChooseFiles(){var d=new Microsoft.Win32.OpenFileDialog{Title="收藏本地文件（仅记录路径）",Multiselect=true,Filter="全部文件|*.*"};if(d.ShowDialog(owner)==true)DropFiles(d.FileNames);}
+  void ChooseDirectory(){using(var d=new System.Windows.Forms.FolderBrowserDialog{Description="收藏文件夹快捷方式，不扫描文件夹内容"})if(d.ShowDialog()==System.Windows.Forms.DialogResult.OK)DropFiles(new[]{d.SelectedPath});}
+  void NewFolder(){string name=Prompt("新建分类","分类名称","");if(name!=null)Try(()=>{folder=store.AddFolder(name);Refresh();});}
+  string Prompt(string title,string hint,string value){var w=new Window{Title=title,Owner=owner,Width=410,Height=190,WindowStartupLocation=WindowStartupLocation.CenterOwner,ResizeMode=ResizeMode.NoResize};Theme.Attach(w,owner);var p=new StackPanel{Margin=new Thickness(20)};p.Children.Add(new TextBlock{Text=hint});var t=new TextBox{Text=value,Margin=new Thickness(0,12,0,12),Padding=new Thickness(8)};p.Children.Add(t);var ok=Button("确定",()=>w.DialogResult=true);ok.IsDefault=true;p.Children.Add(ok);w.Content=p;w.Loaded+=(s,e)=>{t.Focus();t.SelectAll();};w.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape)w.Close();};return w.ShowDialog()==true?t.Text:null;}
+  List<FileReference> Selected(){return files.SelectedItems.Cast<FileReference>().ToList();}
+  void Item(ContextMenu menu,string text,Action action,bool enabled=true){var i=new MenuItem{Header=text,IsEnabled=enabled};i.Click+=(s,e)=>Try(action);menu.Items.Add(i);}
+  void BuildFileMenu(){var menu=files.ContextMenu;menu.Items.Clear();menu.Resources.MergedDictionaries.Clear();menu.Resources.MergedDictionaries.Add(owner.Resources);var rows=Selected();var first=rows.FirstOrDefault();Item(menu,"打开",()=>Open(first),rows.Count==1);Item(menu,"显示原文件位置",()=>FileRouter.Reveal(first.Path),rows.Count==1);Item(menu,"复制原路径",()=>Clipboard.SetText(string.Join(Environment.NewLine,rows.Select(r=>r.Path))),rows.Count>0);Item(menu,"重新定位…",()=>Relink(first),rows.Count==1);var move=new MenuItem{Header="移动到分类",IsEnabled=rows.Count>0};foreach(var f in new[]{new ReferenceFolder{Id="",Name="未分类"}}.Concat(store.Folders())){var target=f;var item=new MenuItem{Header=f.Name};item.Click+=(s,e)=>Try(()=>{store.Move(rows.Select(r=>r.Id),target.Id);RefreshFiles();});move.Items.Add(item);}menu.Items.Add(move);menu.Items.Add(new Separator());Item(menu,"移除收藏（保留原件）",Remove,rows.Count>0);Item(menu,"撤销上一步  Ctrl+Z",Undo);}
+  void BuildFolderMenu(){var menu=folders.ContextMenu;menu.Items.Clear();Item(menu,"新建分类",NewFolder);if(folder=="*"||folder=="")return;var current=store.Folders().FirstOrDefault(f=>f.Id==folder);if(current==null)return;Item(menu,"重命名",()=>{string name=Prompt("重命名分类","分类名称",current.Name);if(name!=null){store.RenameFolder(current.Id,name);Refresh();}});Item(menu,"删除分类（内容转到未分类）",()=>{if(MessageBox.Show(owner,"仅删除分类，里面的收藏转到未分类，原文件不受影响。","删除分类",MessageBoxButton.OKCancel)!=MessageBoxResult.OK)return;store.DeleteFolder(current.Id);folder="";Refresh();});}
+  void Open(FileReference row){if(row==null)return;Try(()=>{if(!row.Exists){MessageBox.Show(owner,"原文件已移动、重命名，或磁盘暂时不可用。请右键“重新定位”，不会删除收藏。","暂时无法打开");return;}open(row.Path,row.Name);});}
+  void Relink(FileReference row){if(row.Directory){using(var d=new System.Windows.Forms.FolderBrowserDialog())if(d.ShowDialog()==System.Windows.Forms.DialogResult.OK)store.Relink(row.Id,d.SelectedPath);}else{var d=new Microsoft.Win32.OpenFileDialog{Title="重新定位原文件",Filter="全部文件|*.*"};if(d.ShowDialog(owner)==true)store.Relink(row.Id,d.FileName);}RefreshFiles();}
+  void Remove(){var rows=Selected();if(rows.Count==0)return;Try(()=>{store.Remove(rows.Select(r=>r.Id));RefreshFiles();status("已移除 "+rows.Count+" 个快捷收藏，原文件未动。Ctrl+Z 可恢复。");});}
+  void Undo(){Try(()=>{status(store.Undo()?"已撤销本地收藏的上一步操作":"本地收藏暂无可撤销操作");Refresh();});}
+  public void HandleKey(KeyEventArgs e){if(Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase)return;if(e.Key==Key.Z&&Keyboard.Modifiers==ModifierKeys.Control){Undo();e.Handled=true;}else if(e.Key==Key.A&&Keyboard.Modifiers==ModifierKeys.Control){files.SelectAll();e.Handled=true;}else if(e.Key==Key.Delete){Remove();e.Handled=true;}else if(e.Key==Key.Enter){if(Selected().Count==1)Open(Selected()[0]);e.Handled=true;}else if(e.Key==Key.F5){Refresh();e.Handled=true;}else if(e.Key==Key.Escape){files.SelectedItems.Clear();e.Handled=true;}}
+ }
+}

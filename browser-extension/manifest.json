@@ -1,0 +1,13 @@
+{
+ "manifest_version": 3,
+ "name": "Mori Desk · 图片与网址收藏",
+ "version": "0.2.13",
+ "description": "右键或拖拽收藏图片、动图和网页视频，保留原文件与来源网址。需要安装 Mori 桌面程序和本机连接。",
+ "permissions": ["nativeMessaging", "contextMenus", "storage"],
+ "optional_permissions": ["bookmarks"],
+ "icons": {"16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png"},
+ "host_permissions": ["https://*/*", "http://*/*"],
+ "background": {"service_worker": "background.js"},
+ "content_scripts": [{"matches": ["https://*/*", "http://*/*"], "all_frames": true, "js": ["preferences.js", "collector-text.js", "drag-geometry.js", "media-source.js", "content.js"]}],
+ "action": {"default_popup": "popup.html", "default_title": "Mori · 收藏与浏览器书签导入"}
+}

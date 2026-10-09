@@ -1,0 +1,14 @@
+{
+  "Schema": 1,
+  "Revision": 1,
+  "Version": "中英双向 1.9 · Luma 适配 1",
+  "Artifacts": [
+    {"Id":"python","Url":"https://www.python.org/ftp/python/3.13.12/python-3.13.12-embed-amd64.zip","Bytes":10941233,"Sha256":"76f238f606250c87c6beac75dccd35ee99070a13490555936abb6cb64ecce3d0"},
+    {"Id":"ctranslate2","Url":"https://files.pythonhosted.org/packages/c2/fc/a9e9e0ce1c0a29bc4c17bf56ccb4274293c0bbb2b8aae561727d82fcb0ca/ctranslate2-4.8.2-cp313-cp313-win_amd64.whl","Bytes":19222061,"Sha256":"399c20a7336b6358f69ce3c615e090eabc08f29735a079fd1ac1e464119e0861"},
+    {"Id":"sentencepiece","Url":"https://files.pythonhosted.org/packages/09/fa/d2d6369257fd2f0de616b1c7110b73fab409ef61b14f1b9e0010ed325914/sentencepiece-0.2.2-cp313-cp313-win_amd64.whl","Bytes":1247987,"Sha256":"74f0ee601047c0c12a783088b51be4e6214a62ecd9e02278c477433cd16e0ed9"},
+    {"Id":"numpy","Url":"https://files.pythonhosted.org/packages/f3/ec/100f2b1794ede74a9b3d7ec6b9736927f56713414c1dfe19ab6c383494bf/numpy-2.5.3-cp313-cp313-win_amd64.whl","Bytes":12560965,"Sha256":"71cad2b2a7451ab79d8f5e71b453485b6775963d5cf794179144a7463fe6e8ec"},
+    {"Id":"pyyaml","Url":"https://files.pythonhosted.org/packages/97/c9/39d5b874e8b28845e4ec2202b5da735d0199dbe5b8fb85f91398814a9a46/pyyaml-6.0.3-cp313-cp313-win_amd64.whl","Bytes":154090,"Sha256":"79005a0d97d5ddabfeeea4cf676af11e647e41d81c9a7722a193022accdb6b7c"},
+    {"Id":"en_zh","Url":"https://argos-net.com/v1/translate-en_zh-1_9.argosmodel","Bytes":70743021,"Sha256":"433e7c4f034d87fbe2353161e05f18646d7999452f801a4e1f0378522b9850ab"},
+    {"Id":"zh_en","Url":"https://argos-net.com/v1/translate-zh_en-1_9.argosmodel","Bytes":74481402,"Sha256":"62e7af5a3a48b530e47b7b3e5c78c2de79073ecd815750d2bf3ab35b4a67da2d"}
+  ]
+}
