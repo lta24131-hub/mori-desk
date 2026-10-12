@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using System.Diagnostics;
 namespace MoriDeskInstaller {
  static class Program {
-  const string Version="0.1.0-preview";
+  const string Version="0.1.1-preview";
   static string Extract(string folder){Directory.CreateDirectory(folder);string prefix=Path.GetFullPath(folder).TrimEnd('\\')+"\\";using(var source=Assembly.GetExecutingAssembly().GetManifestResourceStream("MoriDesk.Payload.zip"))using(var zip=new ZipArchive(source,ZipArchiveMode.Read)){foreach(var entry in zip.Entries){string file=Path.GetFullPath(Path.Combine(prefix,entry.FullName));if(!file.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("安装包路径异常");if(string.IsNullOrEmpty(entry.Name)){Directory.CreateDirectory(file);continue;}Directory.CreateDirectory(Path.GetDirectoryName(file));using(var input=entry.Open())using(var output=new FileStream(file,FileMode.CreateNew,FileAccess.Write))input.CopyTo(output);}}string exe=Path.Combine(folder,"Mori.exe");if(!File.Exists(exe))throw new InvalidDataException("安装包缺少程序");return exe;}
   static void Shortcut(string location,string exe){object shell=null,link=null;try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));link=((dynamic)shell).CreateShortcut(location);dynamic shortcut=link;shortcut.TargetPath=exe;shortcut.WorkingDirectory=Path.GetDirectoryName(exe);shortcut.Description="Mori Desk · 素材、截图、翻译与看图";shortcut.IconLocation=exe+",0";shortcut.Save();}finally{if(link!=null)Marshal.FinalReleaseComObject(link);if(shell!=null)Marshal.FinalReleaseComObject(shell);}}
   [STAThread] static int Main(string[] args){Application.EnableVisualStyles();

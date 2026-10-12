@@ -41,7 +41,7 @@ namespace Mori {
      check(labels.Contains("移动到文件夹…")&&Item(menu,"复制网址").InputGestureText=="Ctrl+C","bookmark move wording and copy shortcut match actual behavior");
      Select(main,web,web2);labels=Labels(main.CreateAssetMenu(web));check(!labels.Contains("打开网址")&&labels.Contains("复制选中网址"),"multi-select menu does not imply opening only one of multiple selected websites");
      check(MainWindow.BookmarkCopyText(new[]{web,web2})==web.Source+Environment.NewLine+web2.Source,"copy selected websites yields actual addresses in separate lines, not URL files");
-     var more=main.CreateMoreMenu();labels=Labels(more);check(labels.Contains("导入")&&labels.Contains("图库管理")&&labels.Contains("显示")&&labels.Last()=="退出 Mori","more menu groups functions with exit last");
+     var more=main.CreateMoreMenu();labels=Labels(more);check(labels.Contains("导入")&&labels.Contains("图库管理")&&labels.Contains("显示")&&labels.Last()=="退出 Mori Desk","more menu groups functions with exit last");
      check(!labels.Any(l=>l.Contains("规划中"))&&Item(more,"导入").Items.Count==4,"more menu has no nonfunctional planned feature and preserves all four imports");
      check(!Labels(main.CreateGalleryMenu()).Contains("瀑布布局")&&!Labels(main.CreateGalleryMenu()).Contains("显示信息"),"website display menu omits irrelevant image layout settings");
      check(Item(more,"显示").Items.Count>4&&Labels(Item(more,"图库管理")).Contains("从备份恢复到新文件夹…"),"display recovery and backup restore remain discoverable");

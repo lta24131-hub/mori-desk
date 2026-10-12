@@ -55,11 +55,10 @@ namespace Mori {
    while(viewMenu.Items.Count>0){var entry=viewMenu.Items[0];viewMenu.Items.RemoveAt(0);display.Items.Add(entry);}menu.Items.Add(display);
    menu.Items.Add(new Separator());menu.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));
    menu.Items.Add(ActionItem("操作说明",delegate{MessageBox.Show(Window,"全部素材汇总图片（含动图 / SVG）、视频和音频；也可分别浏览。\n网址、文档（PDF）单独显示，不混入全部素材。\n现有素材分类、星标和回收站仍包含所有本地类型，可筛选；网址文件夹独立管理。\n音频双击使用电脑默认播放器打开。\n\nCtrl+F：搜索当前页面    Ctrl+O：导入\nCtrl+C：复制素材 / 网址    Ctrl+V：粘贴收藏\nSpace：预览 / 打开    Esc：取消选择\nCtrl+Z：撤销可恢复操作    F5：刷新\n\n删除分类保留内容；移到回收站可以恢复；永久删除会确认。\n搜索支持名称、标签、备注；相似图片不是 AI 语义搜索。","Mori · 操作说明");}));
-   menu.Items.Add(new Separator());menu.Items.Add(ActionItem("退出 Mori",ExitApplication,"",!busy));return menu;
+   menu.Items.Add(new Separator());menu.Items.Add(ActionItem("退出 Mori Desk",ExitApplication,"",!busy));return menu;
   }
   void ShowBrowserExtension(){
-   string dir=Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"..","browser-extension"));if(Directory.Exists(dir))Process.Start("explorer.exe",dir);
-   MessageBox.Show(Window,"插件随 Mori 提供，支持拖拽图片、右键收藏和保存网址。\n\n在 Chrome / Edge 扩展管理页加载插件，并按安装说明注册本机连接。更新后重新加载插件、刷新网页。\n不会自动更改浏览器设置。","浏览器收藏插件");
+   MoriDesk.BrowserConnection.Show(Window,PreviewMode);
   }
   void More(){var menu=CreateMoreMenu();menu.PlacementTarget=B("More");menu.Placement=PlacementMode.Bottom;menu.IsOpen=true;}
   internal ContextMenu CreateAssetMenu(Asset a){

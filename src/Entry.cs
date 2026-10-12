@@ -5,8 +5,8 @@ using System.Reflection;
 using System.Windows;
 [assembly: AssemblyTitle("Mori Desk")]
 [assembly: AssemblyProduct("Mori Desk")]
-[assembly: AssemblyVersion("0.1.0.0")]
-[assembly: AssemblyFileVersion("0.1.0.0")]
+[assembly: AssemblyVersion("0.1.1.0")]
+[assembly: AssemblyFileVersion("0.1.1.0")]
 namespace MoriDesk {
  public static class Entry {
   public static bool InteractiveShell;
@@ -16,6 +16,7 @@ namespace MoriDesk {
    if(worker!=null)return QingJie.OcrWorker.Execute(worker.Substring(13));
    if(args.Length>0&&args[0]=="--suite-test")return SuiteTests.Run();
    if(args.Length>0&&args[0]=="--integration-test")return IntegrationTests.Run();
+   if(args.Length>0&&args[0]=="--register-extension"){try{if(args.Length!=2)throw new ArgumentException("需要提供扩展 ID");BrowserConnection.Register(args[1]);return 0;}catch(Exception ex){MessageBox.Show(ex.Message,"浏览器连接未完成");return 1;}}
    if(args.Length>0&&args[0]=="--model")return ModelWindow.Run(args.Length>1?args[1]:null);
    if(args.Length>0&&args[0]=="--image")return ImageBrowser.Run(args.Length>1?args[1]:null);
    InteractiveShell=args.Length==0||new[]{"--ui-test","--library","--startup"}.Contains(args[0]);return Mori.Program.Main(args);

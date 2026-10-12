@@ -19,6 +19,7 @@ namespace MoriDesk {
     string backup=Path.Combine(root,"test.mori.zip");lib.Backup(backup);Check(File.Exists(backup),"backup covers reference DB");
    }
    Check(Settings.ConfigDir.EndsWith("MoriDesk"),"independent settings");Check(new Settings().LibraryPath.StartsWith(Settings.ConfigDir),"independent library");Check(QingJie.OcrLanguagePacks.Folder.StartsWith(Settings.ConfigDir),"independent languages");Check(QingJie.OfflinePacks.Folder.StartsWith(Settings.ConfigDir),"independent offline packs");Check(StartupRegistration.ValueName=="MoriDesk","independent startup");foreach(string ext in FileRouter.Models)Check(FileRouter.Kind("test"+ext)=="model","route "+ext);foreach(string ext in FileRouter.Pictures)Check(FileRouter.Kind("test"+ext)=="image","route "+ext);Check(FileRouter.Kind("document.pdf")=="external","external fallback");
+   IterationTests.Run(root,Check);
    File.WriteAllText(log,"PASS "+checks+" checks\r\nFixtures: "+root+"\r\n"+DateTime.Now.ToString("O"),Encoding.UTF8);return 0;
   }catch(Exception ex){File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\nFixtures: "+root,Encoding.UTF8);return 1;}}
  }

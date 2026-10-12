@@ -14,7 +14,7 @@ Copy-Item "$suiteRoot\README.md","$suiteRoot\Register-Extension.ps1" $payload
 Copy-Item "$suiteRoot\docs" "$payload\docs" -Recurse
 Copy-Item "$suiteRoot\RELEASE-NOTES.md" $payload
 Copy-Item -LiteralPath "$suiteRoot\docs\使用说明.md" -Destination "$payload\使用说明.txt"
-$zip=Join-Path $releaseRoot 'Mori-Desk-0.1.0-preview-portable.zip'
+$zip=Join-Path $releaseRoot 'Mori-Desk-0.1.1-preview-portable.zip'
 Compress-Archive -Path "$payload\*" -DestinationPath $zip -CompressionLevel Optimal
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $refs=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.IO.Compression.dll','Microsoft.CSharp.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }

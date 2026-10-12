@@ -4,12 +4,13 @@ using System.IO;
 using System.Linq;
 using Mori;
 namespace MoriDesk {
- public sealed class FileReference {
+ public sealed class FileReference : System.ComponentModel.INotifyPropertyChanged {
   public string Id {get;set;} public string Name {get;set;} public string Path {get;set;} public string Folder {get;set;} public bool Directory {get;set;}
   public string Kind {get{return Directory?"文件夹":System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();}}
   // Checked only when opening/refreshing this page; never crawl or hash originals.
   public bool Exists {get{return Directory?System.IO.Directory.Exists(Path):File.Exists(Path);}}
-  public string State {get;set;}
+  string state; public string State {get{return state;}set{if(state==value)return;state=value;var handler=PropertyChanged;if(handler!=null)handler(this,new System.ComponentModel.PropertyChangedEventArgs("State"));}}
+  public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
  }
  public sealed class ReferenceFolder {public string Id {get;set;} public string Name {get;set;} public override string ToString(){return Name;}}
  public sealed class ReferenceStore {
