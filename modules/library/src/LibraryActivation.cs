@@ -18,7 +18,7 @@ namespace Mori {
      var clock=Stopwatch.StartNew();bool opened=false;
      while(clock.ElapsedMilliseconds<15000){if(ready.WaitOne(100)){opened=true;break;}if(child.HasExited)break;}
      if(!opened||child.HasExited)throw new IOException("新图库未能完成启动，默认保存位置没有改变。请稍后重试。");
-     if(!preview){var settings=Settings.Load();settings.LibraryPath=root;settings.Save();}
+     if(!preview)Settings.RememberLibrary(root);
      activate.Set();committed=true;
     } finally {
      if(child!=null){if(!committed)try{if(!child.HasExited)child.CloseMainWindow();}catch(InvalidOperationException){}child.Dispose();}

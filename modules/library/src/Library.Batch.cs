@@ -13,6 +13,7 @@ namespace Mori {
     var valid=new HashSet<string>(All().Where(a=>!a.Deleted&&a.IsBookmark==bookmarks).Select(a=>a.Id));
     if(selected.Any(id=>!valid.Contains(id)))throw new InvalidOperationException("所选内容已变化，请刷新后重试；网址与素材不能混合移动。");
     foreach(string id in selected){
+     if(AssignReference(id,folder))continue;
      Db.Exec("DELETE FROM memberships WHERE asset="+Q(id));
      if(folder!="")Db.Exec("INSERT INTO memberships(asset,folder) VALUES("+Q(id)+","+Q(folder)+")");
     }

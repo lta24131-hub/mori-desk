@@ -40,7 +40,7 @@ namespace QingJie {
         string translationTarget="zh";
         readonly TextBlock translationStatus=new TextBlock {Foreground=Brushes.White,Background=Ui.Brush("#E025302B"),Padding=new Thickness(9,5,9,5),MaxWidth=420,TextWrapping=TextWrapping.Wrap,Visibility=Visibility.Collapsed};
         CancellationTokenSource translationCancel;
-        bool closed;
+        bool closed,collecting;
         readonly System.Windows.Threading.DispatcherTimer cursorLabelTimer=new System.Windows.Threading.DispatcherTimer {Interval=TimeSpan.FromMilliseconds(850)};
         public CaptureWindow(Snapshot snapshot) : this(snapshot,null) {}
         internal CaptureWindow(Snapshot snapshot,CaptureTargets targets) {
@@ -56,7 +56,11 @@ namespace QingJie {
             var targetMenu=Ui.TranslationTarget(translationTarget,language=>{translationTarget=language;ResetTranslation();surface.InvalidateVisual();});toolbar.Children.Add(targetMenu);
             targetMenu.ContextMenu.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape){e.Handled=true;targetMenu.ContextMenu.IsOpen=false;AppState.CancelCapture();}};
             toolbar.Children.Add(Ui.Tool("pin","贴到屏幕",Pin));toolbar.Children.Add(Ui.Tool("save","保存 Ctrl+S",Save));
-            if(MoriDesk.DeskRuntime.CollectImage!=null)toolbar.Children.Add(Ui.Tool("copy","收藏到素材库（保存副本）",async ()=>{try{if(await MoriDesk.DeskRuntime.CollectImage(surface.Export()))AppState.CancelCapture();}catch(Exception ex){MessageBox.Show("收藏失败："+ex.Message,"Mori Desk");}}));
+            if(MoriDesk.DeskRuntime.CollectImage!=null){
+                var collect=Ui.Tool("library","收藏到素材库 · 未分类 · Ctrl+D",async ()=>{await CollectToLibraryAsync();});
+                collect.Name="CaptureCollect";collect.Width=76;
+                var label=new StackPanel{Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center};label.Children.Add(new ToolIcon("library"));label.Children.Add(new TextBlock{Text="收藏",FontSize=12,Margin=new Thickness(5,0,0,0),VerticalAlignment=VerticalAlignment.Center});collect.Content=label;toolbar.Children.Add(collect);
+            }
             overlay.Children.Add(translationStatus);
             Ui.Separator(toolbar);toolbar.Children.Add(Ui.Tool("close","取消 Esc",AppState.CancelCapture));toolbar.Children.Add(Ui.Tool("done","复制并完成 Enter",Copy));
             properties.Children.Add(lineModes);
@@ -169,12 +173,30 @@ namespace QingJie {
         void Undo(){CommitText();if(surface.Marks.Count>0){redo.Push(surface.Marks[surface.Marks.Count-1]);surface.Marks.RemoveAt(surface.Marks.Count-1);}last=null;surface.InvalidateVisual();}
         void Redo(){if(redo.Count>0)surface.Marks.Add(redo.Pop());surface.InvalidateVisual();}
         void KeyDownHandler(object s,KeyEventArgs e){
+            if(collecting){e.Handled=true;return;}
             if(e.Key==Key.Escape){e.Handled=true;AppState.CancelCapture();return;}
             if(e.Key==Key.LeftCtrl||e.Key==Key.RightCtrl)UpdateSnap(Mouse.GetPosition(surface));
+            if(e.Key==Key.D&&Keyboard.Modifiers==ModifierKeys.Control&&MoriDesk.DeskRuntime.CollectImage!=null){e.Handled=true;CollectToLibrary();return;}
             if(textEditor!=null){if(e.Key==Key.Enter&&(Keyboard.Modifiers&ModifierKeys.Control)!=0){CommitText();e.Handled=true;}return;}
             if(e.Key==Key.Enter){Copy();e.Handled=true;}else if((Keyboard.Modifiers&ModifierKeys.Control)!=0){if(e.Key==Key.Z)Undo();else if(e.Key==Key.Y)Redo();else if(e.Key==Key.S)Save();else if(e.Key==Key.C)Copy();}
         }
         void Guard(Action f){try{CommitText();f();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Luma",MessageBoxButton.OK,MessageBoxImage.Information);}}
+        async void CollectToLibrary(){await CollectToLibraryAsync();}
+        internal async System.Threading.Tasks.Task<bool> CollectToLibraryAsync(){
+            var collect=MoriDesk.DeskRuntime.CollectImage;
+            if(closed||collecting||collect==null)return false;
+            collecting=true;
+            try{
+                CommitText();var image=surface.Export();
+                surface.IsEnabled=false;toolbar.IsEnabled=false;properties.IsEnabled=false;
+                TranslationStatus("正在收藏到素材库…");
+                bool saved=await collect(image);
+                if(closed)return saved;
+                if(saved){Close();return true;}
+                TranslationStatus("尚未收藏，截图已保留；可以重试、复制或保存。");return false;
+            }catch(Exception ex){if(!closed)TranslationStatus("收藏失败，截图已保留："+ex.Message);return false;}
+            finally{collecting=false;if(!closed){surface.IsEnabled=true;toolbar.IsEnabled=true;properties.IsEnabled=true;}}
+        }
         void Copy(){Guard(()=>{ImageFiles.Copy(surface.Export());Close();});}
         void Save(){Guard(()=>{Topmost=false;try{if(ImageFiles.Save(surface.Export(),this))Close();}finally{Topmost=true;}});}
         void Pin(){Guard(()=>{var image=surface.Export();var crop=Geometry.PixelCrop(surface.Selection,surface.ScaleX,surface.ScaleY,shot.Image.PixelWidth,shot.Image.PixelHeight);var bounds=new Int32Rect(shot.Bounds.X+crop.X,shot.Bounds.Y+crop.Y,crop.Width,crop.Height);Close();AppState.Pins.NewAt(image,bounds);});}

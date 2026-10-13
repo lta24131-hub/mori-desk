@@ -10,7 +10,7 @@ using System.Windows.Threading;
 
 namespace Mori {
  public static class TrayTests {
-  sealed class FakeTray:ITrayHost {public int Hidden;public bool Disposed;public void NotifyHidden(){Hidden++;}public void Dispose(){Disposed=true;}}
+  sealed class FakeTray:ITrayHost {public int Hidden;public bool Disposed;public void NotifyHidden(){Hidden++;}public void NotifyMessage(string message){}public void Dispose(){Disposed=true;}}
   static object Field(MainWindow main,string name){return typeof(MainWindow).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(main);}
   static void Invoke(MainWindow main,string method,params object[] args){typeof(MainWindow).GetMethod(method,BindingFlags.Instance|BindingFlags.NonPublic,null,args.Select(a=>a.GetType()).ToArray(),null).Invoke(main,args);}
   static void Pump(){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);}
@@ -18,18 +18,27 @@ namespace Mori {
    Directory.CreateDirectory(output);var app=Application.Current??new Application();var mode=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
    try{using(var lib=new Library(Path.Combine(output,"library"))){
     var a=lib.ImportBookmark("https://example.com/","测试网址","").Item;var main=new MainWindow(lib){PreviewMode=true};var tray=new FakeTray();main.AttachTray(tray);
+    // The real shell's Loaded handler controls its app lifetime. This fixture
+    // has more tests after its window closes, and must not start desk services.
+    main.DeferDeskServices();bool toolsStarted=MoriDesk.DeskRuntime.Started;
+    main.Window.Loaded+=delegate{app.ShutdownMode=ShutdownMode.OnExplicitShutdown;};
     try{
      main.Window.ShowActivated=false;main.Window.WindowStartupLocation=WindowStartupLocation.Manual;main.Window.Left=-20000;main.Window.Top=-20000;main.Window.Show();Pump();
+     check(app.ShutdownMode==ShutdownMode.OnExplicitShutdown&&MoriDesk.DeskRuntime.Started==toolsStarted,"tray fixture retains its test lifetime without starting screenshot services");
      check(((List<Asset>)Field(main,"visible")).Count==0,"ordinary image library excludes bookmarks");main.SetBookmarkMode(true);Pump();check(((List<Asset>)Field(main,"visible")).Single().Id==a.Id,"independent bookmark area displays bookmarks");
      ((HashSet<string>)Field(main,"selection")).Add(a.Id);Invoke(main,"UpdateInspector");var notes=(TextBox)main.Window.FindName("Notes");notes.Text="尚未保存的笔记";
      main.Window.Close();Pump();check(!main.Window.IsVisible&&!tray.Disposed&&tray.Hidden==1,"window close hides to tray rather than exiting");
      check(main.BackgroundSuspended&&((ListBox)main.Window.FindName("Gallery")).ItemsSource==null&&!((DispatcherTimer)Field(main,"externalTimer")).IsEnabled,"tray suspension releases gallery controls and stops polling");
      check(((BookmarkIcon)main.Window.FindName("DetailSiteIcon")).DataContext==null,"tray suspension also releases inspector icon");
      lib.ImportBookmark("https://example.org/","后台收藏","");main.RestoreFromTray();Pump();
-     check(main.Window.IsVisible&&!main.BackgroundSuspended&&((List<Asset>)Field(main,"visible")).Count==2,"tray restore refreshes browser imports");
+     check(main.Window.IsVisible&&!main.BackgroundSuspended&&((List<Asset>)Field(main,"visible")).Count==1,"tray restore holds the list stable while an inspector draft awaits saving");
+     check(((ListBox)main.Window.FindName("Gallery")).ItemsSource!=null&&((List<AssetRow>)Field(main,"galleryRows")).SelectMany(r=>r.Items).Count()==1,"tray restore rebinds the existing gallery instead of showing an empty list while refresh is deferred");
+     check((bool)Field(main,"refreshDeferred")&&((List<Asset>)Field(main,"all")).Count==1,"tray restore does not force a metadata reload over pending edits");
      check(notes.Text=="尚未保存的笔记"&&((HashSet<string>)Field(main,"selection")).Contains(a.Id),"tray restore preserves pending notes and selection");
      check(((BookmarkIcon)main.Window.FindName("DetailSiteIcon")).DataContext is Asset,"tray restore rebinds selected inspector without replacing edits");
-     notes.Text="";main.CloseForReplacement();Pump();check(tray.Disposed&&!main.Window.IsVisible,"replacement or explicit exit really closes and disposes tray");
+     Invoke(main,"SaveMetadata");Pump();
+     check(((List<Asset>)Field(main,"visible")).Count==2&&lib.All().Single(i=>i.Id==a.Id).Notes=="尚未保存的笔记","saving the preserved draft resumes the deferred browser-import refresh");
+     main.CloseForReplacement();Pump();check(tray.Disposed&&!main.Window.IsVisible,"replacement or explicit exit really closes and disposes tray");
     }finally{if(!tray.Disposed)main.CloseForReplacement();}
    }
    string eventName="Local\\Mori-test-"+Guid.NewGuid().ToString("N");using(var handle=new EventWaitHandle(false,EventResetMode.AutoReset,eventName)){check(TrayHost.ActivateExisting(eventName)&&handle.WaitOne(100),"second launch activation uses named event without polling");}check(!TrayHost.ActivateExisting(eventName),"missing activation event fails safely");

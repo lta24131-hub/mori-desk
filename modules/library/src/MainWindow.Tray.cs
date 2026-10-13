@@ -34,7 +34,11 @@ namespace Mori {
   }
   void ResumeBackground(){
    if(!backgroundSuspended||!Window.IsVisible||Window.WindowState==WindowState.Minimized)return;
-   backgroundSuspended=false;ReloadFolders();Refresh(false);UpdateInspectorPreview();externalTimer.Start();
+   backgroundSuspended=false;if(boardMode){boardPage.Refresh();externalTimer.Start();return;}if(referenceMode){referencePage.Refresh();externalTimer.Start();return;}ReloadFolders();Refresh(false);
+   // A pending inspector draft postpones metadata refresh, but suspension has
+   // released the gallery controls. Rebind the already-visible assets without
+   // loading new metadata or replacing the user's unsaved edits.
+   if(refreshDeferred)BuildRows();UpdateInspectorPreview();externalTimer.Start();
    Window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded,new Action(delegate{var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));if(scroll!=null)scroll.ScrollToVerticalOffset(suspendedOffset);}));
   }
   internal void ExitApplication(){

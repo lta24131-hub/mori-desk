@@ -30,6 +30,7 @@ namespace Mori {
   }
   internal ContextMenu CreateGalleryMenu(){
    var menu=Theme.Menu(Window);var sort=new MenuItem{Header="排列方式"};var combo=Find<ComboBox>("Sort");
+   if(LocalCollectionsActive){if(localCollection=="")menu.Items.Add(ActionItem("新建分类文件夹…",()=>NewLocalCollection(false),"",!busy));else{menu.Items.Add(ActionItem("返回本地收藏",()=>OpenLocalCollection("")));var actions=CreateLocalCollectionMenu(localCollection);while(actions.Items.Count>1){var entry=actions.Items[1];actions.Items.RemoveAt(1);menu.Items.Add(entry);}}menu.Items.Add(new Separator());}
    for(int i=0;i<combo.Items.Count;i++){int index=i;var choice=ViewChoice(Convert.ToString(((ComboBoxItem)combo.Items[i]).Content),"",combo.SelectedIndex==i,delegate{combo.SelectedIndex=index;});sort.Items.Add(choice);}menu.Items.Add(sort);
    var info=new MenuItem{Header="显示信息",IsEnabled=!bookmarkMode};
    info.Items.Add(ViewChoice("文件名","",showAssetNames,delegate{SetGalleryInformation(!showAssetNames,showAssetDetails);}));

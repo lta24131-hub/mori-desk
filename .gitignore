@@ -27,6 +27,8 @@
 **/*.tmp
 **/*.pdb
 **/settings.json
+**/local-connection.js*
+**/local-key.txt*
 **/test-output/
 **/test-languages/
 **/browser-artifacts/

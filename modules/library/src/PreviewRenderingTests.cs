@@ -81,6 +81,8 @@ namespace Mori {
     var view=new PreviewViewport(1,1);view.Resize(40,40);var control=new PreviewPicture(image,view){Size=new Size(40,40)};
     var handle=control.Handle;var animating=typeof(PreviewPicture).GetField("animating",BindingFlags.Instance|BindingFlags.NonPublic);
     check((bool)animating.GetValue(control),"preview starts GIF animation on native handle creation");
+    control.SetPlaybackVisible(false);check(!(bool)animating.GetValue(control),"hidden or minimized preview explicitly stops GIF animation callbacks");
+    control.SetPlaybackVisible(true);check((bool)animating.GetValue(control),"restoring a GIF preview resumes animation without decoding another bitmap");
     bool sawBlue=false;using(var output=new Bitmap(40,40)){var timer=System.Diagnostics.Stopwatch.StartNew();while(timer.ElapsedMilliseconds<1500&&!sawBlue){System.Threading.Thread.Sleep(30);System.Windows.Forms.Application.DoEvents();control.DrawToBitmap(output,new Rectangle(0,0,40,40));var pixel=output.GetPixel(20,20);sawBlue=pixel.B>pixel.R+40;}}
     check(sawBlue,"preview renderer advances animated GIF frame");
     control.Dispose();check(!(bool)animating.GetValue(control),"preview disposal stops GIF animation callbacks");

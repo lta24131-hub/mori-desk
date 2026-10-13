@@ -28,7 +28,7 @@ namespace Mori {
   internal static string ChooseParent(Window owner,List<Category> folders,HashSet<string> excluded,int count){
    return Show(owner,ParentChoices(folders,excluded),"移动分类","已选择 "+count+" 个分类 · 选择新的上级\n子分类和素材一起保留；父子同时选中时保留原层级。可 Ctrl+Z 撤销。","移动");
   }
-  static string Show(Window owner,List<CategoryChoice> choices,string title,string description,string action){
+  internal static string Show(Window owner,List<CategoryChoice> choices,string title,string description,string action){
    var dialog=new Window{Owner=owner,Title=title,Width=470,Height=480,MinWidth=380,MinHeight=340,WindowStartupLocation=WindowStartupLocation.CenterOwner,ShowInTaskbar=false};Theme.Attach(dialog,owner);
    var root=new Grid{Margin=new Thickness(20)};dialog.Content=root;
    foreach(var height in new[]{GridLength.Auto,GridLength.Auto,new GridLength(1,GridUnitType.Star),GridLength.Auto})root.RowDefinitions.Add(new RowDefinition{Height=height});

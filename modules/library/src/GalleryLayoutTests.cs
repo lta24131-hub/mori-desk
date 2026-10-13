@@ -42,8 +42,9 @@ namespace Mori {
    string path=Path.Combine(output,"settings.json");new Settings{LibraryPath=output,Theme="light",ThumbnailSize=290}.SaveTo(path);var settings=Settings.LoadFrom(path);
    check(settings.ThumbnailSize==290&&settings.Theme=="light"&&settings.LibraryPath==output,"size preference survives restart with library/theme unchanged");
    settings.ThumbnailSize=9999;check(settings.ThumbnailSize==360,"oversize preference bounded");settings.ThumbnailSize=-10;check(settings.ThumbnailSize==120,"undersize preference bounded");
-   File.WriteAllText(path,"{\"ThumbnailSize\":\"broken\",\"Theme\":\"light\"}");check(Settings.LoadFrom(path).ThumbnailSize==210&&Settings.LoadFrom(path).Theme=="light","malformed size falls back without losing theme");
-   File.WriteAllText(path,"{\"Theme\":\"light\"}");check(Settings.LoadFrom(path).ThumbnailSize==210,"legacy preferences get larger default thumbnails");
+   var json=new System.Web.Script.Serialization.JavaScriptSerializer();
+   File.WriteAllText(path,json.Serialize(new{LibraryPath=output,ThumbnailSize="broken",Theme="light"}));check(Settings.LoadFrom(path).ThumbnailSize==210&&Settings.LoadFrom(path).Theme=="light","malformed size falls back without losing theme");
+   File.WriteAllText(path,json.Serialize(new{LibraryPath=output,Theme="light"}));check(Settings.LoadFrom(path).ThumbnailSize==210,"legacy preferences get larger default thumbnails");
    // Exercise real templates, never send input to the desktop.
    var app=Application.Current??new Application();var old=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;Window window=null;
    try{

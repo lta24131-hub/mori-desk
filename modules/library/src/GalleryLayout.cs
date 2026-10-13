@@ -18,6 +18,9 @@ namespace Mori {
  public sealed class AssetRow {
   public List<GalleryTile> Items {get;set;}
   public double Height {get;set;}
+  public string Heading {get;set;}
+  public double HeadingHeight {get{return string.IsNullOrEmpty(Heading)?0:34;}}
+  public double BodyHeight {get{return Height-HeadingHeight;}}
  }
  // Only row metadata is built here. WPF still virtualizes/recycles the rows;
  // changing size never decodes originals or keeps a full-library image cache.
@@ -25,6 +28,16 @@ namespace Mori {
   public const int DefaultSize=210,MinSize=120,MaxSize=360;
   const double TileOverhead=16; // 12px gap + 4px selection border
   public static int Clamp(int size){return Math.Max(MinSize,Math.Min(MaxSize,size));}
+  public static List<AssetRow> BuildShortcuts(IList<Asset> assets,double available,int size){
+   var rows=new List<AssetRow>();double scale=Math.Max(.8,Math.Min(1.3,(double)Clamp(size)/DefaultSize));
+   foreach(bool folders in new[]{true,false}){
+    var group=assets.Where(a=>a.IsDirectory==folders).ToList();double tileWidth=Math.Min(Math.Max(24,available-16),(folders?180:100)*scale),imageHeight=(folders?100:66)*scale;
+    int columns=Math.Max(1,(int)(available/(tileWidth+16)));
+    for(int i=0;i<group.Count;i+=columns){var row=new AssetRow{Items=new List<GalleryTile>(),Heading=i==0?(folders?"文件夹":"文件"):null};row.Height=imageHeight+39+row.HeadingHeight;
+     for(int j=i;j<Math.Min(i+columns,group.Count);j++)row.Items.Add(new GalleryTile{Asset=group[j],Width=tileWidth,ImageHeight=imageHeight,X=(j-i)*(tileWidth+16),ShowName=true,ShowDetails=false});rows.Add(row);
+    }
+   }return rows;
+  }
   public static double Ratio(Asset a){return a.Width>0&&a.Height>0?Math.Max(.35,Math.Min(3,(double)a.Width/a.Height)):1;}
   public static List<AssetRow> Build(IList<Asset> assets,double available,int size){return Build(assets,available,size,false,true,true);}
   public static List<AssetRow> Build(IList<Asset> assets,double available,int size,bool waterfall,bool showName,bool showDetails){

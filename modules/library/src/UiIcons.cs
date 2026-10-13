@@ -12,6 +12,8 @@ namespace Mori {
   public static string ForMenu(string label){
    label=label??"";
    if(label.StartsWith("撤销"))return "\uE7A7";
+   if(label=="不在全部素材中显示")return "\uED1A";
+   if(label=="在全部素材中显示")return "\uE890";
    if(label.Contains("删除")||label.Contains("回收站"))return "\uE74D";
    if(label.Contains("重命名"))return "\uE70F";
    if(label.Contains("新建"))return "\uE8F4";

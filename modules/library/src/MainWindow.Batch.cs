@@ -47,8 +47,9 @@ namespace Mori {
    B("BatchAll").IsEnabled=!busy&&visible.Count>0;B("BatchClear").IsEnabled=!busy&&count>0;
    B("BatchMove").Visibility=trash?Visibility.Collapsed:Visibility.Visible;B("BatchRestore").Visibility=trash?Visibility.Visible:Visibility.Collapsed;
    foreach(string name in new[]{"BatchMove","BatchRestore","BatchDelete"})B(name).IsEnabled=!busy&&count>0;
-   B("BatchDelete").Content=trash?"永久删除…":"移到回收站";
-   B("BatchMove").ToolTip="把选中内容移到一个分类，替换原有分类归属；可 Ctrl+Z 撤销";
+   B("BatchDelete").Content=trash?"永久删除…":Selected().Any(a=>a.IsReference)?"移除收藏":"移到回收站";
+   B("BatchMove").ToolTip=LocalCollectionsActive?"把选中的快捷方式移到本页分类文件夹；不移动原文件":"把选中内容移到一个分类，替换原有分类归属；可 Ctrl+Z 撤销";
+   B("MoveCategory").Content=LocalCollectionsActive?"移到分类文件夹…":"移动到分类…";
    B("MoveCategory").Visibility=trash||bookmarkMode?Visibility.Collapsed:Visibility.Visible;B("MoveCategory").IsEnabled=!busy&&count>0;
   }
   internal void ApplyCategory(string[] ids,string folder,bool move,bool bookmarks){
@@ -61,6 +62,7 @@ namespace Mori {
    }catch(Exception ex){Status("分类未更改："+ex.Message);}
   }
   void ChooseCategory(bool move){
+   if(LocalCollectionsActive){ChooseLocalCollection();return;}
    if(busy||view=="trash"||selection.Count==0||!PrepareLibraryChange())return;
    var ids=selection.ToArray();bool web=bookmarkMode;move=move||web;
    string target=CategoryPicker.Choose(Window,library.Folders(web),move,ids.Length);

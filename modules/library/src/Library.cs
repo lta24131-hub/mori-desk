@@ -18,16 +18,23 @@ namespace Mori {
         public string Tags {get;set;} public string Notes {get;set;} public string Source {get;set;} public string Added {get;set;} public string Created {get;set;}
         public long Bytes {get;set;} public bool Favorite {get;set;} public bool Deleted {get;set;}
         public int Width {get;set;} public int Height {get;set;} public string Color {get;set;} public string Perceptual {get;set;}
+        public string ReferencePath {get;set;} public string ReferenceSection {get;set;} public bool IsDirectory {get;set;}
+        public string LocalCollection {get;set;} public bool AddedRecovered {get;set;}
+        internal string ThumbnailSourceStamp {get;set;}
+        public bool HiddenFromAll {get;set;}
+        public bool IsReference {get{return !string.IsNullOrEmpty(ReferencePath);}}
+        public bool FileIcon {get{return IsReference&&!IsDirectory&&!MediaTypes.Pictures.Contains(Ext)&&!IsVideo&&!IsAudio;}}
+        public string FileGlyph {get{return ReferenceSection=="models"?"\uF158":"\uE8A5";}}
         bool selected,selecting; ImageSource thumbnail;
         public bool Selected {get{return selected;} set{selected=value; Changed("Selected");}}
         public bool Selecting {get{return selecting;} set{if(selecting==value)return;selecting=value;Changed("Selecting");}}
         public ImageSource Thumbnail {get{return thumbnail;} set{thumbnail=value; Changed("Thumbnail");}}
-        public bool IsBookmark {get{return Ext==".url";}}
+        public bool IsBookmark {get{return !IsReference&&Ext==".url";}}
         public bool IsAudio {get{return MediaTypes.Audio.Contains(Ext);}}
         public bool IsGif {get{return string.Equals(Ext,".gif",StringComparison.OrdinalIgnoreCase);}}
         public bool IsVideo {get{return MediaTypes.Videos.Contains(Ext);}}
         public string SiteName {get{Uri uri;return IsBookmark&&SourceLink.TryParse(Source,out uri)?uri.Host:"";}}
-        public string TypeLabel {get{return IsBookmark?"网址":Ext.TrimStart('.').ToUpperInvariant();}}
+        public string TypeLabel {get{return IsDirectory?"文件夹":IsBookmark?"网址":Ext.TrimStart('.').ToUpperInvariant();}}
         public string Detail {get{return (Width>0?Width+" × "+Height+" · ":"")+Size(Bytes);}}
         public string Dimensions {get{return IsBookmark?SiteName:Width>0&&Height>0?Width+" × "+Height:TypeLabel;}}
         public void NotifyDimensions(){Changed("Dimensions");Changed("Detail");}
@@ -47,10 +54,11 @@ namespace Mori {
             Db=new Database(Path.Combine(Root,".mori","library.db"));
             Db.Exec("CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY, hash TEXT NOT NULL UNIQUE, name TEXT NOT NULL, path TEXT NOT NULL UNIQUE, ext TEXT NOT NULL, bytes INTEGER NOT NULL, tags TEXT DEFAULT '', notes TEXT DEFAULT '', source TEXT DEFAULT '', added TEXT NOT NULL, favorite INTEGER DEFAULT 0, deleted INTEGER DEFAULT 0, width INTEGER DEFAULT 0, height INTEGER DEFAULT 0, color TEXT DEFAULT '', perceptual TEXT DEFAULT '', created TEXT DEFAULT ''); CREATE TABLE IF NOT EXISTS folders(id TEXT PRIMARY KEY, name TEXT NOT NULL, parent TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS memberships(asset TEXT NOT NULL REFERENCES assets(id), folder TEXT NOT NULL REFERENCES folders(id), PRIMARY KEY(asset,folder)); CREATE INDEX IF NOT EXISTS membership_folder ON memberships(folder); CREATE INDEX IF NOT EXISTS assets_added ON assets(added);");
             Db.Transaction(delegate{if(!Db.Query("PRAGMA table_info(assets)").Any(c=>c["name"]=="created"))Db.Exec("ALTER TABLE assets ADD COLUMN created TEXT DEFAULT ''");});
+            Db.Transaction(delegate{if(!Db.Query("PRAGMA table_info(assets)").Any(c=>c["name"]=="hidden_all"))Db.Exec("ALTER TABLE assets ADD COLUMN hidden_all INTEGER NOT NULL DEFAULT 0");});
             InitializeBookmarkFolders();InitializeDeletionRecovery();
         }
         static string Q(string s){return Database.Q(s);}
-        public string FullPath(Asset a){return Inside(Root,a.Relative);}
+        public string FullPath(Asset a){return a.IsReference?Path.GetFullPath(a.ReferencePath):Inside(Root,a.Relative);}
         public static string Inside(string root,string relative){var full=Path.GetFullPath(Path.Combine(root,relative)); var prefix=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar; if(!full.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new IOException("路径超出目标文件夹"); return full;}
         public static string SafeName(string s) {
             foreach(char c in Path.GetInvalidFileNameChars())s=s.Replace(c,'_'); s=s.Trim().TrimEnd('.'); if(s.Length>120)s=s.Substring(0,120).TrimEnd('.');
@@ -130,8 +138,8 @@ namespace Mori {
                 }
             }
         }
-        static Asset ReadAsset(Dictionary<string,string> r){return new Asset{Id=r["id"],Name=r["name"],Relative=r["path"],Ext=r["ext"],Bytes=long.Parse(r["bytes"]),Tags=r["tags"],Notes=r["notes"],Source=r["source"],Added=r["added"],Created=r["created"],Favorite=r["favorite"]=="1",Deleted=r["deleted"]=="1",Width=int.Parse(r["width"]),Height=int.Parse(r["height"]),Color=r["color"],Perceptual=r["perceptual"]};}
-        public List<Asset> All(){return Db.Query("SELECT * FROM assets ORDER BY added DESC").Select(ReadAsset).ToList();}
+        static Asset ReadAsset(Dictionary<string,string> r){return new Asset{Id=r["id"],Name=r["name"],Relative=r["path"],Ext=r["ext"],Bytes=long.Parse(r["bytes"]),Tags=r["tags"],Notes=r["notes"],Source=r["source"],Added=r["added"],Created=r["created"],Favorite=r["favorite"]=="1",Deleted=r["deleted"]=="1",HiddenFromAll=r["hidden_all"]=="1",Width=int.Parse(r["width"]),Height=int.Parse(r["height"]),Color=r["color"],Perceptual=r["perceptual"]};}
+        public List<Asset> All(){var rows=Db.Query("SELECT * FROM assets ORDER BY added DESC").Select(ReadAsset).ToList();if(IncludeReferences)rows.AddRange(ReferenceAssets());return IncludeReferences?rows.OrderByDescending(a=>a.Added,StringComparer.Ordinal).ToList():rows;}
         public List<Category> Folders(){return Db.Query("SELECT * FROM folders ORDER BY name COLLATE NOCASE").Select(r=>new Category{Id=r["id"],Name=r["name"],Parent=r["parent"],Scope=r["scope"]}).ToList();}
         public List<Category> Folders(bool bookmarks){return Folders().Where(f=>(f.Scope=="bookmark")==bookmarks).ToList();}
         public string CreateFolder(string name,string parent){return CreateFolder(name,parent,false);}
@@ -154,25 +162,29 @@ namespace Mori {
                 if(parent==id||(!string.IsNullOrEmpty(parent)&&!folders.Any(f=>f.Id==parent)))parent="";
                 Db.Exec("UPDATE folders SET parent="+Q(parent)+" WHERE parent="+Q(id));
                 Db.Exec("DELETE FROM memberships WHERE folder="+Q(id));
+                UnfileReferences(id);
                 Db.Exec("DELETE FROM folders WHERE id="+Q(id));
             });
             return parent;
         }
         public void AddToFolder(IEnumerable<string> ids,string folder){Db.Transaction(delegate{
             var destination=Folders().FirstOrDefault(f=>f.Id==folder);if(destination==null)throw new InvalidOperationException("分类已不存在，请重新选择");
-            foreach(string id in ids){var asset=Db.Query("SELECT ext FROM assets WHERE id="+Q(id));if(asset.Count!=1||(asset[0]["ext"]==".url")!=(destination.Scope=="bookmark"))throw new InvalidOperationException("图片、视频和文档不能与网址使用同一分类");Db.Exec("INSERT OR IGNORE INTO memberships VALUES("+Q(id)+","+Q(folder)+")");}
+            foreach(string id in ids){if(ReferenceKey(id)){if(destination.Scope=="bookmark")throw new InvalidOperationException("本地文件不能移入网址分类。");AssignReference(id,folder);continue;}var asset=Db.Query("SELECT ext FROM assets WHERE id="+Q(id));if(asset.Count!=1||(asset[0]["ext"]==".url")!=(destination.Scope=="bookmark"))throw new InvalidOperationException("图片、视频和文档不能与网址使用同一分类");Db.Exec("INSERT OR IGNORE INTO memberships VALUES("+Q(id)+","+Q(folder)+")");}
         });}
-        public HashSet<string> Members(string folder,bool children){var folders=new HashSet<string>{folder};if(children){bool change=true;var all=Folders();while(change){change=false;foreach(var f in all)if(folders.Contains(f.Parent)&&folders.Add(f.Id))change=true;}}return new HashSet<string>(Db.Query("SELECT asset FROM memberships WHERE folder IN ("+string.Join(",",folders.Select(Q))+")").Select(r=>r["asset"]));}
-        public HashSet<string> Classified(){return new HashSet<string>(Db.Query("SELECT asset FROM memberships").Select(r=>r["asset"]));}
-        public List<Category> AssetFolders(string id){var ids=new HashSet<string>(Db.Query("SELECT folder FROM memberships WHERE asset="+Q(id)).Select(r=>r["folder"]));return Folders().Where(f=>ids.Contains(f.Id)).ToList();}
-        public void RemoveFromFolder(IEnumerable<string> ids,string folder){Db.Transaction(delegate {foreach(var id in ids)Db.Exec("DELETE FROM memberships WHERE asset="+Q(id)+" AND folder="+Q(folder));});}
-        public void Update(Asset a){Db.Exec("UPDATE assets SET name="+Q(a.Name)+",tags="+Q(a.Tags)+",notes="+Q(a.Notes)+",source="+Q(a.Source)+",favorite="+(a.Favorite?1:0)+" WHERE id="+Q(a.Id));}
-        public void Trash(IEnumerable<string> ids,bool value){Db.Transaction(delegate {foreach(var id in ids)Db.Exec("UPDATE assets SET deleted="+(value?1:0)+" WHERE id="+Q(id));});}
+        public HashSet<string> Members(string folder,bool children){var folders=new HashSet<string>{folder};if(children){bool change=true;var all=Folders();while(change){change=false;foreach(var f in all)if(folders.Contains(f.Parent)&&folders.Add(f.Id))change=true;}}var result=new HashSet<string>(Db.Query("SELECT asset FROM memberships WHERE folder IN ("+string.Join(",",folders.Select(Q))+")").Select(r=>r["asset"]));if(IncludeReferences)result.UnionWith(Db.Query("SELECT id FROM desk_refs WHERE folder IN ("+string.Join(",",folders.Select(Q))+")").Select(r=>ReferencePrefix+r["id"]));return result;}
+        public HashSet<string> Classified(){var result=new HashSet<string>(Db.Query("SELECT asset FROM memberships").Select(r=>r["asset"]));if(IncludeReferences)result.UnionWith(Db.Query("SELECT id FROM desk_refs WHERE folder IN (SELECT id FROM folders)").Select(r=>ReferencePrefix+r["id"]));return result;}
+        public List<Category> AssetFolders(string id){var ids=new HashSet<string>(Db.Query(ReferenceKey(id)?"SELECT folder FROM desk_refs WHERE id="+Q(RawReference(id)):"SELECT folder FROM memberships WHERE asset="+Q(id)).Select(r=>r["folder"]));return Folders().Where(f=>ids.Contains(f.Id)).ToList();}
+        public void RemoveFromFolder(IEnumerable<string> ids,string folder){Db.Transaction(delegate {foreach(var id in ids)if(ReferenceKey(id))Db.Exec("UPDATE desk_refs SET folder='' WHERE id="+Q(RawReference(id))+" AND folder="+Q(folder));else Db.Exec("DELETE FROM memberships WHERE asset="+Q(id)+" AND folder="+Q(folder));});}
+        public void Update(Asset a){Db.Exec("UPDATE "+(a.IsReference?"desk_refs":"assets")+" SET name="+Q(a.Name)+",tags="+Q(a.Tags)+",notes="+Q(a.Notes)+",source="+Q(a.Source)+",favorite="+(a.Favorite?1:0)+" WHERE id="+Q(a.IsReference?RawReference(a.Id):a.Id));}
+        public void Trash(IEnumerable<string> ids,bool value){Db.Transaction(delegate {foreach(var id in ids)if(ReferenceKey(id)){if(value)Db.Exec("DELETE FROM desk_refs WHERE id="+Q(RawReference(id)));}else Db.Exec("UPDATE assets SET deleted="+(value?1:0)+" WHERE id="+Q(id));});}
         public const string ThumbnailSuffix=".512.png";
         public string ThumbnailPath(Asset a){return Path.Combine(Root,".mori","thumbs",a.Id+ThumbnailSuffix);}
         public void BuildThumbnail(Asset a) {
             if(!MediaTypes.Contains(a,"pictures")&&!MediaTypes.Contains(a,"videos"))return;
-            string path=ThumbnailPath(a);if(File.Exists(path))return;
+            string path=ThumbnailPath(a),sourceStamp=null;long sourceBytes=0;
+            if(a.IsReference){sourceStamp=ReferenceThumbnailStamp(a,out sourceBytes);if(sourceStamp==null)return;}
+            if(File.Exists(path)&&(!a.IsReference||a.ThumbnailSourceStamp==sourceStamp))return;
+            int previousWidth=a.Width,previousHeight=a.Height;string previousColor=a.Color,previousPerceptual=a.Perceptual;bool updated=false;
             try {
                 BitmapSource bitmap;
                 if(MainWindow.IsVideo(a)){int width,height;bitmap=VideoThumbnail.Render(FullPath(a),out width,out height);if(bitmap==null)return;if(width>0&&height>0){a.Width=width;a.Height=height;}}
@@ -181,14 +193,20 @@ namespace Mori {
                 using(var stream=File.OpenRead(FullPath(a))){var decoder=BitmapDecoder.Create(stream,BitmapCreateOptions.DelayCreation,BitmapCacheOption.None);a.Width=decoder.Frames[0].PixelWidth;a.Height=decoder.Frames[0].PixelHeight;}
                 if(a.Width<1||a.Height<1)return;
                 double scale=Math.Min(1,512.0/Math.Max(a.Width,a.Height));
-                var raster=new BitmapImage();raster.BeginInit();raster.CacheOption=BitmapCacheOption.OnLoad;raster.DecodePixelWidth=Math.Max(1,(int)(a.Width*scale));raster.DecodePixelHeight=Math.Max(1,(int)(a.Height*scale));raster.UriSource=new Uri(FullPath(a));raster.EndInit();raster.Freeze();bitmap=raster;
+                var raster=new BitmapImage();raster.BeginInit();raster.CacheOption=BitmapCacheOption.OnLoad;if(a.IsReference)raster.CreateOptions=BitmapCreateOptions.IgnoreImageCache;raster.DecodePixelWidth=Math.Max(1,(int)(a.Width*scale));raster.DecodePixelHeight=Math.Max(1,(int)(a.Height*scale));raster.UriSource=new Uri(FullPath(a));raster.EndInit();raster.Freeze();bitmap=raster;
                 }
                 var tiny=new TransformedBitmap(bitmap,new ScaleTransform(9.0/bitmap.PixelWidth,8.0/bitmap.PixelHeight));var pixels=new FormatConvertedBitmap(tiny,PixelFormats.Bgra32,null,0);byte[] data=new byte[9*8*4];pixels.CopyPixels(data,36,0);long red=0,green=0,blue=0,alpha=0;ulong bits=0;
                 for(int y=0;y<8;y++)for(int x=0;x<9;x++){int p=(y*9+x)*4;red+=(long)data[p+2]*data[p+3];green+=(long)data[p+1]*data[p+3];blue+=(long)data[p]*data[p+3];alpha+=data[p+3];if(x<8){int next=p+4;int light=data[p]*114+data[p+1]*587+data[p+2]*299;int right=data[next]*114+data[next+1]*587+data[next+2]*299;if(light>right)bits|=1UL<<(y*8+x);}}
                 if(alpha>0)a.Color=string.Format("#{0:X2}{1:X2}{2:X2}",red/alpha,green/alpha,blue/alpha);a.Perceptual=bits.ToString("X16");
-                var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));string pending=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{using(var output=File.Create(pending))encoder.Save(output);if(!File.Exists(path))File.Move(pending,path);}finally{if(File.Exists(pending))File.Delete(pending);}
-                Db.Exec("UPDATE assets SET width="+a.Width+",height="+a.Height+",color="+Q(a.Color)+",perceptual="+Q(a.Perceptual)+" WHERE id="+Q(a.Id));
+                // A live shortcut may be edited while decoding. Keep its last
+                // good thumbnail unless this entire read describes one version.
+                if(a.IsReference){long currentBytes;if(ReferenceThumbnailStamp(a,out currentBytes)!=sourceStamp)return;}
+                var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));string pending=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{using(var output=File.Create(pending))encoder.Save(output);if(!File.Exists(path))File.Move(pending,path);else if(a.IsReference)File.Replace(pending,path,null);}finally{if(File.Exists(pending))File.Delete(pending);}
+                Db.Exec("UPDATE "+(a.IsReference?"desk_refs":"assets")+" SET width="+a.Width+",height="+a.Height+",color="+Q(a.Color)+",perceptual="+Q(a.Perceptual)+(a.IsReference?",bytes="+sourceBytes+",thumb_stamp="+Q(sourceStamp):"")+" WHERE id="+Q(a.IsReference?RawReference(a.Id):a.Id));
+                if(a.IsReference){a.ThumbnailSourceStamp=sourceStamp;a.Bytes=sourceBytes;}
+                updated=true;
             }catch(NotSupportedException){}catch(FileFormatException){}catch(IOException){}catch(ArgumentException){}
+            finally{if(a.IsReference&&!updated){a.Width=previousWidth;a.Height=previousHeight;a.Color=previousColor;a.Perceptual=previousPerceptual;}}
         }
         public static int Similarity(string a,string b){ulong x,y;if(!ulong.TryParse(a,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out x)||!ulong.TryParse(b,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out y))return 65;ulong v=x^y;int n=0;while(v!=0){n++;v&=v-1;}return n;}
         public int Export(IEnumerable<Asset> assets,string destination,bool hierarchy,string renamePrefix) {

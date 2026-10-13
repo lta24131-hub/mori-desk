@@ -11,6 +11,8 @@ $refs+=@('Windows.Foundation.winmd','Windows.Globalization.winmd','Windows.Media
 $refs+=@('Svg.dll','Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2.Wpf.dll','Tesseract.dll') | ForEach-Object { '/r:'+(Join-Path $output $_) }
 $sources=@(Get-ChildItem "$suiteRoot\modules\library\src\*.cs"; Get-ChildItem "$suiteRoot\modules\capture\src\*.cs" | Where-Object Name -ne 'AssemblyInfo.cs'; Get-ChildItem "$suiteRoot\src\*.cs"; Get-ChildItem "$suiteRoot\tests\*.cs") | ForEach-Object FullName
 $resources=@(
+ '/resource:'+$suiteRoot+'\src\BoardPage.xaml,MoriDesk.BoardPage.xaml'
+ '/resource:'+$suiteRoot+'\src\ReferencePage.xaml,MoriDesk.ReferencePage.xaml'
  '/resource:'+$suiteRoot+'\modules\library\Main.xaml,Mori.Main.xaml'
  '/resource:'+$suiteRoot+'\modules\library\assets\video-player.html,Mori.Video.html'
  '/resource:'+$suiteRoot+'\dependencies\qingjie-icon.png,QingJie.Icon.png'

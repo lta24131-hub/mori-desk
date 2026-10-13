@@ -5,6 +5,8 @@
   <main>
     <section id="home">
       <div id="status" class="status" role="status"></div>
+      <div class="update-row"><span id="update-status" role="status" aria-live="polite"></span><button id="check-update" type="button" data-i18n="checkUpdate">检查更新</button></div>
+      <button id="acknowledge-update" class="update-ack hidden" type="button" data-i18n="acknowledgeUpdate">已检查图库，继续更新</button>
       <button id="import-bookmarks" class="nav">导入 Chrome 书签</button>
       <div id="bookmark-review" class="card hidden"><p id="bookmark-count"></p><p class="note">保留文件夹层级，重复网址使用已有条目，不修改浏览器书签。导入时请保持此窗口打开。</p><button id="bookmark-confirm">确认导入</button> <button id="bookmark-cancel">取消</button></div>
       <p id="bookmark-progress" class="note" role="status"></p>

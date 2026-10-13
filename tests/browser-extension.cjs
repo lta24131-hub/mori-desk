@@ -40,9 +40,9 @@ test('geometry only measures distance to the fixed target; no pointer-following 
   assert.equal(geometry.shouldFollow, undefined);
 });
 
-function background() {
+function background(localOptions = {}) {
   let listener;
-  let clickListener, installedListener, startupListener;
+  let clickListener, installedListener, startupListener, connectedListener;
   let receiver = true;
   let contextImage = {ok: false, error: '这里没有找到可收藏的图片'};
   const menus = new Map();
@@ -52,15 +52,18 @@ function background() {
   const nativeCalls = [];
   const fetchCalls = [];
   let preferences = {language:'zh-CN'};
+  const metadata = {};
+  const storeWrites=[];
   const chrome = {
-    storage:{local:{get:async () => ({moriPreferences:preferences})},onChanged:{addListener(){}}},
+    storage:{local:{get:async () => ({...metadata,moriPreferences:preferences}),set:async values=>{if(localOptions.storageFail)throw Error('storage failed');storeWrites.push(values);Object.assign(metadata,values);}},onChanged:{addListener(){}}},
     runtime: {
       id: 'abcdefghijklmnopabcdefghijklmnop',
       onMessage: {addListener(value) {listener = value;}},
       onInstalled: {addListener(value) {installedListener = value;}},
       onStartup: {addListener(value) {startupListener = value;}},
-      onConnect: {addListener() {}},
+      onConnect: {addListener(value) {connectedListener=value;}},
       sendNativeMessage(host, message, callback) {
+        if(['save','bookmark','importBookmarks'].includes(message.action))assert.equal(metadata.moriUpdatePendingWrite,true,'pre-write journal must be durable before native transmission');
         nativeCalls.push({host, message});
         chrome.runtime.lastError = nativeError ? {message: nativeError} : null;
         callback(nativeError ? undefined : nativeReply);
@@ -84,9 +87,14 @@ function background() {
     }
   };
   const context = vm.createContext({chrome, crypto, URL, AbortController, Uint8Array, setTimeout, clearTimeout,
+    self: {MoriLocalConnection:localOptions.config},
     btoa: value => Buffer.from(value, 'binary').toString('base64'),
     fetch: async (url, options) => {
       fetchCalls.push({url, options});
+      if (url === 'http://127.0.0.1:47891/mori/v1') {
+        if(localOptions.fail)throw Error('Connection lost');
+        return {ok:!localOptions.reject,json:async()=>localOptions.reply||{ok:true,folders:[]}};
+      }
       let delivered = false;
       return {ok: true, headers: {get() {return '3';}}, body: {getReader() {return {read: async () => delivered ? {done: true} : (delivered = true, {value: Uint8Array.of(1, 2, 3), done: false})};}}};
     }
@@ -94,7 +102,7 @@ function background() {
   context.importScripts = file => vm.runInContext(read(file), context);
   vm.runInContext(read('background.js'), context);
   return {
-    nativeCalls, fetchCalls, menus, tabMessages, badges, titles,
+    nativeCalls, fetchCalls, menus, tabMessages, badges, titles,metadata,storeWrites,
     preferences(value) {preferences = {...preferences,...value};},
     install: () => installedListener(), startup: () => startupListener(),
     click: (info, tab = {id: 1, title: '网页标题', url: 'https://example.com/page'}) => clickListener(info, tab),
@@ -102,9 +110,52 @@ function background() {
     resolveImage(value) {contextImage = value;},
     fail(error) {nativeError = error;},
     respond(value) {nativeReply = value;},
+    dispatch(message,sender) {return new Promise(resolve=>listener(message,sender,resolve));},
+    connect(port) {connectedListener(port);},
     request(message, tabId = 1, sender = {tab: {id: tabId}, frameId: 0}) {return new Promise(resolve => {const result = listener(message, sender, resolve); if (message.action !== 'discard') assert.equal(result, true);});}
   };
 }
+
+test('paired backup handles host-not-found without altering the save payload', async () => {
+  const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)}});
+  bridge.fail('Specified native messaging host not found.');
+  const reply=await bridge.request({action:'save',url:'https://example.com/original.png',name:'Backup test',source:'https://example.com/page',folder:'folder-1'});
+  assert.equal(reply.ok,true);assert.equal(reply.transport,'local');
+  assert.equal(bridge.fetchCalls.length,2);
+  const call=bridge.fetchCalls.at(-1);
+  assert.equal(call.options.credentials,'omit');assert.equal(call.options.redirect,'error');
+  assert.equal(call.options.headers['X-Mori-Token'],'a'.repeat(64));
+  assert.deepEqual(JSON.parse(call.options.body),JSON.parse(JSON.stringify(bridge.nativeCalls[0].message)));
+});
+
+test('backup never bypasses a permission/policy refusal or retries ambiguous saves', async () => {
+  for(const error of ['Access to the specified native messaging host is forbidden.','Native messaging is disabled by system policy.','Native host has exited.','Error when communicating with the native messaging host.']){
+    const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)}});bridge.fail(error);
+    assert.equal((await bridge.request({action:'folders'})).ok,false);assert.equal(bridge.fetchCalls.length,0);
+  }
+});
+
+test('no automatic retry on lost backup response, and pairing cannot redirect to a remote server', async () => {
+  const config={endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)};
+  const bridge=background({config,fail:true});bridge.fail('Specified native messaging host not found.');
+  const reply=await bridge.request({action:'save',url:'https://example.com/original.png'});
+  assert.equal(reply.code,'LOCAL_CONNECTION_UNAVAILABLE');assert.match(reply.error,/检查图库/);assert.equal(bridge.fetchCalls.length,2);
+  for(const bad of [{...config,endpoint:'https://evil.example/'},{...config,token:'x'}]){const test=background({config:bad});test.fail('Specified native messaging host not found.');assert.equal((await test.request({action:'folders'})).code,'NATIVE_HOST_NOT_FOUND');assert.equal(test.fetchCalls.length,0);}
+});
+
+test('read-only connection checks do not claim a save may have occurred',async()=>{
+  const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)},fail:true});bridge.fail('Specified native messaging host not found.');
+  const result=await bridge.dispatch({action:'bridgeStatus'},{url:`chrome-extension://${'abcdefghijklmnopabcdefghijklmnop'}/popup.html`});
+  assert.equal(result.code,'LOCAL_CONNECTION_UNAVAILABLE');assert.match(result.error,/请先打开/);assert.doesNotMatch(result.error,/收藏结果|是否已保存/);
+});
+
+test('successful native saves clear their tiny journal; failed journal write sends no native save',async()=>{
+  const bridge=background();await bridge.request({action:'save',url:'https://example.com/original.png'});
+  assert.equal(bridge.metadata.moriUpdatePendingWrite,false);assert.equal(bridge.metadata.moriUpdateUncertainWrite,false);
+  assert.equal(bridge.storeWrites.some(x=>x.moriUpdatePendingWrite===true),true);
+  const failed=background({storageFail:true});const result=await failed.request({action:'save',url:'https://example.com/original.png'});
+  assert.equal(result.code,'SAVE_JOURNAL_UNAVAILABLE');assert.equal(failed.nativeCalls.length,0);assert.match(result.error,/没有发送/);
+});
 
 test('bookmark favicon comes only from same-origin browser tab metadata, not webpage messages', async () => {
   const bridge=background();
@@ -137,6 +188,14 @@ test('native bridge distinguishes forbidden extension, missing host, launch, dis
   bridge.fail(null);
   assert.equal((await bridge.request({action: 'folders'})).theme, 'dark');
   assert(bridge.nativeCalls.every(call => call.host === 'app.mori.desk'));
+});
+
+test('a native disconnect after a write reports an unknown result and never retries', async () => {
+  const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)}});
+  bridge.fail('Native host has exited.');
+  const result=await bridge.request({action:'save',url:'https://example.com/image.png'});
+  assert.equal(result.code,'NATIVE_HOST_DISCONNECTED');assert.match(result.error,/尚不能确认.*检查图库/);
+  assert.equal(bridge.nativeCalls.length,1);assert.equal(bridge.fetchCalls.length,1);
 });
 
 test('save retains source URL, category, name and original bytes through the actual bridge path', async () => {
@@ -184,6 +243,53 @@ test('skip discards a duplicate choice without another native write', async () =
   assert.equal(bridge.nativeCalls.length, 1);
   assert.equal((await bridge.request({action: 'save', choiceToken: first.choiceToken, duplicateAction: 'reuse'})).ok, false);
   assert.equal(bridge.nativeCalls.length, 1);
+});
+
+test('disconnecting the duplicate heartbeat cannot consume the choice before its save arrives',async()=>{
+  const bridge=background();bridge.respond({ok:true,choiceRequired:true});
+  const first=await bridge.request({action:'save',url:'https://example.com/original.png'});let disconnect;
+  bridge.connect({name:'mori-duplicate-choice',sender:{tab:{id:1},frameId:0},onMessage:{addListener(){}},onDisconnect:{addListener:fn=>disconnect=fn},postMessage(){}});
+  disconnect();bridge.respond({ok:true,duplicate:true});
+  const result=await bridge.request({action:'save',choiceToken:first.choiceToken,duplicateAction:'reuse'});
+  assert.equal(result.ok,true);assert.equal(bridge.nativeCalls.length,2);assert.equal(bridge.fetchCalls.length,1);
+});
+
+test('another frame cannot cancel a duplicate and double-confirm consumes its token only once',async()=>{
+  const bridge=background();bridge.respond({ok:true,choiceRequired:true});
+  const first=await bridge.request({action:'save',url:'https://example.com/original.png'});
+  await bridge.request({action:'discard',choiceToken:first.choiceToken},1,{tab:{id:1},frameId:7});
+  bridge.respond({ok:true,duplicate:true});
+  const results=await Promise.all([bridge.request({action:'save',choiceToken:first.choiceToken,duplicateAction:'keep'}),bridge.request({action:'save',choiceToken:first.choiceToken,duplicateAction:'keep'})]);
+  assert.equal(results.filter(result=>result.ok).length,1);assert.equal(bridge.nativeCalls.length,2);assert.equal(bridge.fetchCalls.length,1);
+});
+
+test('pending duplicate originals stay bounded and an evicted choice cannot write',async()=>{
+  const bridge=background();bridge.respond({ok:true,choiceRequired:true});const choices=[];
+  for(let at=0;at<4;at++)choices.push(await bridge.request({action:'save',url:`https://example.com/${at}.png`}));
+  bridge.respond({ok:true,duplicate:true});assert.equal((await bridge.request({action:'save',choiceToken:choices[0].choiceToken,duplicateAction:'keep'})).ok,false);
+  assert.equal(bridge.nativeCalls.length,4);assert.equal((await bridge.request({action:'save',choiceToken:choices[3].choiceToken,duplicateAction:'reuse'})).ok,true);
+  assert.equal(bridge.nativeCalls.length,5);assert.equal(bridge.fetchCalls.length,4);
+});
+
+test('unknown generic native errors and malformed native replies remain uncertain and are never replayed',async()=>{
+  for(const mode of ['generic','malformed']){
+    const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)}});
+    if(mode==='generic')bridge.fail('Unexpected transport error');else bridge.respond({});
+    const result=await bridge.request({action:'save',url:'https://example.com/image.png'});
+    assert.equal(result.code,mode==='generic'?'NATIVE_CONNECTION_ERROR':'NATIVE_EMPTY_REPLY');assert.match(result.error,/检查图库/);
+    assert.equal(bridge.nativeCalls.length,1);assert.equal(bridge.fetchCalls.length,1);assert.equal(bridge.metadata.moriUpdateUncertainWrite,true);assert.equal(bridge.metadata.moriUpdatePendingWrite,false);
+  }
+});
+
+test('health and update controls are accepted only from the exact extension popup',async()=>{
+  const bridge=background(),popup=`chrome-extension://${'abcdefghijklmnopabcdefghijklmnop'}/popup.html`;
+  for(const sender of [{tab:{id:1},url:popup},{url:popup+'?pretend'},{url:'https://example.com/'}]){
+    for(const action of ['bridgeStatus','extensionUpdateStatus','extensionUpdateCheck','extensionUpdateAcknowledge'])assert.equal((await bridge.dispatch({action},sender)).ok,false);
+  }
+  assert.equal(bridge.nativeCalls.length,0);
+  assert.equal((await bridge.dispatch({action:'extensionUpdateStatus'},{url:popup})).ok,true);
+  assert.equal((await bridge.dispatch({action:'bridgeStatus'},{url:popup})).ok,true);
+  assert.equal(bridge.nativeCalls.length,1);assert.equal(bridge.nativeCalls[0].message.action,'bridgeStatus');
 });
 
 test('context menu survives worker activation, extension reload/update and browser startup without duplicates', async () => {
@@ -320,12 +426,12 @@ test('unavailable video receiver and unsupported video URL do not suggest screen
   assert.equal(reply.ok,false);assert(!reply.error.includes('截图'));assert.equal(bridge.nativeCalls.length,0);
 });
 
-test('extension is 0.2.13 with no additional permissions and sources loaded before content', () => {
+test('extension is 0.2.18 with repair and idle update permissions and sources loaded before content', () => {
   const manifest = JSON.parse(read('manifest.json'));
-  assert.equal(manifest.version, '0.2.13');
-  assert.deepEqual(manifest.permissions, ['nativeMessaging', 'contextMenus', 'storage']);
+  assert.equal(manifest.version, '0.2.18');
+  assert.deepEqual(manifest.permissions, ['nativeMessaging', 'contextMenus', 'storage', 'scripting', 'alarms']);
   assert.deepEqual(manifest.host_permissions, ['https://*/*', 'http://*/*']);
-  assert.deepEqual(manifest.content_scripts[0].js, ['preferences.js', 'collector-text.js', 'drag-geometry.js', 'media-source.js', 'content.js']);
+  assert.deepEqual(manifest.content_scripts[0].js, ['preferences.js', 'collector-text.js', 'drag-geometry.js', 'media-source.js', 'runtime-client.js', 'content.js']);
   assert.equal(manifest.content_scripts[0].all_frames, true);
 });
 

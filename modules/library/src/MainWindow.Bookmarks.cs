@@ -8,7 +8,7 @@ using System.Windows.Automation;
 namespace Mori {
  public partial class MainWindow {
   internal void SetBookmarkMode(bool value){SetSection(value?"bookmarks":"assets");}
-  internal void SetSection(string section){if(busy||!PrepareLibraryChange())return;mediaSection=section;bookmarkMode=section=="bookmarks";Find<ComboBox>("MediaFilter").SelectedIndex=0;T("Search").Clear();Navigate(bookmarkMode?"home":"all");}
+  internal void SetSection(string section){if(busy||!PrepareLibraryChange())return;if(MoriDesk.Entry.BoardEnabled&&section!="bookmarks"){ShowBoard(section);return;}HideBoard();localCollection="";mediaSection=section;bookmarkMode=section=="bookmarks";Find<ComboBox>("MediaFilter").SelectedIndex=0;T("Search").Clear();Navigate(bookmarkMode?"home":"all");}
   internal void AddBookmark(string initial){
    if(busy||!PrepareLibraryChange())return;
    var dialog=new Window{Owner=Window,Title="收藏网址",Width=480,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};Theme.Attach(dialog,Window);
@@ -28,7 +28,7 @@ namespace Mori {
      string url=Library.BookmarkAddress(address.Text);string folder=Convert.ToString(folders.SelectedValue);
      history.Clear();var result=library.ImportBookmark(url,title.Text,folder);
      if(result.ChoiceRequired){var choice=MessageBox.Show(dialog,"这个网址已收藏。\n\n是：使用已有条目并加入所选分类（若在回收站则恢复）。\n否：另存一份。\n取消：不做修改。","网址已存在",MessageBoxButton.YesNoCancel);if(choice==MessageBoxResult.Cancel)return;result=library.ImportBookmark(url,title.Text,folder,"","",choice==MessageBoxResult.Yes?"reuse":"keep");}
-     dialog.Close();bookmarkMode=true;mediaSection="bookmarks";view=folder==""?"home":folder;similarId=colorId="";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;selection.Clear();selection.Add(result.Item.Id);Refresh(true);Status(result.KeptCopy?"网址已另存一份":result.Duplicate?"已使用已有网址，原有标签和备注保持不变":"网址已收藏 · 双击在浏览器打开");
+     dialog.Close();HideBoard();bookmarkMode=true;mediaSection="bookmarks";view=folder==""?"home":folder;similarId=colorId="";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;selection.Clear();selection.Add(result.Item.Id);Refresh(true);Status(result.KeptCopy?"网址已另存一份":result.Duplicate?"已使用已有网址，原有标签和备注保持不变":"网址已收藏 · 双击在浏览器打开");
     }catch(Exception error){hint.Text=error.Message;address.Focus();}
    };
    dialog.Loaded+=delegate{address.Focus();address.SelectAll();};dialog.ShowDialog();

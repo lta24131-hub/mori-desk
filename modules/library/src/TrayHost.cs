@@ -6,7 +6,7 @@ using System.Windows.Threading;
 using Forms=System.Windows.Forms;
 
 namespace Mori {
- internal interface ITrayHost:IDisposable {void NotifyHidden();}
+ internal interface ITrayHost:IDisposable {void NotifyHidden();void NotifyMessage(string message);}
  internal sealed class TrayHost:ITrayHost {
   readonly Forms.NotifyIcon icon;readonly Forms.ContextMenuStrip menu;readonly Icon image;
   readonly EventWaitHandle activation;readonly RegisteredWaitHandle wait;bool disposed,notified;
@@ -21,6 +21,7 @@ namespace Mori {
    } catch {Dispose();throw;}
   }
   public void NotifyHidden(){if(disposed||notified)return;notified=true;icon.ShowBalloonTip(2500,"Mori Desk 仍在后台运行","点击托盘图标重新打开，右键选择“退出 Mori Desk”可彻底退出。",Forms.ToolTipIcon.Info);}
+  public void NotifyMessage(string message){if(!disposed)icon.ShowBalloonTip(2500,"Mori Desk",message,Forms.ToolTipIcon.Info);}
   public static bool ActivateExisting(string eventName){try{using(var handle=EventWaitHandle.OpenExisting(eventName))handle.Set();return true;}catch(WaitHandleCannotBeOpenedException){return false;}catch(UnauthorizedAccessException){return false;}}
   public void Dispose(){if(disposed)return;disposed=true;if(wait!=null)wait.Unregister(null);if(activation!=null)activation.Dispose();if(icon!=null){icon.Visible=false;icon.Dispose();}if(menu!=null)menu.Dispose();if(image!=null)image.Dispose();}
  }

@@ -48,6 +48,7 @@ namespace Mori {
      Db.Exec("UPDATE folders SET parent="+Q(parent)+" WHERE id="+Q(folder.Id));
     }
     foreach(string id in selected)Db.Exec("DELETE FROM memberships WHERE folder="+Q(id));
+    foreach(string id in selected)UnfileReferences(id);
     foreach(string id in selected)Db.Exec("DELETE FROM folders WHERE id="+Q(id));
    });
   }

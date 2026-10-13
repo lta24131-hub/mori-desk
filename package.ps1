@@ -2,6 +2,11 @@ param([string]$BuildDirectory='dist')
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
 $buildPath=Join-Path $suiteRoot $BuildDirectory
+function Assert-NoMachineSecrets([string]$PathToCheck){
+ $privateFiles=@(Get-ChildItem -LiteralPath $PathToCheck -File -Recurse | Where-Object { $_.Name -like 'local-connection.js*' -or $_.Name -like 'local-key.txt*' })
+ if($privateFiles.Count -gt 0){throw 'This build contains a machine pairing key or a pairing temporary file. Use a fresh build directory to package a release.'}
+}
+Assert-NoMachineSecrets $buildPath
 $releaseRoot=Join-Path $suiteRoot ('releases\'+(Get-Date -Format 'yyyyMMdd-HHmmss'))
 $payload=Join-Path $releaseRoot 'Mori-Desk'
 New-Item -ItemType Directory -Force $payload | Out-Null
@@ -14,7 +19,11 @@ Copy-Item "$suiteRoot\README.md","$suiteRoot\Register-Extension.ps1" $payload
 Copy-Item "$suiteRoot\docs" "$payload\docs" -Recurse
 Copy-Item "$suiteRoot\RELEASE-NOTES.md" $payload
 Copy-Item -LiteralPath "$suiteRoot\docs\使用说明.md" -Destination "$payload\使用说明.txt"
-$zip=Join-Path $releaseRoot 'Mori-Desk-0.1.1-preview-portable.zip'
+$buildVersion=[System.Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $buildPath 'Mori.exe')).FileVersion
+$zip=Join-Path $releaseRoot ('Mori-Desk-'+$buildVersion+'-portable.zip')
+# Pairing can happen while a folder is being copied; validate the actual
+# payload, not only the initial build directory, before publishing any bytes.
+Assert-NoMachineSecrets $payload
 Compress-Archive -Path "$payload\*" -DestinationPath $zip -CompressionLevel Optimal
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $refs=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.IO.Compression.dll','Microsoft.CSharp.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }

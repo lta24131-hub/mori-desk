@@ -17,8 +17,9 @@ namespace Mori {
    string path=Path.Combine(output,"settings.json");
    new Settings{LibraryPath=output,Theme="light",ThumbnailSize=290,LeftSidebarWidth=330,RightSidebarWidth=380}.SaveTo(path);
    var settings=Settings.LoadFrom(path);check(settings.LeftSidebarWidth==330&&settings.RightSidebarWidth==380&&settings.Theme=="light"&&settings.ThumbnailSize==290&&settings.LibraryPath==output,"sidebar settings round trip preserves other preferences");
-   File.WriteAllText(path,"{\"Theme\":\"dark\"}");settings=Settings.LoadFrom(path);check(settings.LeftSidebarWidth==208&&settings.RightSidebarWidth==252,"legacy settings retain original sidebar sizes");
-   File.WriteAllText(path,"{\"LeftSidebarWidth\":\"bad\",\"RightSidebarWidth\":null,\"ThumbnailSize\":250}");settings=Settings.LoadFrom(path);check(settings.LeftSidebarWidth==208&&settings.RightSidebarWidth==252&&settings.ThumbnailSize==250,"invalid optional widths do not corrupt other settings");
+   var json=new System.Web.Script.Serialization.JavaScriptSerializer();
+   File.WriteAllText(path,json.Serialize(new{LibraryPath=output,Theme="dark"}));settings=Settings.LoadFrom(path);check(settings.LeftSidebarWidth==208&&settings.RightSidebarWidth==252,"legacy settings retain original sidebar sizes");
+   File.WriteAllText(path,json.Serialize(new{LibraryPath=output,LeftSidebarWidth="bad",RightSidebarWidth=(object)null,ThumbnailSize=250}));settings=Settings.LoadFrom(path);check(settings.LeftSidebarWidth==208&&settings.RightSidebarWidth==252&&settings.ThumbnailSize==250,"invalid optional widths do not corrupt other settings");
    settings.LeftSidebarWidth=-1;settings.RightSidebarWidth=999999;check(settings.LeftSidebarWidth==160&&settings.RightSidebarWidth==520,"stored sidebar widths are bounded");
    var app=Application.Current??new Application();var old=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;Window window=null;
    try{

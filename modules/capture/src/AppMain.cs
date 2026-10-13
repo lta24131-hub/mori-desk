@@ -26,7 +26,7 @@ namespace QingJie {
         static SettingsWindow settingsWindow;
         static WriteTranslationWindow writeTranslation;
         public static void ShowTranslator(){if(Captures.Count>0){Notify("请先完成或取消当前截图，再打开输入翻译。");return;}if(writeTranslation==null){writeTranslation=new WriteTranslationWindow();writeTranslation.Closed+=(s,e)=>writeTranslation=null;}writeTranslation.Show();if(writeTranslation.WindowState==WindowState.Minimized)writeTranslation.WindowState=WindowState.Normal;writeTranslation.Activate();}
-        public static void ShowSettings(){if(settingsWindow==null){settingsWindow=new SettingsWindow();settingsWindow.Closed+=(s,e)=>settingsWindow=null;}settingsWindow.Show();settingsWindow.Activate();}
+        public static void ShowSettings(){if(MoriDesk.DeskRuntime.OpenSettings!=null){MoriDesk.DeskRuntime.OpenSettings();return;}if(settingsWindow==null){settingsWindow=new SettingsWindow();settingsWindow.Closed+=(s,e)=>settingsWindow=null;}settingsWindow.Show();settingsWindow.Activate();}
         public static void Notify(string message){if(MoriDesk.DeskRuntime.Notify!=null)MoriDesk.DeskRuntime.Notify(message);if(Tray!=null){Tray.BalloonTipTitle="Luma";Tray.BalloonTipText=message;Tray.ShowBalloonTip(3000);}}
         public static void ChooseCapture(CaptureWindow chosen){foreach(var w in Captures.ToList())if(w!=chosen)w.Close();}
         public static void CancelCapture(){foreach(var w in Captures.ToList())w.Close();}

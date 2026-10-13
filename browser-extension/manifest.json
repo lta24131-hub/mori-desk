@@ -1,13 +1,14 @@
 {
  "manifest_version": 3,
  "name": "Mori Desk · 图片与网址收藏",
- "version": "0.2.13",
+ "version": "0.2.18",
+ "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjddSxVsBeHA9rnjVHgN42pIsavjBH8scM7Fxekyyecen8rotsw3QpVzGPAgFUTvBVOQPL+ftbIUm8JQRkKPB1BUh3/KI0OPM8QH8t7u+cyj1KQY3hEmPa/HvpAur3vBEv0Q6QhBDAzzEZLFff9hfaMkfuzLJYbHvOSLYANqLffeRmsXcGA4/qh5FZDYzflGyvic53nayI2wH5ui50oDM+WrrsjWd7c/0DfQcvf+XoquggvYylLq8lAC7l8PgLOhcgcL+uhkVs5wtJ/GpQpLWvjAmwY8zCd2hBXGSqqNfHu7Mfjvm7B6R0+Retdod7CeNrBwiACfzyzgxGAYMG5bTsQIDAQAB",
  "description": "右键或拖拽收藏图片、动图和网页视频，保留原文件与来源网址。需要安装 Mori 桌面程序和本机连接。",
- "permissions": ["nativeMessaging", "contextMenus", "storage"],
+ "permissions": ["nativeMessaging", "contextMenus", "storage", "scripting", "alarms"],
  "optional_permissions": ["bookmarks"],
  "icons": {"16": "icon-16.png", "32": "icon-32.png", "48": "icon-48.png", "128": "icon-128.png"},
  "host_permissions": ["https://*/*", "http://*/*"],
  "background": {"service_worker": "background.js"},
- "content_scripts": [{"matches": ["https://*/*", "http://*/*"], "all_frames": true, "js": ["preferences.js", "collector-text.js", "drag-geometry.js", "media-source.js", "content.js"]}],
+ "content_scripts": [{"matches": ["https://*/*", "http://*/*"], "all_frames": true, "js": ["preferences.js", "collector-text.js", "drag-geometry.js", "media-source.js", "runtime-client.js", "content.js"]}],
  "action": {"default_popup": "popup.html", "default_title": "Mori · 收藏与浏览器书签导入"}
 }

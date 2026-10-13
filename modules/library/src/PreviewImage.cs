@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -11,10 +13,22 @@ namespace Mori {
  // GDI preserves animated GIF playback. WIC adds system-supported WebP/AVIF
  // without shipping another decoder/runtime or converting the saved original.
  sealed class PreviewImage : IDisposable {
+  // A second window may be opened while the first is still decoding. Keep that
+  // work bounded, and cancel queued jobs without touching the original file.
+  static readonly SemaphoreSlim DecodeSlots=new SemaphoreSlim(2,2);
   Stream stream;
   public Drawing.Image Image {get;private set;}
   public bool UsedSystemDecoder {get;private set;}
   PreviewImage(Stream stream,Drawing.Image image,bool fallback){this.stream=stream;Image=image;UsedSystemDecoder=fallback;}
+  internal static async Task<PreviewImage> OpenAsync(string path,CancellationToken cancellation){
+   await DecodeSlots.WaitAsync(cancellation).ConfigureAwait(false);
+   try{
+    cancellation.ThrowIfCancellationRequested();
+    var loaded=await Task.Run(()=>Open(path)).ConfigureAwait(false);
+    if(cancellation.IsCancellationRequested){loaded.Dispose();cancellation.ThrowIfCancellationRequested();}
+    return loaded;
+   }finally{DecodeSlots.Release();}
+  }
   public static PreviewImage Open(string path){
    if(string.Equals(Path.GetExtension(path),".svg",StringComparison.OrdinalIgnoreCase)){int w,h;return new PreviewImage(null,FromBitmapSource(SvgRaster.Render(path,2048,out w,out h)),true);}
    var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);

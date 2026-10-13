@@ -11,15 +11,23 @@ namespace Mori {
   const int Maximum=29*1024*1024;
   static readonly JavaScriptSerializer Json=new JavaScriptSerializer{MaxJsonLength=Maximum};
   static byte[] Read(Stream stream,int count){byte[] b=new byte[count];int at=0,n;while(at<count&&(n=stream.Read(b,at,count-at))>0)at+=n;if(at!=count)throw new EndOfStreamException();return b;}
-  public static int Run(string testRoot=null){try{using(var input=Console.OpenStandardInput())using(var output=Console.OpenStandardOutput()){while(true){byte[] header;try{header=Read(input,4);}catch(EndOfStreamException){break;}int length=BitConverter.ToInt32(header,0);if(length<1||length>Maximum)return 1;object response;try{var request=Json.Deserialize<Dictionary<string,object>>(Encoding.UTF8.GetString(Read(input,length)));response=HandleAtCurrentLibrary(request,testRoot);}catch(Exception ex){response=new{ok=false,error=ex.Message};}byte[] body=Encoding.UTF8.GetBytes(Json.Serialize(response));output.Write(BitConverter.GetBytes(body.Length),0,4);output.Write(body,0,body.Length);output.Flush();}}return 0;}catch{return 1;}}
-  static object HandleAtCurrentLibrary(Dictionary<string,object> request,string testRoot){
+  public static int Run(string testRoot=null,string origin=null){try{using(var input=Console.OpenStandardInput())using(var output=Console.OpenStandardOutput()){while(true){byte[] header;try{header=Read(input,4);}catch(EndOfStreamException){break;}int length=BitConverter.ToInt32(header,0);if(length<1||length>Maximum)return 1;object response;try{var request=Json.Deserialize<Dictionary<string,object>>(Encoding.UTF8.GetString(Read(input,length)));request["_extensionId"]=MoriDesk.BrowserConnection.IdFromOrigin(origin);response=HandleAtCurrentLibrary(request,testRoot);}catch(Exception ex){response=new{ok=false,error=ex.Message};}byte[] body=Encoding.UTF8.GetBytes(Json.Serialize(response));output.Write(BitConverter.GetBytes(body.Length),0,4);output.Write(body,0,body.Length);output.Flush();}}return 0;}catch{return 1;}}
+  internal static object HandleAtCurrentLibrary(Dictionary<string,object> request,string testRoot,Func<Settings> loadSettings=null){
+   // Connection/update messages are independent of library selection. In
+   // particular they must not initialize an empty database when a disk is away.
+   if(Get(request,"action")=="bridgeStatus"||Get(request,"action")=="extensionControl")return MoriDesk.BrowserExtensionManager.Handle(request);
+   if(loadSettings==null)loadSettings=Settings.Load;
    for(int attempt=0;attempt<3;attempt++){
-    string root=testRoot??Settings.Load().LibraryPath;
+    string root=testRoot??loadSettings().LibraryPath;
     using(var lease=LibraryTransfer.TryAcquireWrite(root)){
      if(lease==null)throw new IOException("Mori 正在迁移图库或接收其他收藏，请完成后重试。");
      // A request may have loaded the old location just before migration finished.
      // Re-read after acquiring its lease rather than silently writing to that copy.
-     if(testRoot==null&&!LibraryTransfer.SameRoot(root,Settings.Load().LibraryPath))continue;
+     if(testRoot==null){
+      var current=loadSettings();
+      if(!LibraryTransfer.SameRoot(root,current.LibraryPath))continue;
+      Program.ValidateConfiguredLibrary(current);
+     }
      using(var library=new Library(root))return Handle(library,request);
     }
    }

@@ -11,6 +11,7 @@ namespace Mori {
   internal static HashSet<string> Supported(){var result=new HashSet<string>(Pictures,StringComparer.OrdinalIgnoreCase);result.UnionWith(Videos);result.UnionWith(Audio);result.UnionWith(Documents);result.Add(".url");return result;}
   internal static bool Contains(Asset a,string section){
    if(a==null||a.IsBookmark)return false;
+   if(a.IsReference){if(section=="shortcuts")return true;if(a.IsDirectory)return false;if(section=="media")return true;if(section=="assets")return a.ReferenceSection!="documents"&&a.ReferenceSection!="websites";return a.ReferenceSection==section;}
    switch(section){
     case "pictures":return Pictures.Contains(a.Ext);
     case "videos":return Videos.Contains(a.Ext);

@@ -1,4 +1,20 @@
 (() => {
+  // Dynamic reinjection and extension updates must leave exactly one collector
+  // per frame. The DOM event also retires the previous extension world after a
+  // reload; callbacks from that world may finish but cannot reopen its UI.
+  const replacementEvent = 'mori-collector-replace-' + chrome.runtime.id;
+  document.dispatchEvent(new Event(replacementEvent));
+  globalThis.MoriCollectorInstance?.dispose();
+  let disposed = false, updateLock = null, updateLockTimer, resolving = 0;
+  const subscriptions = [], sessions = new Set();
+  const listen = (target, name, handler, options) => {
+    target.addEventListener(name, handler, options);
+    subscriptions.push(() => target.removeEventListener(name, handler, options));
+  };
+  const subscribe = (event, handler) => {
+    event.addListener(handler);
+    subscriptions.push(() => {try {event.removeListener(handler);} catch {}});
+  };
   const geometry = globalThis.MoriDragGeometry;
   const P = globalThis.MoriPreferences;
   let preferences = P.normalize(), preferencesReady = false, topPageUrl = location.href;
@@ -11,6 +27,32 @@
   let contextTime = 0;
   const notices = new Map();
   let noticeHost, noticeRoot, noticeList;
+  const collectionBusy = () => resolving>0 || !!preparedDrag || [...sessions].some(session=>['dragging','choosing','editing','saving','duplicate'].includes(session.phase));
+  function signalIdle() {if(!disposed)runtime({action:'collector-idle'},()=>{});}
+  function releaseUpdateLock(lock) {
+    if(lock && updateLock!==lock)return;
+    clearTimeout(updateLockTimer);updateLock=null;
+  }
+  function holdUpdateLock(lock) {
+    releaseUpdateLock();updateLock=lock;
+    updateLockTimer=setTimeout(()=>{releaseUpdateLock(lock);signalIdle();},15000);
+  }
+
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    releaseUpdateLock();
+    subscriptions.splice(0).forEach(remove => remove());
+    clearTimeout(hideTimer); restoreDrag();
+    for (const session of sessions) {
+      cancelFolderTimer(session); clearTimeout(session.progressTimer);
+      releaseChoice(session); session.host.remove();
+    }
+    for (const notice of notices.values()) clearTimeout(notice.timer);
+    notices.clear(); noticeHost?.remove(); active = null; sessions.clear();
+  }
+  globalThis.MoriCollectorInstance = {dispose, updateProtocol:1, get ready() {return !disposed && preferencesReady;}};
+  listen(document, replacementEvent, dispose);
 
   function removeNotice(session, cancel = false) {
     const notice = notices.get(session);
@@ -22,11 +64,13 @@
   }
 
   function notify(session, message, kind = 'success', detail = '', action = null, cancel = null) {
+    if (disposed) return;
     removeNotice(session);
     // Bound DOM/memory even during a long burst of collections.
     if (notices.size >= 3) removeNotice(notices.keys().next().value, true);
     if (!noticeHost) {
       noticeHost = document.createElement('div');
+      noticeHost.dataset.moriNotice = '';
       noticeHost.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none';
       noticeRoot = noticeHost.attachShadow({mode:'closed'});
       const style = document.createElement('style');
@@ -45,7 +89,10 @@
     close.setAttribute('aria-label', t('关闭提示')); close.onclick = () => removeNotice(session, true);
     row.append(label, close); noticeList.append(row);
     const notice = {row, cancel}; notices.set(session, notice);
-    notice.timer = setTimeout(() => removeNotice(session, true), kind === 'choice' ? 300000 : kind === 'saving' ? 30000 : kind === 'error' ? 10000 : 1800);
+    // The transport has a bounded deadline. Keep its tiny pending status until
+    // that result arrives, rather than hiding it while a slow save still runs.
+    // It is always dismissible and the three-notice cap still bounds the DOM.
+    if (kind !== 'saving') notice.timer = setTimeout(() => removeNotice(session, true), kind === 'choice' ? 300000 : kind === 'error' ? 10000 : 1800);
   }
 
   function detachCollector(session) {
@@ -62,7 +109,10 @@
     session.progressTimer = setTimeout(() => notify(session, '正在收藏…', 'saving'), 500);
   }
 
+  const outcomeUnknown = response => !response.ok && ['NATIVE_TIMEOUT','NATIVE_EMPTY_REPLY','NATIVE_HOST_DISCONNECTED','NATIVE_CONNECTION_ERROR','LOCAL_CONNECTION_UNAVAILABLE','SAVE_RESULT_UNKNOWN'].includes(response.code);
+
   function backgroundResult(session, response) {
+    if (disposed) return;
     clearTimeout(session.progressTimer); removeNotice(session);
     if (response.ok && response.choiceRequired && response.choiceToken) {
       const open = () => {
@@ -77,14 +127,17 @@
       notify(session, '发现重复图片 · 选择处理', 'choice', session.item?.name, open, () => {
         const token = session.choiceToken; session.choiceToken = null; releaseChoice(session);
         if (token) runtime({action:'discard', choiceToken:token}, () => {});
+        sessions.delete(session);session.phase='cancelled';signalIdle();
       });
       holdChoice(session);
       return;
     }
     releaseChoice(session); detachCollector(session);
+    sessions.delete(session);
     session.phase = response.ok ? 'success' : 'error';
-    const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Mori') : '收藏失败：' + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Mori 按 Ctrl+V 收藏。'));
+    const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Mori') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Mori 按 Ctrl+V 收藏。'));
     notify(session, message, response.ok ? 'success' : 'error', response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : '已保存到本机图库 · 未分类') : response.diagnostic);
+    signalIdle();
   }
 
   function imageAtContext(event) {
@@ -163,7 +216,7 @@
     .panel:not([data-phase="dragging"]) .category-toggle{display:none}
     .folder-unfiled{display:none;font:inherit;font-size:12px;padding:4px 7px;border:0;border-radius:5px;background:var(--surface);color:var(--text);cursor:pointer}.folder-unfiled:focus-visible{outline:2px solid var(--accent)}.panel[data-phase="choosing"] .folder-unfiled{display:block}.panel[data-phase="choosing"] .foot-info{display:none}
     .category-label:focus{outline:none}.panel[data-phase="choosing"] .note{display:none}
-    .category-menu{position:absolute;left:18px;right:18px;top:54px;bottom:58px;display:flex;flex-direction:column;padding:9px;gap:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.categories-open .quick>*{visibility:hidden}.category-label{font-size:11px;color:var(--muted);padding:0 6px;flex:none}.folder-list{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}.folder{display:block;width:100%;min-height:32px;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--text);font-size:12px;line-height:20px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.folder:hover,.folder.hover{background:var(--hover);color:var(--accent)}.folder-status{padding:8px;font-size:12px;color:var(--muted)}
+    .category-menu{position:absolute;left:18px;right:18px;top:54px;bottom:58px;display:flex;flex-direction:column;padding:9px;gap:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.categories-open .quick>*{visibility:hidden}.category-label{font-size:11px;color:var(--muted);padding:0 6px;flex:none}.folder-list{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}.folder{display:block;width:100%;min-height:32px;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--text);font-size:12px;line-height:20px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.folder:hover,.folder.hover{background:var(--hover);color:var(--accent)}.folder-status{padding:8px;font-size:12px;color:var(--muted)}.folder-retry{margin-left:8px;padding:3px 7px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--accent);font:inherit;cursor:pointer}.folder-retry:hover{background:var(--hover)}.folder-retry:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     .panel[data-phase="saving"] .quick{border-style:solid}.panel[data-phase="success"] .quick{border-color:var(--accent);background:var(--hover)}.panel[data-phase="error"] .quick{border-color:var(--error)}.panel[data-phase="error"] .title{color:var(--error);font-size:20px}.panel[data-phase="error"] .hint{text-align:left}.diagnostic{font-size:10px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);max-height:64px;overflow:auto}
     .panel[data-phase="duplicate"] .quick{flex:none;min-height:0;padding:0;border:0;background:none;align-items:flex-start;text-align:left;gap:3px}.panel[data-phase="duplicate"] .title{font-size:19px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;flex:1;overflow:auto}.preview{min-width:0;display:flex;flex-direction:column;gap:5px;background:var(--surface);padding:9px;border-radius:10px}.preview-label{font-size:10px;color:var(--muted)}.preview-image{width:100%;min-height:40px;height:104px;object-fit:contain;background:var(--bg);border-radius:5px}.preview-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.preview-meta{font-size:10px;color:var(--muted)}.preview-empty{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:none}.choice{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px 3px;background:var(--surface);color:var(--text);cursor:pointer}.choice.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}.choice:hover{filter:brightness(.95)}.choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     @media(max-height:480px){.preview-image{height:54px;flex:none}.preview{padding:7px;gap:4px}}
@@ -188,8 +241,10 @@
       if (active.choiceToken) runtime({action: 'discard', choiceToken: active.choiceToken}, () => {});
       releaseChoice(active);
       active.host.remove();
+      sessions.delete(active);
     }
     active = null;
+    signalIdle();
   }
 
   function position(session, rect) {
@@ -211,6 +266,7 @@
   }
 
   function applyPreferences(value) {
+    if (disposed) return;
     preferences = P.normalize(value);
     for (const {row} of notices.values()) row.dataset.theme = P.theme(preferences, darkMedia.matches);
     if (!active) return;
@@ -222,11 +278,12 @@
     if (!response.ok) return;
     topPageUrl = response.pageUrl || location.href;
     applyPreferences(response.preferences); preferencesReady = true;
+    if(response.updateLocked)holdUpdateLock('startup');
   });
-  chrome.storage.onChanged.addListener((changes, area) => {
+  subscribe(chrome.storage.onChanged, (changes, area) => {
     if (area === 'local' && changes[P.key]) applyPreferences(changes[P.key].newValue);
   });
-  darkMedia.addEventListener('change', () => {if (active) active.panel.dataset.theme = P.theme(preferences, darkMedia.matches);for (const {row} of notices.values()) row.dataset.theme = P.theme(preferences, darkMedia.matches);});
+  listen(darkMedia, 'change', () => {if (active) active.panel.dataset.theme = P.theme(preferences, darkMedia.matches);for (const {row} of notices.values()) row.dataset.theme = P.theme(preferences, darkMedia.matches);});
 
   function setPhase(session, phase) {
     session.phase = phase;
@@ -258,6 +315,7 @@
   function mount(item, start) {
     dismiss();
     const host = document.createElement('div');
+    host.dataset.moriCollector = '';
     host.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none';
     const root = host.attachShadow({mode: 'closed'});
     const style = document.createElement('style');
@@ -281,7 +339,7 @@
     const source = element('div', 'source');source.textContent = item?.name || t('网页图片');
     const diagnostic = element('div', 'diagnostic hidden');
     quick.append(collectionIcon(), title, hint, source, diagnostic);
-    const note = element('p', 'note', '正在连接 Mori…');
+    const note = element('p', 'note hidden');
     const foot = element('div', 'foot');
     const footerAction = element('span', '', 'Esc 取消');
     const categoryToggle = element('button', 'category-toggle');
@@ -312,6 +370,7 @@
     root.append(style, panel);
     document.documentElement.append(host);
     const session = {host, panel, quick, title, hint, source, diagnostic, note, tag, foot, footerAction, categoryToggle, categoryMenu, categoryLabel, folderListElement, folderList: null, foldersOpen: false, item, phase: 'dragging'};
+    sessions.add(session);
     active = session;
     unfiled.addEventListener('click', () => {if (session.phase === 'choosing') save(session, null);});
     position(session, geometry.place(start, viewport()));
@@ -328,23 +387,29 @@
   }
 
   function runtime(message, callback) {
-    try {
-      chrome.runtime.sendMessage(message, response => {
-        const error = chrome.runtime.lastError;
-        callback(error ? {ok: false, error: '扩展连接已失效，请刷新网页后再试。', diagnostic: error.message} : (response || {ok: false, error: 'Mori 未返回结果，请重新尝试。'}));
-      });
-    } catch (error) {
-      callback({ok: false, error: '扩展连接已失效，请刷新网页后再试。', diagnostic: error.message});
-    }
+    if (disposed) return;
+    MoriRuntime.send(message, response => {if (!disposed) callback(response);});
   }
 
   function clearHover(session) {
     cancelFolderTimer(session);
     session.folderHover = false;
-    for (const row of session.folderListElement.children) row.classList.remove('hover');
+    setFolderHover(session, null);
     session.panel.classList.remove('is-over');
-    session.title.textContent = t('松手，快速收藏');
-    session.hint.textContent = t('拖到这里松手 · 保存到未分类');
+    setDragLabels(session, '松手，快速收藏', '拖到这里松手 · 保存到未分类');
+  }
+
+  function setFolderHover(session, row) {
+    if (session.hoveredFolderRow === row) return;
+    session.hoveredFolderRow?.classList.remove('hover');
+    row?.classList.add('hover');
+    session.hoveredFolderRow = row;
+  }
+
+  function setDragLabels(session, title, hint) {
+    title = t(title); hint = t(hint);
+    if (session.title.textContent !== title) session.title.textContent = title;
+    if (session.hint.textContent !== hint) session.hint.textContent = hint;
   }
 
   function cancelFolderTimer(session) {
@@ -353,9 +418,12 @@
   }
 
   function renderFolders(session) {
+    session.hoveredFolderRow = null;
     session.folderListElement.replaceChildren();
     if (!session.folderList?.length) {
-      session.folderListElement.append(element('div', 'folder-status', session.folderError || (session.folderList ? '暂无分类，可在 Mori 中新建' : '正在加载分类…')));
+      const status = element('div', 'folder-status', session.folderError || (session.folderList ? '暂无分类，可在 Mori 中新建' : '正在加载分类…'));
+      if (session.folderError) status.append(folderRetry(session));
+      session.folderListElement.append(status);
       return;
     }
     const fragment = document.createDocumentFragment();
@@ -376,14 +444,15 @@
     session.panel.classList.toggle('categories-open', open);
     session.categoryToggle.setAttribute('aria-expanded', String(open));
     session.categoryMenu.classList.toggle('hidden', !open);
-    if (open) renderFolders(session);
+    session.hoveredFolderRow = null;
+    if (open) {renderFolders(session); loadFolders(session);}
     else session.folderListElement.replaceChildren();
   }
 
   function folderTarget(session, event) {
     const path = event.composedPath();
     const row = session.foldersOpen && path.find(node => node.dataset?.folderIndex !== undefined && node.parentElement === session.folderListElement);
-    return {folder: row ? session.folderList?.[Number(row.dataset.folderIndex)] : null, toggle: path.includes(session.categoryToggle), menu: path.includes(session.categoryMenu)};
+    return {row, folder: row ? session.folderList?.[Number(row.dataset.folderIndex)] : null, toggle: path.includes(session.categoryToggle), menu: path.includes(session.categoryMenu)};
   }
 
   function acceptDrag(session, event) {
@@ -406,9 +475,8 @@
     }
     const browsing = session.foldersOpen || target.toggle || target.menu;
     session.panel.classList.toggle('is-over', !browsing || Boolean(target.folder));
-    for (const row of session.folderListElement.children) row.classList.toggle('hover', Boolean(target.folder) && session.folderList[Number(row.dataset.folderIndex)] === target.folder);
-    session.title.textContent = t(browsing ? '选择收藏分类' : '松手即可收藏');
-    session.hint.textContent = t(browsing ? '松手后，点击文件夹收藏' : '保存到未分类');
+    setFolderHover(session, target.folder ? target.row : null);
+    setDragLabels(session, browsing ? '选择收藏分类' : '松手即可收藏', browsing ? '松手后，点击文件夹收藏' : '保存到未分类');
     if (target.menu) {
       const bounds = session.folderListElement.getBoundingClientRect();
       if (event.clientY > bounds.bottom - 20) session.folderListElement.scrollTop += 10;
@@ -441,16 +509,30 @@
   }
 
   function save(session, folder) {
+    if(updateLock)return;
     if (active !== session || !['dragging', 'choosing'].includes(session.phase)) return;
     if (preferences.editBeforeSave) {edit(session, folder); return;}
     commit(session, folder);
   }
 
   function loadFolders(session) {
-      runtime({action: 'folders',scope:session.item?.bookmark?'bookmark':'media'}, response => {
+    // Categories are only needed when the picker/editor is actually used.
+    // Keep a successful result within this gesture, never across gestures where
+    // desktop categories may have changed. Reopening during a request is free.
+    if (session.folderList !== null || session.foldersLoading) return;
+    session.foldersLoading = true; session.folderError = '';
+    session.note.classList.add('hidden');
+    delete session.panel.dataset.connection;
+    session.panel.removeAttribute('title');
+    session.tag.textContent = t(session.phase === 'editing' ? '确认后收藏' : session.phase === 'choosing' ? '选择文件夹' : '保存到本机');
+    if (session.foldersOpen) renderFolders(session);
+    session.refreshEditorFolders?.();
+    runtime({action: 'folders',scope:session.item?.bookmark?'bookmark':'media'}, response => {
+      session.foldersLoading = false;
       if (active !== session || !['dragging', 'choosing', 'editing'].includes(session.phase)) return;
       if (!response.ok) {
         session.note.textContent = t(response.error || '请先连接 Mori 桌面程序');
+        session.note.classList.remove('hidden');
         session.tag.textContent = t('连接未就绪');
         session.panel.dataset.connection = 'error';
         session.panel.title = session.note.textContent;
@@ -463,6 +545,15 @@
       if (session.foldersOpen) renderFolders(session);
       session.refreshEditorFolders?.();
     });
+  }
+
+  function folderRetry(session) {
+    const retry = element('button', 'folder-retry', '重试');
+    retry.type = 'button';
+    retry.addEventListener('click', () => {
+      if (active === session && ['dragging', 'choosing', 'editing'].includes(session.phase)) loadFolders(session);
+    });
+    return retry;
   }
 
   function edit(session, folder) {
@@ -486,7 +577,9 @@
       for (const value of session.folderList || []) {const option = element('option', ''); option.textContent = value.name; option.value = value.id; category.append(option);}
       category.value = [...category.options].some(option => option.value === selected) ? selected : '';
       category.disabled = !session.folderList;
-      message.textContent = session.folderError || (!session.folderList ? t('正在加载分类…') : '');
+      message.replaceChildren();
+      message.append(element('span', '', session.folderError || (!session.folderList ? '正在加载分类…' : '')));
+      if (session.folderError) message.append(folderRetry(session));
     };
     session.refreshEditorFolders();
     const actions = element('div', 'editor-actions');
@@ -505,6 +598,7 @@
       form.remove(); session.refreshEditorFolders = null;
       commit(session, destination);
     };
+    loadFolders(session);
     name.focus(); name.select();
   }
 
@@ -628,6 +722,7 @@
   }
 
   function showResult(session, response) {
+    if (disposed) return;
     if (session.background) {backgroundResult(session, response); return;}
     clearTimeout(hideTimer);
     if (response.ok && response.choiceRequired && response.choiceToken) {showDuplicate(session, response); return;}
@@ -638,13 +733,13 @@
     session.panel.classList.remove('is-over');
     session.note.classList.add('hidden');
     session.source.classList.remove('hidden');
-    session.title.textContent = t(response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏') : '这次没有收藏成功');
+    session.title.textContent = t(response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏') : outcomeUnknown(response) ? '收藏结果未确认' : '这次没有收藏成功');
     session.hint.textContent = t(response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.error || (session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Mori 按 Ctrl+V 收藏。'));
     session.panel.title = response.ok ? session.title.textContent + ' · ' + session.hint.textContent : '';
     session.tag.textContent = t(response.ok ? '本机已保存' : '需要处理');
     session.footerAction.textContent = t('Esc 关闭');
     if (!response.ok) {
-      session.source.textContent = t(session.item?.kind === 'video' ? '本次未保存视频，也没有改存为网址或封面。' : '也可截图后，在 Mori 按 Ctrl+V 收藏');
+      session.source.textContent = t(outcomeUnknown(response) ? '请先检查 Mori 图库是否已保存，确认后再重试。' : session.item?.kind === 'video' ? '本次未保存视频，也没有改存为网址或封面。' : '也可截图后，在 Mori 按 Ctrl+V 收藏');
       if (response.diagnostic) {
         session.diagnostic.textContent = t(`连接诊断：${response.diagnostic}`);
         session.diagnostic.classList.remove('hidden');
@@ -665,9 +760,11 @@
       if (userDrag) target.style.setProperty('-webkit-user-drag', userDrag, priority);
       else target.style.removeProperty('-webkit-user-drag');
     }
+    signalIdle();
   }
-  document.addEventListener('pointerdown', event => {
+  listen(document, 'pointerdown', event => {
     restoreDrag();
+    if(updateLock)return;
     if (event.composedPath().includes(active?.host) || event.composedPath().includes(noticeHost)) return;
     if (event.button !== 0 || event.pointerType !== 'mouse' || !preferencesReady || P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
     const target = event.composedPath().find(node => node instanceof Element);
@@ -680,9 +777,10 @@
     target.setAttribute('draggable', 'true');
     target.style.setProperty('-webkit-user-drag', 'element', 'important');
   }, true);
-  document.addEventListener('pointerup', restoreDrag, true);
-  addEventListener('blur', () => {restoreDrag(); if (active?.phase === 'dragging') dismiss();});
-  document.addEventListener('dragstart', event => {
+  listen(document, 'pointerup', restoreDrag, true);
+  listen(window, 'blur', () => {restoreDrag(); if (active?.phase === 'dragging') dismiss();});
+  listen(document, 'dragstart', event => {
+    if(updateLock)return;
     if (event.composedPath().includes(active?.host) || event.composedPath().includes(noticeHost)) return;
     if (!preferencesReady || P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
     const target = event.target instanceof Element ? event.target : null;
@@ -697,11 +795,10 @@
       event.dataTransfer.effectAllowed = 'copyLink';
     }
     const session = mount(item, point(event));
-    loadFolders(session);
     setTimeout(() => {if (event.defaultPrevented && active === session && session.phase === 'dragging') {restoreDrag();dismiss();}}, 0);
   }, true);
 
-  document.addEventListener('dragover', event => {
+  listen(document, 'dragover', event => {
     const session = active;
     if (!session || session.phase !== 'dragging') return;
     // Place once at dragstart. Never chase a pointer that may be heading to
@@ -709,21 +806,29 @@
     if (geometry.distance(point(event), session.rect) > 0) clearHover(session);
   }, true);
 
-  document.addEventListener('dragend', () => {restoreDrag();if (active?.phase === 'dragging') dismiss();}, true);
-  document.addEventListener('keydown', event => {
+  listen(document, 'dragend', () => {restoreDrag();if (active?.phase === 'dragging') dismiss();}, true);
+  listen(document, 'keydown', event => {
     if (event.key === 'Escape' && active) {event.preventDefault();event.stopPropagation();restoreDrag();dismiss();}
   }, true);
-  addEventListener('resize', () => {if (active) position(active, fitted(active));});
-  document.addEventListener('contextmenu', event => {
+  listen(window, 'resize', () => {if (active) position(active, fitted(active));});
+  listen(document, 'contextmenu', event => {
     contextPoint = point(event);
     contextImage = imageAtContext(event);
     contextTime = Date.now();
   }, true);
-  chrome.runtime.onMessage.addListener((message, sender, reply) => {
+  subscribe(chrome.runtime.onMessage, (message, sender, reply) => {
+    if(message?.action==='mori-update-prepare') {
+      if(disposed || collectionBusy() || typeof message.lock!=='string' || message.lock.length>100){reply({ready:false});return;}
+      holdUpdateLock(message.lock);reply({ready:true,lock:message.lock});return;
+    }
+    if(message?.action==='mori-update-verify') {reply({ready:!disposed && !collectionBusy() && updateLock===message.lock,lock:updateLock});return;}
+    if(message?.action==='mori-update-resume') {releaseUpdateLock(message.lock);reply({ready:true});return;}
+    if (message?.action === 'mori-collector-ping') {reply({ready:!disposed && preferencesReady, version:chrome.runtime.getManifest().version}); return;}
+    if(updateLock && ['context-edit','resolve-context-image','context-saving'].includes(message?.action)){reply({displayed:false,ok:false,code:'UPDATE_IN_PROGRESS'});return;}
     if (message?.action === 'context-edit') {
       const session = mount(message.item, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
       session.requestId = message.requestId;
-      edit(session); loadFolders(session);
+      edit(session);
       reply({displayed: true}); return;
     }
     if (message?.action === 'resolve-context-image') {
@@ -731,7 +836,8 @@
       contextImage = null;
       if (message.expectedUrl && item?.url !== message.expectedUrl) {reply({ok:false,kind:item?.kind,error:'视频目标已变化，请重新右键目标视频收藏。'});return;}
       if (item?.kind === 'video' && item.url.startsWith('blob:')) {
-        MoriMediaSource.resolve(item).then(value => reply({ok:true,item:value}), error => reply({ok:false,kind:'video',error:error.message}));
+        resolving++;
+        MoriMediaSource.resolve(item).then(value => reply({ok:true,item:value}), error => reply({ok:false,kind:'video',error:error.message})).finally(()=>{resolving--;signalIdle();});
         return true;
       }
       reply(item ? {ok: true, item} : {ok: false, error: '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Mori。'});

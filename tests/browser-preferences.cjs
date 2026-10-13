@@ -25,8 +25,8 @@ let browser;before(async()=>{browser=await chromium.launch({headless:true,channe
 async function mockPage(prefs={},width=420) {
   const page=await browser.newPage({viewport:{width,height:680},locale:'zh-CN'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(prefs=>{
-    const changed=[];window.testStore={moriPreferences:prefs};window.storageFailure=false;
-    window.chrome={storage:{onChanged:{addListener:f=>changed.push(f)},local:{get:async key=>({[key]:testStore[key]}),set:async values=>{if(storageFailure)throw Error('test');for(const key in values){const oldValue=testStore[key];testStore[key]=values[key];for(const f of changed)f({[key]:{oldValue,newValue:values[key]}},'local');}}}},tabs:{query:async()=>[{url:'https://sub.example.com/a?secret=1#x'}]},runtime:{sendMessage:(m,cb)=>cb({ok:true,folders:[]})}};
+    const changed=[];window.testStore={moriPreferences:prefs};window.storageFailure=false;window.testMessages=[];window.testPortListeners=[];
+    window.chrome={storage:{onChanged:{addListener:f=>changed.push(f)},local:{get:async key=>({[key]:testStore[key]}),set:async values=>{if(storageFailure)throw Error('test');for(const key in values){const oldValue=testStore[key];testStore[key]=values[key];for(const f of changed)f({[key]:{oldValue,newValue:values[key]}},'local');}}}},tabs:{query:async()=>[{url:'https://sub.example.com/a?secret=1#x'}]},runtime:{connect:({name})=>{testMessages.push({action:'connect',name});return{onMessage:{addListener:fn=>testPortListeners.push(fn)}};},sendMessage:(m,cb)=>{testMessages.push(m);cb({ok:true,folders:[]});}}};
   },prefs);
   await page.goto(pathToFileURL(path.join(root,'browser-extension/popup.html')).href);await page.waitForFunction(()=>!document.querySelector('#drag-mode').disabled);
   return {page,errors};
@@ -57,6 +57,22 @@ test('Chrome bookmarks are read only after permission and saved only after impor
 });
 test('denied optional bookmark permission neither reads the tree nor imports',async()=>{
   const {page}=await mockPage();try{await page.evaluate(()=>{chrome.permissions={request:async()=>false};chrome.bookmarks={getTree:()=>{throw Error('must not read');}};});await page.click('#import-bookmarks');await page.waitForFunction(()=>document.querySelector('#bookmark-progress').textContent.includes('未授权'));assert.equal(await page.locator('#bookmark-review').isVisible(),false);}finally{await page.close();}
+});
+
+test('popup locks updates before health reads and never opens the library just to check status',async()=>{
+  const {page,errors}=await mockPage();try{
+    const actions=await page.evaluate(()=>testMessages.map(message=>message.action));
+    assert.equal(actions[0],'connect');assert(actions.includes('bridgeStatus'));assert(actions.includes('extensionUpdateStatus'));assert.equal(actions.includes('folders'),false);
+    await page.evaluate(()=>testPortListeners.forEach(fn=>fn({updateStatus:{ok:true,pendingVersion:'0.3.2',uncertain:true,reason:'uncertain'}})));
+    assert.equal(await page.locator('#acknowledge-update').isVisible(),true);assert.match(await page.locator('#update-status').innerText(),/检查.*保存/);
+    await page.evaluate(()=>{chrome.runtime.sendMessage=(message,reply)=>{testMessages.push(message);reply({ok:true,pendingVersion:'0.3.2',reason:'popup',uncertain:false});};});
+    await page.click('#acknowledge-update');await page.waitForFunction(()=>document.querySelector('#acknowledge-update').classList.contains('hidden'));
+    assert.match(await page.locator('#update-status').innerText(),/关闭此窗口/);
+    assert.equal(await page.evaluate(()=>testMessages.filter(x=>x.action==='extensionUpdateAcknowledge').length),1);
+    assert.equal(await page.evaluate(()=>testMessages.some(x=>x.action==='save')),false);
+    await page.evaluate(()=>testPortListeners.forEach(fn=>fn({updateStatus:{ok:true,reason:'current'}})));
+    assert.match(await page.locator('#update-status').innerText(),/暂无待安装/);assert.doesNotMatch(await page.locator('#update-status').innerText(),/最新/);assert.deepEqual(errors,[]);
+  }finally{await page.close();}
 });
 test('popup saves scoped mode, theme/language/layout/edit options and restores existing preferences',async()=>{
   const {page,errors}=await mockPage();try{

@@ -67,6 +67,7 @@ namespace QingJie {
                 case "close":line(4,4,16,16);line(4,16,16,4);break;
                 case "done":line(3,10,8,15);line(8,15,17,5);break;
                 case "copy":d.DrawRectangle(null,p,new Rect(6,6,11,11));line(3,14,3,3);line(3,3,14,3);break;
+                case "library":d.DrawRoundedRectangle(null,p,new Rect(2,3,16,14),2,2);line(2,8,18,8);line(10,10,10,15);line(7.5,12.5,12.5,12.5);break;
                 case "rotate":d.DrawGeometry(null,p,System.Windows.Media.Geometry.Parse("M 4,7 C 6,1 16,2 17,9 M 14,7 L 17,10 L 19,6 M 6,9 L 12,11 L 10,17 L 4,15 Z"));break;
                 case "select":line(3,8,3,3);line(3,3,8,3);line(12,3,17,3);line(17,3,17,8);line(17,12,17,17);line(17,17,12,17);line(8,17,3,17);line(3,17,3,12);break;
             }

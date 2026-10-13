@@ -7,12 +7,14 @@ namespace MoriDesk {
  public sealed class FileReference : System.ComponentModel.INotifyPropertyChanged {
   public string Id {get;set;} public string Name {get;set;} public string Path {get;set;} public string Folder {get;set;} public bool Directory {get;set;}
   public string Kind {get{return Directory?"文件夹":System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant();}}
+  public string Glyph {get{return Directory?"\uE8B7":FileRouter.Kind(Path)=="model"?"\uF158":FileRouter.Kind(Path)=="image"?"\uEB9F":new[]{"MP4","MOV","WEBM","AVI","MKV"}.Contains(Kind)?"\uE714":new[]{"MP3","WAV","FLAC","M4A"}.Contains(Kind)?"\uE8D6":"\uE8A5";}}
+  public string Location {get{return System.IO.Path.GetDirectoryName(Path)??Path;}}
   // Checked only when opening/refreshing this page; never crawl or hash originals.
   public bool Exists {get{return Directory?System.IO.Directory.Exists(Path):File.Exists(Path);}}
   string state; public string State {get{return state;}set{if(state==value)return;state=value;var handler=PropertyChanged;if(handler!=null)handler(this,new System.ComponentModel.PropertyChangedEventArgs("State"));}}
   public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
  }
- public sealed class ReferenceFolder {public string Id {get;set;} public string Name {get;set;} public override string ToString(){return Name;}}
+ public sealed class ReferenceFolder {public string Id {get;set;} public string Name {get;set;} public int Count {get;set;} public string Summary {get{return Count+" 个收藏";}} public override string ToString(){return Name;}}
  public sealed class ReferenceStore {
   readonly Database db; readonly UndoHistory history;
   public ReferenceStore(Database database){db=database;db.Exec("CREATE TABLE IF NOT EXISTS desk_ref_folders(id TEXT PRIMARY KEY,name TEXT NOT NULL UNIQUE COLLATE NOCASE);CREATE TABLE IF NOT EXISTS desk_refs(id TEXT PRIMARY KEY,path TEXT NOT NULL UNIQUE COLLATE NOCASE,name TEXT NOT NULL,folder TEXT NOT NULL DEFAULT '',is_dir INTEGER NOT NULL);");history=new UndoHistory(db,true);}
@@ -22,7 +24,7 @@ namespace MoriDesk {
   public static string Normalize(string path){if(string.IsNullOrWhiteSpace(path)||path.IndexOf('\0')>=0||!System.IO.Path.IsPathRooted(path))throw new ArgumentException("请选择完整的本地文件路径。");var full=System.IO.Path.GetFullPath(path);return full.Length>System.IO.Path.GetPathRoot(full).Length?full.TrimEnd('\\','/'):full;}
   void Edit(Action action){history.Record("本地文件收藏",action);}
   void CheckFolder(string folder){if(folder!=""&&!Folders().Any(f=>f.Id==folder))throw new InvalidOperationException("分类已不存在，请重新选择。");}
-  public int Add(IEnumerable<string> paths,string folder){CheckFolder(folder);var normalized=paths.Select(Normalize).Distinct(StringComparer.OrdinalIgnoreCase).ToList();foreach(var p in normalized)if(!File.Exists(p)&&!System.IO.Directory.Exists(p))throw new FileNotFoundException("文件已不存在或暂时无法访问："+p);int count=0;Edit(()=>{foreach(string p in normalized){if(db.Query("SELECT id FROM desk_refs WHERE path="+Q(p)).Count>0)continue;string name=System.IO.Path.GetFileName(p);if(name.Length==0)name=p;db.Exec("INSERT INTO desk_refs VALUES("+Q(Guid.NewGuid().ToString("N"))+","+Q(p)+","+Q(name)+","+Q(folder)+","+(System.IO.Directory.Exists(p)?1:0)+")");count++;}});return count;}
+  public int Add(IEnumerable<string> paths,string folder,bool classifyExisting=false){CheckFolder(folder);var normalized=paths.Select(Normalize).Distinct(StringComparer.OrdinalIgnoreCase).ToList();foreach(var p in normalized)if(!File.Exists(p)&&!System.IO.Directory.Exists(p))throw new FileNotFoundException("文件已不存在或暂时无法访问："+p);int count=0;Edit(()=>{foreach(string p in normalized){if(db.Query("SELECT id FROM desk_refs WHERE path="+Q(p)).Count>0){if(classifyExisting)db.Exec("UPDATE desk_refs SET folder="+Q(folder)+" WHERE path="+Q(p));continue;}string name=System.IO.Path.GetFileName(p);if(name.Length==0)name=p;db.Exec("INSERT INTO desk_refs(id,path,name,folder,is_dir) VALUES("+Q(Guid.NewGuid().ToString("N"))+","+Q(p)+","+Q(name)+","+Q(folder)+","+(System.IO.Directory.Exists(p)?1:0)+")");count++;}});return count;}
   public string AddFolder(string name){name=(name??"").Trim();if(name.Length==0||name.Length>100)throw new ArgumentException("分类名应为 1–100 个字符。");string id=Guid.NewGuid().ToString("N");Edit(()=>db.Exec("INSERT INTO desk_ref_folders VALUES("+Q(id)+","+Q(name)+")"));return id;}
   public void RenameFolder(string id,string name){name=(name??"").Trim();if(name.Length==0||name.Length>100)throw new ArgumentException("请输入分类名称。");CheckFolder(id);Edit(()=>db.Exec("UPDATE desk_ref_folders SET name="+Q(name)+" WHERE id="+Q(id)));}
   public void DeleteFolder(string id){CheckFolder(id);Edit(()=>db.Exec("UPDATE desk_refs SET folder='' WHERE folder="+Q(id)+";DELETE FROM desk_ref_folders WHERE id="+Q(id)));}
