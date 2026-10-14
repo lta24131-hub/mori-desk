@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 namespace Mori {
  public static class DuplicateWindow {
   public static string Ask(Window owner,Library library,Asset existing,string incoming,bool batch,out bool applyAll){
-   string choice="skip";var window=new Window{Owner=owner,Title="Mori · 图片已存在",Width=620,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};Theme.Attach(window,owner);
+   string choice="skip";var window=new Window{Owner=owner,Title="Nook · 图片已存在",Width=620,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};Theme.Attach(window,owner);
    var root=new StackPanel{Margin=new Thickness(26)};window.Content=root;
    root.Children.Add(new TextBlock{Text="图库中已存在相同内容的文件",FontSize=19,FontWeight=FontWeights.SemiBold});
    var hint=new TextBlock{Text="使用已有图片不会再占一份空间，也不会覆盖原有备注。",Margin=new Thickness(0,10,0,22),TextWrapping=TextWrapping.Wrap};hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");root.Children.Add(hint);

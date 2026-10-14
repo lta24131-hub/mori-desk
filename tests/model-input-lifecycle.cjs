@@ -6,7 +6,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname,'../src/ModelWindow.cs'),'utf8');
-const expression = source.match(/string script=(.*?);await web\.ExecuteScriptAsync\(script\)/s)[1];
+// Scope the injection to the input-loading method: other host helpers (such
+// as ThemeAccentScript) also declare a variable named script.
+const loadSelected = source.match(/\basync\s+void\s+LoadSelected\s*\(\s*\)\s*\{(.*?)\}\s*\r?\n/s);
+assert.ok(loadSelected,'ModelWindow.LoadSelected method must remain available to the input lifecycle tests');
+const injection = loadSelected[1].match(/string script=(.*?);await web\.ExecuteScriptAsync\(script\)/s);
+assert.ok(injection,'LoadSelected must inject its actual selected-model loading script');
+const expression = injection[1];
 function script(url,name) {
   return vm.runInNewContext(expression,{modelUrl:url,name:JSON.stringify(name)});
 }

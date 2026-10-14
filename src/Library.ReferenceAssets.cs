@@ -52,6 +52,18 @@ namespace Mori {
     Db.Exec("INSERT INTO desk_refs(id,path,name,folder,is_dir,bytes,added,created) VALUES("+Q(id)+","+Q(path)+","+Q(name.Length==0?path:name)+","+Q(folder)+","+(directory?1:0)+","+bytes+","+Q(added.ToString("o",CultureInfo.InvariantCulture))+","+Q(FileCreated(path))+")");ids.Add(ReferencePrefix+id);
    }});return ids.ToArray();
   }
+  internal void RelinkReferenceAsset(string id,string path){
+   if(!ReferenceKey(id))throw new InvalidOperationException("只有本地快捷收藏可以重新定位。");
+   path=ReferenceStore.Normalize(path);string raw=RawReference(id);
+   Db.Transaction(()=>{
+    var rows=Db.Query("SELECT id,is_dir FROM desk_refs WHERE id="+Q(raw));if(rows.Count!=1)throw new InvalidOperationException("快捷收藏已变化，请刷新后重试。");
+    bool directory=rows[0]["is_dir"]=="1";
+    if(!MissingLocalFile.Exists(path,directory))throw new FileNotFoundException(directory?"请选择原文件夹的新位置，不能选择文件。":"请选择原文件的新位置，不能选择文件夹。",path);
+    if(Db.Query("SELECT id FROM desk_refs WHERE path="+Q(path)+" AND id<>"+Q(raw)).Count>0)throw new InvalidOperationException("这个位置已经有快捷收藏。请选择原文件的新位置，不会合并或覆盖现有收藏。");
+    long bytes=directory?0:new FileInfo(path).Length;
+    Db.Exec("UPDATE desk_refs SET path="+Q(path)+",bytes="+bytes+",created="+Q(FileCreated(path))+" WHERE id="+Q(raw));
+   });
+  }
   bool AssignReference(string id,string folder){
    if(!ReferenceKey(id))return false;
    if(Db.Query("SELECT id FROM desk_refs WHERE id="+Q(RawReference(id))).Count!=1)throw new InvalidOperationException("快捷收藏已变化，请刷新后重试。");

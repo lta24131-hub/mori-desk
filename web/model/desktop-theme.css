@@ -1,0 +1,203 @@
+/* Nook desktop chrome only. Renderer backgrounds, canvases, material previews,
+   color swatches and orientation-axis colors remain owned by the local viewer. */
+html[data-nook-theme="light"] {
+  color-scheme: light;
+  --nook-canvas: #FAFAFA;
+  --nook-panel: #F3F3F3;
+  --nook-surface: #FFFFFF;
+  --nook-input: #FAFAFA;
+  --nook-control: #EEEEEE;
+  --nook-border: #D7D7D7;
+  --nook-divider: #E4E4E4;
+  --nook-text: #252525;
+  --nook-muted: #626262;
+  --nook-hover: #E7E7E7;
+  --nook-accent: #6D5BC7;
+  --nook-accent-soft: #F0EDFA;
+  --nook-scroll-thumb: #B7B7B7;
+  --nook-primary: #6D5BC7;
+  --nook-on-primary: #FFFFFF;
+}
+html[data-nook-theme="dark"] {
+  color-scheme: dark;
+  --nook-canvas: #161616;
+  --nook-panel: #1D1D1D;
+  --nook-surface: #242424;
+  --nook-input: #292929;
+  --nook-control: #303030;
+  --nook-border: #484848;
+  --nook-divider: #363636;
+  --nook-text: #EEEEEE;
+  --nook-muted: #AAAAAA;
+  --nook-hover: #3B3B3B;
+  --nook-accent: #B7A8ED;
+  --nook-accent-soft: #322D40;
+  --nook-scroll-thumb: #626262;
+  --nook-primary: #B7A8ED;
+  --nook-on-primary: #161616;
+}
+html[data-nook-theme] .topbar {
+  background: var(--nook-panel);
+  color: var(--nook-text);
+  border-bottom-color: var(--nook-divider);
+}
+html[data-nook-theme] .brand-mark,
+html[data-nook-theme] .empty-icon,
+html[data-nook-theme] .cloud-dialog-icon {
+  color: var(--nook-text);
+  background: var(--nook-control);
+  border-color: var(--nook-border);
+  box-shadow: none;
+}
+html[data-nook-theme] .header-open,
+html[data-nook-theme] .tool-rail button,
+html[data-nook-theme] .appearance-heading button,
+html[data-nook-theme] .color-picker,
+html[data-nook-theme] .material-grid button,
+html[data-nook-theme] .axis-presets button,
+html[data-nook-theme] .quarter-turns button,
+html[data-nook-theme] .reset-orientation,
+html[data-nook-theme] .export-light-button,
+html[data-nook-theme] .stop-loading,
+html[data-nook-theme] .model-info button,
+html[data-nook-theme] .cloud-dialog-actions button,
+html[data-nook-theme] .fullscreen-close {
+  color: var(--nook-text);
+  background: var(--nook-control);
+  border-color: var(--nook-border);
+}
+html[data-nook-theme] .offline-pill,
+html[data-nook-theme] .gesture-hint {
+  background: var(--nook-panel);
+  color: var(--nook-text);
+  border-color: var(--nook-border);
+}
+html[data-nook-theme] .offline-pill.preparing {
+  color: var(--nook-muted);
+}
+html[data-nook-theme] .gesture-hint i {
+  background: var(--nook-divider);
+}
+html[data-nook-theme] .appearance-panel,
+html[data-nook-theme] .orientation-panel,
+html[data-nook-theme] .loading-card,
+html[data-nook-theme] .cloud-dialog,
+html[data-nook-theme] .model-info,
+html[data-nook-theme] .empty-state {
+  background: var(--nook-surface);
+  color: var(--nook-text);
+  border-color: var(--nook-border);
+}
+/* The empty-state card is UI over the original scene, not a scene recolor. */
+html[data-nook-theme] .empty-state {
+  padding: 24px;
+  border: 1px solid var(--nook-border);
+  border-radius: 20px;
+}
+html[data-nook-theme] .empty-state h1,
+html[data-nook-theme] .appearance-label,
+html[data-nook-theme] .structure-option strong,
+html[data-nook-theme] .cloud-dialog .cloud-file-name,
+html[data-nook-theme] .privacy-note strong {
+  color: var(--nook-text);
+}
+html[data-nook-theme] .empty-state p,
+html[data-nook-theme] .appearance-label span:last-child:not(:first-child),
+html[data-nook-theme] .structure-option > div > span,
+html[data-nook-theme] .orientation-section p,
+html[data-nook-theme] .loading-card .loading-note,
+html[data-nook-theme] .cloud-dialog p,
+html[data-nook-theme] .privacy-note span,
+html[data-nook-theme] .model-info span,
+html[data-nook-theme] .export-light-button small {
+  color: var(--nook-muted);
+}
+html[data-nook-theme] .tool-rail button.active,
+html[data-nook-theme] .material-grid button.selected,
+html[data-nook-theme] .axis-presets button.selected {
+  background: var(--nook-accent-soft);
+  color: var(--nook-accent);
+  border-color: var(--nook-accent);
+}
+html[data-nook-theme] .export-light-button > svg {
+  color: var(--nook-text);
+}
+html[data-nook-theme] .open-button,
+html[data-nook-theme] .cloud-dialog-actions button.primary {
+  background: var(--nook-primary);
+  color: var(--nook-on-primary);
+  border-color: var(--nook-primary);
+  box-shadow: none;
+}
+html[data-nook-theme] .privacy-note {
+  background: var(--nook-input);
+  border-color: var(--nook-border);
+}
+html[data-nook-theme] .structure-option > button {
+  background: var(--nook-control);
+  border-color: var(--nook-border);
+}
+html[data-nook-theme] .structure-option > button > span {
+  background: var(--nook-muted);
+}
+html[data-nook-theme] .structure-option > button.enabled {
+  background: var(--nook-primary);
+  border-color: var(--nook-primary);
+}
+html[data-nook-theme] .structure-option > button.enabled > span {
+  background: var(--nook-on-primary);
+}
+html[data-nook-theme] .loader {
+  border-color: var(--nook-border);
+  border-top-color: var(--nook-muted);
+}
+html[data-nook-theme] .loading-progress {
+  background: var(--nook-control);
+}
+html[data-nook-theme] .loading-progress > span {
+  background: var(--nook-muted);
+  box-shadow: none;
+}
+html[data-nook-theme] .header-open:not(:disabled):hover,
+html[data-nook-theme] .tool-rail button:not(:disabled):not(.active):hover,
+html[data-nook-theme] .appearance-heading button:hover,
+html[data-nook-theme] .material-grid button:not(.selected):hover,
+html[data-nook-theme] .axis-presets button:not(.selected):hover,
+html[data-nook-theme] .quarter-turns button:hover,
+html[data-nook-theme] .reset-orientation:hover,
+html[data-nook-theme] .export-light-button:hover,
+html[data-nook-theme] .cloud-dialog-actions button:not(.primary):hover,
+html[data-nook-theme] .model-info button:hover,
+html[data-nook-theme] .stop-loading:hover,
+html[data-nook-theme] .fullscreen-close:hover {
+  background: var(--nook-hover);
+}
+html[data-nook-theme] .tool-rail button:disabled {
+  color: var(--nook-muted);
+}
+html[data-nook-theme] button:focus-visible,
+html[data-nook-theme] input:focus-visible {
+  outline: 2px solid var(--nook-accent);
+  outline-offset: 3px;
+}
+html[data-nook-theme] .color-picker:focus-within {
+  outline: 2px solid var(--nook-accent);
+  outline-offset: 3px;
+}
+html[data-nook-theme] .color-swatch.selected {
+  border-color: var(--nook-accent);
+  box-shadow: 0 0 0 2px var(--nook-accent), inset 0 1px 1px #FFFFFF59;
+  outline: 2px solid var(--nook-accent-soft);
+  outline-offset: 1px;
+}
+html[data-nook-theme] .appearance-panel,
+html[data-nook-theme] .orientation-panel,
+html[data-nook-theme] .cloud-dialog {
+  scrollbar-color: var(--nook-scroll-thumb) transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-nook-theme] .structure-option > button > span,
+  html[data-nook-theme] .loading-progress > span {
+    transition: none;
+  }
+}

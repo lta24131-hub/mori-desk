@@ -11,7 +11,7 @@ video.addEventListener('loadedmetadata',opened);video.addEventListener('duration
 video.addEventListener('timeupdate',()=>tick());video.addEventListener('seeked',()=>tick(true));
 video.addEventListener('ended',()=>send('ended'));video.addEventListener('error',()=>send('error'));
 video.addEventListener('dblclick',()=>send('close'));
-document.addEventListener('keydown',event=>{if(['Escape',' ','ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();send('key',{key:event.key});}});
+document.addEventListener('keydown',event=>{if(['Escape','F11','m','M',' ','ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();if(event.repeat&&['Escape','F11','m','M',' '].includes(event.key))return;send('key',{key:event.key});}});
 function frame(){if(video.readyState<2){video.addEventListener('loadeddata',frame,{once:true});return;}
  const scale=Math.min(1,512/Math.max(video.videoWidth,video.videoHeight));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
  try{canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);send('thumbnail',{width:video.videoWidth,height:video.videoHeight,png:canvas.toDataURL('image/png').split(',')[1]});}catch(_){send('error');}}
@@ -19,6 +19,7 @@ window.chrome.webview.addEventListener('message',event=>{const command=event.dat
  if(command.type==='play')video.play().catch(error=>{if(error.name!=='AbortError')send('error');});
  else if(command.type==='pause')video.pause();
  else if(command.type==='seek'){if(Number.isFinite(command.position)){video.currentTime=Math.max(0,Math.min(video.duration,command.position));}}
+ else if(command.type==='volume'&&Number.isFinite(command.volume)){video.volume=Math.max(0,Math.min(1,command.volume));video.muted=video.volume===0;}
  else if(command.type==='thumbnail'&&!thumbnail){thumbnail=true;video.muted=true;video.pause();const target=Math.min(.4,video.duration*.15);if(Math.abs(video.currentTime-target)>.01){video.addEventListener('seeked',frame,{once:true});video.currentTime=target;}else frame();}
 });
 </script></body></html>

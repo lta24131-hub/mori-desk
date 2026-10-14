@@ -43,8 +43,8 @@ namespace Mori {
      main.SetSection("audio");check(Visible(main).Count==10,"audio section includes each supported local format");
      var selected=(HashSet<string>)Field(main,"selection");selected.Add(audio.Id);Refresh(main);
      check(((TextBlock)main.Window.FindName("SelectionInfo")).Text=="1 个音频已选中"&&((TextBlock)main.Window.FindName("DetailAudioIcon")).Visibility==Visibility.Visible&&!((Button)main.Window.FindName("Similar")).IsEnabled,"audio inspector has music icon and disables image-only operations");
-     check(main.CreateAssetMenu(audio).Items.OfType<MenuItem>().Count(m=>Convert.ToString(m.Header).Contains("播放器"))==1,"audio has one honest default-player action");
-     lib.BuildThumbnail(audio);lib.BuildThumbnail(pdf);check(!File.Exists(lib.ThumbnailPath(audio))&&!File.Exists(lib.ThumbnailPath(pdf)),"audio/PDF skip bitmap decoding and allocate no thumbnails");
+     var audioMenu=main.CreateAssetMenu(audio).Items.OfType<MenuItem>().Select(m=>Convert.ToString(m.Header)).ToArray();check(audioMenu.Count(x=>x=="播放音频")==1&&audioMenu.Count(x=>x=="用默认程序打开")==1,"audio distinguishes built-in playback from one default-program action");
+     lib.BuildThumbnail(audio);lib.BuildThumbnail(pdf);check(!File.Exists(lib.ThumbnailPath(audio))&&!File.Exists(lib.ThumbnailPath(pdf)),"audio has no bitmap thumbnail and invalid PDF never caches a placeholder");
      main.RequestNavigate(folder);check(Visible(main).Count==14,"existing project folders retain every local type including PDF");var filter=(ComboBox)main.Window.FindName("MediaFilter");filter.SelectedIndex=4;check(Visible(main).Count==10&&Visible(main).All(a=>a.IsAudio),"project audio filter works");
      ((Button)main.Window.FindName("All")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));check(filter.SelectedIndex==0&&filter.Visibility==Visibility.Collapsed&&Visible(main).Count==13,"overview resets old folder filters");
      main.RevealImported(new[]{audio.Id},"");Refresh(main);check((string)Field(main,"mediaSection")=="audio"&&Visible(main).Count==10,"audio-only imports reveal audio page");

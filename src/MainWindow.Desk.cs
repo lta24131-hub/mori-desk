@@ -16,11 +16,13 @@ namespace Mori {
    deskServicesActive=true;DeskRuntime.Notify=NotifyFromTools;DeskRuntime.CollectImage=CollectScreenshot;DeskRuntime.OpenSettings=()=>OpenDeskSettings("capture");DeskRuntime.Start(PreviewMode,library.Root);if(!PreviewMode)BrowserConnection.StartLocal();
   }
   void InitializeDesk(){
-   Window.Title="Mori Desk · 素材与工具";
-   deskTools=new Button{Content="工具",ToolTip="截图 · 输入翻译 · 看图 · 3D 查看",Style=B("More").Style};UiIcons.SetGlyph(deskTools,"\uE713");var actions=(Panel)B("More").Parent;actions.Children.Insert(actions.Children.IndexOf(B("More")),deskTools);deskTools.Click+=delegate{ToolMenu(deskTools);};
+   Window.Title="Nook · 素材与工具";
+   Window.Closed+=delegate{DisposeBrowser();};
+   Find<Grid>("Workspace").SizeChanged+=delegate{ApplyBrowserPresentation();};
+   deskTools=new Button{Content="工具",ToolTip="截图 · 输入翻译 · 看图 · 3D 查看",Style=B("More").Style};UiIcons.SetGlyph(deskTools,"\uE90F");var actions=(Panel)B("More").Parent;actions.Children.Insert(actions.Children.IndexOf(B("Settings")),deskTools);deskTools.Click+=delegate{ToolMenu(deskTools);};
    var nav=new Button{Content="本地收藏",ToolTip="电脑文件拖入默认在这里 · 只存位置，不复制文件",Style=B("All").Style};referenceNav=nav;UiIcons.SetGlyph(nav,"\uE8B7");var navigation=(Panel)B("All").Parent;navigation.Children.Insert(navigation.Children.IndexOf(B("Documents"))+1,nav);nav.Click+=delegate{ShowReferences();};
    Window.Loaded+=delegate{deskLoaded=true;if(!deskDeferred)StartDeskServices();Application.Current.ShutdownMode=ShutdownMode.OnMainWindowClose;};
-   Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(!e.Cancel&&!DeskRuntime.PrepareExit(Window))e.Cancel=true;};
+   Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(e.Cancel)return;if(freeCanvas!=null&&!freeCanvas.PrepareExit()){e.Cancel=true;return;}if(!DeskRuntime.PrepareExit(Window)){e.Cancel=true;return;}CloseFreeCanvasForExit(s,e);if(e.Cancel)QingJie.AppState.Quitting=false;};
    // Keep the capture lease until pin windows have finished saving on shutdown.
    Application.Current.Exit+=delegate{BrowserConnection.StopLocal();DeskRuntime.Stop();};
    if(Entry.BoardEnabled)ShowBoard("all");if(Entry.ClassicEnabled){InitializeLocalAddress();UpdateInspector();UpdateNavigationScope();}
@@ -31,14 +33,15 @@ namespace Mori {
   internal static bool IsLocalFileDrop(IDataObject data){return data.GetDataPresent(DataFormats.FileDrop)&&!DesktopImageDrop.Internal(data)&&!DesktopImageDrop.TemporaryPictures(data);}
   internal void CollectLocalPaths(string[] paths){if(busy){Status("请等待当前操作结束后再收藏本地文件。");return;}if(Entry.ClassicEnabled){CollectClassicPaths(paths,bookmarkMode?"":CurrentFolder());return;}if(Entry.BoardEnabled){OfferBoardPaths(paths,"");return;}bool local=referenceMode;ShowReferences();if(referenceMode){if(local)referencePage.DropFiles(paths);else referencePage.CollectPaths(paths,"",false);}}
   void DeskDrop(object sender,DragEventArgs e){if(!IsLocalFileDrop(e.Data))return;if(Entry.ClassicEnabled){e.Handled=true;var paths=(string[])e.Data.GetData(DataFormats.FileDrop);var node=FolderNode(e.OriginalSource as DependencyObject,Find<TreeView>("Folders"));string folder=node!=null?Convert.ToString(node.Tag):bookmarkMode?"":CurrentFolder();string collection=node==null?ExternalLocalCollectionTarget(e.OriginalSource as DependencyObject):null;HideDragHint();Window.Dispatcher.BeginInvoke(new Action(()=>CollectClassicPaths(paths,folder,collection)));return;}if(Entry.BoardEnabled){e.Handled=true;var paths=(string[])e.Data.GetData(DataFormats.FileDrop);string target=boardMode?(boardPage.GroupAt(e.OriginalSource as DependencyObject)??boardPage.Group):"";HideDragHint();Window.Dispatcher.BeginInvoke(new Action(()=>OfferBoardPaths(paths,target)));return;}if(referenceMode)return;e.Handled=true;CollectLocalPaths((string[])e.Data.GetData(DataFormats.FileDrop));}
-  void ToolMenu(Button anchor){var menu=Theme.Menu(Window);Action<string,Action> add=(title,action)=>{var item=new MenuItem{Header=title};item.Click+=delegate{action();};menu.Items.Add(item);};add("截图 / 标注 / 原位翻译",()=>{if(!DeskRuntime.RequireTools())return;HideToTrayForCapture();QingJie.AppState.BeginCapture();});add("输入翻译",()=>{if(DeskRuntime.RequireTools())QingJie.AppState.ShowTranslator();});add("粘贴 / 找回贴图",()=>{if(DeskRuntime.RequireTools())QingJie.AppState.Paste();});menu.Items.Add(new Separator());add("打开图片…（不收藏）",()=>FileRouter.Choose(Window,false));add("打开 3D 模型…（不收藏）",()=>FileRouter.Choose(Window,true));add("本地文件快捷收藏",ShowReferences);menu.PlacementTarget=anchor;menu.IsOpen=true;}
+  internal ContextMenu CreateToolMenu(){var menu=Theme.Menu(Window);Action<string,Action> add=(title,action)=>{var item=new MenuItem{Header=title};item.Click+=delegate{action();};menu.Items.Add(item);};add("截图 / 标注 / 原位翻译",()=>{if(!DeskRuntime.RequireTools())return;HideToTrayForCapture();QingJie.AppState.BeginCapture();});add("输入翻译",()=>{if(DeskRuntime.RequireTools())QingJie.AppState.ShowTranslator();});add("粘贴 / 找回贴图",()=>{if(DeskRuntime.RequireTools())QingJie.AppState.Paste();});menu.Items.Add(new Separator());add("打开图片…（不收藏）",()=>FileRouter.Choose(Window,false));add("打开 3D 模型…（不收藏）",()=>FileRouter.Choose(Window,true));add("自由画布…",()=>OpenFreeCanvas(null));add("快速浏览网址…",()=>{var url=Prompt("快速浏览","输入网址或搜索关键词","");if(url!=null)BrowseBookmark(url);});add("本地文件快捷收藏",ShowReferences);return menu;}
+  void ToolMenu(Button anchor){var menu=CreateToolMenu();menu.PlacementTarget=anchor;menu.IsOpen=true;}
   void HideToTrayForCapture(){if(!PreviewMode)HideToTray();}
   DeskSettingsWindow deskSettings;
   void ShowDeskSettings(){OpenDeskSettings("general");}
   void OpenDeskSettings(string section){
    if(deskSettings!=null){deskSettings.Select(section);deskSettings.Activate();return;}
    if(busy){Status("当前操作完成后再打开设置。");return;}
-   var w=new DeskSettingsWindow(Window,PreviewMode,library);deskSettings=w;
+   var w=new DeskSettingsWindow(Window,PreviewMode,library,ApplyBrowsePreferences);deskSettings=w;
    try{w.Select(section);w.ShowDialog();}finally{deskSettings=null;}
    if(w.StorageRequest!=null)ChangeStorage(w.StorageRequest);
   }

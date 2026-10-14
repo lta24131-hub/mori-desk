@@ -9,7 +9,7 @@ namespace Mori {
   public static bool IsEnabled(string exePath){return IsEnabled(exePath,new RegistryRunStore());}
   public static void SetEnabled(bool enabled,string exePath){SetEnabled(enabled,exePath,new RegistryRunStore());}
   internal static string Command(string exePath){
-   if(string.IsNullOrWhiteSpace(exePath)||!Path.IsPathRooted(exePath)||exePath.IndexOfAny(new[]{'"','\r','\n','\0'})>=0)throw new ArgumentException("Mori 程序路径无效。","exePath");
+   if(string.IsNullOrWhiteSpace(exePath)||!Path.IsPathRooted(exePath)||exePath.IndexOfAny(new[]{'"','\r','\n','\0'})>=0)throw new ArgumentException("Nook 程序路径无效。","exePath");
    return "\""+Path.GetFullPath(exePath)+"\" --startup";
   }
   internal static bool IsEnabled(string exePath,IStartupStore store){return string.Equals(store.GetValue(ValueName),Command(exePath),StringComparison.OrdinalIgnoreCase);}

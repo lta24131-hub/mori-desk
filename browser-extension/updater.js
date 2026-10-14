@@ -3,7 +3,7 @@
 const MoriUpdater = (() => {
   const ALARM = 'mori-extension-update';
   const CLIENT = 'moriUpdateClientId', UNSAFE = 'moriUpdateUncertainWrite', PENDING = 'moriUpdatePendingWrite';
-  const BLOCKED = {ok:false,code:'UPDATE_IN_PROGRESS',error:'Mori 插件正在更新，请稍后再收藏。'};
+  const BLOCKED = {ok:false,code:'UPDATE_IN_PROGRESS',error:'Nook 插件正在更新，请稍后再收藏。'};
   function create(options) {
     const browser = options.chrome, delay = options.setTimeout || setTimeout, cancel = options.clearTimeout || clearTimeout;
     const now = options.now || Date.now;

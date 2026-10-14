@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="nook-small-title">
+  <title id="nook-small-title">Nook — small pixel-aligned icon</title>
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="#6260C5"/>
+  <g fill="#FFFFFF">
+    <path fill-rule="evenodd" d="M48 32 H96 A16 16 0 0 1 112 48 V96 A16 16 0 0 1 96 112 H48 A16 16 0 0 1 32 96 V48 A16 16 0 0 1 48 32 Z M48 48 H96 V96 H48 Z"/>
+    <rect x="144" y="32" width="80" height="80" rx="16"/>
+    <path fill-rule="evenodd" d="M48 144 H96 A16 16 0 0 1 112 160 V208 A16 16 0 0 1 96 224 H48 A16 16 0 0 1 32 208 V160 A16 16 0 0 1 48 144 Z M48 160 H96 V208 H48 Z"/>
+    <path fill-rule="evenodd" d="M160 144 H208 A16 16 0 0 1 224 160 V208 A16 16 0 0 1 208 224 H160 A16 16 0 0 1 144 208 V160 A16 16 0 0 1 160 144 Z M160 160 H208 V208 H160 Z"/>
+  </g>
+</svg>

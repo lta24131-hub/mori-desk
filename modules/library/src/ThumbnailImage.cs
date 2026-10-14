@@ -31,7 +31,7 @@ namespace Mori {
   public static Task<IDisposable> PauseAndDrainAsync(){return Gate.PauseAndDrainAsync();}
   int generation;
   public ThumbnailImage(){Loaded+=delegate{Load();};Unloaded+=delegate{generation++;Source=null;};DataContextChanged+=delegate{generation++;Source=null;if(IsLoaded)Load();};}
-  async void Load(){var a=DataContext as Asset;if(a==null||CurrentLibrary==null||Gate.IsPaused||(!MediaTypes.Contains(a,"pictures")&&!MediaTypes.Contains(a,"videos")))return;int version=++generation;var library=CurrentLibrary;var lease=await Gate.EnterAsync();if(lease==null)return;
+  async void Load(){var a=DataContext as Asset;if(a==null||CurrentLibrary==null||Gate.IsPaused||!MediaTypes.CanThumbnail(a))return;int version=++generation;var library=CurrentLibrary;var lease=await Gate.EnterAsync();if(lease==null)return;
    using(lease){try{if(Gate.IsPaused||version!=generation||!IsLoaded)return;int previousWidth=a.Width,previousHeight=a.Height;
     var bitmap=await Task.Run(delegate{library.BuildThumbnail(a);string file=library.ThumbnailPath(a);if(!File.Exists(file))return null;return ReadThumbnail(file);});
     if(Gate.IsPaused||version!=generation||!IsLoaded)return;Source=bitmap;if((previousWidth!=a.Width||previousHeight!=a.Height)&&a.Width>0&&a.Height>0){a.NotifyDimensions();RaiseEvent(new RoutedEventArgs(DimensionsReadyEvent));}}

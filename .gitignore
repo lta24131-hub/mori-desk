@@ -23,15 +23,22 @@
 **/*.db-wal
 **/*.db-shm
 **/*.sqlite
+**/*.sqlite3
 **/*.log
 **/*.tmp
 **/*.pdb
 **/settings.json
 **/local-connection.js*
 **/local-key.txt*
+**/pairing.json
+**/profile/
 **/test-output/
 **/test-languages/
 **/browser-artifacts/
 **/*.prompt.txt
 /tests/tetrahedron.step
 /modules/library/assets/mori-logo-*.png
+
+# Local design explorations and machine-specific interactive diagnostics.
+/assets/brand-concepts/
+/tests/diagnostics/

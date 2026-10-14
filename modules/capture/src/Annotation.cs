@@ -67,7 +67,7 @@ namespace QingJie {
                 string size=string.Format("{0} × {1}",Math.Round(s.Width*ScaleX),Math.Round(s.Height*ScaleY));
                 var ft=new FormattedText(size,CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),12,Brushes.White);
                 double sy=s.Top>25?s.Top-24:s.Top+8;d.DrawRoundedRectangle(Ui.Brush("#B5202727"),null,new Rect(s.Left,sy,ft.Width+16,21),3,3);d.DrawText(ft,new Point(s.Left+8,sy+2));
-                if(Selection.IsEmpty){var hint=new FormattedText("单击选中 · 拖动框选 · 滚轮换边框 · Ctrl 自由选",CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),12,Brushes.White);double x=Geometry.Clamp(s.Left,8,Math.Max(8,ActualWidth-hint.Width-24)),y=Geometry.Clamp(s.Bottom+8,8,Math.Max(8,ActualHeight-30));d.DrawRoundedRectangle(Ui.Brush("#DB202727"),null,new Rect(x,y,hint.Width+16,24),4,4);d.DrawText(hint,new Point(x+8,y+3));}
+                if(Selection.IsEmpty){var hint=new FormattedText("单击选中 · 拖动框选 · 滚轮 / Tab 换边框 · Ctrl 自由选",CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),12,Brushes.White);double x=Geometry.Clamp(s.Left,8,Math.Max(8,ActualWidth-hint.Width-24)),y=Geometry.Clamp(s.Bottom+8,8,Math.Max(8,ActualHeight-30));d.DrawRoundedRectangle(Ui.Brush("#DB202727"),null,new Rect(x,y,hint.Width+16,24),4,4);d.DrawText(hint,new Point(x+8,y+3));}
             }
             // Drawing-only cursor preview: never included in Export().
             if(BrushPoint.HasValue){var p=BrushPoint.Value;double radius=Math.Max(.5,BrushDiameter/2);d.DrawEllipse(null,new Pen(Brushes.White,2.5),p,radius,radius);d.DrawEllipse(null,new Pen(Ui.Ink,1),p,radius,radius);

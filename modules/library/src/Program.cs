@@ -21,10 +21,13 @@ namespace Mori {
   public bool ShowAssetDetails {get;set;}
   public bool LeftSidebarVisible {get;set;}
   public bool RightSidebarVisible {get;set;}
+  string startupSection="assets";int defaultSort;
+  public string StartupSection {get{return startupSection;}set{startupSection=new[]{"assets","pictures","videos","audio","bookmarks","documents","shortcuts"}.Contains(value)?value:"assets";}}
+  public int DefaultSort {get{return defaultSort;}set{defaultSort=Math.Max(0,Math.Min(3,value));}}
   string theme="dark";
   public string Theme {get{return theme;}set{theme=string.Equals(value,"light",StringComparison.OrdinalIgnoreCase)?"light":"dark";}}
   public static string ConfigDir {get{return MoriDesk.Entry.DataRoot;}}
-  public Settings(){LibraryPath=Path.Combine(ConfigDir,"Library");ShowAssetNames=ShowAssetDetails=LeftSidebarVisible=RightSidebarVisible=true;}
+  public Settings(){LibraryPath=Path.Combine(ConfigDir,"Library");ShowAssetNames=ShowAssetDetails=LeftSidebarVisible=RightSidebarVisible=true;DefaultCustomization();}
   public static Settings Load(){return LoadFrom(Path.Combine(ConfigDir,"settings.json"));}
   public static Settings LoadFrom(string path){
    path=Path.GetFullPath(path);
@@ -47,8 +50,10 @@ namespace Mori {
     if(values.TryGetValue("ShowAssetDetails",out value)&&value is bool)settings.ShowAssetDetails=(bool)value;
     if(values.TryGetValue("LeftSidebarVisible",out value)&&value is bool)settings.LeftSidebarVisible=(bool)value;
     if(values.TryGetValue("RightSidebarVisible",out value)&&value is bool)settings.RightSidebarVisible=(bool)value;
-    settings.LoadedFromFile=true;settings.RememberLoaded(path);return settings;
-   }catch(Exception ex){throw new InvalidDataException("无法读取 Mori 设置，原设置文件已保留："+path+"\n"+ex.Message,ex);}
+    if(values.TryGetValue("StartupSection",out value))settings.StartupSection=value as string;
+    if(values.TryGetValue("DefaultSort",out value)&&value!=null&&int.TryParse(Convert.ToString(value),out size))settings.DefaultSort=size;
+    settings.ReadCustomization(values);settings.LoadedFromFile=true;settings.RememberLoaded(path);return settings;
+   }catch(Exception ex){throw new InvalidDataException("无法读取 Nook 设置，原设置文件已保留："+path+"\n"+ex.Message,ex);}
   }
   public void Save(){SaveTo(Path.Combine(ConfigDir,"settings.json"));}
   public void SaveTo(string path){
@@ -82,12 +87,12 @@ namespace Mori {
     if(preview)BookmarkIcons.NetworkEnabled=false;
     string instanceName=InstanceName(root);
     bool owned;using(var mutex=new Mutex(true,instanceName,out owned)){
-     if(!owned){if(!startup&&handoff==null&&!TrayHost.ActivateExisting(instanceName+"-activate"))MessageBox.Show("此图库已在 Mori 中打开，请切换到已有窗口。","Mori");return handoff==null?0:1;}
+     if(!owned){if(!startup&&handoff==null&&!TrayHost.ActivateExisting(instanceName+"-activate"))MessageBox.Show("此图库已在 Nook 中打开，请切换到已有窗口。","Nook");return handoff==null?0:1;}
      ValidateStartupLibrary(args,settings);
-     var app=new Application();app.DispatcherUnhandledException+=delegate(object sender,System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e){e.Handled=true;MessageBox.Show("操作未完成，原文件没有改动。\n"+e.Exception.Message,"Mori");};
-     using(var library=new Library(root)){if(ShouldRememberLibrary(args))Settings.RememberLibrary(root);var main=new MainWindow(library);app.SessionEnding+=delegate{main.AllowSessionEnd();};main.PreviewMode=preview;if(preview)main.Window.Title="Mori · 测试预览";if(handoff!=null)PrepareHandoff(main,handoff,instanceName+"-activate");else main.EnableTray(instanceName+"-activate",startup);app.Run(main.Window);}return 0;
+     var app=new Application();app.DispatcherUnhandledException+=delegate(object sender,System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e){e.Handled=true;MessageBox.Show("操作未完成，原文件没有改动。\n"+e.Exception.Message,"Nook");};
+     using(var library=new Library(root)){if(ShouldRememberLibrary(args))Settings.RememberLibrary(root);var main=new MainWindow(library);app.SessionEnding+=delegate{main.AllowSessionEnd();};main.PreviewMode=preview;if(!preview&&MoriDesk.Entry.InteractiveShell)main.SetSection(settings.StartupSection);if(preview)main.Window.Title="Nook · 测试预览";if(handoff!=null)PrepareHandoff(main,handoff,instanceName+"-activate");else main.EnableTray(instanceName+"-activate",startup);app.Run(main.Window);}return 0;
     }
-   } catch(Exception ex){if(handoff==null)MessageBox.Show("Mori 无法启动：\n"+ex.Message,"Mori");return 1;}
+   } catch(Exception ex){if(handoff==null)MessageBox.Show("Nook 无法启动：\n"+ex.Message,"Nook");return 1;}
   }
   static void PrepareHandoff(MainWindow main,string name,string activationName){
    main.DeferDeskServices();

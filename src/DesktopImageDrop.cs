@@ -64,7 +64,7 @@ namespace MoriDesk {
    Uri source;return match.Success&&Mori.SourceLink.TryParse(match.Groups[1].Value,out source)?source.AbsoluteUri:"";
   }
   internal static DesktopImageDrop Capture(IDataObject data){
-   if(!CanRead(data))throw new InvalidDataException("来源软件没有传出可用图片。请右键复制图片，再到 Mori 粘贴。");
+   if(!CanRead(data))throw new InvalidDataException("来源软件没有传出可用图片。请右键复制图片，再到 Nook 粘贴。");
    var result=new DesktopImageDrop();Exception failure=null;
    if(TemporaryPictures(data)){
     string path=((string[])data.GetData(DataFormats.FileDrop))[0];
@@ -109,7 +109,7 @@ namespace MoriDesk {
    foreach(string address in addresses.Where(a=>!string.IsNullOrWhiteSpace(a)).Distinct()){
     if(TryCapture(()=>{if(!address.StartsWith("data:image/",StringComparison.OrdinalIgnoreCase))DownloadAddress(address);result.Address=address;return true;},ref failure))return result;
    }
-   throw new InvalidDataException(failure==null?"来源软件没有提供可读取的图片文件。请复制图片后在 Mori 按 Ctrl+V。":failure.Message,failure);
+   throw new InvalidDataException(failure==null?"来源软件没有提供可读取的图片文件。请复制图片后在 Nook 按 Ctrl+V。":failure.Message,failure);
   }
   static bool TryCapture(Func<bool> read,ref Exception failure){
    try{return read();}
@@ -123,7 +123,7 @@ namespace MoriDesk {
   }
   internal static Uri DownloadAddress(string value){
    Uri uri;
-   if(!Mori.SourceLink.TryParse(value,out uri)||!Mori.BookmarkIcons.Allowed(uri))throw new InvalidDataException("没有可用的图片下载地址。请在来源软件复制图片后粘贴到 Mori。");
+   if(!Mori.SourceLink.TryParse(value,out uri)||!Mori.BookmarkIcons.Allowed(uri))throw new InvalidDataException("没有可用的图片下载地址。请在来源软件复制图片后粘贴到 Nook。");
    return uri;
   }
   internal async Task<byte[]> Materialize(){
@@ -140,11 +140,11 @@ namespace MoriDesk {
    using(var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(20))){
     for(int hop=0;hop<5;hop++){
      var lookup=Dns.GetHostAddressesAsync(address.DnsSafeHost);
-     if(await Task.WhenAny(lookup,Task.Delay(3000,timeout.Token)).ConfigureAwait(false)!=lookup)throw new IOException("图片地址解析超时，请复制图片后在 Mori 粘贴。");
+     if(await Task.WhenAny(lookup,Task.Delay(3000,timeout.Token)).ConfigureAwait(false)!=lookup)throw new IOException("图片地址解析超时，请复制图片后在 Nook 粘贴。");
      var addresses=await lookup.ConfigureAwait(false);if(addresses.Length==0||addresses.Any(ip=>!Mori.BookmarkIcons.Public(ip)))throw new IOException("未访问本地或私有网络图片地址，请直接复制图片后粘贴。");
      using(var response=await client.GetAsync(address,HttpCompletionOption.ResponseHeadersRead,timeout.Token).ConfigureAwait(false)){
      if((int)response.StatusCode>=300&&(int)response.StatusCode<400&&response.Headers.Location!=null){var next=DownloadAddress(new Uri(address,response.Headers.Location).AbsoluteUri);if(address.Scheme=="https"&&next.Scheme!="https")throw new IOException("图片地址不安全，未继续下载。");address=next;continue;}
-     if(!response.IsSuccessStatusCode)throw new IOException("来源软件只传出了图片链接，但下载被拒绝（HTTP "+(int)response.StatusCode+"）。请在 GPT 复制图片后粘贴到 Mori。");
+     if(!response.IsSuccessStatusCode)throw new IOException("来源软件只传出了图片链接，但下载被拒绝（HTTP "+(int)response.StatusCode+"）。请在 GPT 复制图片后粘贴到 Nook。");
      if(response.Content.Headers.ContentLength>Maximum)throw new IOException("图片超过 20 MB，请先保存到电脑再导入。");
      using(var input=await response.Content.ReadAsStreamAsync().ConfigureAwait(false))using(var output=new MemoryStream()){
       byte[] block=new byte[65536];int count;while((count=await input.ReadAsync(block,0,block.Length,timeout.Token).ConfigureAwait(false))>0){if(output.Length+count>Maximum)throw new IOException("图片超过 20 MB。");output.Write(block,0,count);}return output.ToArray();

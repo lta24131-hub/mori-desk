@@ -31,14 +31,14 @@ namespace MoriDesk {
    id=ValidateId(id);var origins=new HashSet<string>(StringComparer.Ordinal);var json=new JavaScriptSerializer();
    if(!string.IsNullOrWhiteSpace(existing)){
     var old=json.Deserialize<Dictionary<string,object>>(existing);object values,name;
-    if(old==null||!old.TryGetValue("name",out name)||Convert.ToString(name)!=Host)throw new InvalidDataException("已有连接配置不属于 Mori Desk，未覆盖。请检查配置文件。");
+    if(old==null||!old.TryGetValue("name",out name)||Convert.ToString(name)!=Host)throw new InvalidDataException("已有连接配置不属于 Nook，未覆盖。请检查配置文件。");
     if(old.TryGetValue("allowed_origins",out values)&&values is IEnumerable)foreach(object value in (IEnumerable)values){var origin=Convert.ToString(value);if(Regex.IsMatch(origin,"\\Achrome-extension://[a-p]{32}/\\z"))origins.Add(origin);}
    }
    origins.Add("chrome-extension://"+id+"/");
-   return json.Serialize(new Dictionary<string,object>{{"name",Host},{"description","Mori Desk local library"},{"path",Path.GetFullPath(executable)},{"type","stdio"},{"allowed_origins",origins.OrderBy(x=>x).ToArray()}});
+   return json.Serialize(new Dictionary<string,object>{{"name",Host},{"description","Nook local library"},{"path",Path.GetFullPath(executable)},{"type","stdio"},{"allowed_origins",origins.OrderBy(x=>x).ToArray()}});
   }
   public static string WriteManifest(string folder,string executable,string id){
-   if(!File.Exists(executable))throw new FileNotFoundException("Mori Desk 程序不存在，请从完整安装目录运行。",executable);
+   if(!File.Exists(executable))throw new FileNotFoundException("Nook 程序不存在，请从完整安装目录运行。",executable);
    string path=Path.Combine(folder,Host+".json");string data=Manifest(executable,id,File.Exists(path)?File.ReadAllText(path):null);
    Directory.CreateDirectory(folder);string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
    try{File.WriteAllText(temp,data,new UTF8Encoding(false));if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);}finally{if(File.Exists(temp))File.Delete(temp);}return path;
@@ -72,7 +72,7 @@ namespace MoriDesk {
   }
   public static void StopLocal(){if(retry!=null){retry.Stop();retry=null;}if(local!=null){local.Dispose();local=null;}waiting=false;}
   public static void Show(Window owner,bool preview){
-   var w=new Window{Title="Mori Desk · 浏览器收藏",Owner=owner,Width=600,Height=570,MinWidth=480,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner};Mori.Theme.Attach(w,owner);
+   var w=new Window{Title="Nook · 浏览器收藏",Owner=owner,Width=600,Height=570,MinWidth=480,MinHeight=480,WindowStartupLocation=WindowStartupLocation.CenterOwner};Mori.Theme.Attach(w,owner);
    w.Content=CreateContent(w,preview);w.PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Escape){w.Close();e.Handled=true;}};w.ShowDialog();
   }
   internal static FrameworkElement CreateContent(Window w,bool preview,Func<BrowserExtensionStatus> readStatus=null){
@@ -91,12 +91,12 @@ namespace MoriDesk {
    var actions=new WrapPanel{Margin=new Thickness(0,4,0,12)};p.Children.Add(actions);
    actions.Children.Add(ReferencePage.Button("安装 / 修复",()=>{if(preview){message("测试预览不会安装插件或修改连接。");return;}try{var previous=BrowserExtensionManager.Status();BrowserExtensionStatus s;
     if(previous.requiresBootstrap&&!string.IsNullOrEmpty(previous.legacyId)){
-     if(MessageBox.Show(w,"检测到旧版 Mori 插件。首次升级会保留原安装位置和偏好设置，但还需要在扩展管理页手动重新加载一次。\n\n请先完成正在进行的收藏、编辑和书签导入，并关闭其他浏览器。现在升级插件文件吗？","首次升级浏览器插件",MessageBoxButton.OKCancel,MessageBoxImage.Information)!=MessageBoxResult.OK)return;
-     s=BrowserExtensionManager.BootstrapLegacy(previous.legacyId);message("插件文件已升级。请在浏览器扩展管理页重新加载 Mori 一次；后续可使用“一键更新”。");
+     if(MessageBox.Show(w,"检测到旧版 Mori 插件（现名 Nook）。首次升级会保留原安装位置和偏好设置，但还需要在扩展管理页手动重新加载一次。\n\n请先完成正在进行的收藏、编辑和书签导入，并关闭其他浏览器。现在升级插件文件吗？","首次升级浏览器插件",MessageBoxButton.OKCancel,MessageBoxImage.Information)!=MessageBoxResult.OK)return;
+     s=BrowserExtensionManager.BootstrapLegacy(previous.legacyId);message("插件文件已升级。请在浏览器扩展管理页重新加载 Nook 一次；后续可使用“一键更新”。");
     }else{if(!string.IsNullOrEmpty(previous.installedVersion))BrowserExtensionManager.RequestUpdate();s=BrowserExtensionManager.EnsureInstalled();if(s.pending)updateRequested=true;message(BrowserSettingsPresentation.Current(s)?"连接与文件已检查，插件已是最新版本。":s.pending?"修复更新已准备好，当前收藏完成后会自动应用。请关闭浏览器里的插件弹窗。":"插件已准备好。首次安装请在下面展开安装说明，由浏览器确认加载。");}
     StartLocal();dir=s.path;location.Text=dir;refresh();}catch(Exception ex){message("未完成："+ex.Message);}}));
    updateButton=ReferencePage.Button("一键更新",()=>{if(preview){message("测试预览不会更新插件。");return;}try{var previous=BrowserExtensionManager.Status();if(!BrowserSettingsPresentation.CanUpdate(previous)){message(BrowserSettingsPresentation.UpdateHint(previous));refresh();return;}BrowserExtensionManager.RequestUpdate();StartLocal();updateRequested=true;message("已请求更新。请关闭浏览器里的插件弹窗；当前收藏完成后会自动更新。");refresh();}catch(Exception ex){message("未完成："+ex.Message);}});ToolTipService.SetShowOnDisabled(updateButton,true);actions.Children.Add(updateButton);
-   var hint=label("更新只使用当前 Mori 随附的插件，不会下载陌生程序。正在使用的收藏窗口不会被强制关闭。",12);hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");
+   var hint=label("更新只使用当前 Nook 随附的插件，不会下载陌生程序。正在使用的收藏窗口不会被强制关闭。",12);hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");
    var installBody=new StackPanel{Margin=new Thickness(0,8,0,12)};
    installBody.Children.Add(new TextBlock{Text="首次安装需要浏览器确认一次。\n打开扩展管理，开启开发者模式，点击“加载已解压的扩展程序”，选择下面的文件夹。",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4),LineHeight=22});installBody.Children.Add(location);
    var installActions=new WrapPanel();installBody.Children.Add(installActions);
@@ -105,7 +105,7 @@ namespace MoriDesk {
    p.Children.Add(new Expander{Header="首次安装说明",Content=installBody,Margin=new Thickness(4,16,4,6)});
    var advanced=new StackPanel{Margin=new Thickness(0,8,0,8)};
    advanced.Children.Add(new TextBlock{Text="仅旧版插件需要手动连接。新安装的插件会自动连接。",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(4),LineHeight=22});
-   var input=new TextBox{Margin=new Thickness(4),Padding=new Thickness(10),MaxLength=64};System.Windows.Automation.AutomationProperties.SetName(input,"Mori Desk 扩展 ID");advanced.Children.Add(input);
+   var input=new TextBox{Margin=new Thickness(4),Padding=new Thickness(10),MaxLength=64};System.Windows.Automation.AutomationProperties.SetName(input,"Nook 扩展 ID");advanced.Children.Add(input);
    advanced.Children.Add(ReferencePage.Button("连接旧版插件",()=>{try{ValidateId(input.Text);if(preview){message("ID 格式正确。测试未修改连接。");return;}Register(input.Text);BrowserExtensionManager.RefreshPairing();StartLocal();message("连接已保存。旧版首次升级仍需手动重新加载一次，之后可在这里更新。");refresh();}catch(Exception ex){message("未连接："+ex.Message);}}));
    p.Children.Add(new Expander{Header="旧版连接与高级选项",Content=advanced,Margin=new Thickness(4,6,4,6)});
    refresh();

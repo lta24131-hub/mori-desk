@@ -19,19 +19,31 @@ namespace MoriDesk {
     try{
      BrowserStatus(main.Window,check);
      check(settings.Section=="general"&&All(settings).OfType<TextBox>().Any(t=>t.Text==library.Root),"settings open directly with actual save-location control");
-     check(All(settings).OfType<CheckBox>().Count()==1&&All(settings).OfType<CheckBox>().All(c=>!c.IsEnabled),"startup appears once and cannot mutate preview machine");
-     foreach(string appearance in new[]{"light","dark"})foreach(string section in new[]{"general","capture","browser"}){
+     check(All(settings).OfType<CheckBox>().Count()==3&&All(settings).OfType<CheckBox>().Count(c=>!c.IsEnabled)==1,"general offers close/trash preferences while startup cannot mutate preview machine");
+     foreach(string appearance in new[]{"light","dark"})foreach(string section in new[]{"general","appearance","library","preview","capture","canvas","browser"}){
       Theme.Set(appearance);settings.Select(section);check(Application.Current.Windows.Count==windows,"settings navigation creates no additional window");
       var body=(FrameworkElement)settings.Content;body.Width=674;body.Height=640;body.Measure(new Size(674,640));body.Arrange(new Rect(0,0,674,640));body.UpdateLayout();
       var render=new RenderTargetBitmap(674,640,96,96,PixelFormats.Pbgra32);render.Render(body);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(render));using(var output=File.Create(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"settings-"+section+"-"+appearance+".png")))encoder.Save(output);
-      if(section=="capture")check(All(settings).OfType<QingJie.ShortcutEditor>().Count()==3&&All(settings).OfType<ComboBox>().Any(c=>c.Name=="TranslationProvider"),"shortcut and translation controls embedded directly");
+      if(section=="capture"){
+       var shortcuts=All(settings).OfType<QingJie.ShortcutEditor>().ToArray();
+       check(shortcuts.Length==3&&All(settings).OfType<ComboBox>().Any(c=>c.Name=="TranslationProvider"),"shortcut and translation controls embedded directly");
+       var buttonStyle=(Style)main.Window.FindResource(typeof(Button));
+       check(shortcuts.All(editor=>editor.IsEnabled&&ReferenceEquals(editor.Style,buttonStyle)&&editor.Template!=null),"derived shortcut editors explicitly reuse the host Button style, never preview-disabled native chrome in "+appearance);
+       check(shortcuts.All(editor=>ReferenceEquals(editor.Background,Theme.Brush("Control"))&&ReferenceEquals(editor.Foreground,Theme.Brush("Text"))),"shortcut editors bind contrasting live background and text tokens in "+appearance);
+       check(shortcuts.All(editor=>{editor.ApplyTemplate();var surface=editor.Template.FindName("body",editor) as Border;return surface!=null&&ReferenceEquals(surface.Background,Theme.Brush("Control"));}),"shortcut editors render the themed host Button surface rather than a native white background in "+appearance);
+      }
+      if(section=="library")check(All(settings).OfType<BrowseSettingsPanel>().Count()==1&&All(settings).OfType<ComboBox>().Count()==3&&All(settings).OfType<Slider>().Count()==3&&All(settings).OfType<CheckBox>().Count()==4,"browse tab embeds full preferences without opening another window");
       if(section=="browser"){
        check(All(settings).OfType<TextBox>().Any(t=>t.MaxLength==64),"legacy browser ID available inside advanced settings");
        check(All(settings).OfType<Button>().Any(b=>Convert.ToString(b.Content)=="一键更新"),"browser has single action update");
        check(All(settings).OfType<Expander>().All(e=>!e.IsExpanded),"browser install details are collapsed by default");
       }
      }
-     settings.Select("general");var combo=All(settings).OfType<ComboBox>().Single();combo.SelectedIndex=theme=="light"?1:0;
+     settings.Select("library");var compact=(FrameworkElement)settings.Content;compact.Width=644;compact.Height=402;compact.Measure(new Size(644,402));compact.Arrange(new Rect(0,0,644,402));compact.UpdateLayout();
+     var tabTitles=new[]{"通用与存储","外观","素材浏览","文件预览","截图与翻译","自由画布","浏览器收藏"};var tabs=All(settings).OfType<Button>().Where(b=>tabTitles.Contains(Convert.ToString(b.Content))).ToArray();
+     check(tabs.Length==7&&tabs.All(b=>b.TranslatePoint(new Point(b.ActualWidth,0),compact).X<=644),"all seven settings sections remain inside a compact vertical navigation");
+     var browse=All(settings).OfType<BrowseSettingsPanel>().Single();check(browse.ScrollableWidth<.1&&browse.ScrollableHeight>0,"browse options remain accessible through vertical scroll at minimum window height");
+     settings.Select("appearance");var panel=All(settings).OfType<AppearanceSettingsPanel>().Single();panel.Mode.SelectedIndex=theme=="light"?1:0;
      var source=System.Windows.Interop.HwndSource.FromHwnd(new System.Windows.Interop.WindowInteropHelper(main.Window).Handle);
      Func<KeyEventArgs> escape=()=>new KeyEventArgs(Keyboard.PrimaryDevice,source,0,Key.Escape){RoutedEvent=Keyboard.KeyDownEvent};
      var handled=escape();handled.Handled=true;settings.DismissOnEscape(handled);

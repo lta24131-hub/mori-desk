@@ -29,7 +29,11 @@ namespace MoriDesk {
     DeskRuntime.CollectImage=image=>{calls++;exported=image;return pending.Task;};w=Capture();
     var toolbar=(StackPanel)typeof(CaptureWindow).GetField("toolbar",Hidden).GetValue(w);
     var button=toolbar.Children.OfType<Button>().Single(b=>b.Name=="CaptureCollect");
-    check(System.Windows.Automation.AutomationProperties.GetName(button).Contains("Ctrl+D")&&((StackPanel)button.Content).Children.OfType<TextBlock>().Single().Text=="收藏","visible collect label and shortcut are discoverable");
+    check(System.Windows.Automation.AutomationProperties.GetName(button).Contains("Ctrl+D")&&button.ToolTip.ToString().Contains("收藏到素材库"),"icon-only collection retains accessible name and shortcut tooltip");
+    check(button.Content is ToolIcon&&button.Width==36&&button.Height==36,"collection is an ordinary-sized icon with no visible text");
+    var icon=(ToolIcon)button.Content;icon.Measure(new Size(20,20));icon.Arrange(new Rect(0,0,20,20));var iconImage=new RenderTargetBitmap(20,20,96,96,PixelFormats.Pbgra32);iconImage.Render(icon);byte[] iconPixels=new byte[20*20*4];iconImage.CopyPixels(iconPixels,80,0);
+    bool bluePixel=false;for(int i=0;i<iconPixels.Length;i+=4)if(iconPixels[i+3]>200&&iconPixels[i]>iconPixels[i+2]+50&&iconPixels[i]>iconPixels[i+1]+40){bluePixel=true;break;}
+    check(bluePixel,"collection glyph is blue rather than ordinary toolbar ink");
     typeof(CaptureWindow).GetMethod("StartText",Hidden).Invoke(w,new object[]{new Point(5,5)});
     ((TextBox)typeof(CaptureWindow).GetField("textEditor",Hidden).GetValue(w)).Text="Unsaved annotation";
     var task=w.CollectToLibraryAsync();

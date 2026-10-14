@@ -297,7 +297,7 @@ test('context menu survives worker activation, extension reload/update and brows
   await bridge.install(); await bridge.startup(); await bridge.install();
   assert.equal(bridge.menus.size, 2);
   const menu = bridge.menus.get('mori-save');
-  assert.equal(menu.title, '收藏到 Mori');
+  assert.equal(menu.title, '收藏到 Nook');
   assert.deepEqual(Array.from(menu.contexts), ['image', 'video', 'link', 'page']);
   assert.equal(bridge.nativeCalls.length, 0, 'registration does not access the library');
 });
@@ -405,7 +405,7 @@ test('failed or stale right-click blob resolution never fetches a blob, poster o
     const bridge=background();bridge.resolveImage({ok:false,error});
     await bridge.click({menuItemId:'mori-save',srcUrl:'blob:https://www.instagram.com/fixture'});
     assert.equal(bridge.fetchCalls.length,0);assert.equal(bridge.nativeCalls.length,0);
-    assert.equal(bridge.badges.at(-1).text,'!');assert.equal(bridge.titles.at(-1).title,'Mori · '+error);
+    assert.equal(bridge.badges.at(-1).text,'!');assert.equal(bridge.titles.at(-1).title,'Nook · '+error);
   }
 });
 
@@ -426,9 +426,9 @@ test('unavailable video receiver and unsupported video URL do not suggest screen
   assert.equal(reply.ok,false);assert(!reply.error.includes('截图'));assert.equal(bridge.nativeCalls.length,0);
 });
 
-test('extension is 0.2.18 with repair and idle update permissions and sources loaded before content', () => {
+test('extension is 0.2.21 with repair and idle update permissions and sources loaded before content', () => {
   const manifest = JSON.parse(read('manifest.json'));
-  assert.equal(manifest.version, '0.2.18');
+  assert.equal(manifest.version, '0.2.21');
   assert.deepEqual(manifest.permissions, ['nativeMessaging', 'contextMenus', 'storage', 'scripting', 'alarms']);
   assert.deepEqual(manifest.host_permissions, ['https://*/*', 'http://*/*']);
   assert.deepEqual(manifest.content_scripts[0].js, ['preferences.js', 'collector-text.js', 'drag-geometry.js', 'media-source.js', 'runtime-client.js', 'content.js']);

@@ -32,8 +32,8 @@ namespace Mori {
      main.RequestNavigate(folder);check(Visible(main).Count==3&&Visible(main).All(a=>!a.IsBookmark),"project folder entered from video shows every local media type, never URLs");
      var filter=(ComboBox)main.Window.FindName("MediaFilter");check(filter.Visibility==Visibility.Visible&&filter.SelectedIndex==0,"folder type filtering is explicit and defaults to all types");
      filter.SelectedIndex=1;check(Visible(main).Single().Id==pic.Id,"project type selector can show only pictures");
-     main.SetSection("documents");check(filter.Visibility==Visibility.Collapsed&&Visible(main).Single().Id==pdf.Id&&((TextBlock)main.Window.FindName("ViewTitle")).Text.Contains("PDF"),"document shortcut resets filters and declares PDF limitation");
-     Select(main,pdf);check(!((Button)main.Window.FindName("Compare")).IsEnabled&&!((Button)main.Window.FindName("Similar")).IsEnabled,"PDF does not advertise image comparison or similarity");
+     main.SetSection("documents");check(filter.Visibility==Visibility.Collapsed&&Visible(main).Single().Id==pdf.Id&&((TextBlock)main.Window.FindName("ViewTitle")).Text=="文档","document shortcut resets filters and labels expanded document support");
+     Select(main,pdf);check(!((Button)main.Window.FindName("SelectionCanvas")).IsEnabled&&!((Button)main.Window.FindName("Similar")).IsEnabled,"PDF does not advertise image canvas or similarity");
      main.SetSection("bookmarks");check(Visible(main).Single().Id==web2.Id,"website home lists unfiled links without flattening nested folders");main.RequestNavigate("all");check(Visible(main).Count==2&&Visible(main).All(a=>a.IsBookmark),"explicit all websites view remains available and separate");
      check(((Button)main.Window.FindName("Trash")).Content.ToString()=="网址回收站"&&((Button)main.Window.FindName("ImportBookmarks")).Visibility==Visibility.Collapsed,"utility scope is labeled and duplicate bookmark import button removed");
      Select(main,web);var menu=main.CreateAssetMenu(web);var labels=Labels(menu);
@@ -41,7 +41,7 @@ namespace Mori {
      check(labels.Contains("移动到文件夹…")&&Item(menu,"复制网址").InputGestureText=="Ctrl+C","bookmark move wording and copy shortcut match actual behavior");
      Select(main,web,web2);labels=Labels(main.CreateAssetMenu(web));check(!labels.Contains("打开网址")&&labels.Contains("复制选中网址"),"multi-select menu does not imply opening only one of multiple selected websites");
      check(MainWindow.BookmarkCopyText(new[]{web,web2})==web.Source+Environment.NewLine+web2.Source,"copy selected websites yields actual addresses in separate lines, not URL files");
-     var more=main.CreateMoreMenu();labels=Labels(more);check(labels.Contains("导入")&&labels.Contains("图库管理")&&labels.Contains("显示")&&labels.Last()=="退出 Mori Desk","more menu groups functions with exit last");
+     var more=main.CreateMoreMenu();labels=Labels(more);check(labels.Contains("导入")&&labels.Contains("图库管理")&&labels.Contains("显示")&&labels.Last()=="退出 Nook","more menu groups functions with exit last");
      check(!labels.Any(l=>l.Contains("规划中"))&&Item(more,"导入").Items.Count==4,"more menu has no nonfunctional planned feature and preserves all four imports");
      check(!Labels(main.CreateGalleryMenu()).Contains("瀑布布局")&&!Labels(main.CreateGalleryMenu()).Contains("显示信息"),"website display menu omits irrelevant image layout settings");
      check(Item(more,"显示").Items.Count>4&&Labels(Item(more,"图库管理")).Contains("从备份恢复到新文件夹…"),"display recovery and backup restore remain discoverable");

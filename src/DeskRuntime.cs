@@ -17,7 +17,7 @@ namespace MoriDesk {
    try{
    if(!preview&&lease==null){
     lease=CaptureLease.TryAcquire(Path.Combine(Entry.DataRoot,"capture"));
-    if(lease==null){awaitingHandoff=true;failure="截图与翻译正在等待另一个 Mori Desk 窗口退出，会自动接管。";if(retry==null){retry=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};retry.Tick+=(s,e)=>Start(preview,libraryRoot);retry.Start();if(Notify!=null)Notify(failure);}return;}
+    if(lease==null){awaitingHandoff=true;failure="截图与翻译正在等待另一个 Nook 窗口退出，会自动接管。";if(retry==null){retry=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};retry.Tick+=(s,e)=>Start(preview,libraryRoot);retry.Start();if(Notify!=null)Notify(failure);}return;}
    }
    if(retry!=null){retry.Stop();retry=null;}
    if(preview){Preferences.TestFilePath=Path.Combine(libraryRoot,".mori","test-capture.json");OcrLanguagePacks.TestFolder=Path.Combine(libraryRoot,".mori","test-languages");OfflinePacks.TestFolder=Path.Combine(libraryRoot,".mori","test-offline");}
@@ -36,8 +36,8 @@ namespace MoriDesk {
    }catch(Exception ex){ReleaseTools();failure="截图工具暂时无法启动："+ex.Message;if(Notify!=null)Notify(failure);}
   }
   static IntPtr Hotkey(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){if(message!=0x312||AppState.Hotkeys==null)return IntPtr.Zero;int action=AppState.Hotkeys.ActionFor(w.ToInt32());if(action<0)return IntPtr.Zero;handled=true;if(AppState.ShortcutRecorder!=null){AppState.ShortcutRecorder(AppState.Hotkeys.KeyFor(w.ToInt32()));return IntPtr.Zero;}if(action==0)AppState.BeginCapture();if(action==1)AppState.Paste();if(action==2)AppState.ShowTranslator();return IntPtr.Zero;}
-  public static bool PrepareExit(Window owner){if(!Started)return true;if(AppState.Captures.Count>0&&MessageBox.Show(owner,"还有未完成的截图，退出将关闭当前截图。已保存的贴图会保留。是否退出？","退出 Mori Desk",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return false;try{AppState.Pins.PersistAll();AppState.Quitting=true;return true;}catch(Exception ex){MessageBox.Show(owner,"贴图状态保存失败，暂未退出："+ex.Message);return false;}}
-  public static bool RequireTools(){if(Started)return true;if(Notify!=null)Notify(failure??"请在正在使用截图工具的 Mori Desk 窗口操作，或完全退出该窗口；此窗口会自动接管。关闭右上角 × 只是收进托盘。");return false;}
+  public static bool PrepareExit(Window owner){if(!Started)return true;if(AppState.Captures.Count>0&&MessageBox.Show(owner,"还有未完成的截图，退出将关闭当前截图。已保存的贴图会保留。是否退出？","退出 Nook",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return false;try{AppState.Pins.PersistAll();AppState.Quitting=true;return true;}catch(Exception ex){MessageBox.Show(owner,"贴图状态保存失败，暂未退出："+ex.Message);return false;}}
+  public static bool RequireTools(){if(Started)return true;if(Notify!=null)Notify(failure??"请在正在使用截图工具的 Nook 窗口操作，或完全退出该窗口；此窗口会自动接管。关闭右上角 × 只是收进托盘。");return false;}
   static void ReleaseTools(){if(retry!=null){retry.Stop();retry=null;}if(AppState.Hotkeys!=null){AppState.Hotkeys.Dispose();AppState.Hotkeys=null;}if(source!=null){source.Dispose();source=null;}if(lease!=null){lease.Dispose();lease=null;}Started=false;}
   public static void Stop(){ReleaseTools();awaitingHandoff=false;failure=null;CollectImage=null;Notify=null;OpenSettings=null;}
  }

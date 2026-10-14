@@ -8,7 +8,7 @@ using System.Windows.Automation;
 namespace Mori {
  public partial class MainWindow {
   internal void SetBookmarkMode(bool value){SetSection(value?"bookmarks":"assets");}
-  internal void SetSection(string section){if(busy||!PrepareLibraryChange())return;if(MoriDesk.Entry.BoardEnabled&&section!="bookmarks"){ShowBoard(section);return;}HideBoard();localCollection="";mediaSection=section;bookmarkMode=section=="bookmarks";Find<ComboBox>("MediaFilter").SelectedIndex=0;T("Search").Clear();Navigate(bookmarkMode?"home":"all");}
+  internal void SetSection(string section){if(busy||!PrepareLibraryChange())return;HideBrowser();if(MoriDesk.Entry.BoardEnabled&&section!="bookmarks"){ShowBoard(section);return;}HideBoard();localCollection="";mediaSection=section;bookmarkMode=section=="bookmarks";Find<ComboBox>("MediaFilter").SelectedIndex=0;T("Search").Clear();Navigate(bookmarkMode?"home":"all");}
   internal void AddBookmark(string initial){
    if(busy||!PrepareLibraryChange())return;
    var dialog=new Window{Owner=Window,Title="收藏网址",Width=480,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};Theme.Attach(dialog,Window);
@@ -21,7 +21,7 @@ namespace Mori {
    body.Children.Add(new TextBlock{Text="分类",Margin=new Thickness(0,14,0,6)});
    var categories=library.Folders(true);var folders=new ComboBox{SelectedValuePath="Tag",Margin=new Thickness(0,0,0,14)};
    folders.Items.Add(new ComboBoxItem{Content="未分类",Tag=""});foreach(var f in categories)folders.Items.Add(new ComboBoxItem{Content=FolderLabel(f,categories),Tag=f.Id});folders.SelectedValue=bookmarkMode?CurrentFolder():"";AutomationProperties.SetName(folders,"网址分类");body.Children.Add(folders);
-   var hint=new TextBlock{Text="只保存链接，不下载网页；打开时使用默认浏览器。",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,14)};hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");body.Children.Add(hint);
+   var hint=new TextBlock{Text="只保存链接，不下载网页；双击在软件内快速浏览，右键可用外部浏览器打开。",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,14)};hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");body.Children.Add(hint);
    var actions=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};var cancelButton=new Button{Content="取消",IsCancel=true};var save=new Button{Content="收藏",IsDefault=true};actions.Children.Add(cancelButton);actions.Children.Add(save);body.Children.Add(actions);
    cancelButton.Click+=delegate{dialog.Close();};save.Click+=delegate{
     try{

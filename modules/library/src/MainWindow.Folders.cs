@@ -29,7 +29,7 @@ namespace Mori {
     };build(tree.Items,"");
     tree.UpdateLayout();scroll=VisualChild<ScrollViewer>(tree);if(scroll!=null)scroll.ScrollToVerticalOffset(offset);
     if(target!=null)target.BringIntoView();
-   }finally{reloadingFolders=false;}SyncFolderSelection();
+   }finally{reloadingFolders=false;}SyncFolderSelection();UpdateNavigationPresentation();
   }
   internal static TreeViewItem FolderNode(DependencyObject source,TreeView tree){
    for(var current=source;current!=null&&current!=tree;current=SelectionParent(current)){var node=current as TreeViewItem;if(node!=null)return node;}
@@ -77,7 +77,7 @@ namespace Mori {
    // Other keys retain native tree navigation, never trigger gallery deletion.
    return true;
   }
-  void NewFolder(){NewFolder(CurrentFolder());}
+  void NewFolder(){var menu=CreateNewFolderMenu();menu.PlacementTarget=B("NewFolder");menu.Placement=PlacementMode.Bottom;menu.IsOpen=true;}
   void NewFolder(string parent){
    if(busy||!PrepareLibraryChange())return;
    string name=Prompt(string.IsNullOrEmpty(parent)?"新建分类":"新建子分类","分类名称","");if(name==null)return;

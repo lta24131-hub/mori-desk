@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<policymap>
+  <policy domain="delegate" rights="none" pattern="*" />
+  <policy domain="filter" rights="none" pattern="*" />
+  <policy domain="module" rights="none" pattern="*" />
+  <policy domain="module" rights="read|write" pattern="{BMP,DNG,GIF,HEIC,ICO,JPEG,PNG,PSD,TIFF,WEBP}" />
+  <policy domain="coder" rights="none" pattern="*" />
+  <policy domain="coder" rights="read" pattern="{BMP,BMP2,BMP3,DNG,CR2,CR3,NEF,ARW,ORF,RW2,RAF,GIF,HEIC,HEIF,AVIF,ICO,ICON,JPEG,JPG,PNG,PNG8,PNG24,PNG32,PNG48,PNG64,PSD,PSB,TIFF,TIFF64,WEBP}" />
+  <policy domain="coder" rights="read|write" pattern="PNG" />
+  <policy domain="path" rights="none" pattern="@*" />
+  <policy domain="resource" name="memory" value="192MiB" />
+  <policy domain="resource" name="map" value="0" />
+  <policy domain="resource" name="disk" value="0" />
+  <policy domain="resource" name="width" value="100000" />
+  <policy domain="resource" name="height" value="100000" />
+  <policy domain="resource" name="area" value="32MP" />
+  <!-- Exclusive upper bound: ImageMagick requires list length < limit. -->
+  <policy domain="resource" name="list-length" value="2" />
+  <policy domain="resource" name="time" value="10" />
+  <policy domain="resource" name="thread" value="1" />
+  <policy domain="system" name="max-memory-request" value="128MiB" />
+  <policy domain="system" name="max-profile-size" value="4MiB" />
+</policymap>

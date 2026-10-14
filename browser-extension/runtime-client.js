@@ -5,15 +5,15 @@ globalThis.MoriRuntime = (() => {
   function failure(error, message) {
     const diagnostic = String(error?.message || error || '').slice(0, 500);
     if (/extension context invalidated|context has been invalidated/i.test(diagnostic)) {
-      return {ok:false, code:'EXTENSION_RELOADED', error:'Mori 插件已更新，请刷新这个网页后继续收藏。', diagnostic};
+      return {ok:false, code:'EXTENSION_RELOADED', error:'Nook 插件已更新，请刷新这个网页后继续收藏。', diagnostic};
     }
     if (readOnly(message)) {
-      return {ok:false, code:'EXTENSION_UNAVAILABLE', error:'Mori 插件暂时没有响应，请稍后重试；仍无响应时刷新此网页。', diagnostic};
+      return {ok:false, code:'EXTENSION_UNAVAILABLE', error:'Nook 插件暂时没有响应，请稍后重试；仍无响应时刷新此网页。', diagnostic};
     }
     if (/receiving end does not exist|could not establish connection/i.test(diagnostic)) {
-      return {ok:false, code:'EXTENSION_NO_RECEIVER', error:'Mori 插件连接尚未准备好，本次未发送收藏。请稍后重试。', diagnostic};
+      return {ok:false, code:'EXTENSION_NO_RECEIVER', error:'Nook 插件连接尚未准备好，本次未发送收藏。请稍后重试。', diagnostic};
     }
-    return {ok:false, code:'SAVE_RESULT_UNKNOWN', error:'未收到收藏结果，请先检查 Mori 图库，确认后再重试。', diagnostic};
+    return {ok:false, code:'SAVE_RESULT_UNKNOWN', error:'未收到收藏结果，请先检查 Nook 图库，确认后再重试。', diagnostic};
   }
   function send(message, callback) {
     let finished = false, attempts = 0, timer;

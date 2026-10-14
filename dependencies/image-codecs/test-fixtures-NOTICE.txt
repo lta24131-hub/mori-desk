@@ -1,0 +1,18 @@
+Image codec self-test fixture attribution
+
+The self-test data compiled into Mori.exe includes the unmodified synthetic
+HEIC alpha fixture from libheif:
+  Project: https://github.com/strukturag/libheif
+  Commit: f223c23c5863cd9e7f29c48438c4da3b308a17aa
+  File: tests/data/with-alpha-512x512.heic
+  Git blob SHA-1: 897d470339a3f4ceeff5155e981bbefceea9f648
+  Size: 8284 bytes
+
+The corresponding upstream root COPYING is reproduced in
+test-fixtures-COPYING.txt. Its library/sample distinction is retained;
+no separate MIT or public-domain claim is made for the fixture.
+https://github.com/strukturag/libheif/blob/f223c23c5863cd9e7f29c48438c4da3b308a17aa/COPYING
+
+WebP and AVIF self-test fixtures are synthetic color blocks generated for
+this project using the pinned Magick.NET 15.0.0 distribution. Other images
+and PDFs used in tests are generated programmatically, not personal media.

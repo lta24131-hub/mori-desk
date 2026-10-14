@@ -11,22 +11,24 @@ namespace MoriDesk {
   readonly Dictionary<string,FrameworkElement> pages=new Dictionary<string,FrameworkElement>();
   readonly Dictionary<string,Button> navigation=new Dictionary<string,Button>();
   readonly ContentControl body=new ContentControl{HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch};
-  readonly bool preview;QingJie.CaptureSettingsPanel capture;
+  readonly bool preview;QingJie.CaptureSettingsPanel capture;AppearanceSettingsPanel appearance;
   internal StorageChangeRequest StorageRequest;
   internal string Section {get;private set;}
-  internal DeskSettingsWindow(Window owner,bool preview,Library library){
-   this.preview=preview;Owner=owner;Title="Mori Desk · 设置";Width=690;Height=Math.Min(730,SystemParameters.WorkArea.Height-50);MinWidth=570;MinHeight=440;WindowStartupLocation=WindowStartupLocation.CenterOwner;Theme.Attach(this,owner);
+  internal DeskSettingsWindow(Window owner,bool preview,Library library,Action<Settings> applyBrowse=null){
+   this.preview=preview;Owner=owner;Title="Nook · 设置";Width=780;Height=Math.Min(740,SystemParameters.WorkArea.Height-50);MinWidth=660;MinHeight=440;WindowStartupLocation=WindowStartupLocation.CenterOwner;Theme.Attach(this,owner);
    var root=new DockPanel();root.SetResourceReference(Panel.BackgroundProperty,"Canvas");Content=root;
-   var header=new StackPanel{Margin=new Thickness(28,22,28,16)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
-   header.Children.Add(new TextBlock{Text="设置",FontSize=24,FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,0,0,18)});
-   var tabs=new StackPanel{Orientation=Orientation.Horizontal};header.Children.Add(tabs);
-   foreach(var item in new[]{new[]{"general","通用"},new[]{"capture","截图与翻译"},new[]{"browser","浏览器收藏"}}){
-    string key=item[0];var button=new Button{Content=item[1],Padding=new Thickness(18,9,18,9),Margin=new Thickness(0,0,8,0)};button.Click+=(s,e)=>Select(key);tabs.Children.Add(button);navigation.Add(key,button);
-   }
+   var header=new StackPanel{Margin=new Thickness(24,20,24,16)};DockPanel.SetDock(header,Dock.Top);root.Children.Add(header);
+   header.Children.Add(new TextBlock{Text="设置",FontSize=23,FontWeight=FontWeights.SemiBold});
    var divider=new Border{Height=1};divider.SetResourceReference(Border.BackgroundProperty,"Divider");DockPanel.SetDock(divider,Dock.Top);root.Children.Add(divider);
-   root.Children.Add(body);
+   var menu=new StackPanel{Width=146,Margin=new Thickness(10,16,10,12)};var menuScroll=new ScrollViewer{Content=menu,Width=166,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};DockPanel.SetDock(menuScroll,Dock.Left);root.Children.Add(menuScroll);
+   foreach(var item in new[]{new[]{"general","通用与存储"},new[]{"appearance","外观"},new[]{"library","素材浏览"},new[]{"preview","文件预览"},new[]{"capture","截图与翻译"},new[]{"canvas","自由画布"},new[]{"browser","浏览器收藏"}}){
+    string key=item[0];var button=new Button{Content=item[1],Padding=new Thickness(12,10,12,10),Margin=new Thickness(0,0,0,4),HorizontalContentAlignment=HorizontalAlignment.Left,MinHeight=40};System.Windows.Automation.AutomationProperties.SetName(button,item[1]);button.Click+=(s,e)=>Select(key);menu.Children.Add(button);navigation.Add(key,button);
+   }
+   var contentBorder=new Border{BorderThickness=new Thickness(1,0,0,0),Child=body};contentBorder.SetResourceReference(Border.BorderBrushProperty,"Divider");root.Children.Add(contentBorder);
    pages.Add("general",Mori.SettingsWindow.CreateContent(this,preview,library,request=>{if(request!=null){StorageRequest=request;Close();}},true));
-   Closed+=(s,e)=>{if(capture!=null)capture.Dispose();};
+   pages.Add("library",new BrowseSettingsPanel(this,preview,applyBrowse));
+   pages.Add("preview",new PreviewSettingsPanel(this,preview));pages.Add("canvas",new CanvasSettingsPanel(this,preview));
+   Closed+=(s,e)=>{if(capture!=null)capture.Dispose();if(appearance!=null)appearance.Dispose();};
    // Bubble after child controls: Esc first cancels a shortcut recording or
    // closes an expanded selector; a subsequent Esc dismisses settings.
    KeyDown+=(s,e)=>DismissOnEscape(e);Select("general");
@@ -43,8 +45,9 @@ namespace MoriDesk {
    FrameworkElement page;
    if(!pages.TryGetValue(section,out page)){
     if(section=="browser")page=BrowserConnection.CreateContent(this,preview);
+    else if(section=="appearance"){appearance=new AppearanceSettingsPanel(this,preview);page=appearance;}
     else if(DeskRuntime.Started){capture=new QingJie.CaptureSettingsPanel(true);page=capture;ThemeCapture(page);}
-    else {page=new TextBlock{Text="截图工具正在由另一个 Mori Desk 窗口使用。该窗口退出后，请重新打开设置。",Margin=new Thickness(28),TextWrapping=TextWrapping.Wrap};}
+    else {page=new TextBlock{Text="截图工具正在由另一个 Nook 窗口使用。该窗口退出后，请重新打开设置。",Margin=new Thickness(28),TextWrapping=TextWrapping.Wrap};}
     pages[section]=page;
    }
    body.Content=page;Section=section;
@@ -53,22 +56,9 @@ namespace MoriDesk {
   // Adapt reusable capture controls to the library's current theme. Download
   // state and event handlers stay in the original panel, not a second window.
   void ThemeCapture(DependencyObject node){
-   var element=node as FrameworkElement;
-   if(element!=null){
-    var button=element as Button;if(button!=null){button.Style=(Style)FindResource(typeof(Button));button.SetResourceReference(Control.BackgroundProperty,"Control");button.SetResourceReference(Control.ForegroundProperty,"Text");}
-    foreach(var property in new[]{Control.ForegroundProperty,Control.BackgroundProperty,Control.BorderBrushProperty,TextBlock.ForegroundProperty,Border.BackgroundProperty,Border.BorderBrushProperty}){
-     var brush=element.ReadLocalValue(property) as SolidColorBrush;if(brush==null)continue;
-     string color=brush.Color.ToString(),key=null;
-     if(color=="#FF303639")key="Text";
-     else if(color=="#FF718078")key="Muted";
-     else if(color=="#FF07A56B")key="Accent";
-     else if(color=="#FFF3F6F4")key="Input";
-     else if(color=="#FFEBEFED"||color=="#FFD9DFDF")key="Divider";
-     else if(color=="#FFFFFFFF")key=property==Control.ForegroundProperty?"Text":"Control";
-     if(key!=null)element.SetResourceReference(property,key);
-    }
-   }
-   foreach(object child in LogicalTreeHelper.GetChildren(node)){var dependency=child as DependencyObject;if(dependency!=null)ThemeCapture(dependency);}
+   // Capture controls bind to the same live tokens as the host, including
+   // Primary/OnPrimary. Do not flatten primary actions into neutral buttons.
+   QingJie.Ui.ThemeControls(node);
   }
  }
 }

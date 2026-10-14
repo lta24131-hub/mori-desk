@@ -1,0 +1,9 @@
+<svg fill="#000000" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="nook-symbol-title">
+  <title id="nook-symbol-title">Nook — symbol</title>
+  <g id="symbol" fill="#000000">
+    <path fill-rule="evenodd" d="M56 40 H104 A16 16 0 0 1 120 56 V104 A16 16 0 0 1 104 120 H56 A16 16 0 0 1 40 104 V56 A16 16 0 0 1 56 40 Z M59 56 H101 A3 3 0 0 1 104 59 V101 A3 3 0 0 1 101 104 H59 A3 3 0 0 1 56 101 V59 A3 3 0 0 1 59 56 Z"/>
+    <rect x="136" y="40" width="80" height="80" rx="16"/>
+    <path fill-rule="evenodd" d="M56 136 H104 A16 16 0 0 1 120 152 V200 A16 16 0 0 1 104 216 H56 A16 16 0 0 1 40 200 V152 A16 16 0 0 1 56 136 Z M59 152 H101 A3 3 0 0 1 104 155 V197 A3 3 0 0 1 101 200 H59 A3 3 0 0 1 56 197 V155 A3 3 0 0 1 59 152 Z"/>
+    <path fill-rule="evenodd" d="M152 136 H200 A16 16 0 0 1 216 152 V200 A16 16 0 0 1 200 216 H152 A16 16 0 0 1 136 200 V152 A16 16 0 0 1 152 136 Z M155 152 H197 A3 3 0 0 1 200 155 V197 A3 3 0 0 1 197 200 H155 A3 3 0 0 1 152 197 V155 A3 3 0 0 1 155 152 Z"/>
+  </g>
+</svg>

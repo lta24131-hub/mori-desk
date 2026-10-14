@@ -20,7 +20,7 @@ namespace QingJie {
         public string Identity {get{using(var hash=SHA256.Create())return "pack-"+Revision+"-"+BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(string.Join(";",Artifacts.Select(a=>a.Id+":"+a.Sha256.ToLowerInvariant()))))).Replace("-","").Substring(0,16);}}
         public void Validate(){
             string[] ids={"python","ctranslate2","sentencepiece","numpy","pyyaml","en_zh","zh_en"};
-            if(Schema!=1||Revision<1||string.IsNullOrWhiteSpace(Version)||Version.Length>100||Artifacts==null||Artifacts.Length!=ids.Length||!Artifacts.Select(a=>a==null?null:a.Id).OrderBy(s=>s).SequenceEqual(ids.OrderBy(s=>s)))throw new InvalidDataException("离线包清单不兼容，请更新Luma。");
+            if(Schema!=1||Revision<1||string.IsNullOrWhiteSpace(Version)||Version.Length>100||Artifacts==null||Artifacts.Length!=ids.Length||!Artifacts.Select(a=>a==null?null:a.Id).OrderBy(s=>s).SequenceEqual(ids.OrderBy(s=>s)))throw new InvalidDataException("离线包清单不兼容，请更新 Nook。");
             foreach(var item in Artifacts){Uri uri;if(item.Bytes<1||item.Bytes>160*1048576L||!Regex.IsMatch(item.Sha256??"",@"\A[0-9a-fA-F]{64}\z")||!Uri.TryCreate(item.Url,UriKind.Absolute,out uri)||uri.Scheme!="https"||!string.IsNullOrEmpty(uri.UserInfo)||uri.Port!=443||!string.IsNullOrEmpty(uri.Fragment)||!new[]{"www.python.org","files.pythonhosted.org","argos-net.com"}.Contains(uri.Host))throw new InvalidDataException("离线包下载源或校验信息不正确。");}
             if(DownloadBytes>400*1048576L)throw new InvalidDataException("离线包超过本版本允许的大小。");
         }

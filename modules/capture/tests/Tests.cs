@@ -170,7 +170,74 @@ class Tests {
         var normalized=BitmapSource.Create(width,height,96,96,PixelFormats.Bgra32,null,pixels,width*4);normalized.Freeze();var scaled=new TransformedBitmap(normalized,new ScaleTransform(ratio,ratio));scaled.Freeze();return scaled;
     }
     static bool SamePixels(BitmapSource a,BitmapSource b){if(a.PixelWidth!=b.PixelWidth||a.PixelHeight!=b.PixelHeight)return false;var bytesA=new byte[a.PixelWidth*a.PixelHeight*4];var bytesB=new byte[bytesA.Length];new FormatConvertedBitmap(a,PixelFormats.Bgra32,null,0).CopyPixels(bytesA,a.PixelWidth*4,0);new FormatConvertedBitmap(b,PixelFormats.Bgra32,null,0).CopyPixels(bytesB,b.PixelWidth*4,0);return bytesA.SequenceEqual(bytesB);}
+    static class IconResources {
+        internal delegate bool EnumNameProc(IntPtr module,IntPtr type,IntPtr name,IntPtr parameter);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",EntryPoint="LoadLibraryExW",CharSet=System.Runtime.InteropServices.CharSet.Unicode,SetLastError=true)]
+        internal static extern IntPtr LoadLibraryEx(string path,IntPtr file,uint flags);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",EntryPoint="EnumResourceNamesW",SetLastError=true)]
+        internal static extern bool EnumResourceNames(IntPtr module,IntPtr type,EnumNameProc callback,IntPtr parameter);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",EntryPoint="FindResourceW",SetLastError=true)]
+        static extern IntPtr FindResource(IntPtr module,IntPtr name,IntPtr type);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",SetLastError=true)]
+        static extern uint SizeofResource(IntPtr module,IntPtr resource);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",SetLastError=true)]
+        static extern IntPtr LoadResource(IntPtr module,IntPtr resource);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",SetLastError=true)]
+        static extern IntPtr LockResource(IntPtr resource);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll",SetLastError=true)]
+        internal static extern bool FreeLibrary(IntPtr module);
+        internal static byte[] Read(IntPtr module,IntPtr name,int type){
+            IntPtr resource=FindResource(module,name,new IntPtr(type));if(resource==IntPtr.Zero)throw new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error(),"native executable icon resource not found");
+            uint size=SizeofResource(module,resource);if(size==0)throw new InvalidDataException("native executable icon resource is empty");
+            IntPtr loaded=LoadResource(module,resource);if(loaded==IntPtr.Zero)throw new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error(),"native executable icon resource could not load");
+            IntPtr address=LockResource(loaded);if(address==IntPtr.Zero)throw new InvalidDataException("native executable icon resource could not lock");
+            var bytes=new byte[checked((int)size)];System.Runtime.InteropServices.Marshal.Copy(address,bytes,0,bytes.Length);return bytes;
+        }
+    }
     static void IconTests(){
+        var product=(System.Reflection.AssemblyProductAttribute)Attribute.GetCustomAttribute(typeof(Ui).Assembly,typeof(System.Reflection.AssemblyProductAttribute));
+        bool suiteNook=product!=null&&product.Product=="Nook"&&typeof(Ui).Assembly.GetName().Name=="Mori";
+        if(suiteNook){
+            // The suite's native icon lives in the actual EXE. A stale standalone
+            // qingjie.ico beside the test runner must not influence this proof.
+            IntPtr module=IconResources.LoadLibraryEx(typeof(Ui).Assembly.Location,IntPtr.Zero,0x00000002|0x00000020);
+            Check(module!=IntPtr.Zero,"Nook executable icon resources load without executing the application");
+            try{
+                var groups=new System.Collections.Generic.List<byte[]>();Exception readError=null;
+                IconResources.EnumNameProc callback=(handle,type,name,parameter)=>{try{groups.Add(IconResources.Read(handle,name,14));return true;}catch(Exception error){readError=error;return false;}};
+                bool enumerated=IconResources.EnumResourceNames(module,new IntPtr(14),callback,IntPtr.Zero);GC.KeepAlive(callback);
+                Check(enumerated&&readError==null&&groups.Count==1,"Nook actual EXE has one enumerated native icon group");
+                int[] expectedSizes={16,24,32,48,64,128,256};
+                string[] hashes={"b24e36e249845644be3059b858cda3f60d9c2f2acd2fb587b6982f897a2bc3aa","8529e5916b0f8586d2d5641f0078585bac2b2115b2a4e3ae511f73a1adf1442c","24fda89e52f3bce009ab782b525b7db2db3dc2f335c08b6da59179136ee0c423","a5262abd311285dd4e548fcb27dceaf2a61a53f7af35554a7578a8ffe9d9c37a","3a5720df75c0429ceacf0825c82e5f0ee087f943467195b604ead76a6be95434","60dcf9e92646f48c145114b3a233915266213f06787f6161f75bf6585240df24","2350bef57e46e3ef3adeaa871949c6e56df9037f2785c6c2a87f2a0d0a940481"};
+                using(var group=new MemoryStream(groups.Single()))using(var reader=new BinaryReader(group)){
+                    Check(reader.ReadUInt16()==0&&reader.ReadUInt16()==1&&reader.ReadUInt16()==expectedSizes.Length&&group.Length==6+14*expectedSizes.Length,"Nook EXE native icon group contains exactly seven 16/24/32/48/64/128/256 frames");
+                    var sizes=new int[expectedSizes.Length];var lengths=new uint[sizes.Length];var ids=new ushort[sizes.Length];
+                    for(int i=0;i<sizes.Length;i++){int width=reader.ReadByte(),height=reader.ReadByte();sizes[i]=width==0?256:width;Check(sizes[i]==expectedSizes[i]&&sizes[i]==(height==0?256:height),"Nook native icon directory preserves the exact square size at "+expectedSizes[i]+"px");reader.ReadBytes(6);lengths[i]=reader.ReadUInt32();ids[i]=reader.ReadUInt16();}
+                    Check(ids.Distinct().Count()==ids.Length,"Nook native icon group references seven distinct RT_ICON resources");
+                    for(int i=0;i<sizes.Length;i++){
+                        int size=sizes[i];byte[] png=IconResources.Read(module,new IntPtr(ids[i]),3);byte[] signature={137,80,78,71,13,10,26,10};
+                        Check(png.Length==lengths[i]&&png.Take(signature.Length).SequenceEqual(signature),"Nook EXE RT_ICON is lossless PNG with the directory's exact length at "+size+"px");
+                        string hash;using(var sha=System.Security.Cryptography.SHA256.Create())hash=BitConverter.ToString(sha.ComputeHash(png)).Replace("-","").ToLowerInvariant();
+                        Check(hash==hashes[i],"Nook EXE PNG matches the independently frozen selected asset at "+size+"px");
+                        BitmapSource bitmap;using(var stream=new MemoryStream(png))bitmap=BitmapFrame.Create(stream,BitmapCreateOptions.None,BitmapCacheOption.OnLoad);
+                        Check(bitmap.PixelWidth==size&&bitmap.PixelHeight==size,"Nook EXE decoded PNG matches its native directory size at "+size+"px");
+                        var pixels=new byte[size*size*4];new FormatConvertedBitmap(bitmap,PixelFormats.Bgra32,null,0).CopyPixels(pixels,size*4,0);
+                        Func<int,int,bool> purple=(x,y)=>{int at=(y*size+x)*4;return pixels[at]==197&&pixels[at+1]==96&&pixels[at+2]==98&&pixels[at+3]==255;};
+                        Func<int,int,bool> white=(x,y)=>{int at=(y*size+x)*4;return pixels[at]==255&&pixels[at+1]==255&&pixels[at+2]==255&&pixels[at+3]==255;};
+                        int low=size*5/16,high=size*11/16;
+                        Check(purple(size/2,size/2)&&purple(low,low)&&white(high,low)&&purple(low,high)&&purple(high,high),"Nook purple RGB 98/96/197 tile has three hollow compartments and a white solid upper-right at "+size+"px");
+                        var whiteQuadrants=new bool[4];for(int y=0;y<size;y++)for(int x=0;x<size;x++)if(white(x,y))whiteQuadrants[(y<size/2?0:2)+(x<size/2?0:1)]=true;
+                        Check(whiteQuadrants.All(found=>found),"Nook selected artwork retains a white compartment in every quadrant at "+size+"px");
+                        // Freeze the selected 16px asset's faint corner
+                        // antialiasing too; every larger frame is fully clear.
+                        int topAlpha=size==16?1:0,bottomAlpha=size==16?12:0;
+                        Check(pixels[3]==topAlpha&&pixels[(size-1)*4+3]==topAlpha&&pixels[((size-1)*size)*4+3]==bottomAlpha&&pixels[(size*size-1)*4+3]==bottomAlpha,"Nook rounded tile keeps the exact transparent/antialiased outer corners at "+size+"px");
+                        if(size==256)Check(SamePixels(bitmap,(BitmapSource)Ui.AppIcon),"Nook actual executable native 256px icon and frozen window icon use identical artwork");
+                    }
+                }
+            }finally{IconResources.FreeLibrary(module);}
+            return;
+        }
         using(var stream=File.OpenRead(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"qingjie.ico")))using(var reader=new BinaryReader(stream)){
             Check(reader.ReadUInt16()==0&&reader.ReadUInt16()==1&&reader.ReadUInt16()==6,"application ICO contains six native icon sizes");
             var sizes=new int[6];var lengths=new int[6];var offsets=new int[6];
@@ -192,6 +259,7 @@ class Tests {
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
         CaptureTests.Run(Check);
+        if(args.Length==1&&args[0]=="--snap-only"){Console.WriteLine(count+" capture selection tests passed.");return 0;}
         if(args.Length==1&&args[0]=="--snap-native"){CaptureTests.Native(Check);Console.WriteLine(count+" capture tests passed.");return 0;}
         IconTests();
         if(args.Length==1&&args[0]=="--offline-live"){OfflineTests.Live(Check);Console.WriteLine(count+" offline live tests passed.");return 0;}

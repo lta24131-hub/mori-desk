@@ -18,9 +18,23 @@ namespace MoriDesk {
     Reject(()=>refs.Add(new[]{b,Path.Combine(root,"missing.step")},""),"invalid batch rejected");Check(refs.All().Count==3,"invalid batch no partial result");Reject(()=>refs.Move(new[]{first.Id},"missing-category"),"invalid category rejected");Reject(()=>refs.AddFolder(" "),"blank folder rejected");Reject(()=>refs.AddFolder("新项目"),"duplicate folder rejected");Reject(()=>ReferenceStore.Normalize("relative.step"),"relative path rejected");Check(ReferenceStore.Normalize(source+"\\")==source,"normalize separator");Check(new ReferenceStore(lib.Db).All().Count==3,"persistence");Check(File.ReadAllBytes(moved).SequenceEqual(bytes)&&File.GetLastWriteTimeUtc(moved)==time,"original bytes and timestamp unchanged");
     string backup=Path.Combine(root,"test.mori.zip");lib.Backup(backup);Check(File.Exists(backup),"backup covers reference DB");
    }
-   Check(Settings.ConfigDir.EndsWith("MoriDesk"),"independent settings");Check(new Settings().LibraryPath.StartsWith(Settings.ConfigDir),"independent library");Check(QingJie.OcrLanguagePacks.Folder.StartsWith(Settings.ConfigDir),"independent languages");Check(QingJie.OfflinePacks.Folder.StartsWith(Settings.ConfigDir),"independent offline packs");Check(StartupRegistration.ValueName=="MoriDesk","independent startup");foreach(string ext in FileRouter.Models)Check(FileRouter.Kind("test"+ext)=="model","route "+ext);foreach(string ext in FileRouter.Pictures)Check(FileRouter.Kind("test"+ext)=="image","route "+ext);Check(FileRouter.Kind("document.pdf")=="external","external fallback");
+   Check(Settings.ConfigDir.EndsWith("MoriDesk"),"independent settings");Check(new Settings().LibraryPath.StartsWith(Settings.ConfigDir),"independent library");Check(QingJie.OcrLanguagePacks.Folder.StartsWith(Settings.ConfigDir),"independent languages");Check(QingJie.OfflinePacks.Folder.StartsWith(Settings.ConfigDir),"independent offline packs");Check(StartupRegistration.ValueName=="MoriDesk","independent startup");foreach(string ext in FileRouter.Models)Check(FileRouter.Kind("test"+ext)=="model","route "+ext);foreach(string ext in FileRouter.Pictures)Check(FileRouter.Kind("test"+ext)=="image","route "+ext);Check(FileRouter.Kind("document.pdf")=="preview","built-in PDF route");
    var testApp=System.Windows.Application.Current??new System.Windows.Application();testApp.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
    IterationTests.Run(root,Check);BrowserLocalBridgeTests.Run(root,Check);BrowserExtensionManagerTests.Run(root,Check);ScreenshotCollectionTests.Run(root,Check);LaunchTests.Run(root,Check);ReferenceTests.Run(root,Check);LibraryConsistencyTests.Run(root,Check);ReferenceThumbnailFreshnessTests.Run(root,Check);MetadataRefreshCacheTests.Run(root,Check);InspectorDraftTests.Run(root,Check);BoardTests.Run(root,Check);ClassicTests.Run(root,Check);LocalCollectionTests.Run(root,Check);OverviewVisibilityTests.Run(root,Check);DesktopDropTests.Run(root,Check);DeskSettingsTests.Run(root,Check);
+   BrandingTests.Run(Path.Combine(root,"branding"),Check);
+   ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
+   EmbeddedThemeTests.Run(Check);
+   CaptureThemeTests.Run(Path.Combine(root,"capture-theme"),Check);
+   BrowseSettingsTests.Run(root,Check);ThumbnailBuildGateTests.Run(root,Check);VideoControlsTests.Run(Check);MissingReferenceTests.Run(root,Check);ScreenColorTests.Run(Check);MediaBadgeTests.Run(Path.Combine(root,"media-badges"),Check);
+   DocumentContentTests.Run(Path.Combine(root,"document-content"),Check);PsdCompositeTests.Run(Path.Combine(root,"psd-composite"),Check);PsdEmbeddedThumbnailTests.Run(Path.Combine(root,"psd-embedded"),Check);PdfPreviewTests.Run(Path.Combine(root,"pdf-preview"),Check);FormatPreviewTests.Run(Path.Combine(root,"format-preview"),Check);PdfContinuousTests.Run(Path.Combine(root,"pdf-continuous"),Check);
+   PreviewBundleTests.Run(Check);ImageCodecTests.Run(Path.Combine(root,"image-codec"),Check);PdfTextTests.Run(Path.Combine(root,"pdf-text"),Check);
+   WallpaperTests.Run(Path.Combine(root,"wallpaper"),Check);
+   SimpleBrowserTests.Run(Check);BrowserWorkspaceTests.Run(Path.Combine(root,"browser-workspace"),Check);
+   FreeCanvasTests.Run(Path.Combine(root,"free-canvas"),Check);
+   AppearanceSettingsTests.Run(Path.Combine(root,"appearance-settings"),Check);
+   CustomizationTests.Run(Path.Combine(root,"customization"),Check);
+   PreviewPreferencesTests.Run(Path.Combine(root,"preview-preferences"),Check);
+   MiddleDragPanTests.Run(Check);
    File.WriteAllText(log,"PASS "+checks+" checks\r\nFixtures: "+root+"\r\n"+DateTime.Now.ToString("O"),Encoding.UTF8);return 0;
   }catch(Exception ex){File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\nFixtures: "+root,Encoding.UTF8);return 1;}}
  }

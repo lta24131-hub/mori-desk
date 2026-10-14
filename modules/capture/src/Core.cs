@@ -69,12 +69,15 @@ namespace QingJie {
     public sealed class Snapshot {
         public System.Drawing.Rectangle Bounds;
         public BitmapSource Image;
+        internal string ColorWarning;
         public static Snapshot Screen(Forms.Screen screen) {
             var bounds=screen.Bounds;
+            BitmapSource advanced;string warning;
+            if(AdvancedScreenCapture.TryCapture(screen,out advanced,out warning))return new Snapshot {Bounds=bounds,Image=advanced};
             using(var bitmap=new System.Drawing.Bitmap(bounds.Width,bounds.Height,System.Drawing.Imaging.PixelFormat.Format32bppArgb)) {
                 using(var graphics=System.Drawing.Graphics.FromImage(bitmap)) graphics.CopyFromScreen(bounds.Location,System.Drawing.Point.Empty,bounds.Size,System.Drawing.CopyPixelOperation.SourceCopy);
                 var handle=bitmap.GetHbitmap();
-                try { var image=Imaging.CreateBitmapSourceFromHBitmap(handle,IntPtr.Zero,Int32Rect.Empty,BitmapSizeOptions.FromEmptyOptions()); image.Freeze(); return new Snapshot { Bounds=bounds, Image=image }; }
+                try { var image=Imaging.CreateBitmapSourceFromHBitmap(handle,IntPtr.Zero,Int32Rect.Empty,BitmapSizeOptions.FromEmptyOptions()); image.Freeze(); return new Snapshot { Bounds=bounds, Image=image,ColorWarning=warning }; }
                 finally { Native.DeleteObject(handle); }
             }
         }
@@ -85,7 +88,7 @@ namespace QingJie {
     public static class ImageFiles {
         public static void Write(BitmapSource image,string path) { using(var stream=File.Create(path)) { var e=new PngBitmapEncoder();e.Frames.Add(BitmapFrame.Create(image));e.Save(stream); } }
         public static bool Save(BitmapSource image, Window owner) {
-            var dialog=new Microsoft.Win32.SaveFileDialog { Filter="PNG 图片|*.png", FileName="Luma_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".png", InitialDirectory=AppState.Settings.SaveFolder };
+            var dialog=new Microsoft.Win32.SaveFileDialog { Filter="PNG 图片|*.png", FileName="Nook_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".png", InitialDirectory=AppState.Settings.SaveFolder };
             if(dialog.ShowDialog(owner)!=true) return false;
             Write(image,dialog.FileName); AppState.Settings.SaveFolder=Path.GetDirectoryName(dialog.FileName); AppState.Settings.Save(); return true;
         }

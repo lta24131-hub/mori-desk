@@ -8,6 +8,7 @@ namespace Mori {
   static bool Near(Color actual,Color expected){return Math.Abs(actual.R-expected.R)<5&&Math.Abs(actual.G-expected.G)<5&&Math.Abs(actual.B-expected.B)<5;}
   static void Mouse(System.Windows.Forms.Control control,string method,System.Windows.Forms.MouseButtons button,int x,int y,int clicks=1){typeof(System.Windows.Forms.Control).GetMethod(method,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(control,new object[]{new System.Windows.Forms.MouseEventArgs(button,clicks,x,y,0)});}
   public static void Run(Action<bool,string> check){
+   PreviewBackgroundTests.Run(check);
    var single=PreviewWindow.ImageLayout(1);var singlePane=(System.Windows.Controls.DockPanel)single.Children[0];
    check(single.Children.Count==1&&singlePane.Children.Count==0,"single-image preview has no instructions or duplicate filename");
    check(singlePane.Margin==new System.Windows.Thickness(0),"single-image preview uses the complete client area without a text band");

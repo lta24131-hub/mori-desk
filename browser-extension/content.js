@@ -74,7 +74,9 @@
       noticeHost.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none';
       noticeRoot = noticeHost.attachShadow({mode:'closed'});
       const style = document.createElement('style');
-      style.textContent = `:host{all:initial;font:12px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}.notices{position:absolute;right:20px;bottom:20px;max-width:calc(100% - 40px);display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}.toast{box-sizing:border-box;display:flex;align-items:center;gap:7px;max-width:320px;padding:7px 10px;border-radius:7px;background:#f7f8f5f5;color:#3c5041;box-shadow:0 2px 10px #0001;overflow-wrap:anywhere}.toast[data-theme="dark"]{background:#252b27f5;color:#d8e4da}.toast[data-kind="error"]{color:#994c40}.toast[data-theme="dark"][data-kind="error"]{color:#f0b3a7}.toast-text{min-width:0}.toast-action,.toast-close{font:inherit;pointer-events:auto;cursor:pointer;border:0;background:none;color:inherit;padding:0}.toast-action{text-align:left;text-decoration:underline;text-underline-offset:3px}.toast-close{flex:none;width:18px;height:20px;opacity:.65}.toast-action:focus-visible,.toast-close:focus-visible{outline:2px solid currentColor;outline-offset:2px}`;
+      style.textContent = `:host{all:initial;font:12px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}.notices{position:absolute;right:20px;bottom:20px;max-width:calc(100% - 40px);display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
+        .toast{--bg:#FFFFFF;--text:#252525;--line:#D7D7D7;--accent:#6D5BC7;box-sizing:border-box;display:flex;align-items:center;gap:7px;max-width:320px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);box-shadow:0 2px 10px #0001;overflow-wrap:anywhere;color-scheme:light}
+        .toast[data-theme="dark"]{--bg:#242424;--text:#EEEEEE;--line:#484848;--accent:#B7A8ED;color-scheme:dark}.toast[data-kind="error"]{color:#994c40}.toast[data-theme="dark"][data-kind="error"]{color:#f0b3a7}.toast-text{min-width:0}.toast-action,.toast-close{font:inherit;pointer-events:auto;cursor:pointer;border:0;background:none;color:inherit;padding:0}.toast-action{text-align:left;text-decoration:underline;text-underline-offset:3px}.toast-close{flex:none;width:18px;height:20px;opacity:.65}.toast-action:focus-visible,.toast-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}`;
       noticeList = element('div', 'notices');
       noticeRoot.append(style, noticeList); document.documentElement.append(noticeHost);
     }
@@ -135,7 +137,7 @@
     releaseChoice(session); detachCollector(session);
     sessions.delete(session);
     session.phase = response.ok ? 'success' : 'error';
-    const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Mori') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Mori 按 Ctrl+V 收藏。'));
+    const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Nook') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Nook 按 Ctrl+V 收藏。'));
     notify(session, message, response.ok ? 'success' : 'error', response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : '已保存到本机图库 · 未分类') : response.diagnostic);
     signalIdle();
   }
@@ -199,10 +201,10 @@
   const css = `
     :host{all:initial;font:14px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
     *{box-sizing:border-box}button{font:inherit}
-    .panel{--bg:#f8f8f5;--surface:#eef1eb;--text:#28362d;--muted:#69736b;--line:#d4dcd2;--accent:#44724d;--hover:#e4eedf;--error:#9b463a;position:absolute;display:flex;flex-direction:column;gap:12px;padding:18px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:20px;box-shadow:0 14px 52px #0003;pointer-events:auto;overflow:hidden;color-scheme:light}
-    .panel[data-theme="dark"]{--bg:#242925;--surface:#2e352f;--text:#e5ebe2;--muted:#a5b2a6;--line:#465047;--accent:#a4c797;--hover:#3d4d3a;--error:#f2ab9f;color-scheme:dark}
-    .panel[data-phase="editing"] .quick,.panel[data-phase="editing"] .note,.panel[data-phase="editing"] .foot{display:none}.editor{display:flex;flex-direction:column;gap:10px;min-height:0;flex:1;overflow:auto}.editor label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}.editor input,.editor select{width:100%;font:inherit;font-size:13px;min-height:34px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text)}.editor input:focus-visible,.editor select:focus-visible{outline:2px solid var(--accent)}.editor-error{color:var(--error);font-size:11px;overflow-wrap:anywhere}.editor-actions{display:flex;justify-content:flex-end;gap:8px}.editor-actions button{padding:7px 14px}
-    .collect-icon{display:none;place-items:center;color:var(--accent);pointer-events:none}
+    .panel{--bg:#FAFAFA;--panel:#F3F3F3;--surface:#FFFFFF;--input:#FAFAFA;--control:#EEEEEE;--text:#252525;--muted:#626262;--line:#D7D7D7;--divider:#E4E4E4;--accent:#6D5BC7;--active:#F0EDFA;--hover:#E7E7E7;--scroll-thumb:#B7B7B7;--primary:#6D5BC7;--on-primary:#FFFFFF;--error:#9b463a;position:absolute;display:flex;flex-direction:column;gap:12px;padding:18px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:20px;box-shadow:0 14px 52px #0003;pointer-events:auto;overflow:hidden;color-scheme:light}
+    .panel[data-theme="dark"]{--bg:#161616;--panel:#1D1D1D;--surface:#242424;--input:#292929;--control:#303030;--text:#EEEEEE;--muted:#AAAAAA;--line:#484848;--divider:#363636;--accent:#B7A8ED;--active:#322D40;--hover:#3B3B3B;--scroll-thumb:#626262;--primary:#B7A8ED;--on-primary:#161616;--error:#f2ab9f;color-scheme:dark}
+    .panel[data-phase="editing"] .quick,.panel[data-phase="editing"] .note,.panel[data-phase="editing"] .foot{display:none}.editor{display:flex;flex-direction:column;gap:10px;min-height:0;flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) transparent}.editor label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}.editor input,.editor select{width:100%;font:inherit;font-size:13px;min-height:34px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--input);color:var(--text)}.editor input:focus-visible,.editor select:focus-visible{outline:2px solid var(--accent)}.editor-error{color:var(--error);font-size:11px;overflow-wrap:anywhere}.editor-actions{display:flex;justify-content:flex-end;gap:8px}.editor-actions button{padding:7px 14px}
+    .collect-icon{display:none;place-items:center;color:var(--muted);pointer-events:none}
     [data-phase="saving"] .collect-icon,[data-phase="success"] .collect-icon,[data-connection="error"] .collect-icon{display:grid}
     .glyph{display:none;width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     [data-phase="saving"] .glyph-saving,[data-phase="success"] .glyph-success{display:block}
@@ -212,13 +214,13 @@
     .head{display:flex;align-items:center;gap:8px;min-height:22px;flex:none}.brand{font-size:15px;font-weight:650;letter-spacing:.8px}.tag{color:var(--muted);font-size:11px;margin-left:auto}.close{border:0;background:transparent;color:var(--muted);font-size:19px;line-height:22px;width:24px;height:24px;padding:0;cursor:pointer;border-radius:6px}.close:hover{background:var(--surface);color:var(--text)}.close:focus-visible{outline:2px solid var(--accent)}
     .quick{flex:1;min-height:84px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:7px;padding:14px;border:1.5px dashed var(--line);border-radius:12px;background:var(--surface)}.title{font-size:21px;line-height:1.4;font-weight:650;margin:0}.hint{font-size:12px;color:var(--muted);line-height:1.6;max-width:100%;overflow-wrap:anywhere}.source{font-size:11px;color:var(--muted);max-width:100%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}.is-over{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent),0 14px 52px #0003}.is-over .quick{border-color:var(--accent);border-style:solid;background:var(--hover)}
     .note{font-size:11px;line-height:1.5;color:var(--muted);margin:0;max-height:48px;overflow:auto;overflow-wrap:anywhere}.foot{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);flex:none}.foot-info{flex:1}.hidden{display:none!important}
-    .category-toggle{display:grid;place-items:center;flex:none;width:28px;height:28px;padding:4px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer}.category-toggle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.category-toggle:hover,.category-toggle[aria-expanded="true"]{color:var(--accent);background:var(--surface)}.category-toggle:focus-visible,.folder:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+    .category-toggle{display:grid;place-items:center;flex:none;width:28px;height:28px;padding:4px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer}.category-toggle svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}.category-toggle:hover{color:var(--text);background:var(--hover)}.category-toggle[aria-expanded="true"]{color:var(--accent);background:var(--active)}.category-toggle:focus-visible,.folder:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
     .panel:not([data-phase="dragging"]) .category-toggle{display:none}
     .folder-unfiled{display:none;font:inherit;font-size:12px;padding:4px 7px;border:0;border-radius:5px;background:var(--surface);color:var(--text);cursor:pointer}.folder-unfiled:focus-visible{outline:2px solid var(--accent)}.panel[data-phase="choosing"] .folder-unfiled{display:block}.panel[data-phase="choosing"] .foot-info{display:none}
     .category-label:focus{outline:none}.panel[data-phase="choosing"] .note{display:none}
-    .category-menu{position:absolute;left:18px;right:18px;top:54px;bottom:58px;display:flex;flex-direction:column;padding:9px;gap:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.categories-open .quick>*{visibility:hidden}.category-label{font-size:11px;color:var(--muted);padding:0 6px;flex:none}.folder-list{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}.folder{display:block;width:100%;min-height:32px;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--text);font-size:12px;line-height:20px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.folder:hover,.folder.hover{background:var(--hover);color:var(--accent)}.folder-status{padding:8px;font-size:12px;color:var(--muted)}.folder-retry{margin-left:8px;padding:3px 7px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--accent);font:inherit;cursor:pointer}.folder-retry:hover{background:var(--hover)}.folder-retry:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-    .panel[data-phase="saving"] .quick{border-style:solid}.panel[data-phase="success"] .quick{border-color:var(--accent);background:var(--hover)}.panel[data-phase="error"] .quick{border-color:var(--error)}.panel[data-phase="error"] .title{color:var(--error);font-size:20px}.panel[data-phase="error"] .hint{text-align:left}.diagnostic{font-size:10px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);max-height:64px;overflow:auto}
-    .panel[data-phase="duplicate"] .quick{flex:none;min-height:0;padding:0;border:0;background:none;align-items:flex-start;text-align:left;gap:3px}.panel[data-phase="duplicate"] .title{font-size:19px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;flex:1;overflow:auto}.preview{min-width:0;display:flex;flex-direction:column;gap:5px;background:var(--surface);padding:9px;border-radius:10px}.preview-label{font-size:10px;color:var(--muted)}.preview-image{width:100%;min-height:40px;height:104px;object-fit:contain;background:var(--bg);border-radius:5px}.preview-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.preview-meta{font-size:10px;color:var(--muted)}.preview-empty{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:none}.choice{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px 3px;background:var(--surface);color:var(--text);cursor:pointer}.choice.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}.choice:hover{filter:brightness(.95)}.choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .category-menu{position:absolute;left:18px;right:18px;top:54px;bottom:58px;display:flex;flex-direction:column;padding:9px;gap:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.categories-open .quick>*{visibility:hidden}.category-label{font-size:11px;color:var(--muted);padding:0 6px;flex:none}.folder-list{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) transparent}.folder{display:block;width:100%;min-height:32px;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--text);font-size:12px;line-height:20px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}.folder:hover,.folder.hover{background:var(--hover);color:var(--text)}.folder-status{padding:8px;font-size:12px;color:var(--muted)}.folder-retry{margin-left:8px;padding:3px 7px;border:1px solid var(--line);border-radius:5px;background:transparent;color:var(--text);font:inherit;cursor:pointer}.folder-retry:hover{background:var(--hover)}.folder-retry:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    .panel[data-phase="saving"] .quick{border-style:solid}.panel[data-phase="success"] .quick{border-color:var(--line);background:var(--surface)}.panel[data-phase="error"] .quick{border-color:var(--error)}.panel[data-phase="error"] .title{color:var(--error);font-size:20px}.panel[data-phase="error"] .hint{text-align:left}.diagnostic{font-size:10px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);max-height:64px;overflow:auto}
+    .panel[data-phase="duplicate"] .quick{flex:none;min-height:0;padding:0;border:0;background:none;align-items:flex-start;text-align:left;gap:3px}.panel[data-phase="duplicate"] .title{font-size:19px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-height:0;flex:1;overflow:auto}.preview{min-width:0;display:flex;flex-direction:column;gap:5px;background:var(--surface);padding:9px;border-radius:10px}.preview-label{font-size:10px;color:var(--muted)}.preview-image{width:100%;min-height:40px;height:104px;object-fit:contain;background:var(--bg);border-radius:5px}.preview-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.preview-meta{font-size:10px;color:var(--muted)}.preview-empty{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;flex:none}.choice{font-size:12px;border:1px solid var(--line);border-radius:8px;padding:8px 3px;background:var(--control);color:var(--text);cursor:pointer}.choice.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}.choice:hover{background:var(--hover)}.choice.primary:hover{background:var(--primary);filter:brightness(.97)}.choice:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     @media(max-height:480px){.preview-image{height:54px;flex:none}.preview{padding:7px;gap:4px}}
     @media(max-height:360px){.panel{padding:12px;gap:8px}.quick{padding:8px;min-height:66px}.title{font-size:18px}.source{display:none}.category-menu{left:12px;right:12px;top:44px;bottom:52px}}
     @media(prefers-reduced-motion:no-preference){.quick{transition:background .12s,border-color .12s}}
@@ -321,7 +323,7 @@
     const style = document.createElement('style');
     style.textContent = css;
     const panel = element('section', 'panel');
-    panel.setAttribute('aria-label', t('Mori 网页收藏'));
+    panel.setAttribute('aria-label', t('Nook 网页收藏'));
     panel.dataset.theme = P.theme(preferences, darkMedia.matches);
     panel.dataset.phase = 'dragging';
     const head = element('div', 'head');
@@ -330,7 +332,7 @@
     close.type = 'button';
     close.setAttribute('aria-label', t('关闭收藏浮层'));
     close.addEventListener('click', dismiss);
-    head.append(element('span', 'brand', 'Mori'), tag, close);
+    head.append(element('span', 'brand', 'Nook'), tag, close);
     const quick = element('div', 'quick');
     const title = element('div', 'title', '松手，快速收藏');
     title.setAttribute('role', 'status');
@@ -421,7 +423,7 @@
     session.hoveredFolderRow = null;
     session.folderListElement.replaceChildren();
     if (!session.folderList?.length) {
-      const status = element('div', 'folder-status', session.folderError || (session.folderList ? '暂无分类，可在 Mori 中新建' : '正在加载分类…'));
+      const status = element('div', 'folder-status', session.folderError || (session.folderList ? '暂无分类，可在 Nook 中新建' : '正在加载分类…'));
       if (session.folderError) status.append(folderRetry(session));
       session.folderListElement.append(status);
       return;
@@ -531,13 +533,13 @@
       session.foldersLoading = false;
       if (active !== session || !['dragging', 'choosing', 'editing'].includes(session.phase)) return;
       if (!response.ok) {
-        session.note.textContent = t(response.error || '请先连接 Mori 桌面程序');
+        session.note.textContent = t(response.error || '请先连接 Nook 桌面程序');
         session.note.classList.remove('hidden');
         session.tag.textContent = t('连接未就绪');
         session.panel.dataset.connection = 'error';
         session.panel.title = session.note.textContent;
         session.title.textContent = session.note.textContent;
-        session.folderError = t('分类暂不可用，请检查 Mori 连接');
+        session.folderError = t('分类暂不可用，请检查 Nook 连接');
       } else {
         session.note.classList.add('hidden');
         session.folderList = Array.isArray(response.folders) ? response.folders.filter(folder => folder && typeof folder.id === 'string' && folder.id && typeof folder.name === 'string') : [];
@@ -734,12 +736,12 @@
     session.note.classList.add('hidden');
     session.source.classList.remove('hidden');
     session.title.textContent = t(response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏') : outcomeUnknown(response) ? '收藏结果未确认' : '这次没有收藏成功');
-    session.hint.textContent = t(response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.error || (session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Mori 按 Ctrl+V 收藏。'));
+    session.hint.textContent = t(response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.error || (session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Nook 按 Ctrl+V 收藏。'));
     session.panel.title = response.ok ? session.title.textContent + ' · ' + session.hint.textContent : '';
     session.tag.textContent = t(response.ok ? '本机已保存' : '需要处理');
     session.footerAction.textContent = t('Esc 关闭');
     if (!response.ok) {
-      session.source.textContent = t(outcomeUnknown(response) ? '请先检查 Mori 图库是否已保存，确认后再重试。' : session.item?.kind === 'video' ? '本次未保存视频，也没有改存为网址或封面。' : '也可截图后，在 Mori 按 Ctrl+V 收藏');
+      session.source.textContent = t(outcomeUnknown(response) ? '请先检查 Nook 图库是否已保存，确认后再重试。' : session.item?.kind === 'video' ? '本次未保存视频，也没有改存为网址或封面。' : '也可截图后，在 Nook 按 Ctrl+V 收藏');
       if (response.diagnostic) {
         session.diagnostic.textContent = t(`连接诊断：${response.diagnostic}`);
         session.diagnostic.classList.remove('hidden');
@@ -840,7 +842,7 @@
         MoriMediaSource.resolve(item).then(value => reply({ok:true,item:value}), error => reply({ok:false,kind:'video',error:error.message})).finally(()=>{resolving--;signalIdle();});
         return true;
       }
-      reply(item ? {ok: true, item} : {ok: false, error: '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Mori。'});
+      reply(item ? {ok: true, item} : {ok: false, error: '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Nook。'});
       return;
     }
     if (message?.action === 'context-saving') {
@@ -861,7 +863,7 @@
     // it back when a slow request completes, nor replace a newer duplicate choice.
     if (message.requestId && active?.requestId !== message.requestId) {reply({displayed: false}); return;}
     const session = message.requestId ? active : mount(null, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
-    showResult(session, message.result || {ok: false, error: 'Mori 未返回结果，请重试。'});
+    showResult(session, message.result || {ok: false, error: 'Nook 未返回结果，请重试。'});
     reply({displayed: true});
   });
 })();

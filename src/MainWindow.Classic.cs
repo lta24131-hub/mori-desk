@@ -9,7 +9,7 @@ namespace Mori {
  public partial class MainWindow {
   void InitializeLocalAddress(){
    InitializeLocalCollections();
-   B("RevealLocal").Click+=delegate{var a=Selected().SingleOrDefault();if(a==null)return;try{FileRouter.Reveal(library.FullPath(a));}catch(Exception ex){Status("无法打开位置："+ex.Message);}};
+   B("RevealLocal").Click+=delegate{var a=Selected().SingleOrDefault();if(a!=null)RevealAsset(a);};
    B("CopyLocal").Click+=delegate{if(T("LocalAddress").Text.Length>0)try{Clipboard.SetText(T("LocalAddress").Text);Status("已复制本地地址");}catch(Exception ex){Status(ex.Message);}};
   }
   void UpdateLocalAddress(List<Asset> items){
@@ -38,6 +38,6 @@ namespace Mori {
     Refresh(true);Status("已收藏 "+ids.Length+" 项 · 只保存位置，文件夹内容不导入 · Ctrl+Z 撤销");
    }catch(Exception ex){Status("收藏未完成："+ex.Message);}
   }
-  void OpenReference(Asset a){try{FileRouter.Open(Window,library.FullPath(a),a.Name);}catch(Exception ex){Status("无法打开："+ex.Message);}}
+  void OpenReference(Asset a){try{FileRouter.Open(Window,library.FullPath(a),a.Name);}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法打开原文件",MessageBoxButton.OK,MessageBoxImage.Warning);}}
  }
 }

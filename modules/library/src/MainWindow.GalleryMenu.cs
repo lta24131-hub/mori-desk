@@ -20,6 +20,13 @@ namespace Mori {
   void SaveGalleryView(){if(PreviewMode)return;try{var settings=Settings.Load();settings.WaterfallLayout=waterfallLayout;settings.ShowAssetNames=showAssetNames;settings.ShowAssetDetails=showAssetDetails;settings.LeftSidebarVisible=sidebars.LeftVisible;settings.RightSidebarVisible=sidebars.RightVisible;settings.Save();}catch(Exception ex){Status("显示设置暂未保存："+ex.Message);}}
   internal void SetGalleryLayout(bool waterfall){waterfallLayout=waterfall;BuildRows(true);SaveGalleryView();}
   internal void SetGalleryInformation(bool name,bool details){showAssetNames=name;showAssetDetails=details;BuildRows(true);SaveGalleryView();}
+  internal void ApplyBrowsePreferences(Settings settings){
+   waterfallLayout=settings.WaterfallLayout;showAssetNames=settings.ShowAssetNames;showAssetDetails=settings.ShowAssetDetails;
+   sidebars.SetVisible(true,settings.LeftSidebarVisible);sidebars.SetVisible(false,settings.RightSidebarVisible);
+   sidebars.SetPreferred(true,settings.LeftSidebarWidth);sidebars.SetPreferred(false,settings.RightSidebarWidth);
+   Find<Slider>("ThumbnailSize").Value=settings.ThumbnailSize;Find<ComboBox>("Sort").SelectedIndex=settings.DefaultSort;
+   Refresh(false);BuildRows(true);
+  }
   internal void ToggleSidebar(bool left){sidebars.SetVisible(left,left?!sidebars.LeftVisible:!sidebars.RightVisible);SaveGalleryView();QueueLayout();}
   internal void RefreshGallery(){
    if(busy){Status("正在处理素材，请完成后再刷新。");return;}

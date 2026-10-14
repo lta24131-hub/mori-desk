@@ -15,11 +15,11 @@ namespace Mori {
    Find<Grid>("InspectorPreview").MouseLeftButtonDown+=delegate(object sender,System.Windows.Input.MouseButtonEventArgs e){if(e.ClickCount==2){var a=Selected().FirstOrDefault();if(a!=null)Preview(a);}};
   }
   void UpdateInspectorPreview(){
-   var items=Selected();var a=items.Count==1?items[0]:null;Find<Grid>("InspectorPreview").Visibility=a==null||a.IsDirectory||(a.IsReference&&!SectionContains(a,"pictures")&&!IsVideo(a)&&!a.IsAudio)?Visibility.Collapsed:Visibility.Visible;
+   var items=Selected();var a=items.Count==1?items[0]:null;Find<Grid>("InspectorPreview").Visibility=a==null||a.IsDirectory||(a.IsReference&&!MediaTypes.CanThumbnail(a)&&!a.IsAudio)?Visibility.Collapsed:Visibility.Visible;
    var preview=Find<ThumbnailImage>("DetailPreview");preview.DataContext=a!=null&&!a.IsBookmark?a:null;preview.Visibility=a!=null&&!a.IsBookmark?Visibility.Visible:Visibility.Collapsed;
    var icon=Find<BookmarkIcon>("DetailSiteIcon");icon.DataContext=a!=null&&a.IsBookmark?a:null;icon.Visibility=a!=null&&a.IsBookmark?Visibility.Visible:Visibility.Collapsed;
    L("DetailAudioIcon").Visibility=a!=null&&a.IsAudio?Visibility.Visible:Visibility.Collapsed;
-   if(a==null||a.IsBookmark||a.IsAudio||a.Ext==".pdf")UpdatePalette(null);B("Categorize").Content=bookmarkMode?"移动到…":"添加分类…";B("Categorize").ToolTip=bookmarkMode?"移动到网址文件夹":"添加到素材分类";
+   if(a==null||a.IsBookmark||a.IsAudio||MediaTypes.Documents.Contains(a.Ext))UpdatePalette(null);B("Categorize").Content=bookmarkMode?"移动到…":"添加分类…";B("Categorize").ToolTip=bookmarkMode?"移动到网址文件夹":"添加到素材分类";
    L("SelectionInfo").Text=a!=null?(a.IsBookmark?"1 个网址":IsVideo(a)?"1 个视频":a.IsAudio?"1 个音频":a.IsDirectory?"1 个文件夹":SectionContains(a,"pictures")?"1 张图片":a.IsReference?"1 个 "+a.TypeLabel+" 文件":"1 个文档")+"已选中":items.Count>1?items.Count+" 个素材已选中":"选中素材查看详情";
   }
   internal static List<Color> Palette(BitmapSource source){

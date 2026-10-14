@@ -79,22 +79,22 @@ function nativeFailure(error) {
   const diagnostic = String(error?.message || error || 'Unknown native messaging error').slice(0, 500);
   const lower = diagnostic.toLowerCase();
   let code = 'NATIVE_CONNECTION_ERROR';
-  let message = 'Mori 本机连接失败，请检查连接注册后重试。';
+  let message = 'Nook 本机连接失败，请检查连接注册后重试。';
   if (lower.includes('forbidden') || lower.includes('not allowed') || lower.includes('permission')) {
     code = 'NATIVE_EXTENSION_FORBIDDEN';
     message = `本机连接未授权当前扩展 ID（${chrome.runtime.id}）。请用此 ID 重新运行 Register-Extension.ps1，再刷新网页。`;
   } else if (lower.includes('not found') || lower.includes('not registered')) {
     code = 'NATIVE_HOST_NOT_FOUND';
-    message = '找不到 Mori 本机连接。请打开 Mori Desk，在设置 → 浏览器收藏中连接当前插件 ID，再重新加载插件。';
+    message = '找不到 Nook 本机连接。请打开 Nook，在设置 → 浏览器收藏中连接当前插件 ID，再重新加载插件。';
   } else if (lower.includes('failed to start') || lower.includes('cannot start')) {
     code = 'NATIVE_HOST_START_FAILED';
-    message = 'Mori 本机程序未能启动。请确认 Mori.exe 仍在注册时的位置且可打开，再重新注册连接。';
+    message = 'Nook 本机程序未能启动。请确认 Mori.exe 仍在注册时的位置且可打开，再重新注册连接。';
   } else if (lower.includes('exited') || lower.includes('communicating') || lower.includes('disconnected')) {
     code = 'NATIVE_HOST_DISCONNECTED';
-    message = 'Mori 本机连接意外中断。请确认桌面程序可以打开，再重试；若移动过程序，请重新注册连接。';
+    message = 'Nook 本机连接意外中断。请确认桌面程序可以打开，再重试；若移动过程序，请重新注册连接。';
   } else if (lower.includes('invalid') || lower.includes('manifest')) {
     code = 'NATIVE_HOST_INVALID';
-    message = 'Mori 本机连接配置无效。请在桌面程序所在目录重新运行 Register-Extension.ps1。';
+    message = 'Nook 本机连接配置无效。请在桌面程序所在目录重新运行 Register-Extension.ps1。';
   }
   return {ok: false, code, error: message, diagnostic};
 }
@@ -109,14 +109,14 @@ async function native(message) {
     let finished = false;
     const finish = reply => {if (!finished) {finished = true; clearTimeout(timer); resolve(reply);}};
     const timer = setTimeout(() => finish({ok:false,code:'NATIVE_TIMEOUT',error:uncertain
-      ? '等待 Mori 收藏结果超时，请先检查图库是否已保存，再重试。'
-      : 'Mori 本机连接响应超时，请打开桌面程序后重试。'}),30000);
+      ? '等待 Nook 收藏结果超时，请先检查图库是否已保存，再重试。'
+      : 'Nook 本机连接响应超时，请打开桌面程序后重试。'}),30000);
     try {
       chrome.runtime.sendNativeMessage(HOST, message, reply => {
         const error = chrome.runtime.lastError;
         const result = error ? nativeFailure(error) : reply && typeof reply.ok === 'boolean' ? reply : {ok:false,code:'NATIVE_EMPTY_REPLY',error:uncertain
-          ? '未收到 Mori 的收藏结果，请先检查图库后再重试。'
-          : 'Mori 本机程序未返回结果，请重试。'};
+          ? '未收到 Nook 的收藏结果，请先检查图库后再重试。'
+          : 'Nook 本机程序未返回结果，请重试。'};
         finish(result);
       });
     } catch (error) {finish(nativeFailure(error));}
@@ -131,7 +131,7 @@ async function native(message) {
   });}
   catch(error) {result=nativeFailure(error);}
   finally {if(finishWrite)await finishWrite(result);}
-  if (uncertain && ['NATIVE_HOST_DISCONNECTED','NATIVE_CONNECTION_ERROR'].includes(result.code)) result.error = 'Mori 连接中断，尚不能确认是否已保存。请先检查图库，再重试。';
+  if (uncertain && ['NATIVE_HOST_DISCONNECTED','NATIVE_CONNECTION_ERROR'].includes(result.code)) result.error = 'Nook 连接中断，尚不能确认是否已保存。请先检查图库，再重试。';
   return result;
 }
 function bookmarkIcon(message, sender) {
@@ -166,14 +166,14 @@ async function saveImage(message, owner, iconUrl = '') {
   try {
     const response = await fetch(url.href, {credentials: 'include', signal: controller.signal});
     if (!response.ok) throw new Error(`网站拒绝下载（HTTP ${response.status}）`);
-    if (Number(response.headers.get('content-length')) > MAX) throw new Error('素材超过 20 MB，请保存原文件后拖入 Mori');
+    if (Number(response.headers.get('content-length')) > MAX) throw new Error('素材超过 20 MB，请保存原文件后拖入 Nook');
     const reader = response.body.getReader();
     const chunks = []; let size = 0;
-    while (true) { const {value, done} = await reader.read(); if (done) break; size += value.length; if (size > MAX) { await reader.cancel(); throw new Error('素材超过 20 MB，请保存原文件后拖入 Mori'); } chunks.push(value); }
+    while (true) { const {value, done} = await reader.read(); if (done) break; size += value.length; if (size > MAX) { await reader.cancel(); throw new Error('素材超过 20 MB，请保存原文件后拖入 Nook'); } chunks.push(value); }
     const bytes = new Uint8Array(size); let at = 0; for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.length; }
     let binary = ''; for (let i = 0; i < bytes.length; i += 16384) binary += String.fromCharCode(...bytes.subarray(i, i + 16384));
     return await submitImage({action: 'save', data: btoa(binary), folder: message.folder || '', name: message.name || '网页收藏', source: message.source || '', duplicateAction: 'ask'}, owner);
-  } catch (error) { return {ok: false, error: (error.name === 'AbortError' ? '下载超时' : error.message) + (message.kind === 'video' ? '。视频未收藏，也没有改存为网址或封面。' : '。可保存原文件后拖入 Mori；截图仅保留静态画面。')}; }
+  } catch (error) { return {ok: false, error: (error.name === 'AbortError' ? '下载超时' : error.message) + (message.kind === 'video' ? '。视频未收藏，也没有改存为网址或封面。' : '。可保存原文件后拖入 Nook；截图仅保留静态画面。')}; }
   finally { clearTimeout(timeout); }
 }
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
@@ -187,7 +187,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if(message?.action==='collector-idle') {updater.schedule();reply({ok:true});return;}
   if(message?.action==='importBookmarks') {
     // Only the extension popup, never website content scripts, may bulk import.
-    if(sender.tab || !String(sender.url || '').startsWith(`chrome-extension://${chrome.runtime.id}/popup.html`)){reply({ok:false,error:'只能从 Mori 插件窗口导入书签'});return true;}
+    if(sender.tab || !String(sender.url || '').startsWith(`chrome-extension://${chrome.runtime.id}/popup.html`)){reply({ok:false,error:'只能从 Nook 插件窗口导入书签'});return true;}
     activity(()=>native(message)).then(reply).catch(()=>reply({ok:false,error:'书签导入连接中断'}));return true;
   }
   if (!message || !['folders', 'save', 'discard', 'preferences'].includes(message.action)) return;
@@ -226,17 +226,17 @@ function ensureContextMenu() {
   menuRegistration = new Promise(resolve => {
     // Many sites put a link layer over an image or render it as a CSS background.
     // Keep the entry available there; resolve only the image at the clicked point.
-    const properties = {title: '收藏到 Mori', contexts: ['image', 'video', 'link', 'page']};
+    const properties = {title: '收藏到 Nook', contexts: ['image', 'video', 'link', 'page']};
     chrome.contextMenus.update('mori-save', properties, () => {
       if (!chrome.runtime.lastError) {resolve(); return;}
       chrome.contextMenus.create({id: 'mori-save', ...properties}, () => {
         const error = chrome.runtime.lastError;
-        if (error) console.warn('Mori context menu:', error.message);
+        if (error) console.warn('Nook context menu:', error.message);
         resolve();
       });
     });
   }).then(() => new Promise(resolve => {
-    const properties={title:'收藏网址到 Mori',contexts:['page','link']};
+    const properties={title:'收藏网址到 Nook',contexts:['page','link']};
     chrome.contextMenus.update('mori-bookmark',properties,()=>{
       if (!chrome.runtime.lastError) {resolve();return;}
       chrome.contextMenus.create({id:'mori-bookmark',...properties},()=>{void chrome.runtime.lastError;resolve();});
@@ -252,8 +252,8 @@ async function updateMenuLanguage() {
   try {
     const prefs = await MoriPreferences.read();
     await ensureContextMenu();
-    chrome.contextMenus.update('mori-save', {title: MoriPreferences.language(prefs) === 'en' ? 'Save to Mori' : '收藏到 Mori'}, () => {void chrome.runtime.lastError;});
-    chrome.contextMenus.update('mori-bookmark', {title: MoriPreferences.language(prefs) === 'en' ? 'Bookmark in Mori' : '收藏网址到 Mori'}, () => {void chrome.runtime.lastError;});
+    chrome.contextMenus.update('mori-save', {title: MoriPreferences.language(prefs) === 'en' ? 'Save to Nook' : '收藏到 Nook'}, () => {void chrome.runtime.lastError;});
+    chrome.contextMenus.update('mori-bookmark', {title: MoriPreferences.language(prefs) === 'en' ? 'Bookmark in Nook' : '收藏网址到 Nook'}, () => {void chrome.runtime.lastError;});
   } catch {}
 }
 chrome.storage.onChanged.addListener((changes, area) => {if (area === 'local' && changes[MoriPreferences.key]) updateMenuLanguage();});
@@ -270,7 +270,7 @@ async function contextBadge(tabId, text, title) {
   await Promise.all([
     chrome.action.setBadgeText({tabId, text}),
     chrome.action.setBadgeBackgroundColor({tabId, color: text === '!' ? '#9b463a' : '#44724d'}),
-    chrome.action.setTitle({tabId, title: `Mori · ${title}`})
+    chrome.action.setTitle({tabId, title: `Nook · ${title}`})
   ]).catch(() => {}); // The tab may have closed while downloading.
 }
 const contextRequests = new Map();
@@ -290,7 +290,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       // with the current page. No network fetch or native save before confirmation.
       const item={bookmark:true,url:address,source:address,name:info.linkUrl?parsed.hostname:tab.title || parsed.hostname};
       const feedback=await contextFeedback(tab.id,{action:'context-edit',requestId,item});
-      await contextBadge(tab.id,feedback?.displayed?'':'!',feedback?.displayed?'请确认网址收藏':'无法显示确认窗口。请复制网址到 Mori 中粘贴收藏。');return;
+      await contextBadge(tab.id,feedback?.displayed?'':'!',feedback?.displayed?'请确认网址收藏':'无法显示确认窗口。请复制网址到 Nook 中粘贴收藏。');return;
     }
     let kind = info.mediaType === 'video' ? 'video' : 'image';
     let item = info.srcUrl ? {url: info.srcUrl,kind} : null;
@@ -301,8 +301,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         const resolved = await chrome.tabs.sendMessage(tab.id, {action:'resolve-context-image', ...(info.srcUrl ? {expectedUrl:info.srcUrl} : {})}, {frameId: info.frameId ?? 0});
         if (resolved?.kind === 'video' || resolved?.item?.kind === 'video') kind = 'video';
         if (resolved?.ok && resolved.item?.url) item = resolved.item;
-        else {item = null;lookupError = resolved?.error || '请重新加载 Mori 插件并刷新网页，再右键收藏。';}
-      } catch {item = null;lookupError = kind === 'video' ? '请重新加载 Mori 插件并刷新视频网页，再右键收藏。本次未保存。' : '请重新加载 Mori 插件并刷新网页，再右键收藏；受限页面可截图后粘贴到 Mori。';}
+        else {item = null;lookupError = resolved?.error || '请重新加载 Nook 插件并刷新网页，再右键收藏。';}
+      } catch {item = null;lookupError = kind === 'video' ? '请重新加载 Nook 插件并刷新视频网页，再右键收藏。本次未保存。' : '请重新加载 Nook 插件并刷新网页，再右键收藏；受限页面可截图后粘贴到 Nook。';}
     }
     if (contextRequests.get(tab.id) !== requestId) return;
     // Editing must happen before any download/import, including right-click saves.
@@ -317,7 +317,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await contextBadge(tab.id, '…', kind === 'video' ? '正在收藏视频' : '正在收藏图片');
     await contextFeedback(tab.id, {action: 'context-saving', requestId, kind, name: item?.name || tab.title || '网页收藏'});
     const result = item ? await saveImage({url: item.url, kind, source: item.mediaPage || info.pageUrl || tab.url || info.frameUrl, name: item.name || tab.title || '网页收藏'}, owner)
-      : {ok: false, error: lookupError || '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Mori。'};
+      : {ok: false, error: lookupError || '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Nook。'};
     if (contextRequests.get(tab.id) !== requestId) {
       if (result.choiceToken) discardChoice(result.choiceToken, owner);
       return;

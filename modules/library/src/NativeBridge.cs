@@ -20,7 +20,7 @@ namespace Mori {
    for(int attempt=0;attempt<3;attempt++){
     string root=testRoot??loadSettings().LibraryPath;
     using(var lease=LibraryTransfer.TryAcquireWrite(root)){
-     if(lease==null)throw new IOException("Mori 正在迁移图库或接收其他收藏，请完成后重试。");
+     if(lease==null)throw new IOException("Nook 正在迁移图库或接收其他收藏，请完成后重试。");
      // A request may have loaded the old location just before migration finished.
      // Re-read after acquiring its lease rather than silently writing to that copy.
      if(testRoot==null){
@@ -44,7 +44,7 @@ namespace Mori {
   }
   public static object Handle(Library library,Dictionary<string,object> request){string action=Get(request,"action");if(action=="folders"){var categories=library.Folders(Get(request,"scope")=="bookmark");return new{ok=true,theme=Settings.Load().Theme,folders=categories.Select(c=>new{id=c.Id,name=Label(c,categories)}).Take(500).ToArray()};}if(action=="importBookmarks")return BrowserBookmarkImport.Handle(library,request);if(action=="bookmark")return SaveBookmark(library,request);if(action!="save")throw new InvalidDataException("未知请求");
    string duplicateAction=Get(request,"duplicateAction");if(duplicateAction=="")duplicateAction="ask";if(duplicateAction!="ask"&&duplicateAction!="reuse"&&duplicateAction!="keep")throw new InvalidDataException("无效的重复文件处理方式");
-   string data=Get(request,"data");if(data.Length>28*1024*1024)throw new InvalidDataException("素材超过 20 MB，请保存原文件后拖入 Mori");byte[] image=Convert.FromBase64String(data);if(image.Length<12||image.Length>20*1024*1024)throw new InvalidDataException("素材为空或过大");string ext=Detect(image);if(ext==null)throw new InvalidDataException("网页没有返回受支持的图片或视频（JPG / PNG / GIF / WebP / MP4 / WebM）；不支持流媒体播放列表");
+   string data=Get(request,"data");if(data.Length>28*1024*1024)throw new InvalidDataException("素材超过 20 MB，请保存原文件后拖入 Nook");byte[] image=Convert.FromBase64String(data);if(image.Length<12||image.Length>20*1024*1024)throw new InvalidDataException("素材为空或过大");string ext=Detect(image);if(ext==null)throw new InvalidDataException("网页没有返回受支持的图片或视频（JPG / PNG / GIF / WebP / MP4 / WebM）；不支持流媒体播放列表");
    string source=Get(request,"source");Uri uri;if(source.Length>8000||(!string.IsNullOrEmpty(source)&&(!Uri.TryCreate(source,UriKind.Absolute,out uri)||(uri.Scheme!="http"&&uri.Scheme!="https"))))throw new InvalidDataException("无效来源网址");
    string title=Get(request,"name");if(title.Length>250)title=title.Substring(0,250);if(string.IsNullOrWhiteSpace(title))title="网页收藏";
    string temp=Path.Combine(Path.GetTempPath(),"Mori-web-"+Guid.NewGuid().ToString("N")+ext);try{

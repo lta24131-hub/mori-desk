@@ -36,7 +36,7 @@ namespace QingJie {
                 DockPanel.SetDock(row.More,Dock.Right);row.Root.Children.Add(row.More);DockPanel.SetDock(row.Download,Dock.Right);row.Root.Children.Add(row.Download);DockPanel.SetDock(row.Check,Dock.Left);row.Root.Children.Add(row.Check);row.Root.Children.Add(row.State);
                 row.Check.Checked+=(s,e)=>Toggle(id,true);row.Check.Unchecked+=(s,e)=>Toggle(id,false);rows.Add(id,row);
             }
-            Refresh();available.IsExpanded=installedRows.Children.Count==0;
+            Refresh();available.IsExpanded=installedRows.Children.Count==0;Ui.ThemeControls(this);
         }
         internal void Refresh(){
             refreshing=true;
@@ -67,7 +67,7 @@ namespace QingJie {
         }
         void ShowMore(string id){
             if(closed||download!=null)return;
-            var menu=new ContextMenu();var importItem=new MenuItem {Header="导入语言包…"};importItem.Click+=(s,e)=>Import(id);menu.Items.Add(importItem);
+            var menu=Ui.Menu(rows[id].More);var importItem=new MenuItem {Header="导入语言包…"};importItem.Click+=(s,e)=>Import(id);menu.Items.Add(importItem);
             if(selection.Installed(id)||selection.Enabled(id)){var removeItem=new MenuItem {Header=selection.Installed(id)?"卸载语言包…":"移除失效选择"};removeItem.Click+=(s,e)=>Remove(id);menu.Items.Add(removeItem);}
             menu.PlacementTarget=rows[id].More;menu.IsOpen=true;
         }
@@ -80,7 +80,7 @@ namespace QingJie {
         void Remove(string id){
             if(closed||download!=null)return;
             var pack=OcrLanguagePacks.Find(id);
-            if(selection.Installed(id)&&MessageBox.Show(Window.GetWindow(this),"卸载 "+pack.Name+" 语言包？之后可重新下载。\n其他已启用语言、截图和贴图保持不变。","Luma",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
+            if(selection.Installed(id)&&MessageBox.Show(Window.GetWindow(this),"卸载 "+pack.Name+" 语言包？之后可重新下载。\n其他已启用语言、截图和贴图保持不变。","Nook",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return;
             try{selection.Remove(id);Refresh();}catch(Exception ex){Refresh();status.Text+="\n卸载未完成："+ex.Message;}
         }
         public void Dispose(){closed=true;if(download!=null)download.Cancel();}

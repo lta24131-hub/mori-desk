@@ -4,16 +4,16 @@
   const media = matchMedia('(prefers-color-scheme: dark)');
   let prefs = P.normalize(), url = '', settingsOpen = false, nativeReply, nativeError, ready = false;
   const strings = {
-    drag:['拖拽收藏','Drag collection'], enabled:['启用','Enabled'], page:['在此页面禁用','Disable on this page'], host:['在此网站禁用','Disable on this site'], disabledAll:['已全局禁用','Disabled everywhere'], preferences:['偏好设置','Preferences'], help:['右键图片或拖到收藏区，保存到本机图库。','Right-click an image or drag it into the collector to save locally.'], interface:['界面设置','Appearance'], theme:['主题','Theme'], light:['浅色','Light'], dark:['深色','Dark'], system:['跟随系统','System'], language:['语言','Language'], browser:['跟随浏览器','Browser default'], collection:['收藏设置','Collection'], layout:['收藏区布局','Collector layout'], popup:['弹窗式','Floating'], bottom:['吸底式','Bottom dock'], disabled:['禁用','Disabled'], edit:['保存前显示编辑窗口','Edit before saving'], editHint:['确认名称、分类和来源；取消不会保存图片。','Review name, category and source. Cancel saves nothing.'], scopeHint:['禁用只影响拖拽收藏，右键收藏仍可使用。','Disabling drag collection does not disable right-click collection.'], exclusions:['已禁用的页面与网站','Disabled pages & sites'], none:['暂无禁用规则','No exclusions'], remove:['移除','Remove'], back:['返回','Back'], saved:['已保存','Saved'], failed:['设置未能保存，请重试。','Could not save preferences. Try again.'], loading:['正在检查本机连接…','Checking local connection…'], connected:['已连接本机图库','Connected to local library'], disconnected:['尚未连接 Mori','Mori is not connected'], current:['仅针对当前网页；忽略网址参数和锚点。','Current page only; query strings and fragments are ignored.'], unavailable:['此页面不支持拖拽收藏，仍可调整全局偏好。','Drag collection is unavailable here. Global preferences are still available.']
+    drag:['拖拽收藏','Drag collection'], enabled:['启用','Enabled'], page:['在此页面禁用','Disable on this page'], host:['在此网站禁用','Disable on this site'], disabledAll:['已全局禁用','Disabled everywhere'], preferences:['偏好设置','Preferences'], help:['右键图片或拖到收藏区，保存到本机图库。','Right-click an image or drag it into the collector to save locally.'], interface:['界面设置','Appearance'], theme:['主题','Theme'], light:['浅色','Light'], dark:['深色','Dark'], system:['跟随系统','System'], language:['语言','Language'], browser:['跟随浏览器','Browser default'], collection:['收藏设置','Collection'], layout:['收藏区布局','Collector layout'], popup:['弹窗式','Floating'], bottom:['吸底式','Bottom dock'], disabled:['禁用','Disabled'], edit:['保存前显示编辑窗口','Edit before saving'], editHint:['确认名称、分类和来源；取消不会保存图片。','Review name, category and source. Cancel saves nothing.'], scopeHint:['禁用只影响拖拽收藏，右键收藏仍可使用。','Disabling drag collection does not disable right-click collection.'], exclusions:['已禁用的页面与网站','Disabled pages & sites'], none:['暂无禁用规则','No exclusions'], remove:['移除','Remove'], back:['返回','Back'], saved:['已保存','Saved'], failed:['设置未能保存，请重试。','Could not save preferences. Try again.'], loading:['正在检查本机连接…','Checking local connection…'], connected:['已连接本机图库','Connected to local library'], disconnected:['尚未连接 Nook','Nook is not connected'], current:['仅针对当前网页；忽略网址参数和锚点。','Current page only; query strings and fragments are ignored.'], unavailable:['此页面不支持拖拽收藏，仍可调整全局偏好。','Drag collection is unavailable here. Global preferences are still available.']
   };
   const t = key => strings[key]?.[P.language(prefs) === 'en' ? 1 : 0] || key;
   Object.assign(strings, {
     checkUpdate:['检查更新状态','Check update status'], acknowledgeUpdate:['已检查图库，继续更新','Library checked; allow update'],
-    updateCurrent:['暂无待安装更新；可在 Mori 设置中更新插件','No queued update; update the extension in Mori settings'], updateAvailable:['更新已就绪，关闭此窗口后自动完成','Update is ready; close this popup to finish'],
+    updateCurrent:['暂无待安装更新；可在 Nook 设置中更新插件','No queued update; update the extension in Nook settings'], updateAvailable:['更新已就绪，关闭此窗口后自动完成','Update is ready; close this popup to finish'],
     updateBusy:['更新已就绪，当前收藏完成后自动更新','Update is ready; it will finish after collection'],
     updateUncertain:['上次收藏结果未确认，请先到图库检查是否保存。不会自动重复收藏。','A previous save is unconfirmed. Check the library first; it will not be replayed.'],
-    updateUnavailable:['暂时无法检查更新，请确认 Mori 已打开','Update check unavailable; make sure Mori is open'],
-    updateUnpaired:['连接本机 Mori 后可自动更新插件','Connect to local Mori to enable automatic updates'],
+    updateUnavailable:['暂时无法检查更新，请确认 Nook 已打开','Update check unavailable; make sure Nook is open'],
+    updateUnpaired:['连接本机 Nook 后可自动更新插件','Connect to local Nook to enable automatic updates'],
     updateChecking:['正在检查插件更新…','Checking extension updates…'],
     updateMultiple:['多个浏览器配置正在连接，请关闭其他连接后重试','Multiple browser profiles are connected; close the others and retry']
   });
@@ -67,7 +67,7 @@
         const result=await send({action:'importBookmarks',root,items:items.slice(at,at+40)});root=result.root;added+=result.added;reused+=result.reused;skipped+=result.skipped;processed+=Math.min(40,items.length-at);
         $('#bookmark-progress').textContent=`已处理 ${processed} / ${items.length} · 新增 ${added} · 已有 ${reused} · 跳过 ${skipped}`;
       }
-      $('#bookmark-progress').textContent+= '。请到 Mori 左侧“网址收藏”查看。';bookmarkReview=null;$('#bookmark-review').classList.add('hidden');
+      $('#bookmark-progress').textContent+= '。请到 Nook 左侧“网址收藏”查看。';bookmarkReview=null;$('#bookmark-review').classList.add('hidden');
     }catch(error){$('#bookmark-progress').textContent=`导入中断，已完成的 ${processed} 个仍保留，可重新导入：${error.message}`;}
     finally{importing=false;$('#import-bookmarks').disabled=false;$('#bookmark-confirm').disabled=false;$('#bookmark-cancel').disabled=false;}
   };
@@ -76,7 +76,7 @@
     document.documentElement.lang = P.language(prefs);
     document.querySelectorAll('[data-i18n]').forEach(node => node.textContent = t(node.dataset.i18n));
     $('#back').setAttribute('aria-label', t('back'));
-    $('#heading').textContent = settingsOpen ? t('preferences') : 'Mori';
+    $('#heading').textContent = settingsOpen ? t('preferences') : 'Nook';
     $('#status').textContent = nativeError || (nativeReply ? (nativeReply.ok ? t('connected') : nativeReply.error || t('disconnected')) : t('loading'));
     $('#status').title = nativeReply?.ok && nativeReply.transport === 'local' ? '已通过本机备用通道连接 · 仅本机通信' : nativeReply?.diagnostic || nativeReply?.nativeDiagnostic || '';
     $('#drag-mode').value = P.mode(prefs, url);

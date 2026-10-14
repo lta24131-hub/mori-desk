@@ -17,7 +17,7 @@ namespace QingJie {
             if(File.Exists(ShortcutPath)&&!Owns(ReadTarget()))throw new InvalidOperationException("启动文件夹里有同名但指向其他程序的快捷方式，未修改它。请先检查该快捷方式。");
             if(!enabled){if(File.Exists(ShortcutPath))File.Delete(ShortcutPath);return;}
             Directory.CreateDirectory(folder);object shell=null,shortcut=null;
-            try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));shortcut=((dynamic)shell).CreateShortcut(ShortcutPath);dynamic link=shortcut;link.TargetPath=executable;link.Arguments="--background";link.WorkingDirectory=Path.GetDirectoryName(executable);link.Description="登录后启动 Luma 并恢复贴图";link.IconLocation=executable+",0";link.Save();}
+            try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));shortcut=((dynamic)shell).CreateShortcut(ShortcutPath);dynamic link=shortcut;link.TargetPath=executable;link.Arguments="--background";link.WorkingDirectory=Path.GetDirectoryName(executable);link.Description="登录后启动 Nook 并恢复贴图";link.IconLocation=executable+",0";link.Save();}
             finally{Release(shortcut);Release(shell);}
         }
     }

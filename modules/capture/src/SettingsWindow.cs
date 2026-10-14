@@ -11,7 +11,7 @@ namespace QingJie {
     public sealed class SettingsWindow : Window {
         public SettingsWindow():this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,id=>File.Delete(OcrLanguagePacks.ModelPath(id)))){}
         internal SettingsWindow(OcrLanguageSelection selection){
-            Title="Mori Desk · 截图与翻译设置";Icon=Ui.AppIcon;Width=520;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;Background=Brushes.White;FontFamily=new FontFamily("Microsoft YaHei UI");
+            Title="Nook · 截图与翻译设置";Icon=Ui.AppIcon;Width=520;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;FontFamily=new FontFamily("Microsoft YaHei UI");Ui.Theme(this,Window.BackgroundProperty,"Canvas");Ui.Theme(this,Window.ForegroundProperty,"Text");
             var panel=new CaptureSettingsPanel(selection,false);Content=panel;Closed+=(s,e)=>panel.Dispose();
         }
     }
@@ -24,6 +24,7 @@ namespace QingJie {
         readonly OfflinePackPanel offline;readonly OcrLanguagePanel languages;bool disposed;
         internal CaptureSettingsPanel(bool embedded):this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,id=>File.Delete(OcrLanguagePacks.ModelPath(id))),embedded){}
         internal CaptureSettingsPanel(OcrLanguageSelection selection,bool embedded){
+            Ui.Theme(this,Control.ForegroundProperty,"Text");
             var panel=new StackPanel {Margin=new Thickness(26,20,26,20)};Content=panel;VerticalScrollBarVisibility=ScrollBarVisibility.Auto;HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled;
             if(!embedded){
             panel.Children.Add(new TextBlock {Text="设置",FontSize=23,FontWeight=FontWeights.SemiBold,Foreground=Ui.Ink});panel.Children.Add(startup);
@@ -35,7 +36,7 @@ namespace QingJie {
             captureKey=ShortcutRow(panel,"截图",AppState.Settings.Shortcuts.Capture);pinKey=ShortcutRow(panel,"贴图 / 找回",AppState.Settings.Shortcuts.Pin);translationKey=ShortcutRow(panel,"输入翻译",AppState.Settings.Shortcuts.Translate);
             var shortcutActions=new StackPanel {Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};
             shortcutActions.Children.Add(Ui.TextButton("恢复默认",()=>{var defaults=new ShortcutSet();captureKey.Reset(defaults.Capture);pinKey.Reset(defaults.Pin);translationKey.Reset(defaults.Translate);shortcutStatus.Text="已填入默认按键，点击保存后生效。";}));
-            shortcutActions.Children.Add(Ui.TextButton("保存快捷键",()=>{var error=AppState.SaveShortcuts(new ShortcutSet {Capture=captureKey.Value,Pin=pinKey.Value,Translate=translationKey.Value});shortcutStatus.Foreground=error==null?Ui.Green:Ui.Brush("#B94B56");shortcutStatus.Text=error??"已保存，无需重启。";},true));panel.Children.Add(shortcutActions);panel.Children.Add(shortcutStatus);
+            shortcutActions.Children.Add(Ui.TextButton("保存快捷键",()=>{var error=AppState.SaveShortcuts(new ShortcutSet {Capture=captureKey.Value,Pin=pinKey.Value,Translate=translationKey.Value});Ui.Theme(shortcutStatus,TextBlock.ForegroundProperty,error==null?"Accent":"ErrorText");shortcutStatus.Text=error??"已保存，无需重启。";},true));panel.Children.Add(shortcutActions);panel.Children.Add(shortcutStatus);
             IsVisibleChanged+=(s,e)=>{if(!IsVisible)AppState.ShortcutRecorder=null;};
             panel.Children.Add(new Border {Height=1,Background=Ui.Brush("#EBEFED"),Margin=new Thickness(0,18,0,16)});
             panel.Children.Add(new TextBlock {Text="翻译服务",FontSize=16,FontWeight=FontWeights.SemiBold,Foreground=Ui.Ink});
@@ -52,9 +53,10 @@ namespace QingJie {
             var actions=new StackPanel {Orientation=Orientation.Horizontal};actions.Children.Add(Ui.TextButton("打开文件夹",()=>{try{Process.Start(new ProcessStartInfo(AppState.Pins.Folder){UseShellExecute=true});}catch(Exception ex){status.Text=ex.Message;}}));panel.Children.Add(actions);panel.Children.Add(status);
             try{updating=true;startup.IsChecked=Mori.StartupRegistration.IsEnabled(typeof(Program).Assembly.Location);}catch(Exception ex){startup.IsEnabled=false;status.Text=ex.Message;}finally{updating=false;}
             startup.Checked+=(s,e)=>SaveStartup();startup.Unchecked+=(s,e)=>SaveStartup();
+            Ui.ThemeControls(this);
         }
         public void Dispose(){if(disposed)return;disposed=true;AppState.ShortcutRecorder=null;offline.Dispose();languages.Dispose();}
         static ShortcutEditor ShortcutRow(Panel panel,string name,Shortcut value){var row=new DockPanel();var editor=new ShortcutEditor(value);DockPanel.SetDock(editor,Dock.Right);row.Children.Add(editor);row.Children.Add(new TextBlock {Text=name,FontSize=13,Foreground=Ui.Ink,VerticalAlignment=VerticalAlignment.Center});panel.Children.Add(row);return editor;}
-        void SaveStartup(){if(updating)return;try{Mori.StartupRegistration.SetEnabled(startup.IsChecked==true,typeof(Program).Assembly.Location);status.Foreground=Ui.Green;status.Text=startup.IsChecked==true?"已开启 Mori Desk 随 Windows 启动。":"已关闭，不影响贴图记录。";}catch(Exception ex){updating=true;startup.IsChecked=!(startup.IsChecked==true);updating=false;status.Foreground=Ui.Brush("#B94B56");status.Text=ex.Message;}}
+        void SaveStartup(){if(updating)return;try{Mori.StartupRegistration.SetEnabled(startup.IsChecked==true,typeof(Program).Assembly.Location);Ui.Theme(status,TextBlock.ForegroundProperty,"Accent");status.Text=startup.IsChecked==true?"已开启 Nook 随 Windows 启动。":"已关闭，不影响贴图记录。";}catch(Exception ex){updating=true;startup.IsChecked=!(startup.IsChecked==true);updating=false;Ui.Theme(status,TextBlock.ForegroundProperty,"ErrorText");status.Text=ex.Message;}}
     }
 }

@@ -43,13 +43,43 @@ namespace Mori {
   void CaptureChanged(object sender,EventArgs e){if(captureMouse&&dragging&&ReferenceEquals(sender,capture)&&!capture.Capture)Cancel();}
   public void Dispose(){Cancel();foreach(var control in new[]{surface,picture}){control.MouseDown-=Down;control.MouseMove-=Move;control.MouseUp-=Up;control.MouseCaptureChanged-=CaptureChanged;}}
  }
+ sealed class PreviewMenuColors : Forms.ProfessionalColorTable {
+  readonly Drawing.Color surface,hover,border,divider,selected;
+  internal PreviewMenuColors(){UseSystemColors=false;surface=Theme.DrawingColor("Surface");hover=Theme.DrawingColor("Hover");border=Theme.DrawingColor("Border");divider=Theme.DrawingColor("Divider");selected=Theme.DrawingColor("AccentSoft");}
+  public override Drawing.Color ToolStripDropDownBackground {get{return surface;}}
+  public override Drawing.Color ImageMarginGradientBegin {get{return surface;}}
+  public override Drawing.Color ImageMarginGradientMiddle {get{return surface;}}
+  public override Drawing.Color ImageMarginGradientEnd {get{return surface;}}
+  public override Drawing.Color MenuBorder {get{return border;}}
+  public override Drawing.Color MenuItemBorder {get{return border;}}
+  public override Drawing.Color MenuItemSelected {get{return hover;}}
+  public override Drawing.Color MenuItemSelectedGradientBegin {get{return hover;}}
+  public override Drawing.Color MenuItemSelectedGradientEnd {get{return hover;}}
+  public override Drawing.Color CheckBackground {get{return selected;}}
+  public override Drawing.Color CheckSelectedBackground {get{return selected;}}
+  public override Drawing.Color CheckPressedBackground {get{return selected;}}
+  public override Drawing.Color SeparatorDark {get{return divider;}}
+  public override Drawing.Color SeparatorLight {get{return surface;}}
+ }
  sealed class PreviewPicture : Forms.Control {
-  readonly Drawing.Image image;readonly PreviewViewport viewport;readonly EventHandler frameChanged;readonly Action repaint;bool animating,playbackVisible=true;
-  public PreviewPicture(Drawing.Image image,PreviewViewport viewport){
-   this.image=image;this.viewport=viewport;frameChanged=FrameChanged;repaint=delegate{if(!IsDisposed)Invalidate();};
+  readonly Drawing.Image image;readonly PreviewViewport viewport;readonly EventHandler frameChanged;readonly Action repaint;readonly bool animateImages;bool animating,playbackVisible=true;
+  readonly bool mayHaveAlpha;readonly Forms.ContextMenuStrip backgroundMenu;Drawing.TextureBrush lightChecker,darkChecker;PreviewBackground backgroundMode;
+  internal event Action PreviewBackgroundChanged;
+  internal PreviewBackground BackgroundMode {get{return backgroundMode;}set{if(!Enum.IsDefined(typeof(PreviewBackground),value))throw new ArgumentOutOfRangeException("value");if(backgroundMode==value)return;backgroundMode=value;foreach(Forms.ToolStripMenuItem item in backgroundMenu.Items)item.Checked=(PreviewBackground)item.Tag==value;Invalidate();if(PreviewBackgroundChanged!=null)PreviewBackgroundChanged();}}
+  public PreviewPicture(Drawing.Image image,PreviewViewport viewport):this(image,viewport,Settings.Load()){}
+  // Background and animation are defaults for this preview, not live global state.
+  internal PreviewPicture(Drawing.Image image,PreviewViewport viewport,Settings preferences){
+   if(preferences==null)throw new ArgumentNullException("preferences");
+   this.image=image;this.viewport=viewport;animateImages=preferences.AnimateImages;backgroundMode=DefaultBackground(preferences.PreviewBackdrop);mayHaveAlpha=PreviewBackgrounds.MayHaveAlpha(image);frameChanged=FrameChanged;repaint=delegate{if(!IsDisposed)Invalidate();};
    SetStyle(Forms.ControlStyles.UserPaint|Forms.ControlStyles.AllPaintingInWmPaint|Forms.ControlStyles.OptimizedDoubleBuffer|Forms.ControlStyles.ResizeRedraw|Forms.ControlStyles.StandardClick|Forms.ControlStyles.StandardDoubleClick,true);Dock=Forms.DockStyle.Fill;
+   AccessibleName="图片预览";AccessibleDescription="滚轮缩放，拖动查看细节，右键切换图片背景。";
+   backgroundMenu=new Forms.ContextMenuStrip{AccessibleName="图片背景"};foreach(PreviewBackground value in Enum.GetValues(typeof(PreviewBackground))){var choice=value;var item=new Forms.ToolStripMenuItem(PreviewBackgrounds.Label(choice)){Tag=choice,Checked=choice==backgroundMode};item.Click+=delegate{BackgroundMode=choice;};backgroundMenu.Items.Add(item);}
+   backgroundMenu.Opening+=delegate{foreach(Forms.ToolStripMenuItem item in backgroundMenu.Items)item.Checked=(PreviewBackground)item.Tag==BackgroundMode;};ContextMenuStrip=backgroundMenu;
+   UpdateMenuTheme();Theme.Changed+=UpdateMenuTheme;
   }
-  void Animation(bool enabled){if(enabled&&!animating&&Drawing.ImageAnimator.CanAnimate(image)){Drawing.ImageAnimator.Animate(image,frameChanged);animating=true;}else if(!enabled&&animating){Drawing.ImageAnimator.StopAnimate(image,frameChanged);animating=false;}}
+  static PreviewBackground DefaultBackground(string value){switch(value){case "light-checker":return PreviewBackground.LightChecker;case "dark-checker":return PreviewBackground.DarkChecker;case "white":return PreviewBackground.White;case "dark":return PreviewBackground.Dark;default:return PreviewBackground.Automatic;}}
+  void UpdateMenuTheme(){if(IsDisposed||Disposing||Application.Current==null||string.IsNullOrEmpty(Theme.Current))return;backgroundMenu.BackColor=Theme.DrawingColor("Surface");backgroundMenu.ForeColor=Theme.DrawingColor("Text");backgroundMenu.Renderer=new Forms.ToolStripProfessionalRenderer(new PreviewMenuColors());foreach(Forms.ToolStripItem item in backgroundMenu.Items){item.BackColor=backgroundMenu.BackColor;item.ForeColor=backgroundMenu.ForeColor;}}
+  void Animation(bool enabled){enabled=enabled&&animateImages;if(enabled&&!animating&&Drawing.ImageAnimator.CanAnimate(image)){Drawing.ImageAnimator.Animate(image,frameChanged);animating=true;}else if(!enabled&&animating){Drawing.ImageAnimator.StopAnimate(image,frameChanged);animating=false;}}
   void FrameChanged(object sender,EventArgs e){if(IsDisposed||!IsHandleCreated)return;try{BeginInvoke(repaint);}catch(InvalidOperationException){}}
   internal void SetPlaybackVisible(bool value){if(IsDisposed||Disposing)return;playbackVisible=value;Animation(playbackVisible&&Visible&&IsHandleCreated);}
   protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);Animation(playbackVisible&&Visible);}
@@ -59,23 +89,30 @@ namespace Mori {
    // Only the viewport is double-buffered; zooming never creates a giant
    // PictureBox/backbuffer or a second full-size bitmap.
    if(animating)Drawing.ImageAnimator.UpdateFrames(image);
+   var bounds=new Drawing.RectangleF((float)viewport.X,(float)viewport.Y,(float)viewport.DisplayWidth,(float)viewport.DisplayHeight);
+   var visible=Drawing.RectangleF.Intersect(bounds,ClientRectangle);
+   if(visible.Width>0&&visible.Height>0&&(backgroundMode!=PreviewBackground.Automatic||mayHaveAlpha)){
+    if(backgroundMode==PreviewBackground.White)e.Graphics.FillRectangle(Drawing.Brushes.White,visible);
+    else if(backgroundMode==PreviewBackground.Dark){using(var brush=new Drawing.SolidBrush(PreviewBackgrounds.SolidDark))e.Graphics.FillRectangle(brush,visible);}
+    else{bool dark=backgroundMode==PreviewBackground.DarkChecker;if(dark){if(darkChecker==null)darkChecker=PreviewBackgrounds.Checker(true);}else if(lightChecker==null)lightChecker=PreviewBackgrounds.Checker(false);e.Graphics.FillRectangle(dark?darkChecker:lightChecker,visible);}
+   }
    e.Graphics.InterpolationMode=System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
    e.Graphics.PixelOffsetMode=System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-   e.Graphics.DrawImage(image,new Drawing.RectangleF((float)viewport.X,(float)viewport.Y,(float)viewport.DisplayWidth,(float)viewport.DisplayHeight));base.OnPaint(e);
+   e.Graphics.DrawImage(image,bounds);base.OnPaint(e);
   }
-  protected override void Dispose(bool disposing){if(disposing)Animation(false);base.Dispose(disposing);}
+  protected override void Dispose(bool disposing){if(disposing){Theme.Changed-=UpdateMenuTheme;Animation(false);backgroundMenu.Dispose();if(lightChecker!=null){lightChecker.Dispose();lightChecker=null;}if(darkChecker!=null){darkChecker.Dispose();darkChecker=null;}}base.Dispose(disposing);}
  }
  public static class PreviewWindow {
   internal static void AttachDoubleClickClose(Forms.Control picture,PreviewDragController drag,Action close){picture.MouseDoubleClick+=delegate(object sender,Forms.MouseEventArgs e){if(e.Button==Forms.MouseButtons.Left&&!drag.EndDoubleClick())close();};}
-  static Window Create(Window owner,string title,bool closeOnSpace=true){var w=new Window{Owner=owner,Title=title,Width=1100,Height=800,MinWidth=500,MinHeight=360,WindowStartupLocation=WindowStartupLocation.CenterOwner,Background=new SolidColorBrush(Color.FromRgb(25,26,29)),Foreground=Brushes.White};Theme.Attach(w,owner);w.PreviewKeyDown+=delegate(object s,KeyEventArgs e){if(e.Key==Key.Escape||(closeOnSpace&&e.Key==Key.Space)){w.Close();e.Handled=true;}};return w;}
+  static Window Create(Window owner,string title,bool closeOnSpace=true,bool closeOnEscape=true){var w=new Window{Owner=owner,Title=title,Width=1100,Height=800,MinWidth=500,MinHeight=360,WindowStartupLocation=WindowStartupLocation.CenterOwner,Background=new SolidColorBrush(Color.FromRgb(25,26,29)),Foreground=Brushes.White};Theme.Attach(w,owner);w.PreviewKeyDown+=delegate(object s,KeyEventArgs e){if((closeOnEscape&&e.Key==Key.Escape)||(closeOnSpace&&e.Key==Key.Space)){w.Close();e.Handled=true;}};return w;}
   internal static Grid ImageLayout(int count){var grid=new Grid();for(int i=0;i<count;i++){grid.ColumnDefinitions.Add(new ColumnDefinition());var panel=new DockPanel{Margin=count==1?new Thickness(0):new Thickness(4,0,4,0)};Grid.SetColumn(panel,i);grid.Children.Add(panel);}return grid;}
   internal static string FailureText(Exception error){if(error is FileNotFoundException||error is DirectoryNotFoundException)return "原文件已移动、删除或磁盘暂不可用。\n请返回素材库检查本地地址。";if(error is UnauthorizedAccessException)return "没有权限读取此文件。\n请检查本地文件的访问权限。";if(error is NotSupportedException)return error.Message+"\n请返回右键 → 用默认程序打开。";return "此格式无法内置预览，文件可能损坏或编码不受支持。\n请返回右键 → 用默认程序打开。";}
   public static void Images(Window owner,string[] files,string[] names){Images(owner,files,names,null);}
   // Tests configure only their own window before it is shown; the production
   // path and its async lifetime are otherwise identical.
-  internal static async void Images(Window owner,string[] files,string[] names,Action<Window> configure){var window=Create(owner,files.Length==1?names[0]+" · 预览":"并排比较");var grid=ImageLayout(files.Length);var dispose=new List<IDisposable>();var cancellation=new CancellationTokenSource();bool closed=false,loadingCompleted=false;window.Content=grid;window.Closed+=delegate{closed=true;cancellation.Cancel();if(loadingCompleted)cancellation.Dispose();for(int j=dispose.Count-1;j>=0;j--)dispose[j].Dispose();};if(configure!=null)configure(window);window.Show();try{for(int i=0;i<files.Length;i++){
-    var panel=(DockPanel)grid.Children[i];
-    try{string file=files[i];var loading=new TextBlock{Text=string.Equals(Path.GetExtension(file),".svg",StringComparison.OrdinalIgnoreCase)?"正在预览 SVG…":"正在加载…",Margin=new Thickness(20)};panel.Children.Add(loading);var loaded=await PreviewImage.OpenAsync(file,cancellation.Token);if(closed){loaded.Dispose();return;}panel.Children.Remove(loading);dispose.Add(loaded);var image=loaded.Image;var viewport=new PreviewViewport(image.Width,image.Height);var host=new WindowsFormsHost();var scroll=new PreviewCanvas{AutoScroll=false,Dock=Forms.DockStyle.Fill,BackColor=Theme.Current=="light"?Drawing.Color.FromArgb(250,250,249):Drawing.Color.FromArgb(29,31,34)};var picture=new PreviewPicture(image,viewport){BackColor=scroll.BackColor};Action updateTheme=delegate{scroll.BackColor=Theme.Current=="light"?Drawing.Color.FromArgb(250,250,249):Drawing.Color.FromArgb(29,31,34);picture.BackColor=scroll.BackColor;};Theme.Changed+=updateTheme;window.Closed+=delegate{Theme.Changed-=updateTheme;};scroll.Controls.Add(picture);host.Child=scroll;panel.Children.Add(host);dispose.Add(host);
+  internal static async void Images(Window owner,string[] files,string[] names,Action<Window> configure){if(files.Length==1&&FormatPreviewInfo.UsesPagedPreview(files[0])){var document=new DocumentPreviewWindow(owner,files[0],names[0]);if(configure!=null)configure(document);document.Show();return;}var window=Create(owner,files.Length==1?names[0]+" · 预览":"并排比较");var grid=ImageLayout(files.Length);var dispose=new List<IDisposable>();var cancellation=new CancellationTokenSource();bool closed=false,loadingCompleted=false;window.Content=grid;window.Closed+=delegate{closed=true;cancellation.Cancel();if(loadingCompleted)cancellation.Dispose();for(int j=dispose.Count-1;j>=0;j--)dispose[j].Dispose();};if(configure!=null)configure(window);window.Show();try{for(int i=0;i<files.Length;i++){
+    var panel=(DockPanel)grid.Children[i];string formatNotice=FormatPreviewInfo.Notice(files[i]);if(formatNotice.Length>0){var hint=new TextBlock{Text=formatNotice,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(12,6,12,6)};DockPanel.SetDock(hint,Dock.Bottom);panel.Children.Add(hint);}
+    try{string file=files[i];var loading=new TextBlock{Text=string.Equals(Path.GetExtension(file),".svg",StringComparison.OrdinalIgnoreCase)?"正在预览 SVG…":"正在加载…",Margin=new Thickness(20)};panel.Children.Add(loading);var loaded=await PreviewImage.OpenAsync(file,cancellation.Token);if(closed){loaded.Dispose();return;}panel.Children.Remove(loading);dispose.Add(loaded);var image=loaded.Image;var viewport=new PreviewViewport(image.Width,image.Height);var host=new WindowsFormsHost();var scroll=new PreviewCanvas{AutoScroll=false,Dock=Forms.DockStyle.Fill,BackColor=Theme.DrawingColor("Canvas")};var picture=new PreviewPicture(image,viewport){BackColor=scroll.BackColor};Action updateTheme=delegate{scroll.BackColor=Theme.DrawingColor("Canvas");picture.BackColor=scroll.BackColor;};Theme.Changed+=updateTheme;window.Closed+=delegate{Theme.Changed-=updateTheme;};scroll.Controls.Add(picture);host.Child=scroll;panel.Children.Add(host);dispose.Add(host);
      PreviewDragController drag=null;Action layout=delegate{picture.Invalidate();if(drag!=null)drag.UpdateCursor();};drag=new PreviewDragController(scroll,picture,viewport,layout);dispose.Add(drag);Action endDrag=drag.Cancel;
      EventHandler focus=delegate{scroll.Focus();};picture.MouseEnter+=focus;scroll.MouseEnter+=focus;
      Forms.MouseEventHandler wheel=delegate(object sender,Forms.MouseEventArgs e){if(e.Delta==0)return;var handled=e as Forms.HandledMouseEventArgs;if(handled!=null)handled.Handled=true;endDrag();var point=scroll.PointToClient(((Forms.Control)sender).PointToScreen(e.Location));viewport.ZoomAt(Math.Pow(1.15,e.Delta/120.0),point.X,point.Y);layout();};
@@ -87,6 +124,6 @@ namespace Mori {
      window.Deactivated+=delegate{endDrag();};window.Closed+=delegate{endDrag();};window.UpdateLayout();viewport.Resize(scroll.ClientSize.Width,scroll.ClientSize.Height);layout();
     }catch(Exception error){if(closed)return;panel.Children.Clear();var text=new TextBlock{Text=FailureText(error),TextWrapping=TextWrapping.Wrap,Margin=new Thickness(20)};panel.Children.Add(text);}
    }}finally{loadingCompleted=true;if(closed)cancellation.Dispose();}}
-  public static void Video(Window owner,string file,string name){var window=Create(owner,name,false);var player=new VideoPlayer(file);window.Content=player.Root;player.CloseRequested+=window.Close;window.PreviewKeyDown+=player.KeyDown;window.Loaded+=delegate{player.Start();};window.IsVisibleChanged+=delegate{player.SetVisible(window.IsVisible&&window.WindowState!=WindowState.Minimized);};window.StateChanged+=delegate{player.SetVisible(window.IsVisible&&window.WindowState!=WindowState.Minimized);};window.Closed+=delegate{player.Dispose();};window.Show();}
+  public static void Video(Window owner,string file,string name){var window=Create(owner,name,false,false);var player=new VideoPlayer(file);player.AttachWindow(window);window.Content=player.Root;player.CloseRequested+=window.Close;window.PreviewKeyDown+=player.KeyDown;window.Loaded+=delegate{player.Start();};window.IsVisibleChanged+=delegate{player.SetVisible(window.IsVisible&&window.WindowState!=WindowState.Minimized);};window.StateChanged+=delegate{player.SetVisible(window.IsVisible&&window.WindowState!=WindowState.Minimized);};window.Closed+=delegate{player.Dispose();};window.Show();}
  }
 }

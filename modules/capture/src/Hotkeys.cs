@@ -49,6 +49,9 @@ namespace QingJie {
         public Shortcut Value {get;private set;}
         readonly Action<Shortcut> recorder;
         public ShortcutEditor(Shortcut value){
+            // Implicit Button styles do not apply to this derived control.
+            // Reuse the host's live button template instead of native light chrome.
+            SetResourceReference(StyleProperty,typeof(Button));
             Value=value.Copy();Content=Value.ToString();MinWidth=160;Padding=new Thickness(10,7,10,7);Margin=new Thickness(0,4,0,4);FontSize=13;
             recorder=Record;ToolTip="点击后按下新的快捷键，Esc 取消输入";
             Click+=(s,e)=>{Focus();AppState.ShortcutRecorder=recorder;Content="请按快捷键…";};

@@ -39,8 +39,8 @@ namespace MoriDesk {
  public sealed class ReferenceThumbnail : Image {
   static readonly SemaphoreSlim slots=new SemaphoreSlim(2,2);int generation;
   public ReferenceThumbnail(){Loaded+=delegate{Load();};Unloaded+=delegate{generation++;Source=null;};IsVisibleChanged+=delegate{if(!IsVisible){generation++;Source=null;}else if(IsLoaded)Load();};DataContextChanged+=delegate{generation++;Source=null;if(IsLoaded&&IsVisible)Load();};}
-  internal static bool CanPreview(FileReference row){return row!=null&&!row.Directory&&new[]{".jpg",".jpeg",".png",".bmp",".gif",".tif",".tiff",".ico"}.Contains(Path.GetExtension(row.Path).ToLowerInvariant());}
-  internal static BitmapSource Read(string path){using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete)){var decoder=BitmapDecoder.Create(stream,BitmapCreateOptions.DelayCreation,BitmapCacheOption.None);var frame=decoder.Frames[0];if(frame.PixelWidth<=0||frame.PixelHeight<=0||frame.PixelWidth>30000||frame.PixelHeight>30000)return null;stream.Position=0;var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=stream;if(frame.PixelWidth>=frame.PixelHeight)bitmap.DecodePixelWidth=256;else bitmap.DecodePixelHeight=256;bitmap.EndInit();bitmap.Freeze();return bitmap;}}
+  internal static bool CanPreview(FileReference row){return row!=null&&!row.Directory&&Mori.PreviewThumbnail.Supports(row.Path);}
+  internal static BitmapSource Read(string path){int width,height;return Mori.PreviewThumbnail.Read(path,256,out width,out height);}
   async void Load(){var row=DataContext as FileReference;if(!CanPreview(row))return;int stamp=++generation;await slots.WaitAsync();try{if(stamp!=generation||!IsLoaded||!IsVisible)return;var bitmap=await Task.Run(()=>Read(row.Path));if(stamp==generation&&IsLoaded&&IsVisible)Source=bitmap;}catch(Exception ex){System.Diagnostics.Debug.WriteLine("Local thumbnail: "+ex.Message);}finally{slots.Release();}}
  }
 }

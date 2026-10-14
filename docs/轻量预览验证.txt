@@ -1,0 +1,120 @@
+Mori Desk 0.1.18.0 轻量预览组件候选版验证
+日期：2026-10-14
+历史构建记录：下述状态为0.1.18验证时的状态，非当前安装/发布状态。
+
+状态
+尚未安装、重启正式版、上传或发布。正式软件仍是 0.1.17.0。
+本报告冻结于 Mori Desk 0.1.18 构建。Nook 名称与选定四格图标在后续
+0.1.19 候选中独立整合，不属于本报告所列哈希和测试结果。
+所有程序检查使用独立目录和生成素材，不操作真实图库、贴图或浏览器。
+
+通过的检查（有重叠，不相加）
+- 集合版：6618 项；release/suite-tests.txt。
+- 截图翻译：376 项；release/capture-tests-models.txt。
+- 素材库独立回归：6347 项；lib-tests/test-report.txt。
+- 图片解码/绘制生命周期：91 项；probe-release/viewer-lifecycle-report.txt。
+- 36 组 4096×4096 PNG 和 GIF 重复打开/关闭：源文件可独占打开。
+验证使用独立临时目录。
+截图全套第一次运行缺少可选测试语言模型，韩文断言失败；补入11个
+已有官方校验匹配的模型后重跑通过。它们仅存在于test-languages，
+不进入运行白名单或发布包。没有跳过失败检查或放宽原断言。
+
+功能范围
+1. Magick.NET Q8 x64/Core 15.0.0仅为按需兼容回退；普通图片仍优先旧路径。
+   实际检查WebP、AVIF、HEIC、16位PSD、PSB、RGB、方向及不修改原文件。
+   无ICC的8/16位CMYK PSD/PSB另做只读诊断，固定样本颜色转换正确。
+2. PdfPig 0.1.16只在点击选字后提取可见页。复制/翻译仅限同一页，
+   翻译每次最多5000字，显式调用现有服务。不上传原PDF/AI。
+   原生裁切和0/90/180/270度页面的实际渲染像素、词坐标、全文顺序通过。
+   19,000词密集页的连续导航优先保留当前页，不扩大4 MiB缓存预算。
+   关闭/取消、立即关闭首次文字读取、槽位返还和文件解锁通过。
+3. 扫描件/文字轮廓不自动OCR，保留截图翻译入口。
+   PDF兼容AI显示已保存PDF页面，不解析Illustrator全部编辑内容。
+4. 视频继续系统/WebView2：播放、进度、音量、静音、全屏。
+   未加入VLC、PDF.js、Ghostscript、Python、新OCR或离线翻译模型。
+
+资源边界
+- 图片：最多1个工作进程，256 MiB输入、32 Mi像素、2048像素输出最长边；
+  12秒/384 MiB进程私有内存监测。禁止网络/脚本/外部委托及PDF/PS/SVG解码。
+- PDF文字：全局1个短生命周期工作进程，15秒/256 MiB监测；
+  单页40,000字符对象、20,000词、150,000文本字符，4 MiB输出；
+  主界面文字缓存4 MiB/8页，原页面位图缓存48 MiB。
+- 上述是各缓存/工作进程预算，不是整个应用的内存硬上限。
+  主进程未加载Magick.NET或PdfPig的程序集断言通过。
+- 图片生命周期采样：预热private=110,813,184 B；12/24/36组后为
+  114,155,520 / 114,155,520 / 114,167,808 B；handles=623→630后稳定。
+  普通PNG等待中位数26.765 ms，调用方阻塞0.010 ms。
+  旧基线等待26.565 ms；不宣称普通图片解码更快、常驻内存更低，
+  也不据这批样本断言所有使用场景无泄漏。
+
+运行文件大小（同一白名单，不含共同说明文档）
+基线85文件：33,819,277 B = 32.25 MiB。
+候选123文件：67,440,794 B = 64.32 MiB。
+增量：33,621,517 B = 32.06 MiB。
+Mori.exe SHA256：
+6A248E5BF9F6C502E48EF00CCA05ED5BBBFC5E85AC5A46E0E2DD138B097B9315
+新增官方NuGet包固定版本并校验8个SHA256；仅选一个架构/运行目标。
+原生解码器和测试fixture有各自许可，均须随包保留，不做法律保证。
+
+.NET性能技能：critical-only检查
+范围：ImageCodec.cs、ImageCodecWorker.cs、PdfText.cs、
+PdfTextSelection.cs、PdfContinuousView.cs。框架为.NET Framework 4.8/C#5。
+参考：analyzing-dotnet-performance/references/critical-patterns.md。
+
+扫描执行清单（匹配次数不是问题次数）
+| Recipe                              | Hits |
+| IndexOf缺比较参数 / 总计              | 0 / 2 |
+| Substring                            | 0 |
+| StartsWith/EndsWith缺比较参数         | 0 |
+| StartsWith/EndsWith/Contains总计       | 22 |
+| 字面字符串Contains                   | 9 |
+| ToLower/ToUpper（非Invariant）         | 0 |
+| Replace / params                     | 0 / 0 |
+| LINQ选择/排序/分组/汇总/物化           | 28 |
+| All/Any                              | 1 |
+| new Dictionary/List / static字典      | 10 / 1 |
+| ContainsKey                          | 4 |
+| Wait/Result/GetAwaiter().GetResult    | 9 |
+| byte[] / ArrayPool / stackalloc       | 4 / 0 / 0 |
+| object[] / ValueTask                 | 1 / 0 |
+| Regex / Compiled / Generated         | 0 / 0 / 0 |
+| JsonSerializer / HttpClient          | 0 / 0 |
+| IndexOfAny/ToCharArray/SearchValues   | 0 / 0 / 0 |
+| static类 / sealed类 / 未sealed类      | 3 / 12 / 0 |
+| struct                              | 0 |
+
+分类前核实
+- 2/2 IndexOf为Ordinal；9个字符串Contains在Framework为Ordinal。
+- 12/12非static类sealed，无值类型相等或boxing问题。
+- 4个ContainsKey都是成员判断，没有ContainsKey+索引器双查。
+- 9个等待均在后台解码/解析路径，取消界面线程不杀进程/等待退出。
+- 4个byte[]为有界短缓存，未发现循环stackalloc或无限分配。
+- LINQ用于小缓存、后台有界提取；鼠标命中循环不创建逐词控件。
+- 跨文件核对PreviewImage后台加载及PdfPreview的调用上下文；
+  没有向旧框架建议.NET8 FrozenDictionary/SearchValues/GeneratedRegex。
+- 未发现组合Replace、循环字符串拼接、重复延迟枚举或每次HttpClient。
+
+| Severity | Count | Top issue |
+| Critical | 0 | 本次范围内无已确认剩余项 |
+| Moderate | 0 | 未凭静态匹配宣称倍率提升 |
+| Info     | 0 | 版本不支持的建议未列为缺陷 |
+
+免责声明：此分析由AI辅助生成，可能误报或漏报；结果已结合测试和
+本机样本验证，但不替代真实文件/跨电脑测量或人工审核。
+
+打包检查
+- 便携ZIP与解压payload为138文件，逐文件SHA256一致；运行白名单
+  123文件与冻结release构建的哈希和大小一致，主程序哈希如上。
+- 安装器内嵌ZIP与便携ZIP逐字节一致；没有重复条目或越界路径。
+- 组件许可和HEIC fixture COPYING/NOTICE齐全；无配对密钥、数据库、
+  测试程序、日志、截图、测试模型或测试设置。开发测试文件不进入包。
+- 安装器--verify在独立短路径解压并运行，退出码0，PASS 6618 checks；
+  解压主程序哈希与冻结构建一致，没有创建生产快捷方式或安装软件。
+  日志：installer-temp/MoriDesk-install-check-744106aea2d74f5ab28ea35594a3dcd7/suite-tests.txt。
+- 新增Magick原生模块只导入Windows系统DLL；原有OCR/Tesseract仍需
+  Microsoft Visual C++ 2015–2022 x64运行库。该系统先决条件未新增，
+  但说明文档已补充，不能据本机通过保证未装运行库的新电脑识别可用。
+- 本轮压缩便携包和安装器各约27 MiB，解压运行文件约64.32 MiB；
+  最终字节数以相应构建产物为准，文档修订会改变压缩包大小。
+正式软件不在这一步安装或更新；Nook 0.1.19 名称、图标及兼容验证
+另见《Nook改名验证.txt》，不要混用两个构建的记录与哈希。

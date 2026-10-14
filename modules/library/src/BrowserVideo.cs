@@ -37,13 +37,17 @@ namespace Mori {
  internal sealed class BrowserVideo : IDisposable {
   internal const string PageUrl="https://mori-media.invalid/player",ClipUrl="https://mori-media.invalid/clip";
   internal readonly WebView2 View=new WebView2{DefaultBackgroundColor=System.Drawing.Color.FromArgb(23,25,28),AllowExternalDrop=false};
-  readonly string file;readonly List<Stream> responses=new List<Stream>();readonly JavaScriptSerializer json=new JavaScriptSerializer{MaxJsonLength=3*1024*1024};
+  readonly string file;readonly bool audio;readonly List<Stream> responses=new List<Stream>();readonly JavaScriptSerializer json=new JavaScriptSerializer{MaxJsonLength=3*1024*1024};
   CoreWebView2Environment environment;bool closed;internal bool Ready {get;private set;}
   internal int BrowserProcessId {get;private set;}internal int DeniedRequests {get;private set;}
   internal string LastError {get;private set;}
   internal event Action<double,int,int> Opened;internal event Action<double> PositionChanged;internal event Action Ended,Failed,CloseRequested;internal event Action<string> Key;
   internal event Action<byte[],int,int> Thumbnail;
-  internal BrowserVideo(string path){file=Path.GetFullPath(path);}
+  internal BrowserVideo(string path){file=Path.GetFullPath(path);audio=MediaTypes.Audio.Contains(Path.GetExtension(file));}
+  internal static string MimeType(string path){switch(Path.GetExtension(path).ToLowerInvariant()){
+   case ".webm":return "video/webm";case ".mov":return "video/quicktime";case ".avi":return "video/x-msvideo";case ".mkv":return "video/x-matroska";case ".wmv":return "video/x-ms-wmv";case ".mpeg":case ".mpg":return "video/mpeg";case ".mts":case ".m2ts":case ".ts":return "video/mp2t";case ".3gp":return "video/3gpp";case ".ogv":return "video/ogg";
+   case ".mp3":return "audio/mpeg";case ".wav":return "audio/wav";case ".m4a":return "audio/mp4";case ".aac":return "audio/aac";case ".flac":return "audio/flac";case ".ogg":case ".opus":return "audio/ogg";case ".wma":return "audio/x-ms-wma";case ".aif":case ".aiff":return "audio/aiff";default:return "video/mp4";
+  }}
   internal static bool Available {get{try{return !string.IsNullOrEmpty(CoreWebView2Environment.GetAvailableBrowserVersionString());}catch{return false;}}}
   internal async Task Start(){
    try{
@@ -69,7 +73,7 @@ namespace Mori {
     if(range.Status==416){e.Response=environment.CreateWebResourceResponse(null,416,"Range Not Satisfiable","Content-Range: bytes */"+size);return;}
     // A canceled seek leaves no open file handle; WebView2 owns this stream's lifetime.
     var body=new VideoSlice(file,range.Start,range.Length);
-    string ext=Path.GetExtension(file).ToLowerInvariant(),mime=ext==".webm"?"video/webm":ext==".mov"?"video/quicktime":"video/mp4";
+    string mime=MimeType(file);
     string headers="Content-Type: "+mime+"\r\nAccept-Ranges: bytes\r\nCache-Control: no-store\r\nContent-Length: "+range.Length;
     if(range.Status==206)headers+="\r\nContent-Range: bytes "+range.Start+"-"+(range.Start+range.Length-1)+"/"+size;
     e.Response=environment.CreateWebResourceResponse(body,range.Status,range.Status==206?"Partial Content":"OK",headers);
@@ -78,14 +82,15 @@ namespace Mori {
   void Message(object sender,CoreWebView2WebMessageReceivedEventArgs e){
    if(closed||e.Source!=PageUrl)return;
    try{var data=json.Deserialize<Dictionary<string,object>>(e.WebMessageAsJson);object kind;if(data==null||!data.TryGetValue("type",out kind))return;string type=kind as string;
-    if(type=="ready"){double duration=Convert.ToDouble(data["duration"],CultureInfo.InvariantCulture);int width=Convert.ToInt32(data["width"]),height=Convert.ToInt32(data["height"]);if(duration<=0||double.IsInfinity(duration)||double.IsNaN(duration)||width<=0||height<=0)throw new InvalidDataException();Ready=true;if(Opened!=null)Opened(duration,width,height);}
+    if(type=="ready"){double duration=Convert.ToDouble(data["duration"],CultureInfo.InvariantCulture);int width=Convert.ToInt32(data["width"]),height=Convert.ToInt32(data["height"]);if(duration<=0||double.IsInfinity(duration)||double.IsNaN(duration)||(!audio&&(width<=0||height<=0)))throw new InvalidDataException();Ready=true;if(Opened!=null)Opened(duration,width,height);}
     else if(type=="position"&&PositionChanged!=null)PositionChanged(Convert.ToDouble(data["position"],CultureInfo.InvariantCulture));
     else if(type=="ended"&&Ended!=null)Ended();else if(type=="close"&&CloseRequested!=null)CloseRequested();else if(type=="error")Failure();
     else if(type=="key"&&Key!=null)Key(data["key"] as string);
-    else if(type=="thumbnail"&&Thumbnail!=null)Thumbnail(Convert.FromBase64String((string)data["png"]),Convert.ToInt32(data["width"]),Convert.ToInt32(data["height"]));
+    else if(type=="thumbnail"&&!audio&&Thumbnail!=null)Thumbnail(Convert.FromBase64String((string)data["png"]),Convert.ToInt32(data["width"]),Convert.ToInt32(data["height"]));
    }catch{Failure();}
   }
   internal void Command(string type,double position=0){if(closed||!Ready)return;try{View.CoreWebView2.PostWebMessageAsJson(json.Serialize(new{type=type,position=position}));}catch{Failure();}}
+  internal void SetVolume(double volume){if(closed||!Ready)return;try{View.CoreWebView2.PostWebMessageAsJson(json.Serialize(new{type="volume",volume=VideoVolume.Clamp(volume)}));}catch{Failure();}}
   void Failure(){if(closed)return;Ready=false;if(Failed!=null)Failed();}
   public void Dispose(){if(closed)return;closed=true;Ready=false;View.Dispose();foreach(var stream in responses)stream.Dispose();responses.Clear();environment=null;}
  }
