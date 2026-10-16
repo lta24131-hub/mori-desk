@@ -23,13 +23,13 @@ namespace Mori {
    if(!pending){desktopDropFeedbackTimer.Interval=TimeSpan.FromSeconds(failure?12:4);desktopDropFeedbackTimer.Start();}
   }
   void DesktopImageOver(object sender,DragEventArgs e){
-   if(e.Handled)return;desktopImageHover=DesktopImageDrop.CanRead(e.Data);if(!desktopImageHover)return;
+   if(e.Handled||canvasProjectsMode)return;desktopImageHover=DesktopImageDrop.CanRead(e.Data);if(!desktopImageHover)return;
    e.Handled=true;e.Effects=!busy&&(e.AllowedEffects&DragDropEffects.Copy)!=0?DragDropEffects.Copy:DragDropEffects.None;
    if(!busy)ShowDragHint("收藏这张图片\n松开后保存到素材库，保留独立副本");
   }
   async void DesktopImageDropped(object sender,DragEventArgs e){
    bool recognized=desktopImageHover||DesktopImageDrop.CanRead(e.Data);desktopImageHover=false;HideDragHint();
-   if(e.Handled||!recognized)return;
+   if(e.Handled||canvasProjectsMode||!recognized)return;
    e.Handled=true;e.Effects=DragDropEffects.None;HideDragHint();
    DesktopDropLog.Write(library.Root,"received",e.Data);
    if(busy){DesktopDropNotice("正在完成其他操作，请稍后再拖入图片。",true);return;}

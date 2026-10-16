@@ -51,6 +51,7 @@ namespace MoriDesk {
  }
  public sealed class FreeCanvasProjectInfo {
   public string Id {get;set;} public string Name {get;set;} public string Updated {get;set;} public string Error {get;set;}
+  internal int Images,Text,Drawing;internal bool Pinned;
   public override string ToString(){return Name+(string.IsNullOrEmpty(Error)?"":"（无法读取）");}
  }
  // A project owns copies, never the gallery or desktop originals. Each atomic
@@ -60,6 +61,7 @@ namespace MoriDesk {
   static readonly Regex IdPattern=new Regex("^[a-f0-9]{32}$",RegexOptions.CultureInvariant);
   static readonly Regex ImagePattern=new Regex("^[a-f0-9]{32}\\.(png|jpg|jpeg|gif|bmp|tif|tiff|ico|webp|avif|heic|heif|psd|psb|dng|cr2|cr3|nef|arw|orf|rw2|raf)$",RegexOptions.CultureInvariant|RegexOptions.IgnoreCase);
   readonly string root;
+  const string OpenedFile="last-opened.txt";
   internal const int MaximumStrokePoints=100000,MaximumDocumentPoints=1000000,DesignPreviewDimension=2048;
   public string Root {get{return root;}}
   static JavaScriptSerializer Json(){return new JavaScriptSerializer{MaxJsonLength=128*1024*1024,RecursionLimit=32};}
@@ -96,8 +98,34 @@ namespace MoriDesk {
   internal static bool ValidColor(string color){return color=="auto"||(color!=null&&Regex.IsMatch(color,"^#[a-fA-F0-9]{6}$",RegexOptions.CultureInvariant));}
   public List<FreeCanvasProjectInfo> List(){
    EnsureSafe(root);var result=new List<FreeCanvasProjectInfo>();foreach(string dir in Directory.GetDirectories(root)){
-    string id=Path.GetFileName(dir);if(!IsId(id))continue;try{var d=Load(id);result.Add(new FreeCanvasProjectInfo{Id=d.Id,Name=d.Name,Updated=d.Updated});}catch(Exception ex){if(!(ex is IOException)&&!(ex is InvalidDataException)&&!(ex is UnauthorizedAccessException)&&!(ex is ArgumentException)&&!(ex is InvalidOperationException))throw;result.Add(new FreeCanvasProjectInfo{Id=id,Name="无法读取的项目 "+id.Substring(0,6),Updated="",Error=ex.Message});}
+    string id=Path.GetFileName(dir);if(!IsId(id))continue;try{var d=Load(id);result.Add(new FreeCanvasProjectInfo{Id=d.Id,Name=d.Name,Updated=d.Updated,Images=d.Items.Count(i=>i.Kind=="image"),Text=d.Items.Count(i=>i.Kind=="text"),Drawing=d.Items.Count(i=>i.IsDrawing),Pinned=d.Pinned});}catch(Exception ex){if(!(ex is IOException)&&!(ex is InvalidDataException)&&!(ex is UnauthorizedAccessException)&&!(ex is ArgumentException)&&!(ex is InvalidOperationException))throw;result.Add(new FreeCanvasProjectInfo{Id=id,Name="无法读取的项目 "+id.Substring(0,6),Updated="",Error=ex.Message});}
    }return result.OrderByDescending(p=>p.Updated,StringComparer.Ordinal).ThenBy(p=>p.Name,StringComparer.CurrentCulture).ToList();
+  }
+  // Opening is not editing. Keep the last viewed project separate from its
+  // manifest so looking at an older board never changes Updated or its hash.
+  // This preference is best-effort: missing, damaged or inaccessible records
+  // must not prevent a project from opening, being saved or being recovered.
+  static bool MemoryFailure(Exception error){return error is IOException||error is InvalidDataException||error is UnauthorizedAccessException||error is ArgumentException||error is InvalidOperationException||error is System.Security.SecurityException;}
+  public string LastOpenedId {
+   get{
+    try{
+     EnsureSafe(root);string file=Path.Combine(root,OpenedFile);EnsureSafe(file);if(!File.Exists(file))return null;
+     byte[] bytes=new byte[32];using(var input=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete)){
+      if(input.Length!=bytes.Length)return null;int count=0,read;while(count<bytes.Length&&(read=input.Read(bytes,count,bytes.Length-count))>0)count+=read;if(count!=bytes.Length||input.ReadByte()!=-1)return null;
+     }
+     string id=Encoding.ASCII.GetString(bytes);if(!IsId(id))return null;Load(id);return id;
+    }catch(Exception error){if(!MemoryFailure(error))throw;return null;}
+   }
+  }
+  public void RememberOpened(string id){
+   if(!IsId(id))return;string pending=null;
+   try{
+    Load(id);EnsureSafe(root);string file=Path.Combine(root,OpenedFile);EnsureSafe(file);
+    pending=Path.Combine(root,"opened-"+Guid.NewGuid().ToString("N")+".tmp");byte[] bytes=Encoding.ASCII.GetBytes(id);
+    using(var output=new FileStream(pending,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush(true);}
+    if(File.Exists(file))File.Replace(pending,file,null,true);else File.Move(pending,file);
+   }catch(Exception error){if(!MemoryFailure(error))throw;}
+   finally{if(pending!=null){try{if(File.Exists(pending))File.Delete(pending);}catch(Exception error){if(!MemoryFailure(error))throw;}}}
   }
   public FreeCanvasDocument Create(string name){var document=new FreeCanvasDocument{Version=1,Id=Guid.NewGuid().ToString("N"),Name=Name(name),Zoom=1,Items=new List<FreeCanvasItem>()};Save(document);return document;}
   public FreeCanvasDocument Load(string id){

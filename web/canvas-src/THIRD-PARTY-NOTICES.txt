@@ -1,0 +1,29 @@
+Nook local canvas
+
+Based on the tldraw library (https://tldraw.com)
+
+Original publisher: tldraw Inc.
+Bundled upstream version: 2.4.6 (including every @tldraw package).
+Pinned upstream source and license:
+https://github.com/tldraw/tldraw/tree/16ba10a88e7145a5bec772a985df5a8c5b943c74
+https://github.com/tldraw/tldraw/blob/16ba10a88e7145a5bec772a985df5a8c5b943c74/LICENSE.md
+
+The bundled canvas module and modifications are supplied for non-commercial
+use only, subject to all restrictions, obligations, disclaimers and liability
+limitations in licenses/tldraw-2.4.6-LICENSE.md. This is not an MIT license.
+Personal non-commercial use is permitted by that pinned license. Business
+operations, internal use within commercial entities or other commercial
+benefit require an appropriate alternative license from the original publisher.
+
+Matching source of this module is included with the application source and
+must be made available upon request when distributing only object code.
+Original library notices and license behavior are retained. This application
+is not endorsed by the original publisher.
+
+Other third-party dependencies and fonts retain their own licenses. Their
+original license/notice files and versions are included under licenses/ and
+listed in licenses/dependencies.json in the generated distribution.
+
+The frontend is self-hosted. It has no cloud collaboration, online embeds,
+remote asset URLs, browser persistent document storage or production key setup.
+The native application owns project files, resources and durable saving.

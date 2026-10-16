@@ -33,7 +33,7 @@ const {chromium}=require('playwright');
     },{image,folder:folders.folders[0].id});
     assert.equal(result.saved.ok,true,JSON.stringify(result.saved));assert.equal(result.saved.transport,'local');assert.equal(result.duplicate.choiceRequired,true);
     await worker.evaluate(token=>discardChoice(token,'test'),result.duplicate.choiceToken);
-    const popup=await browser.newPage();await popup.goto('chrome-extension://'+id+'/popup.html');await popup.waitForFunction(()=>document.querySelector('#status').textContent.includes('已连接本机图库'));
+    const popup=await browser.newPage();await popup.goto('chrome-extension://'+id+'/popup.html');await popup.waitForFunction(()=>document.querySelector('#status').textContent.includes('已连接 Nook'));
     assert.match(await popup.locator('#status').getAttribute('title'),/备用通道/);
     const rejected=await worker.evaluate(()=>fetch('http://127.0.0.1:47891/mori/v1',{method:'POST',headers:{'Content-Type':'application/json','X-Mori-Token':'0'.repeat(64)},body:'{"action":"folders"}'}).then(r=>r.status));assert.equal(rejected,403);
     host.stdin.end('\n');const [code]=await exit;assert.equal(code,0,errors+output);

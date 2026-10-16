@@ -18,7 +18,7 @@ namespace Mori {
    Window.StateChanged+=delegate{if(Window.WindowState==WindowState.Minimized)SuspendBackground();else ResumeBackground();};
   }
   internal bool BackgroundSuspended {get{return backgroundSuspended;}}
-  internal void AllowSessionEnd(){exitRequested=true;cancel=true;}
+  internal void AllowSessionEnd(){MoriDesk.DeskRuntime.PrepareSessionEnd();exitRequested=true;cancel=true;}
   internal void HideToTray(){Window.Hide();SuspendBackground();if(tray!=null)tray.NotifyHidden();}
   internal void RestoreFromTray(){
    if(!Window.IsEnabled){Window.Show();Window.Activate();return;}
@@ -35,6 +35,7 @@ namespace Mori {
   }
   void ResumeBackground(){
    if(!backgroundSuspended||!Window.IsVisible||Window.WindowState==WindowState.Minimized)return;
+   if(canvasProjectsMode){backgroundSuspended=false;RefreshCanvasProjects();ApplyCanvasProjectsPresentation();externalTimer.Start();return;}
    backgroundSuspended=false;if(browserMode){ResumeBrowser();externalTimer.Start();return;}if(boardMode){boardPage.Refresh();externalTimer.Start();return;}if(referenceMode){referencePage.Refresh();externalTimer.Start();return;}ReloadFolders();Refresh(false);
    // A pending inspector draft postpones metadata refresh, but suspension has
    // released the gallery controls. Rebind the already-visible assets without

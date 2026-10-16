@@ -1,0 +1,131 @@
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using QingJie;
+
+// Generated pixels, explicit modifiers and inert windows only. In particular,
+// completion tests never execute an export action or alter clipboard state.
+static class CaptureInputUsabilityTests {
+    const BindingFlags Hidden=BindingFlags.Instance|BindingFlags.NonPublic;
+    sealed class TestSource : PresentationSource {
+        public override Visual RootVisual {get;set;}
+        public override bool IsDisposed {get{return false;}}
+        protected override CompositionTarget GetCompositionTargetCore(){return null;}
+    }
+    static object Call(CaptureWindow window,string name,params object[] args){return typeof(CaptureWindow).GetMethod(name,Hidden).Invoke(window,args);}
+    static T Field<T>(CaptureWindow window,string name){return (T)typeof(CaptureWindow).GetField(name,Hidden).GetValue(window);}
+    static int History(CaptureWindow window){var stack=Field<object>(window,"annotationUndo");return (int)stack.GetType().GetProperty("Count").GetValue(stack,null);}
+    sealed class Fixture : IDisposable {
+        internal readonly CaptureWindow Window;
+        internal readonly ScreenshotSurface Surface;
+        internal readonly Rect Crop=new Rect(40,30,480,300);
+        internal Fixture(){
+            var image=BitmapSource.Create(600,400,96,96,PixelFormats.Bgra32,null,new byte[600*400*4],2400);image.Freeze();
+            Window=new CaptureWindow(new Snapshot {Image=image,Bounds=new System.Drawing.Rectangle(0,0,600,400)});
+            Surface=((Grid)Window.Content).Children.OfType<ScreenshotSurface>().Single();Surface.Measure(new Size(600,400));Surface.Arrange(new Rect(0,0,600,400));Surface.Selection=Crop;
+        }
+        internal bool Key(Key key,ModifierKeys modifiers=ModifierKeys.None){return Window.HandleCaptureKey(key,modifiers);}
+        internal void Tool(string tool){Call(Window,"SetTool",tool);}
+        internal Annotation Draw(string tool){Tool(tool);Window.BeginPointer(new Point(140,120));Window.EndPointer(new Point(240,190));return Surface.Marks.Last();}
+        public void Dispose(){Window.Close();AppState.Captures.Remove(Window);}
+    }
+    internal static void Run(Action<bool,string> check){
+        var preferences=AppState.Settings;AppState.Settings=new Preferences {Stroke=4,Color="#EF4444"};
+        try{ToolKeys(check);HistoryKeys(check);TextKeys(check);CompletionGuards(check);RightCancel(check);ClosedPen(check);OverlapCursor(check);}
+        finally{AppState.Settings=preferences;}
+    }
+    static void ToolKeys(Action<bool,string> check){
+        using(var f=new Fixture()){
+            var keys=new[]{Key.R,Key.O,Key.A,Key.L,Key.P,Key.T,Key.M,Key.V};
+            var names=new[]{"rect","ellipse","arrow","line","pen","text","mosaic","select"};
+            for(int i=0;i<keys.Length;i++)check(f.Key(keys[i])&&f.Window.SelectedTool==names[i]&&f.Surface.Selection==f.Crop&&f.Surface.Marks.Count==0,"tool key chooses "+names[i]+" without changing screenshot pixels or region");
+            check(!f.Key(Key.R,ModifierKeys.Alt)&&f.Window.SelectedTool=="select","Alt combinations do not unexpectedly switch screenshot tools");
+            check(!f.Key(Key.R,ModifierKeys.Control)&&f.Window.SelectedTool=="select","Control combinations cannot trigger plain-letter tool shortcuts");
+            check(!f.Key(Key.T,ModifierKeys.Shift)&&f.Window.SelectedTool=="select","modified text input is not mistaken for a tool shortcut");
+            var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,Key.R){RoutedEvent=Keyboard.PreviewKeyDownEvent};Call(f.Window,"KeyDownHandler",f.Window,e);
+            check(e.Handled&&f.Window.SelectedTool=="rect","real PreviewKeyDown route consumes a recognized tool key");
+            f.Tool("select");check(f.Key(Key.Right)&&f.Surface.Selection==new Rect(41,30,480,300),"real key dispatcher moves an unselected crop by one logical pixel");
+            check(f.Key(Key.Down,ModifierKeys.Shift)&&f.Surface.Selection==new Rect(41,30,480,301),"real key dispatcher routes Shift arrows to crop resizing instead of moving it");
+            check(f.Key(Key.Left,ModifierKeys.Control)&&f.Surface.Selection==new Rect(31,30,480,301),"real key dispatcher routes Control arrows to accelerated crop movement");
+            f.Surface.Selection=Rect.Empty;
+            check(!f.Key(Key.T)&&f.Window.SelectedTool=="select","tool shortcut does not enter an unusable annotation tool before a crop exists");
+            check(!f.Key(Key.Enter)&&!f.Key(Key.C,ModifierKeys.Control)&&!f.Key(Key.S,ModifierKeys.Control),"completion keys with no crop do not run output actions or display a modal export error");
+        }
+    }
+    static void HistoryKeys(Action<bool,string> check){
+        using(var f=new Fixture()){
+            var mark=f.Draw("rect");
+            check(f.Key(Key.Z,ModifierKeys.Control)&&f.Surface.Marks.Count==0,"Control Z dispatches undo and consumes the shortcut");
+            check(f.Key(Key.Z,ModifierKeys.Control|ModifierKeys.Shift)&&f.Surface.Marks.Single()==mark,"Control Shift Z dispatches redo, not a second undo");
+            check(f.Key(Key.Z,ModifierKeys.Control)&&f.Key(Key.Y,ModifierKeys.Control)&&f.Surface.Marks.Single()==mark,"Control Y remains a second supported redo shortcut");
+            check(!f.Key(Key.Z,ModifierKeys.Alt|ModifierKeys.Control)&&f.Surface.Marks.Single()==mark,"Alt Control combinations cannot accidentally mutate annotation history");
+            f.Tool("select");f.Window.BeginPointer(new Point(180,120));f.Window.EndPointer(new Point(180,120));
+            check(f.Key(Key.Right)&&mark.Start==new Point(141,120)&&f.Surface.Selection==f.Crop,"arrow keys still move the selected annotation instead of resizing the crop");
+            check(f.Key(Key.Delete)&&f.Surface.Marks.Count==0&&f.Surface.Selection==f.Crop,"Delete removes only the selected annotation through the shared key dispatcher");
+            check(f.Key(Key.Z,ModifierKeys.Control)&&f.Surface.Marks.Single()==mark,"annotation deletion remains reversible after keyboard movement");
+        }
+    }
+    static void TextKeys(Action<bool,string> check){
+        var collect=MoriDesk.DeskRuntime.CollectImage;int calls=0;
+        MoriDesk.DeskRuntime.CollectImage=image=>{calls++;return Task.FromResult(true);};
+        try{using(var f=new Fixture()){
+            f.Key(Key.T);f.Window.BeginPointer(new Point(120,100));var editor=Field<TextBox>(f.Window,"textEditor");editor.Text="Text remains editable";
+            foreach(var key in new[]{Key.R,Key.V,Key.P,Key.Delete,Key.Enter,Key.Left})check(!f.Key(key)&&Field<TextBox>(f.Window,"textEditor")==editor&&f.Surface.Marks.Count==0,"live text editor owns ordinary typing/navigation: "+key);
+            foreach(var key in new[]{Key.C,Key.S,Key.D,Key.Z})check(!f.Key(key,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==editor&&calls==0,"live text editor does not accidentally run screenshot commands: Control "+key);
+            check(f.Key(Key.Enter,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==null&&f.Surface.Marks.Single().Text=="Text remains editable","Control Enter commits text once while keeping screenshot open");
+        }}finally{MoriDesk.DeskRuntime.CollectImage=collect;}
+    }
+    static void CompletionGuards(Action<bool,string> check){
+        using(var f=new Fixture()){
+            check(f.Window.CanCompleteCaptureAt(new Point(350,250)),"double-click completion is eligible only on empty crop interior");
+            foreach(var p in new[]{new Point(0,0),new Point(580,380),f.Crop.TopLeft,new Point(f.Crop.Right,f.Crop.Top+f.Crop.Height/2)})check(!f.Window.CanCompleteCaptureAt(p),"double-click outside crop or on a resize handle cannot complete capture: "+p);
+            f.Window.BeginPointer(new Point(560,350),2);f.Window.EndPointer(new Point(560,350));
+            check(f.Surface.Selection==f.Crop&&f.Surface.Image!=null,"actual outside double click leaves capture open and crop unchanged");
+            var mark=f.Draw("rect");f.Tool("select");
+            check(!f.Window.CanCompleteCaptureAt(new Point(180,120)),"double-clicking an annotation selects it instead of completing capture");
+            f.Window.BeginPointer(new Point(180,120),2);f.Window.EndPointer(new Point(180,120));
+            check(f.Surface.SelectedAnnotation==mark&&f.Surface.Selection==f.Crop,"actual annotation double click stays on its editable object");
+            f.Window.BeginPointer(f.Crop.TopLeft,2);f.Window.EndPointer(f.Crop.TopLeft);
+            check(f.Surface.Selection==f.Crop&&f.Surface.Image!=null,"actual handle double click cannot trigger an export action");
+        }
+    }
+    static void RightCancel(Action<bool,string> check){
+        using(var f=new Fixture()){
+            var mark=f.Draw("arrow");int history=History(f.Window);f.Tool("pen");
+            f.Window.BeginPointer(new Point(300,200));f.Window.ContinuePointer(new Point(350,240));
+            f.Window.CancelFromPointer();
+            check(!Field<bool>(f.Window,"dragging")&&f.Surface.Draft==null&&f.Surface.Marks.Single()==mark&&History(f.Window)==history,"right click rolls back an active pen gesture without leaving a ghost draft or history entry");
+            f.Window.CancelFromPointer();check(f.Window.SelectedTool=="select"&&f.Surface.Selection==f.Crop,"next right click returns from drawing tool to selection before clearing crop");
+            f.Window.BeginPointer(f.Crop.TopLeft);f.Window.ContinuePointer(f.Crop.TopLeft+new Vector(15,12));f.Window.CancelFromPointer();
+            check(f.Surface.Selection==f.Crop&&f.Surface.Marks.Single()==mark&&History(f.Window)==history,"right click during crop resize restores original crop and earlier annotations");
+            f.Tool("text");f.Window.BeginPointer(new Point(300,200));Field<TextBox>(f.Window,"textEditor").Text="cancel me";f.Window.CancelFromPointer();
+            check(Field<TextBox>(f.Window,"textEditor")==null&&f.Surface.Marks.Single()==mark&&f.Surface.Selection==f.Crop,"right click cancels uncommitted text rather than unexpectedly exporting or ending capture");
+        }
+    }
+    static void ClosedPen(Action<bool,string> check){
+        using(var f=new Fixture()){
+            f.Tool("pen");f.Window.BeginPointer(new Point(120,100));f.Window.ContinuePointer(new Point(200,100));f.Window.ContinuePointer(new Point(200,180));f.Window.ContinuePointer(new Point(120,180));f.Window.EndPointer(new Point(120,100));
+            var mark=f.Surface.Marks.Single();
+            check(mark.Kind=="pen"&&mark.Start==mark.End&&mark.Points.Count>=5,"closed freehand stroke is retained even when final point returns exactly to its start");
+            check(f.Key(Key.Z,ModifierKeys.Control)&&f.Surface.Marks.Count==0&&f.Key(Key.Z,ModifierKeys.Control|ModifierKeys.Shift)&&f.Surface.Marks.Single()==mark,"closed freehand stroke is one undoable and redoable action");
+            int history=History(f.Window);f.Window.BeginPointer(new Point(300,200));f.Window.EndPointer(new Point(300,200));
+            check(f.Surface.Marks.Single()==mark&&History(f.Window)==history,"motionless pen click remains a no-op without phantom history");
+        }
+    }
+    static void OverlapCursor(Action<bool,string> check){
+        using(var f=new Fixture()){
+            var text=new Annotation {Kind="text",Start=new Point(130,110),Text="Overlapping text",Width=4};
+            var cover=new Annotation {Kind="mosaic",Start=new Point(100,80),End=new Point(370,190),Width=4};
+            f.Surface.Marks.Add(text);f.Surface.Marks.Add(cover);Call(f.Window,"SelectText",text);var point=ScreenshotSurface.TextFrame(text).TopLeft;
+            Call(f.Window,"UpdateBrushCursor",point);check(f.Surface.Cursor==Cursors.SizeAll,"covering shape advertises its movement cursor, not a hidden text resize handle");
+            f.Window.BeginPointer(point);f.Window.EndPointer(point);
+            check(f.Surface.SelectedAnnotation==cover&&f.Surface.SelectedText==null,"overlapping click target agrees with the topmost shape advertised by the cursor");
+        }
+    }
+}

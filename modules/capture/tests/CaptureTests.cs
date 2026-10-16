@@ -19,6 +19,7 @@ static class CaptureTests {
     internal static void Run(Action<bool,string> check){
         CaptureVisualRegionTests.Run(check);
         CaptureHoverTests.Run(check);
+        CaptureTextEditingTests.Run(check);
         var prefs=new Preferences {Stroke=7,OcrLanguage="kor+jpn"};prefs.SaveChecked();var restored=Preferences.Load();check(restored.Stroke==7&&restored.OcrLanguage=="kor+jpn","test settings are read and saved only through the isolated test path");
         var screen=new Rect(0,0,1920,1080);var front=new CaptureTarget(new Rect(100,100,800,600));var panel=new CaptureTarget(new Rect(150,150,500,400));var leaf=new CaptureTarget(new Rect(180,180,300,200));panel.Children.Add(leaf);front.Children.Add(panel);
         var behind=new CaptureTarget(new Rect(0,0,1000,900));behind.Children.Add(new CaptureTarget(new Rect(195,195,30,30)));

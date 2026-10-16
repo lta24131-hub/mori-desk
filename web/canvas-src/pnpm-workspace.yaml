@@ -1,0 +1,10 @@
+packages:
+  - .
+overrides:
+  '@tldraw/editor': 2.4.6
+  '@tldraw/store': 2.4.6
+  '@tldraw/state': 2.4.6
+  '@tldraw/state-react': 2.4.6
+  '@tldraw/tlschema': 2.4.6
+  '@tldraw/utils': 2.4.6
+  '@tldraw/validate': 2.4.6

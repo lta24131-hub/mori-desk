@@ -8,6 +8,7 @@ namespace Mori {
  public partial class MainWindow {
   // Presentation only: these groups never migrate or alter library membership.
   void UpdateNavigationPresentation(){
+   if(canvasProjectsMode){ApplyCanvasProjectsPresentation();return;}
    bool local=LocalCollectionsActive;
    B("AddBookmark").Visibility=bookmarkMode?Visibility.Visible:Visibility.Collapsed;
    B("Import").Content=local?"收藏本地文件":bookmarkMode?"导入书签":"导入素材";
@@ -23,10 +24,21 @@ namespace Mori {
    L("SidebarGuideTitle").Text=local?"本地快捷收藏":bookmarkMode?"网址文件夹":"还没有素材分类";
    L("SidebarGuideHint").Text=local?"分组在本页上方管理。\n文件只保存位置，原件不移动。":bookmarkMode?"文件夹在网址页内管理。\n素材分类与网址文件夹互不混用。":"可按项目、用途建立分类。\n一个素材可以属于多个分类。";
    B("CreateFirstFolder").Visibility=!bookmarkMode&&!local&&noFolders?Visibility.Visible:Visibility.Collapsed;
-   L("InspectorEmptyHint").Text=local?"选中文件，查看本地地址和所属分组。\n移除快捷收藏不会删除原文件。":bookmarkMode?"选中网址，查看链接、标签和备注。\n双击快速浏览，右键可在外部打开。":"选中素材，查看来源、标签和本地地址。\n双击或按空格预览。";
+   L("InspectorEmptyHint").Text=local?"选中文件，查看本地地址和所属分组。\n移除快捷收藏不会删除原文件。":bookmarkMode?"选中网址，查看链接、标签和备注。":"选中素材，查看来源、标签和本地地址。";
    ApplyBrowserPresentation();
   }
+  void ClearGalleryFilters(){similarId=colorId="";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;RefreshView();}
+  void UpdateEmptyRecoveryPresentation(){
+   bool filtered=similarId!=""||colorId!=""||T("Search").Text.Trim()!=""||Find<ComboBox>("MediaFilter").SelectedIndex>0;
+   bool recover=filtered&&visible.Count==0;
+   B("EmptyClearFilter").Visibility=recover?Visibility.Visible:Visibility.Collapsed;
+   if(!recover)return;
+   L("EmptyTitle").Text=bookmarkMode?"没有匹配的网址":"没有匹配的素材";
+   L("EmptyHint").Text="试试其他关键词，或清除搜索和筛选。\n现有收藏不会受到影响。";
+   B("EmptyImport").Visibility=Visibility.Collapsed;
+  }
   void UpdateInspectorPresentation(){
+   if(canvasProjectsMode){ApplyCanvasProjectsPresentation();return;}
    var items=Selected();bool single=items.Count==1,any=items.Count>0;
    Find<StackPanel>("Inspector").Visibility=any?Visibility.Visible:Visibility.Collapsed;
    Find<StackPanel>("InspectorEmpty").Visibility=any?Visibility.Collapsed:Visibility.Visible;
@@ -53,7 +65,7 @@ namespace Mori {
    return menu;
   }
   void ChooseReferenceFiles(){
-   if(busy||!PrepareLibraryChange())return;
+   if(canvasProjectsMode||busy||!PrepareLibraryChange())return;
    var dialog=new Microsoft.Win32.OpenFileDialog{Multiselect=true,Title="收藏本地文件 · 仅保存位置",Filter="所有文件|*.*"};
    if(dialog.ShowDialog(Window)==true)CollectClassicPaths(dialog.FileNames,"",localCollection);
   }

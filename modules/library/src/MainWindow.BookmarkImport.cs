@@ -10,7 +10,7 @@ using System.Windows.Controls;
 namespace Mori {
  public partial class MainWindow {
   void ShowBookmarkImport(){
-   if(busy||!PrepareLibraryChange())return;
+   if(canvasProjectsMode||busy||!PrepareLibraryChange())return;
    var dialog=new Window{Owner=Window,Title="导入书签",Width=460,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};Theme.Attach(dialog,Window);
    var panel=new StackPanel{Margin=new Thickness(24)};dialog.Content=panel;panel.Children.Add(new TextBlock{Text="从浏览器导入",FontSize=19,Margin=new Thickness(0,0,0,16)});
    var sources=BookmarkFileImport.Sources(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));var choice=new ComboBox{ItemsSource=sources,SelectedIndex=sources.Count>0?0:-1};System.Windows.Automation.AutomationProperties.SetName(choice,"书签来源");panel.Children.Add(choice);
@@ -20,7 +20,7 @@ namespace Mori {
    file.Click+=delegate{var open=new Microsoft.Win32.OpenFileDialog{Title="选择浏览器书签文件",Filter="浏览器书签|*.html;*.htm;*.json;Bookmarks|所有文件|*.*"};if(open.ShowDialog(dialog)==true){dialog.Close();ImportBookmarkFile(open.FileName,Path.GetFileNameWithoutExtension(open.FileName));}};dialog.ShowDialog();
   }
   async void ImportBookmarkFile(string path,string label){
-   if(busy)return;history.Clear();busy=true;cancel=false;B("Cancel").Visibility=Visibility.Visible;int added=0,reused=0,skipped=0,processed=0;string root="";
+   if(canvasProjectsMode||busy)return;history.Clear();busy=true;cancel=false;B("Cancel").Visibility=Visibility.Visible;int added=0,reused=0,skipped=0,processed=0;string root="";
    try{Status("正在读取书签…");await Task.Run(delegate{
     var parsed=BookmarkFileImport.Read(path);skipped=parsed.Skipped;
     for(int at=0;at<parsed.Items.Count;at+=40){if(cancel)break;

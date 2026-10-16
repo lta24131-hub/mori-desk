@@ -11,7 +11,7 @@ namespace Mori {
  public partial class MainWindow {
   string localCollection="";
   sealed class LocalCollectionTarget {public string Id;}
-  bool LocalCollectionsActive {get{return library.IncludeReferences&&!bookmarkMode&&mediaSection=="shortcuts"&&view=="all";}}
+  bool LocalCollectionsActive {get{return !canvasProjectsMode&&library.IncludeReferences&&!bookmarkMode&&mediaSection=="shortcuts"&&view=="all";}}
   void InitializeLocalCollections(){
    B("NewLocalCollection").Click+=delegate{NewLocalCollection(false);};
    B("LocalCollectionBack").Click+=delegate{OpenLocalCollection("");};
@@ -68,10 +68,10 @@ namespace Mori {
    return button;
   }
   internal void OpenLocalCollection(string id){if(!LocalCollectionsActive||busy||!PrepareLibraryChange())return;if(id!=""&&!library.LocalCollections().Any(f=>f.Id==id))return;localCollection=id;selection.Clear();anchor="";pressed=null;T("Search").Clear();Refresh(true);var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));if(scroll!=null)scroll.ScrollToTop();Find<ListBox>("Gallery").Focus();}
-  internal string CreateLocalCollection(string name,string[] ids){string id="";Edit("新建分类文件夹",()=>{id=library.CreateLocalCollection(name);if(ids!=null&&ids.Length>0)library.MoveToLocalCollection(ids,id);});Refresh(true);return id;}
-  void NewLocalCollection(bool includeSelected){if(busy||!PrepareLibraryChange())return;string name=Prompt("新建分类文件夹","只在本地收藏内整理，不改变电脑上的文件位置。","新建分类");if(name==null)return;try{CreateLocalCollection(name,includeSelected?selection.ToArray():null);}catch(Exception ex){Status(ex.Message);}}
-  internal void MoveLocalCollection(string[] ids,string target){if(busy)return;try{if(!SaveClassicPending())return;Edit(target==""?"移回本地收藏外层":"移入分类文件夹",()=>library.MoveToLocalCollection(ids,target));Refresh(true);}catch(Exception ex){Status(ex.Message);}}
-  void ChooseLocalCollection(){if(busy||selection.Count==0||!PrepareLibraryChange())return;var choices=library.LocalCollections().Select(f=>new CategoryChoice{Id=f.Id,Label=f.Name}).ToList();choices.Insert(0,new CategoryChoice{Id="",Label="本地收藏外层"});string target=CategoryPicker.Show(Window,choices,"移动到分类文件夹","只整理快捷方式，不移动原文件。","移动");if(target!=null)MoveLocalCollection(selection.ToArray(),target);}
+  internal string CreateLocalCollection(string name,string[] ids){if(canvasProjectsMode)return "";string id="";Edit("新建分类文件夹",()=>{id=library.CreateLocalCollection(name);if(ids!=null&&ids.Length>0)library.MoveToLocalCollection(ids,id);});Refresh(true);return id;}
+  void NewLocalCollection(bool includeSelected){if(canvasProjectsMode||busy||!PrepareLibraryChange())return;string name=Prompt("新建分类文件夹","只在本地收藏内整理，不改变电脑上的文件位置。","新建分类");if(name==null)return;try{CreateLocalCollection(name,includeSelected?selection.ToArray():null);}catch(Exception ex){Status(ex.Message);}}
+  internal void MoveLocalCollection(string[] ids,string target){if(canvasProjectsMode||busy)return;try{if(!SaveClassicPending())return;Edit(target==""?"移回本地收藏外层":"移入分类文件夹",()=>library.MoveToLocalCollection(ids,target));Refresh(true);}catch(Exception ex){Status(ex.Message);}}
+  void ChooseLocalCollection(){if(canvasProjectsMode||busy||selection.Count==0||!PrepareLibraryChange())return;var choices=library.LocalCollections().Select(f=>new CategoryChoice{Id=f.Id,Label=f.Name}).ToList();choices.Insert(0,new CategoryChoice{Id="",Label="本地收藏外层"});string target=CategoryPicker.Show(Window,choices,"移动到分类文件夹","只整理快捷方式，不移动原文件。","移动");if(target!=null)MoveLocalCollection(selection.ToArray(),target);}
   internal ContextMenu CreateLocalCollectionMenu(string id){
    var menu=Theme.Menu(Window);var folder=library.LocalCollections().FirstOrDefault(f=>f.Id==id);if(folder==null)return menu;
    menu.Items.Add(ActionItem("打开分类文件夹",()=>OpenLocalCollection(id),"",!busy));
@@ -81,8 +81,8 @@ namespace Mori {
   string LocalCollectionAt(DependencyObject source){if(!LocalCollectionsActive)return null;for(var d=source;d!=null;d=SelectionParent(d)){var element=d as FrameworkElement;var target=element==null?null:element.Tag as LocalCollectionTarget;if(target!=null)return target.Id;}return null;}
   internal string ExternalLocalCollectionTarget(DependencyObject source){if(!LocalCollectionsActive)return null;return LocalCollectionAt(source)??localCollection;}
   bool IsCollectionDrag(IDataObject data){if(!data.GetDataPresent("Mori.AssetIds"))return false;var ids=data.GetData("Mori.AssetIds") as string[];return ids!=null&&ids.Length>0&&ids.All(id=>all.Any(a=>a.Id==id&&a.IsReference));}
-  void LocalCollectionDragOver(object sender,DragEventArgs e){if(!LocalCollectionsActive||!e.Data.GetDataPresent("Mori.AssetIds"))return;string target=LocalCollectionAt(e.OriginalSource as DependencyObject);HighlightLocalCollection(e.OriginalSource as DependencyObject);if(target==null)return;e.Handled=true;e.Effects=!busy&&IsCollectionDrag(e.Data)?((e.AllowedEffects&DragDropEffects.Move)!=0?DragDropEffects.Move:ShortcutDropEffect(e.AllowedEffects)):DragDropEffects.None;}
-  void LocalCollectionDrop(object sender,DragEventArgs e){if(!LocalCollectionsActive||!e.Data.GetDataPresent("Mori.AssetIds"))return;string target=LocalCollectionAt(e.OriginalSource as DependencyObject);HighlightLocalCollection(null);if(target==null)return;e.Handled=true;if(busy||!IsCollectionDrag(e.Data))return;var ids=(string[])e.Data.GetData("Mori.AssetIds");Window.Dispatcher.BeginInvoke(new Action(()=>MoveLocalCollection(ids,target)));}
+  void LocalCollectionDragOver(object sender,DragEventArgs e){if(e.Handled||canvasProjectsMode||!LocalCollectionsActive||!e.Data.GetDataPresent("Mori.AssetIds"))return;string target=LocalCollectionAt(e.OriginalSource as DependencyObject);HighlightLocalCollection(e.OriginalSource as DependencyObject);if(target==null)return;e.Handled=true;e.Effects=!busy&&IsCollectionDrag(e.Data)?((e.AllowedEffects&DragDropEffects.Move)!=0?DragDropEffects.Move:ShortcutDropEffect(e.AllowedEffects)):DragDropEffects.None;}
+  void LocalCollectionDrop(object sender,DragEventArgs e){if(e.Handled||canvasProjectsMode||!LocalCollectionsActive||!e.Data.GetDataPresent("Mori.AssetIds"))return;string target=LocalCollectionAt(e.OriginalSource as DependencyObject);HighlightLocalCollection(null);if(target==null)return;e.Handled=true;if(busy||!IsCollectionDrag(e.Data))return;var ids=(string[])e.Data.GetData("Mori.AssetIds");Window.Dispatcher.BeginInvoke(new Action(()=>MoveLocalCollection(ids,target)));}
   Button localDropHighlight;
   void HighlightLocalCollection(DependencyObject source){Button next=null;if(LocalCollectionsActive)for(var d=source;d!=null;d=SelectionParent(d)){var b=d as Button;if(b!=null&&b.Tag is LocalCollectionTarget){next=b;break;}}if(next==localDropHighlight)return;if(localDropHighlight!=null)localDropHighlight.Background=Brushes.Transparent;localDropHighlight=next;if(next!=null)next.SetResourceReference(Control.BackgroundProperty,"AccentSoft");}
  }

@@ -63,6 +63,8 @@ test('popup locks updates before health reads and never opens the library just t
   const {page,errors}=await mockPage();try{
     const actions=await page.evaluate(()=>testMessages.map(message=>message.action));
     assert.equal(actions[0],'connect');assert(actions.includes('bridgeStatus'));assert(actions.includes('extensionUpdateStatus'));assert.equal(actions.includes('folders'),false);
+    assert.equal(await page.locator('#status').innerText(),'已连接 Nook');
+    assert.doesNotMatch(await page.locator('#status').innerText(),/图库/);
     await page.evaluate(()=>testPortListeners.forEach(fn=>fn({updateStatus:{ok:true,pendingVersion:'0.3.2',uncertain:true,reason:'uncertain'}})));
     assert.equal(await page.locator('#acknowledge-update').isVisible(),true);assert.match(await page.locator('#update-status').innerText(),/检查.*保存/);
     await page.evaluate(()=>{chrome.runtime.sendMessage=(message,reply)=>{testMessages.push(message);reply({ok:true,pendingVersion:'0.3.2',reason:'popup',uncertain:false});};});
@@ -72,6 +74,13 @@ test('popup locks updates before health reads and never opens the library just t
     assert.equal(await page.evaluate(()=>testMessages.some(x=>x.action==='save')),false);
     await page.evaluate(()=>testPortListeners.forEach(fn=>fn({updateStatus:{ok:true,reason:'current'}})));
     assert.match(await page.locator('#update-status').innerText(),/暂无待安装/);assert.doesNotMatch(await page.locator('#update-status').innerText(),/最新/);assert.deepEqual(errors,[]);
+  }finally{await page.close();}
+});
+test('English bridge health describes Nook connection without claiming library or save readiness',async()=>{
+  const {page,errors}=await mockPage({language:'en'});try{
+    assert.equal(await page.locator('#status').innerText(),'Connected to Nook');
+    assert.equal(await page.evaluate(()=>testMessages.some(message=>['folders','save','bookmark','importBookmarks'].includes(message.action))),false);
+    assert.deepEqual(errors,[]);
   }finally{await page.close();}
 });
 test('popup saves scoped mode, theme/language/layout/edit options and restores existing preferences',async()=>{

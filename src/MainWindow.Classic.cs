@@ -25,6 +25,7 @@ namespace Mori {
   bool SaveClassicPending(){if(!HasUnsavedMetadata())return true;if(string.IsNullOrWhiteSpace(T("Name").Text)&&Selected().Count==1){Status("请先填写素材名称，再拖入收藏。");return false;}SaveMetadata();return true;}
   internal void CollectClassicPaths(string[] paths,string folder){CollectClassicPaths(paths,folder,LocalCollectionsActive?localCollection:null);}
   internal void CollectClassicPaths(string[] paths,string folder,string collection){
+   if(canvasProjectsMode)return;
    HideDragHint();if(busy){Status("请等待当前操作完成后再收藏。");return;}
    // A drop is an immediate shortcut operation. Never recurse, copy, or open a confirmation dialog.
    try{

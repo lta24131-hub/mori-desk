@@ -25,7 +25,7 @@ namespace Mori {
    Uri normalized;string error;if(!SimpleBrowserPane.TryNormalizeAddress(address,out normalized,out error)){Status(error??"网址无效，请使用 http 或 https 网址。");return false;}
    if(busy||(!browserMode&&!PrepareLibraryChange()))return false;
    if(browserMode)return browserPane.Navigate(normalized.AbsoluteUri);
-   HideBoard();HideReferences();bool pendingSearch=searchTimer.IsEnabled;searchTimer.Stop();layoutTimer.Stop();
+   HideCanvasProjects();HideBoard();HideReferences();bool pendingSearch=searchTimer.IsEnabled;searchTimer.Stop();layoutTimer.Stop();
    var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));browserGalleryOffset=scroll==null?0:scroll.VerticalOffset;
    var workspace=Find<Grid>("Workspace");var host=new Grid();host.SetResourceReference(Panel.BackgroundProperty,"Canvas");
    host.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});host.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});
@@ -39,7 +39,7 @@ namespace Mori {
    if(!pane.Navigate(normalized.AbsoluteUri)){HideBrowser();return false;}Status("正在快速浏览 · 返回收藏会关闭网页");return true;
   }
   void CollectBrowserBookmark(string url,string title){
-   if(busy)return;
+   if(busy||!browserMode)return;
    try{string folder=bookmarkMode?CurrentFolder():"";var added=library.ImportBookmark(url,title??"",folder,"","","reuse");history.Clear();browserRefreshPending=true;Status(added.Duplicate?"此网址已收藏":"网址已收藏；返回列表后查看");}catch(Exception ex){Status("未能收藏网址："+ex.Message);}
   }
   internal void HideBrowser(){
@@ -49,9 +49,9 @@ namespace Mori {
    bool refresh=browserRefreshPending,inspector=browserInspectorRefreshPending;browserRefreshPending=browserInspectorRefreshPending=false;if(refresh){ReloadFolders();Refresh(inspector);}else{UpdateNavigationPresentation();UpdateInspectorPresentation();}
    // The tray releases realised thumbnails even when a webpage is active.
    // Rebind from the existing metadata without discarding inspector drafts.
-   BuildRows();UpdateInspectorPreview();
+   if(canvasProjectsMode){ApplyCanvasProjectsPresentation();return;}BuildRows();UpdateInspectorPreview();
    string restoreView=view,restoreSection=mediaSection,restoreSearch=T("Search").Text;bool restoreBookmarks=bookmarkMode;double restoreOffset=browserGalleryOffset;
-   Find<ListBox>("Gallery").Focus();Window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded,new Action(delegate{if(browserMode||view!=restoreView||mediaSection!=restoreSection||bookmarkMode!=restoreBookmarks||T("Search").Text!=restoreSearch)return;var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));if(scroll!=null)scroll.ScrollToVerticalOffset(restoreOffset);}));
+   Find<ListBox>("Gallery").Focus();Window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded,new Action(delegate{if(browserMode||canvasProjectsMode||view!=restoreView||mediaSection!=restoreSection||bookmarkMode!=restoreBookmarks||T("Search").Text!=restoreSearch)return;var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));if(scroll!=null)scroll.ScrollToVerticalOffset(restoreOffset);}));
    Status("已返回收藏");
   }
   bool HandleBrowserKey(KeyEventArgs e){

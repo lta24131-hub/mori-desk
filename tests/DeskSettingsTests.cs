@@ -26,7 +26,7 @@ namespace MoriDesk {
       var render=new RenderTargetBitmap(674,640,96,96,PixelFormats.Pbgra32);render.Render(body);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(render));using(var output=File.Create(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"settings-"+section+"-"+appearance+".png")))encoder.Save(output);
       if(section=="capture"){
        var shortcuts=All(settings).OfType<QingJie.ShortcutEditor>().ToArray();
-       check(shortcuts.Length==3&&All(settings).OfType<ComboBox>().Any(c=>c.Name=="TranslationProvider"),"shortcut and translation controls embedded directly");
+       check(shortcuts.Length==4&&All(settings).OfType<ComboBox>().Any(c=>c.Name=="TranslationProvider"),"shortcut and translation controls embedded directly");
        var buttonStyle=(Style)main.Window.FindResource(typeof(Button));
        check(shortcuts.All(editor=>editor.IsEnabled&&ReferenceEquals(editor.Style,buttonStyle)&&editor.Template!=null),"derived shortcut editors explicitly reuse the host Button style, never preview-disabled native chrome in "+appearance);
        check(shortcuts.All(editor=>ReferenceEquals(editor.Background,Theme.Brush("Control"))&&ReferenceEquals(editor.Foreground,Theme.Brush("Text"))),"shortcut editors bind contrasting live background and text tokens in "+appearance);

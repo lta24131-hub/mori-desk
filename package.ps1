@@ -11,7 +11,7 @@ $releaseRoot=Join-Path $suiteRoot ('releases\'+(Get-Date -Format 'yyyyMMdd-HHmms
 $payload=Join-Path $releaseRoot 'Nook'
 New-Item -ItemType Directory -Force $payload | Out-Null
 $files=@('Mori.exe','Mori.exe.config','ExCSS.dll','Svg.dll','Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2.Wpf.dll','WebView2Loader.dll','System.Buffers.dll','System.Memory.dll','System.Numerics.Vectors.dll','System.Runtime.CompilerServices.Unsafe.dll','Tesseract.dll','qingjie-icon.png')
-$files+=@('Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dll','UglyToad.PdfPig.dll','UglyToad.PdfPig.Core.dll','UglyToad.PdfPig.DocumentLayoutAnalysis.dll','UglyToad.PdfPig.Fonts.dll','UglyToad.PdfPig.Package.dll','UglyToad.PdfPig.Tokenization.dll','UglyToad.PdfPig.Tokens.dll','Microsoft.Bcl.HashCode.dll','PREVIEW-NOTICES.md')
+$files+=@('Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dll','UglyToad.PdfPig.dll','UglyToad.PdfPig.Core.dll','UglyToad.PdfPig.DocumentLayoutAnalysis.dll','UglyToad.PdfPig.Fonts.dll','UglyToad.PdfPig.Package.dll','UglyToad.PdfPig.Tokenization.dll','UglyToad.PdfPig.Tokens.dll','Microsoft.Bcl.HashCode.dll','PREVIEW-NOTICES.md','CanvasIcons-NOTICE.txt')
 foreach($file in $files){Copy-Item -LiteralPath (Join-Path $buildPath $file) -Destination $payload}
 foreach($folder in @('x64','tessdata','web','browser-extension','svg-licenses','webview2-licenses','model-licenses','image-codecs','pdf-text','preview-support')){Copy-Item -LiteralPath (Join-Path $buildPath $folder) -Destination $payload -Recurse}
 Copy-Item "$suiteRoot\modules\capture\licenses" "$payload\capture-licenses" -Recurse
@@ -28,7 +28,7 @@ Assert-NoMachineSecrets $payload
 Compress-Archive -Path "$payload\*" -DestinationPath $zip -CompressionLevel Optimal
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $refs=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.IO.Compression.dll','Microsoft.CSharp.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }
-& "$framework\csc.exe" /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 ('/out:'+$releaseRoot+'\Nook-Setup.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/resource:'+$zip+',MoriDesk.Payload.zip') @refs "$suiteRoot\installer\Setup.cs"
+& "$framework\csc.exe" /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 ('/out:'+$releaseRoot+'\Nook-Setup.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/resource:'+$zip+',MoriDesk.Payload.zip') @refs "$suiteRoot\installer\Setup.cs" "$suiteRoot\src\OpenWithRegistration.cs"
 if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
 Get-FileHash "$releaseRoot\Nook-Setup.exe",$zip -Algorithm SHA256 | Format-Table
 Copy-Item -LiteralPath "$suiteRoot\docs\使用说明.md" -Destination "$releaseRoot\Nook-Guide.txt"

@@ -19,9 +19,16 @@ namespace QingJie {
         public Shortcut Capture=new Shortcut {Key=0x70};
         public Shortcut Pin=new Shortcut {Key=0x72};
         public Shortcut Translate=new Shortcut {Key=0x54,Modifiers=3};
-        public Shortcut[] Values(){return new[]{Capture,Pin,Translate};}
-        public ShortcutSet Copy(){return new ShortcutSet {Capture=Capture.Copy(),Pin=Pin.Copy(),Translate=Translate.Copy()};}
-        public string Error(){var values=Values();if(values.Any(v=>v==null||!v.Valid()))return "请使用 F1–F24，或 Ctrl / Alt 加其他键（不使用 Win / Esc）。";if(values.Select(v=>v.ToString()).Distinct().Count()!=3)return "三个功能不能使用相同的快捷键。";return null;}
+        Shortcut togglePins;bool togglePinsConfigured;
+        // Old JSON contains only three shortcuts. Pick the new default lazily,
+        // after those fields have deserialized, so an existing Shift+F3 choice
+        // never makes Preferences.Load discard the user's other shortcuts.
+        public Shortcut TogglePins {get{if(togglePins==null&&!togglePinsConfigured){foreach(int modifiers in new[]{4,3,6,7}){var candidate=new Shortcut {Key=0x72,Modifiers=modifiers};if(!new[]{Capture,Pin,Translate}.Any(value=>candidate.Same(value))){togglePins=candidate;break;}}}return togglePins;}set{togglePins=value;togglePinsConfigured=true;}}
+        // Keep existing action indexes stable: F3 still recovers a pin, while the
+        // fourth action shows or hides the current group without creating a pin.
+        public Shortcut[] Values(){return new[]{Capture,Pin,Translate,TogglePins};}
+        public ShortcutSet Copy(){return new ShortcutSet {Capture=Capture.Copy(),Pin=Pin.Copy(),Translate=Translate.Copy(),TogglePins=TogglePins.Copy()};}
+        public string Error(){var values=Values();if(values.Any(v=>v==null||!v.Valid()))return "请使用 F1–F24，或 Ctrl / Alt 加其他键（不使用 Win / Esc）。";if(values.Select(v=>v.ToString()).Distinct().Count()!=values.Length)return "不同功能不能使用相同的快捷键。";return null;}
     }
     // Reuse owned registrations, reserve new ones before committing, never release
     // working keys on failure. No keyboard hook or polling loop.

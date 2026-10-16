@@ -34,7 +34,7 @@ namespace MoriDesk {
     var icon=(ToolIcon)button.Content;icon.Measure(new Size(20,20));icon.Arrange(new Rect(0,0,20,20));var iconImage=new RenderTargetBitmap(20,20,96,96,PixelFormats.Pbgra32);iconImage.Render(icon);byte[] iconPixels=new byte[20*20*4];iconImage.CopyPixels(iconPixels,80,0);
     bool bluePixel=false;for(int i=0;i<iconPixels.Length;i+=4)if(iconPixels[i+3]>200&&iconPixels[i]>iconPixels[i+2]+50&&iconPixels[i]>iconPixels[i+1]+40){bluePixel=true;break;}
     check(bluePixel,"collection glyph is blue rather than ordinary toolbar ink");
-    typeof(CaptureWindow).GetMethod("StartText",Hidden).Invoke(w,new object[]{new Point(5,5)});
+    typeof(CaptureWindow).GetMethod("StartText",Hidden,null,new[]{typeof(Point)},null).Invoke(w,new object[]{new Point(5,5)});
     ((TextBox)typeof(CaptureWindow).GetField("textEditor",Hidden).GetValue(w)).Text="Unsaved annotation";
     var task=w.CollectToLibraryAsync();
     check(Surface(w).Marks.Any(m=>m.Kind=="text"&&m.Text=="Unsaved annotation"),"collection commits current text annotation before export");

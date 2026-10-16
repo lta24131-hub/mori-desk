@@ -1,0 +1,1077 @@
+[
+  {
+    "name": "@babel/runtime",
+    "version": "7.29.10",
+    "license": "MIT",
+    "author": "The Babel Team (https://babel.dev/team)",
+    "files": [
+      "npm/_babel_runtime_7.29.10/LICENSE"
+    ]
+  },
+  {
+    "name": "@floating-ui/core",
+    "version": "1.8.0",
+    "license": "MIT",
+    "author": "atomiks",
+    "files": [
+      "npm/_floating-ui_core_1.8.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@floating-ui/dom",
+    "version": "1.8.0",
+    "license": "MIT",
+    "author": "atomiks",
+    "files": [
+      "npm/_floating-ui_dom_1.8.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@floating-ui/react-dom",
+    "version": "2.1.9",
+    "license": "MIT",
+    "author": "atomiks",
+    "files": [
+      "npm/_floating-ui_react-dom_2.1.9/LICENSE"
+    ]
+  },
+  {
+    "name": "@floating-ui/utils",
+    "version": "0.2.12",
+    "license": "MIT",
+    "author": "atomiks",
+    "files": [
+      "npm/_floating-ui_utils_0.2.12/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/number",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/number",
+    "version": "1.1.3",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_number_1.1.3/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/primitive",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/primitive",
+    "version": "1.1.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/primitive",
+    "version": "1.2.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_primitive_1.2.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-alert-dialog",
+    "version": "1.2.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-alert-dialog_1.2.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-arrow",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-arrow",
+    "version": "1.1.17",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-arrow_1.1.17/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-arrow",
+    "version": "1.1.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-collection",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-collection",
+    "version": "1.2.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-collection_1.2.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-compose-refs",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-compose-refs",
+    "version": "1.1.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-compose-refs",
+    "version": "1.1.5",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-compose-refs_1.1.5/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-context-menu",
+    "version": "2.4.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-context-menu_2.4.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-context",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-context",
+    "version": "1.1.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-context",
+    "version": "1.3.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-context_1.3.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-dialog",
+    "version": "1.3.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-dialog_1.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-direction",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-direction",
+    "version": "1.2.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-direction_1.2.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-dismissable-layer",
+    "version": "1.0.4",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-dismissable-layer",
+    "version": "1.1.5",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-dismissable-layer",
+    "version": "1.2.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-dismissable-layer_1.2.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-dropdown-menu",
+    "version": "2.2.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-dropdown-menu_2.2.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-focus-guards",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-focus-guards",
+    "version": "1.1.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-focus-guards",
+    "version": "1.2.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-focus-guards_1.2.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-focus-scope",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-focus-scope",
+    "version": "1.1.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-focus-scope",
+    "version": "1.3.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-focus-scope_1.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-id",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-id",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-id",
+    "version": "1.1.4",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-id_1.1.4/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-menu",
+    "version": "2.2.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-menu_2.2.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-popover",
+    "version": "1.1.6",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-popper",
+    "version": "1.1.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-popper",
+    "version": "1.2.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-popper",
+    "version": "1.4.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-popper_1.4.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-portal",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-portal",
+    "version": "1.1.4",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-portal",
+    "version": "1.2.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-portal_1.2.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-presence",
+    "version": "1.1.11",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-presence_1.1.11/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-presence",
+    "version": "1.1.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-primitive",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-primitive",
+    "version": "2.0.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-primitive",
+    "version": "2.2.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-primitive_2.2.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-roving-focus",
+    "version": "1.2.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-roving-focus_1.2.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-select",
+    "version": "1.2.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-slider",
+    "version": "1.6.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-slider_1.6.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-slot",
+    "version": "1.0.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-slot",
+    "version": "1.1.2",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-slot",
+    "version": "1.5.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-slot_1.5.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-toast",
+    "version": "1.3.1",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-toast_1.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-callback-ref",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-callback-ref",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-callback-ref",
+    "version": "1.1.5",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-callback-ref_1.1.5/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-controllable-state",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-controllable-state",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-controllable-state",
+    "version": "1.3.0",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-controllable-state_1.3.0/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-effect-event",
+    "version": "0.0.5",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-effect-event_0.0.5/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-escape-keydown",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-escape-keydown",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-is-hydrated",
+    "version": "0.1.3",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-is-hydrated_0.1.3/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-layout-effect",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-layout-effect",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-layout-effect",
+    "version": "1.1.4",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-layout-effect_1.1.4/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-previous",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-rect",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-rect",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-rect",
+    "version": "1.1.4",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-rect_1.1.4/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-size",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-size",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-use-size",
+    "version": "1.1.5",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-use-size_1.1.5/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-visually-hidden",
+    "version": "1.0.3",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/react-visually-hidden",
+    "version": "1.2.13",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_react-visually-hidden_1.2.13/LICENSE"
+    ]
+  },
+  {
+    "name": "@radix-ui/rect",
+    "version": "1.0.1",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/rect",
+    "version": "1.1.0",
+    "license": "MIT",
+    "files": [
+      "radix-ui-primitives-MIT.txt"
+    ]
+  },
+  {
+    "name": "@radix-ui/rect",
+    "version": "1.1.3",
+    "license": "MIT",
+    "files": [
+      "npm/_radix-ui_rect_1.1.3/LICENSE"
+    ]
+  },
+  {
+    "name": "@tldraw/assets",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_assets_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/editor",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_editor_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/state-react",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_state-react_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/state",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_state_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/store",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_store_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/tlschema",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_tlschema_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/utils",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_utils_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@tldraw/validate",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/_tldraw_validate_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "@types/core-js",
+    "version": "2.5.8",
+    "license": "MIT",
+    "files": [
+      "npm/_types_core-js_2.5.8/LICENSE"
+    ]
+  },
+  {
+    "name": "@use-gesture/core",
+    "version": "10.3.1",
+    "license": "MIT",
+    "author": "Paul Henschel",
+    "files": [
+      "npm/_use-gesture_core_10.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "@use-gesture/react",
+    "version": "10.3.1",
+    "license": "MIT",
+    "author": "Paul Henschel",
+    "files": [
+      "npm/_use-gesture_react_10.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "aria-hidden",
+    "version": "1.2.6",
+    "license": "MIT",
+    "author": "Anton Korzunov <thekashey@gmail.com>",
+    "files": [
+      "npm/aria-hidden_1.2.6/LICENSE"
+    ]
+  },
+  {
+    "name": "canvas-size",
+    "version": "1.2.6",
+    "license": "MIT",
+    "author": "John Hildenbiddle <http://hildenbiddle.com>",
+    "files": [
+      "npm/canvas-size_1.2.6/LICENSE"
+    ]
+  },
+  {
+    "name": "classnames",
+    "version": "2.5.1",
+    "license": "MIT",
+    "author": "Jed Watson",
+    "files": [
+      "npm/classnames_2.5.1/LICENSE"
+    ]
+  },
+  {
+    "name": "core-js",
+    "version": "3.50.0",
+    "license": "MIT",
+    "author": {
+      "name": "Denis Pushkarev",
+      "email": "zloirock@zloirock.ru",
+      "url": "http://zloirock.ru"
+    },
+    "files": [
+      "npm/core-js_3.50.0/LICENSE"
+    ]
+  },
+  {
+    "name": "detect-node-es",
+    "version": "1.1.0",
+    "license": "MIT",
+    "author": "Ilya Kantor",
+    "files": [
+      "npm/detect-node-es_1.1.0/LICENSE"
+    ]
+  },
+  {
+    "name": "eventemitter3",
+    "version": "4.0.7",
+    "license": "MIT",
+    "author": "Arnout Kazemier",
+    "files": [
+      "npm/eventemitter3_4.0.7/LICENSE"
+    ]
+  },
+  {
+    "name": "get-nonce",
+    "version": "1.0.1",
+    "license": "MIT",
+    "author": "Anton Korzunov <thekashey@gmail.com>",
+    "files": [
+      "npm/get-nonce_1.0.1/LICENSE"
+    ]
+  },
+  {
+    "name": "hotkeys-js",
+    "version": "3.13.15",
+    "license": "MIT",
+    "author": "kenny wong <wowohoo@qq.com>",
+    "files": [
+      "npm/hotkeys-js_3.13.15/LICENSE"
+    ]
+  },
+  {
+    "name": "idb",
+    "version": "7.1.1",
+    "license": "ISC",
+    "author": "Jake Archibald",
+    "files": [
+      "npm/idb_7.1.1/LICENSE"
+    ]
+  },
+  {
+    "name": "is-plain-object",
+    "version": "5.1.0",
+    "license": "MIT",
+    "author": "Jon Schlinkert (https://github.com/jonschlinkert)",
+    "files": [
+      "npm/is-plain-object_5.1.0/LICENSE"
+    ]
+  },
+  {
+    "name": "js-tokens",
+    "version": "4.0.0",
+    "license": "MIT",
+    "author": "Simon Lydell",
+    "files": [
+      "npm/js-tokens_4.0.0/LICENSE"
+    ]
+  },
+  {
+    "name": "lodash.isequal",
+    "version": "4.5.0",
+    "license": "MIT",
+    "author": "John-David Dalton <john.david.dalton@gmail.com> (http://allyoucanleet.com/)",
+    "files": [
+      "npm/lodash.isequal_4.5.0/LICENSE"
+    ]
+  },
+  {
+    "name": "lodash.throttle",
+    "version": "4.1.1",
+    "license": "MIT",
+    "author": "John-David Dalton <john.david.dalton@gmail.com> (http://allyoucanleet.com/)",
+    "files": [
+      "npm/lodash.throttle_4.1.1/LICENSE"
+    ]
+  },
+  {
+    "name": "lodash.uniq",
+    "version": "4.5.0",
+    "license": "MIT",
+    "author": "John-David Dalton <john.david.dalton@gmail.com> (http://allyoucanleet.com/)",
+    "files": [
+      "npm/lodash.uniq_4.5.0/LICENSE"
+    ]
+  },
+  {
+    "name": "loose-envify",
+    "version": "1.4.0",
+    "license": "MIT",
+    "author": "Andres Suarez <zertosh@gmail.com>",
+    "files": [
+      "npm/loose-envify_1.4.0/LICENSE"
+    ]
+  },
+  {
+    "name": "lz-string",
+    "version": "1.5.0",
+    "license": "MIT",
+    "author": "pieroxy <pieroxy@pieroxy.net>",
+    "files": [
+      "npm/lz-string_1.5.0/LICENSE"
+    ]
+  },
+  {
+    "name": "nanoid",
+    "version": "4.0.2",
+    "license": "MIT",
+    "author": "Andrey Sitnik <andrey@sitnik.ru>",
+    "files": [
+      "npm/nanoid_4.0.2/LICENSE"
+    ]
+  },
+  {
+    "name": "react-dom",
+    "version": "18.3.1",
+    "license": "MIT",
+    "files": [
+      "npm/react-dom_18.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "react-remove-scroll-bar",
+    "version": "2.3.8",
+    "license": "MIT",
+    "author": "Anton Korzunov <thekashey@gmail.com>",
+    "files": [
+      "react-remove-scroll-bar-MIT.txt"
+    ],
+    "repositoryLicenseSource": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/8ca9ba5ea52de03308fe8ced94f7b159a44d28ff/LICENSE",
+    "note": "npm tarball omits LICENSE; full MIT file retained from official upstream repository"
+  },
+  {
+    "name": "react-remove-scroll",
+    "version": "2.5.5",
+    "license": "MIT",
+    "author": "Anton Korzunov <thekashey@gmail.com>",
+    "files": [
+      "npm/react-remove-scroll_2.5.5/LICENSE"
+    ]
+  },
+  {
+    "name": "react-remove-scroll",
+    "version": "2.7.2",
+    "license": "MIT",
+    "author": "Anton Korzunov <thekashey@gmail.com>",
+    "files": [
+      "npm/react-remove-scroll_2.7.2/LICENSE"
+    ]
+  },
+  {
+    "name": "react-style-singleton",
+    "version": "2.2.3",
+    "license": "MIT",
+    "author": "Anton Korzunov (thekashey@gmail.com)",
+    "files": [
+      "npm/react-style-singleton_2.2.3/LICENSE"
+    ]
+  },
+  {
+    "name": "react",
+    "version": "18.3.1",
+    "license": "MIT",
+    "files": [
+      "npm/react_18.3.1/LICENSE"
+    ]
+  },
+  {
+    "name": "scheduler",
+    "version": "0.23.2",
+    "license": "MIT",
+    "files": [
+      "npm/scheduler_0.23.2/LICENSE"
+    ]
+  },
+  {
+    "name": "tldraw",
+    "version": "2.4.6",
+    "license": "SEE LICENSE IN LICENSE.md",
+    "author": {
+      "name": "tldraw Inc.",
+      "email": "hello@tldraw.com"
+    },
+    "files": [
+      "npm/tldraw_2.4.6/LICENSE.md"
+    ],
+    "governingLicense": "tldraw-2.4.6-LICENSE.md",
+    "immutableSource": "16ba10a88e7145a5bec772a985df5a8c5b943c74"
+  },
+  {
+    "name": "tslib",
+    "version": "2.8.1",
+    "license": "0BSD",
+    "author": "Microsoft Corp.",
+    "files": [
+      "npm/tslib_2.8.1/LICENSE.txt"
+    ]
+  },
+  {
+    "name": "use-callback-ref",
+    "version": "1.3.3",
+    "license": "MIT",
+    "author": "theKashey <thekashey@gmail.com>",
+    "files": [
+      "npm/use-callback-ref_1.3.3/LICENSE"
+    ]
+  },
+  {
+    "name": "use-sidecar",
+    "version": "1.1.3",
+    "license": "MIT",
+    "author": "theKashey <thekashey@gmail.com>",
+    "files": [
+      "npm/use-sidecar_1.1.3/LICENSE"
+    ]
+  }
+]

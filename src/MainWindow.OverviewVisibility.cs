@@ -18,7 +18,7 @@ namespace Mori {
    }
   }
   internal void SetSelectedOverviewHidden(bool hidden){
-   if(busy||view=="trash"||!PrepareLibraryChange())return;
+   if(canvasProjectsMode||busy||view=="trash"||!PrepareLibraryChange())return;
    var selected=Selected();if(selected.Count==0)return;
    try{
     int changed=selected.Count(a=>a.HiddenFromAll!=hidden);

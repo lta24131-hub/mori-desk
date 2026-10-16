@@ -20,7 +20,7 @@ namespace QingJie {
         readonly TextBlock status=new TextBlock {FontSize=12,TextWrapping=TextWrapping.Wrap,Foreground=Ui.Green,Margin=new Thickness(0,8,0,0)};
         bool updating;
         readonly TextBlock shortcutStatus=new TextBlock {FontSize=12,Foreground=Ui.Brush("#718078"),TextWrapping=TextWrapping.Wrap};
-        ShortcutEditor captureKey,pinKey,translationKey;
+        ShortcutEditor captureKey,pinKey,translationKey,togglePinsKey;
         readonly OfflinePackPanel offline;readonly OcrLanguagePanel languages;bool disposed;
         internal CaptureSettingsPanel(bool embedded):this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,id=>File.Delete(OcrLanguagePacks.ModelPath(id))),embedded){}
         internal CaptureSettingsPanel(OcrLanguageSelection selection,bool embedded){
@@ -33,10 +33,10 @@ namespace QingJie {
             }
             panel.Children.Add(new TextBlock {Text="快捷键",FontSize=16,FontWeight=FontWeights.SemiBold,Foreground=Ui.Ink});
             panel.Children.Add(new TextBlock {Text="点击右侧按键，再按新组合键。保存后立即生效。",FontSize=12,Foreground=Ui.Brush("#718078"),Margin=new Thickness(0,6,0,6)});
-            captureKey=ShortcutRow(panel,"截图",AppState.Settings.Shortcuts.Capture);pinKey=ShortcutRow(panel,"贴图 / 找回",AppState.Settings.Shortcuts.Pin);translationKey=ShortcutRow(panel,"输入翻译",AppState.Settings.Shortcuts.Translate);
+            captureKey=ShortcutRow(panel,"截图",AppState.Settings.Shortcuts.Capture);pinKey=ShortcutRow(panel,"贴图 / 找回",AppState.Settings.Shortcuts.Pin);togglePinsKey=ShortcutRow(panel,"显示 / 隐藏全部贴图",AppState.Settings.Shortcuts.TogglePins);translationKey=ShortcutRow(panel,"输入翻译",AppState.Settings.Shortcuts.Translate);
             var shortcutActions=new StackPanel {Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};
-            shortcutActions.Children.Add(Ui.TextButton("恢复默认",()=>{var defaults=new ShortcutSet();captureKey.Reset(defaults.Capture);pinKey.Reset(defaults.Pin);translationKey.Reset(defaults.Translate);shortcutStatus.Text="已填入默认按键，点击保存后生效。";}));
-            shortcutActions.Children.Add(Ui.TextButton("保存快捷键",()=>{var error=AppState.SaveShortcuts(new ShortcutSet {Capture=captureKey.Value,Pin=pinKey.Value,Translate=translationKey.Value});Ui.Theme(shortcutStatus,TextBlock.ForegroundProperty,error==null?"Accent":"ErrorText");shortcutStatus.Text=error??"已保存，无需重启。";},true));panel.Children.Add(shortcutActions);panel.Children.Add(shortcutStatus);
+            shortcutActions.Children.Add(Ui.TextButton("恢复默认",()=>{var defaults=new ShortcutSet();captureKey.Reset(defaults.Capture);pinKey.Reset(defaults.Pin);translationKey.Reset(defaults.Translate);togglePinsKey.Reset(defaults.TogglePins);shortcutStatus.Text="已填入默认按键，点击保存后生效。";}));
+            shortcutActions.Children.Add(Ui.TextButton("保存快捷键",()=>{var error=AppState.SaveShortcuts(new ShortcutSet {Capture=captureKey.Value,Pin=pinKey.Value,Translate=translationKey.Value,TogglePins=togglePinsKey.Value});Ui.Theme(shortcutStatus,TextBlock.ForegroundProperty,error==null?"Accent":"ErrorText");shortcutStatus.Text=error??"已保存，无需重启。";},true));panel.Children.Add(shortcutActions);panel.Children.Add(shortcutStatus);
             IsVisibleChanged+=(s,e)=>{if(!IsVisible)AppState.ShortcutRecorder=null;};
             panel.Children.Add(new Border {Height=1,Background=Ui.Brush("#EBEFED"),Margin=new Thickness(0,18,0,16)});
             panel.Children.Add(new TextBlock {Text="翻译服务",FontSize=16,FontWeight=FontWeights.SemiBold,Foreground=Ui.Ink});

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -9,7 +10,7 @@ namespace QingJie {
     // Geometry-only fallback for visible rectangular cards/panels in applications
     // whose controls have no HWND (WPF, Chromium, Electron). Never OCRs text or
     // queries another application's accessibility provider. Only rectangles survive
-    // construction; temporary downsampled pixels are released before the overlay.
+    // analysis; temporary downsampled pixels are released when analysis finishes.
     internal sealed class CaptureVisualRegions {
         struct Region {internal Rect Bounds;internal bool Aggregate;}
         readonly List<Region> regions=new List<Region>();
@@ -21,7 +22,11 @@ namespace QingJie {
             foreach(var region in regions){var rect=region.Bounds;if(CaptureTargets.Contains(rect,point)&&visible.Contains(rect))yield return rect;}
         }
         internal static CaptureVisualRegions Read(BitmapSource image,System.Drawing.Rectangle screen){
+            return Read(image,screen,CancellationToken.None);
+        }
+        internal static CaptureVisualRegions Read(BitmapSource image,System.Drawing.Rectangle screen,CancellationToken cancel){
             var result=new CaptureVisualRegions();
+            cancel.ThrowIfCancellationRequested();
             if(image==null||image.PixelWidth<24||image.PixelHeight<16||screen.Width<=0||screen.Height<=0)return result;
             var watch=Stopwatch.StartNew();
             try{
@@ -39,7 +44,7 @@ namespace QingJie {
                 var lines=new List<EdgeRun>();
                 var buckets=new Dictionary<int,List<EdgeRun>>();
                 for(int y=1;y<height&&lines.Count<MaximumLines&&result.regions.Count<MaximumRegions;y++){
-                    if(watch.ElapsedMilliseconds>55)break;
+                    cancel.ThrowIfCancellationRequested();if(watch.ElapsedMilliseconds>55)break;
                     for(int x=1;x<width-1;){
                         if(!Edge(pixels,y*stride+x*4,(y-1)*stride+x*4)){x++;continue;}
                         int left=x,last=x,gaps=0;x++;
@@ -80,7 +85,8 @@ namespace QingJie {
                         if(lines.Count>=MaximumLines||result.regions.Count>=MaximumRegions)break;
                     }
                 }
-            }catch{ /* The native window chain and manual drag always remain usable. */ }
+            }catch(OperationCanceledException){throw;}
+            catch{ /* The native window chain and manual drag always remain usable. */ }
             return result;
         }
         static bool Edge(byte[] pixels,int a,int b){

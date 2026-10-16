@@ -82,6 +82,57 @@ namespace Mori {
         }
         static string FileCreated(string path){try{DateTime value=File.GetCreationTimeUtc(path);return value>DateTime.FromFileTimeUtc(0)?value.ToString("o",CultureInfo.InvariantCulture):"";}catch(IOException){return "";}catch(UnauthorizedAccessException){return "";}}
         static string CreatedValue(string value){DateTime parsed;return DateTime.TryParse(value,CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind,out parsed)&&parsed.Kind==DateTimeKind.Utc?parsed.ToString("o",CultureInfo.InvariantCulture):"";}
+        static void NoReuseLinks(string path){
+            for(string current=Path.GetFullPath(path);!string.IsNullOrEmpty(current);current=Path.GetDirectoryName(current)){
+                FileAttributes attributes;
+                try{attributes=File.GetAttributes(current);}catch(FileNotFoundException){continue;}catch(DirectoryNotFoundException){continue;}
+                if((attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("图库原文件路径包含链接，无法安全恢复。请检查图库位置，或选择另存一份。");
+                if(current!=path&&(attributes&FileAttributes.Directory)==0)throw new IOException("图库原文件所在文件夹无效，请检查本地地址，或选择另存一份。");
+            }
+        }
+        string ReusableOriginalPath(Asset asset){
+            string relative=asset.Relative;
+            if(string.IsNullOrWhiteSpace(relative)||Path.IsPathRooted(relative)||relative.IndexOf(':')>=0)throw new IOException("图库原文件地址无效，请检查本地地址，或选择另存一份。");
+            string path=Inside(Root,relative),owned=Path.Combine(Root,"原图").TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+            if(!path.StartsWith(owned,StringComparison.OrdinalIgnoreCase))throw new IOException("图库原文件不在原图目录中，无法安全恢复。请检查本地地址，或选择另存一份。");
+            if(Directory.Exists(path))throw new IOException("图库原文件地址已被文件夹占用，请检查本地地址，或选择另存一份。");
+            return path;
+        }
+        void EnsureReusableOriginal(Asset asset,FileStream input,string expectedHash){
+            string path=ReusableOriginalPath(asset);
+            if(File.Exists(path)){
+                // The incoming canonical file has already been hashed with this
+                // same handle held open against writes/deletes. Do not read it twice.
+                if(string.Equals(path,Path.GetFullPath(input.Name),StringComparison.OrdinalIgnoreCase))return;
+                // Never overwrite an externally replaced original. Holding this read
+                // handle also prevents changes while its identity is being checked.
+                // Existing originals may be read through a legitimate linked library
+                // location; strict no-link validation is reserved for recovery writes.
+                using(var original=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read)){
+                    if(original.Length!=input.Length)throw new IOException("图库原文件内容已改变，未覆盖原文件。请选择另存一份重新收藏。");
+                    string actual;using(var sha=SHA256.Create())actual=BitConverter.ToString(sha.ComputeHash(original)).Replace("-","");
+                    if(!string.Equals(actual,expectedHash,StringComparison.Ordinal))throw new IOException("图库原文件内容已改变，未覆盖原文件。请选择另存一份重新收藏。");
+                }
+                return;
+            }
+            string directory=Path.GetDirectoryName(path),pending=null;
+            try{
+                NoReuseLinks(path);
+                NoReuseLinks(directory);Directory.CreateDirectory(directory);NoReuseLinks(directory);
+                pending=Path.Combine(directory,".nook-restore-"+Guid.NewGuid().ToString("N")+".partial");
+                input.Position=0;
+                using(var output=new FileStream(pending,FileMode.CreateNew,FileAccess.Write,FileShare.None)){input.CopyTo(output,131072);output.Flush(true);}
+                ReusableOriginalPath(asset);NoReuseLinks(path);
+                // Move never replaces an existing file, including one created since
+                // validation. Only this import's unique pending file is cleaned up.
+                File.Move(pending,path);pending=null;
+                // Restored bytes belong to the existing row. Keep them even if a
+                // later metadata transaction fails; never delete an original while
+                // rolling back a failed revival or category update.
+            }finally{
+                if(pending!=null){NoReuseLinks(pending);if(File.Exists(pending))File.Delete(pending);}
+            }
+        }
         public ImportResult Import(string source,string folder,string name,string url,string tags,string notes,string created=null,string duplicateAction="reuse",bool fillMissingSource=false) {
             if(string.Equals(Path.GetExtension(source),".url",StringComparison.OrdinalIgnoreCase))return ImportBookmark(ReadBookmark(source),name??Path.GetFileNameWithoutExtension(source),folder,tags,notes,duplicateAction);
             return ImportCore(source,folder,name,url,tags,notes,created,duplicateAction,fillMissingSource);
@@ -111,6 +162,7 @@ namespace Mori {
                             if(duplicateAction=="skip"){result=new ImportResult{Item=existing,Duplicate=existing!=null,Skipped=true};return;}
                             if(existing!=null&&duplicateAction=="ask"){result=new ImportResult{Item=existing,Duplicate=true,ChoiceRequired=true};return;}
                             if(existing!=null&&duplicateAction=="reuse"){
+                                EnsureReusableOriginal(existing,input,hash);
                                 Db.Exec("UPDATE assets SET deleted=0 WHERE id="+Q(existing.Id));
                                 Uri sourceUri;if(fillMissingSource&&string.IsNullOrWhiteSpace(existing.Source)&&SourceLink.TryParse(url,out sourceUri)){
                                     Db.Exec("UPDATE assets SET source="+Q(url.Trim())+" WHERE id="+Q(existing.Id));existing.Source=url.Trim();
@@ -223,7 +275,7 @@ namespace Mori {
             foreach(var a in list) {
                 var destinations=new List<string>();if(hierarchy){foreach(var f in AssetFolders(a.Id)){var parts=new List<string>();var seen=new HashSet<string>();var current=f;while(current!=null&&seen.Add(current.Id)){parts.Insert(0,SafeName(current.Name));current=folders.FirstOrDefault(t=>t.Id==current.Parent);}destinations.Add(parts.Count>0?Inside(destination,Path.Combine(parts.ToArray())):destination);}}
                 if(destinations.Count==0)destinations.Add(hierarchy?Path.Combine(destination,"未分类"):destination);
-                foreach(var dir in destinations.Distinct(StringComparer.OrdinalIgnoreCase)){Directory.CreateDirectory(dir);string filename=SafeName(string.IsNullOrWhiteSpace(renamePrefix)?a.Name:renamePrefix+"-"+index.ToString("D4"))+a.Ext;File.Copy(FullPath(a),FreePath(dir,filename),false);count++;}index++;
+                foreach(var dir in destinations.Distinct(StringComparer.OrdinalIgnoreCase)){Directory.CreateDirectory(dir);string filename=SafeName(string.IsNullOrWhiteSpace(renamePrefix)?a.Name:renamePrefix+"-"+index.ToString("D4"));if(!filename.EndsWith(a.Ext,StringComparison.OrdinalIgnoreCase))filename+=a.Ext;File.Copy(FullPath(a),FreePath(dir,filename),false);count++;}index++;
             }return count;
         }
         public void Backup(string output) {

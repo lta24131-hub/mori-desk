@@ -16,7 +16,7 @@ namespace Mori {
  public partial class MainWindow {
   bool folderManaging;string folderAnchor="";
   readonly HashSet<string> folderSelection=new HashSet<string>();
-  bool PrepareFolderChange(){if(busy||bookmarkMode||!PrepareLibraryChange())return false;UpdateInspector();return true;}
+  bool PrepareFolderChange(){if(canvasProjectsMode||busy||bookmarkMode||!PrepareLibraryChange())return false;UpdateInspector();return true;}
   void InitializeFolderBatch(){
    B("ManageFolders").Click+=delegate{SetFolderManaging(!folderManaging);};
    B("FolderSelectAll").Click+=delegate{SelectAllFolders();};

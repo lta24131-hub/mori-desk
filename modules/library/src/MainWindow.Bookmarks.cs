@@ -8,8 +8,9 @@ using System.Windows.Automation;
 namespace Mori {
  public partial class MainWindow {
   internal void SetBookmarkMode(bool value){SetSection(value?"bookmarks":"assets");}
-  internal void SetSection(string section){if(busy||!PrepareLibraryChange())return;HideBrowser();if(MoriDesk.Entry.BoardEnabled&&section!="bookmarks"){ShowBoard(section);return;}HideBoard();localCollection="";mediaSection=section;bookmarkMode=section=="bookmarks";Find<ComboBox>("MediaFilter").SelectedIndex=0;T("Search").Clear();Navigate(bookmarkMode?"home":"all");}
+  internal void SetSection(string section){if(busy||!PrepareLibraryChange())return;HideCanvasProjects();HideBrowser();if(MoriDesk.Entry.BoardEnabled&&section!="bookmarks"){ShowBoard(section);return;}HideBoard();localCollection="";mediaSection=section;bookmarkMode=section=="bookmarks";Find<ComboBox>("MediaFilter").SelectedIndex=0;T("Search").Clear();Navigate(bookmarkMode?"home":"all");}
   internal void AddBookmark(string initial){
+   if(canvasProjectsMode)return;
    if(busy||!PrepareLibraryChange())return;
    var dialog=new Window{Owner=Window,Title="收藏网址",Width=480,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};Theme.Attach(dialog,Window);
    var body=new StackPanel{Margin=new Thickness(24)};dialog.Content=body;

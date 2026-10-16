@@ -22,6 +22,11 @@ namespace MoriDesk {
    var testApp=System.Windows.Application.Current??new System.Windows.Application();testApp.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
    IterationTests.Run(root,Check);BrowserLocalBridgeTests.Run(root,Check);BrowserExtensionManagerTests.Run(root,Check);ScreenshotCollectionTests.Run(root,Check);LaunchTests.Run(root,Check);ReferenceTests.Run(root,Check);LibraryConsistencyTests.Run(root,Check);ReferenceThumbnailFreshnessTests.Run(root,Check);MetadataRefreshCacheTests.Run(root,Check);InspectorDraftTests.Run(root,Check);BoardTests.Run(root,Check);ClassicTests.Run(root,Check);LocalCollectionTests.Run(root,Check);OverviewVisibilityTests.Run(root,Check);DesktopDropTests.Run(root,Check);DeskSettingsTests.Run(root,Check);
    BrandingTests.Run(Path.Combine(root,"branding"),Check);
+   ReferenceEagleMetadataTests.Run(Path.Combine(root,"reference-eagle"),Check);
+   ExportNamingTests.Run(Path.Combine(root,"export-naming"),Check);
+   ImageBrowserLifecycleTests.Run(Path.Combine(root,"image-browser-lifecycle"),Check);
+   HomepageUsabilityTests.Run(root,Check);
+   OpenWithRegistrationTests.Run(Path.Combine(root,"open-with"),Check);
    ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
    EmbeddedThemeTests.Run(Check);
    CaptureThemeTests.Run(Path.Combine(root,"capture-theme"),Check);
@@ -31,9 +36,25 @@ namespace MoriDesk {
    WallpaperTests.Run(Path.Combine(root,"wallpaper"),Check);
    SimpleBrowserTests.Run(Check);BrowserWorkspaceTests.Run(Path.Combine(root,"browser-workspace"),Check);
    FreeCanvasTests.Run(Path.Combine(root,"free-canvas"),Check);
+   CanvasProjectMemoryTests.Run(Path.Combine(root,"canvas-memory"),Check);
+   CanvasToolbarTests.Run(Path.Combine(root,"canvas-toolbar"),Check);
+   CanvasProjectsPageTests.Run(Path.Combine(root,"canvas-projects"),Check);
+   CanvasDestinationTests.Run(Path.Combine(root,"canvas-destinations"),Check);
+   CanvasProjectGalleryTests.Run(Path.Combine(root,"canvas-gallery"),Check);
+   CanvasFallbackSafetyTests.Run(Path.Combine(root,"canvas-fallback-safety"),Check);
+   CanvasProjectRefreshTests.Run(Path.Combine(root,"project-refresh"),Check);
+   CanvasTextLayoutTests.Run(Path.Combine(root,"canvas-text-layout"),Check);
+   CanvasLineSelectionTests.Run(Path.Combine(root,"canvas-line-selection"),Check);
+   CanvasStyleEditingTests.Run(Path.Combine(root,"canvas-style-editing"),Check);
+   MatureCanvasStoreTests.Run(Path.Combine(root,"mature-canvas-store"),Check);
+   MatureCanvasHostTests.Run(Path.Combine(root,"mature-canvas-host"),Check);
+   MatureCanvasInteractionTests.Run(Path.Combine(root,"mature-canvas-interaction"),Check);
    AppearanceSettingsTests.Run(Path.Combine(root,"appearance-settings"),Check);
    CustomizationTests.Run(Path.Combine(root,"customization"),Check);
    PreviewPreferencesTests.Run(Path.Combine(root,"preview-preferences"),Check);
+   DesktopImagePinTests.Run(Path.Combine(root,"desktop-image-pins"),Check);
+   PinLifecycleTests.Run(Path.Combine(root,"pin-lifecycle"),Check);
+   PinRuntimeTests.Run(Path.Combine(root,"pin-runtime"),Check);
    MiddleDragPanTests.Run(Check);
    File.WriteAllText(log,"PASS "+checks+" checks\r\nFixtures: "+root+"\r\n"+DateTime.Now.ToString("O"),Encoding.UTF8);return 0;
   }catch(Exception ex){File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\nFixtures: "+root,Encoding.UTF8);return 1;}}

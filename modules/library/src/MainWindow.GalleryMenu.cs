@@ -9,6 +9,7 @@ namespace Mori {
   void InitializeGalleryView(Settings settings){
    waterfallLayout=settings.WaterfallLayout;showAssetNames=settings.ShowAssetNames;showAssetDetails=settings.ShowAssetDetails;
    sidebars.SetVisible(true,settings.LeftSidebarVisible);sidebars.SetVisible(false,settings.RightSidebarVisible);
+   B("ToggleInspector").Click+=delegate{ToggleSidebar(false);};UpdateDetailsToggle();
    // Include the empty-state overlay, but not toolbar controls or scroll bars.
    Find<Grid>("Center").PreviewMouseRightButtonDown+=delegate(object s,MouseButtonEventArgs e){
     if(e.Handled||Tile(e.OriginalSource)!=null)return;
@@ -24,11 +25,14 @@ namespace Mori {
    waterfallLayout=settings.WaterfallLayout;showAssetNames=settings.ShowAssetNames;showAssetDetails=settings.ShowAssetDetails;
    sidebars.SetVisible(true,settings.LeftSidebarVisible);sidebars.SetVisible(false,settings.RightSidebarVisible);
    sidebars.SetPreferred(true,settings.LeftSidebarWidth);sidebars.SetPreferred(false,settings.RightSidebarWidth);
+   UpdateDetailsToggle();
    Find<Slider>("ThumbnailSize").Value=settings.ThumbnailSize;Find<ComboBox>("Sort").SelectedIndex=settings.DefaultSort;
-   Refresh(false);BuildRows(true);
+   Refresh(false);BuildRows(true);if(canvasProjectsMode)ApplyCanvasProjectsPresentation();
   }
-  internal void ToggleSidebar(bool left){sidebars.SetVisible(left,left?!sidebars.LeftVisible:!sidebars.RightVisible);SaveGalleryView();QueueLayout();}
+  void UpdateDetailsToggle(){var button=B("ToggleInspector");bool visible=sidebars.RightVisible;string label=visible?"收起详情栏":"显示详情栏";button.Content=visible?"\uE89F":"\uE8A0";button.ToolTip=label+" · Ctrl+Alt+2";System.Windows.Automation.AutomationProperties.SetName(button,label);}
+  internal void ToggleSidebar(bool left){sidebars.SetVisible(left,left?!sidebars.LeftVisible:!sidebars.RightVisible);UpdateDetailsToggle();SaveGalleryView();QueueLayout();}
   internal void RefreshGallery(){
+   if(canvasProjectsMode){RefreshCanvasProjects();ApplyCanvasProjectsPresentation();return;}
    if(busy){Status("正在处理素材，请完成后再刷新。");return;}
    if(!PrepareLibraryChange())return;
    var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));double offset=scroll==null?0:scroll.VerticalOffset;

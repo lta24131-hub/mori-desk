@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using System.Diagnostics;
 namespace MoriDeskInstaller {
  static class Program {
-  const string Version="0.1.22";
+  const string Version="0.1.23";
   internal static bool ProductIdentity(string productName,string originalFilename){return (string.Equals(productName,"Mori Desk",StringComparison.OrdinalIgnoreCase)||string.Equals(productName,"Nook",StringComparison.OrdinalIgnoreCase))&&string.Equals(originalFilename,"Mori.exe",StringComparison.OrdinalIgnoreCase);}
   internal static bool MatchesRunningProcess(int processId,int sessionId,string productName,string originalFilename,int installerId,int installerSession){return processId!=installerId&&sessionId==installerSession&&ProductIdentity(productName,originalFilename);}
   static bool HasRunningMoriDesk(){
@@ -43,6 +43,9 @@ namespace MoriDeskInstaller {
     GuardShortcut(desktopLink);GuardShortcut(startLink);
     string root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk",Version+"-"+DateTime.Now.ToString("yyyyMMddHHmmss"));
     string exe=Extract(root);Directory.CreateDirectory(start);Shortcut(desktopLink,exe);Shortcut(startLink,exe);
+    // Refresh only this suite's Open-with entry. Windows user defaults and
+    // other applications' registrations are intentionally left untouched.
+    MoriDesk.OpenWithRegistration.RepairInstalled(exe);
     // Remove only links whose existing target is demonstrably our old suite.
     // Never remove old program directories, user data or unrelated Mori links.
     RemoveOwnedLegacyShortcut(Path.Combine(desktop,"Mori Desk.lnk"));

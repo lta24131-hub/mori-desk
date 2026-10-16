@@ -1,0 +1,30 @@
+Bundled fonts are copied without modification from @tldraw/assets 2.4.6.
+Corresponding original font metadata and license entries remain in the files.
+
+IBMPlexMono-Medium.woff2 / IBM Plex Mono Medium
+Copyright 2017 IBM Corp. All rights reserved.
+
+IBMPlexSans-Medium.woff2 / IBM Plex Sans Medium
+Copyright 2018 IBM Corp. All rights reserved.
+
+IBMPlexSerif-Medium.woff2 / IBM Plex Serif Medium
+Copyright 2020 IBM Corp. All rights reserved.
+
+These three fonts: SIL Open Font License 1.1, Reserved Font Name "Plex".
+Full license: IBM-Plex-OFL.txt
+License source: https://github.com/IBM/plex/blob/39276912b05f700ee1dd491950c35d8697214208/LICENSE.txt
+Font manufacturer: Bold Monday.
+Font designers: Mike Abbink, Paul van der Laan, Pieter van Rosmalen.
+
+Shantell_Sans-Tldrawish.woff2 / Shantell Sans Informal SemiBold
+Copyright 2022 The Shantell Sans Project Authors
+(https://github.com/arrowtype/shantell-sans)
+SIL Open Font License 1.1. Full license: Shantell-Sans-OFL.txt
+License source: https://github.com/arrowtype/shantell-sans/blob/43932aa9375e60fbcb930b0f865f2f60eae9d206/OFL.txt
+Font manufacturer: Arrow Type.
+Font designers: Stephen Nixon, Anya Danilova, Shantell Martin.
+
+Bundled font source (immutable):
+https://github.com/tldraw/tldraw/tree/16ba10a88e7145a5bec772a985df5a8c5b943c74/assets/fonts
+
+Names and credits identify original contributions, not endorsements.

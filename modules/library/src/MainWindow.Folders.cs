@@ -77,22 +77,22 @@ namespace Mori {
    // Other keys retain native tree navigation, never trigger gallery deletion.
    return true;
   }
-  void NewFolder(){var menu=CreateNewFolderMenu();menu.PlacementTarget=B("NewFolder");menu.Placement=PlacementMode.Bottom;menu.IsOpen=true;}
+  void NewFolder(){if(canvasProjectsMode)return;var menu=CreateNewFolderMenu();menu.PlacementTarget=B("NewFolder");menu.Placement=PlacementMode.Bottom;menu.IsOpen=true;}
   void NewFolder(string parent){
-   if(busy||!PrepareLibraryChange())return;
+   if(canvasProjectsMode||busy||!PrepareLibraryChange())return;
    string name=Prompt(string.IsNullOrEmpty(parent)?"新建分类":"新建子分类","分类名称","");if(name==null)return;
    try{string id=null;Edit("新建分类",()=>id=library.CreateFolder(name,parent));Navigate(id);ReloadFolders(id);Status("分类已创建 · Ctrl+Z 撤销。");}
    catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法新建分类");}
   }
   void RenameFolder(string id){
-   if(busy)return;var folder=library.Folders().FirstOrDefault(f=>f.Id==id);if(folder==null){ReloadFolders();return;}
+   if(canvasProjectsMode||busy)return;var folder=library.Folders().FirstOrDefault(f=>f.Id==id);if(folder==null){ReloadFolders();return;}
    string name=Prompt("重命名分类","分类名称",folder.Name);if(name==null||name.Trim()==folder.Name)return;
    try{Edit("重命名分类",()=>library.RenameFolder(id,name));ReloadFolders();Refresh(false);RefreshCategoryLabel();}
    catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法重命名分类");}
   }
   void RefreshCategoryLabel(){var items=Selected();if(items.Count==1)L("CategoryInfo").Text="分类："+string.Join(" / ",library.AssetFolders(items[0].Id).Select(f=>f.Name));}
   void DeleteFolder(string id){
-   if(busy)return;var folders=library.Folders();var folder=folders.FirstOrDefault(f=>f.Id==id);if(folder==null){ReloadFolders();return;}
+   if(canvasProjectsMode||busy)return;var folders=library.Folders();var folder=folders.FirstOrDefault(f=>f.Id==id);if(folder==null){ReloadFolders();return;}
    int children=folders.Count(f=>f.Parent==id);
    string text="删除分类“"+folder.Name+"”？\n\n仅删除分类，不删除图片、视频或网址，也不会把它们放入回收站。\n没有其他分类的内容会转到“未分类”；已有的其他分类归属不变。\n可按 Ctrl+Z 恢复分类及原来的归属。";
    if(children>0)text+="\n\n其中 "+children+" 个子分类会保留并移到上一级。";

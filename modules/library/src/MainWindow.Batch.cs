@@ -15,16 +15,16 @@ namespace Mori {
    B("BatchDelete").Click+=delegate{Trash();};B("BatchRestore").Click+=delegate{RestoreTrash();};
   }
   internal void SetBatchSelecting(bool enabled){
-   if(busy||!PrepareLibraryChange())return;batchSelecting=enabled;pressed=null;dragSelection=null;
+   if(canvasProjectsMode||busy||!PrepareLibraryChange())return;batchSelecting=enabled;pressed=null;dragSelection=null;
    if(!enabled){selection.Clear();anchor="";}SyncSelection();Find<ListBox>("Gallery").Focus();
   }
   internal void SelectAllVisible(){
-   if(busy||!PrepareLibraryChange())return;selection.Clear();foreach(var a in visible)selection.Add(a.Id);SyncSelection();Find<ListBox>("Gallery").Focus();
+   if(canvasProjectsMode||busy||!PrepareLibraryChange())return;selection.Clear();foreach(var a in visible)selection.Add(a.Id);SyncSelection();Find<ListBox>("Gallery").Focus();
   }
   // Capture modifiers on mouse-down. Releasing Ctrl before the mouse button
   // must not collapse the multi-selection again on mouse-up.
   internal bool SelectTile(Asset a,ModifierKeys modifiers){
-   if(busy||a==null||!visible.Any(x=>x.Id==a.Id))return false;
+   if(canvasProjectsMode||busy||a==null||!visible.Any(x=>x.Id==a.Id))return false;
    if((batchSelecting||!selection.Contains(a.Id)||modifiers!=ModifierKeys.None)&&!PrepareLibraryChange())return false;
    dragSelection=batchSelecting&&selection.Contains(a.Id)?selection.ToArray():null;
    collapseSelectionOnUp=!batchSelecting&&modifiers==ModifierKeys.None&&selection.Contains(a.Id);
@@ -36,6 +36,7 @@ namespace Mori {
    SyncSelection();return true;
   }
   internal void FinishTileSelection(Asset a,bool wasDragged){
+   if(canvasProjectsMode){collapseSelectionOnUp=false;dragSelection=null;return;}
    if(a!=null&&!wasDragged&&collapseSelectionOnUp&&selection.Count>1&&PrepareLibraryChange()){selection.Clear();selection.Add(a.Id);anchor=a.Id;SyncSelection();}collapseSelectionOnUp=false;dragSelection=null;
   }
   internal void RestoreDragSelection(){if(dragSelection==null)return;selection.Clear();foreach(string id in dragSelection)selection.Add(id);dragSelection=null;SyncSelection();}
@@ -53,7 +54,7 @@ namespace Mori {
    B("MoveCategory").Visibility=trash||bookmarkMode?Visibility.Collapsed:Visibility.Visible;B("MoveCategory").IsEnabled=!busy&&count>0;
   }
   internal void ApplyCategory(string[] ids,string folder,bool move,bool bookmarks){
-   if(busy||view=="trash"||ids==null||ids.Length==0)return;
+   if(canvasProjectsMode||busy||view=="trash"||ids==null||ids.Length==0)return;
    string name=folder==""?"未分类":library.Folders(bookmarks).Where(f=>f.Id==folder).Select(f=>f.Name).FirstOrDefault();
    if(name==null){Status("目标分类已不存在，请重新选择。");return;}
    try{
@@ -62,6 +63,7 @@ namespace Mori {
    }catch(Exception ex){Status("分类未更改："+ex.Message);}
   }
   void ChooseCategory(bool move){
+   if(canvasProjectsMode)return;
    if(LocalCollectionsActive){ChooseLocalCollection();return;}
    if(busy||view=="trash"||selection.Count==0||!PrepareLibraryChange())return;
    var ids=selection.ToArray();bool web=bookmarkMode;move=move||web;

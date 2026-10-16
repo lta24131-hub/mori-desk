@@ -17,6 +17,7 @@ namespace Mori {
    Navigate(target);return true;
   }
   internal void UpdateNavigationScope(){
+   if(canvasProjectsMode){ApplyCanvasProjectsPresentation();return;}if(canvasNav!=null)canvasNav.SetResourceReference(Button.BackgroundProperty,"Panel");
    string scope=bookmarkMode?"网址":"素材";
    B("Unfiled").Content="未分类"+scope;B("Favorites").Content="星标"+scope;B("Trash").Content=scope+"回收站";
    foreach(string name in new[]{"Unfiled","Favorites","Trash"})B(name).ToolTip=bookmarkMode?"仅查看网址收藏":"查看本机图片、动图、视频、音频和文档，可用上方类型筛选";
@@ -43,6 +44,7 @@ namespace Mori {
    var item=new MenuItem{Header=title,InputGestureText=shortcut,IsEnabled=enabled};item.Click+=delegate{action();};return item;
   }
   internal ContextMenu CreateMoreMenu(){
+   if(canvasProjectsMode){var projects=Theme.Menu(Window);projects.Items.Add(ActionItem("新建画布",canvasProjectsPage.CreateProject,"Ctrl+N",!busy&&(freeCanvas==null||freeCanvas.CanImportImages)));projects.Items.Add(ActionItem("刷新项目",canvasProjectsPage.Refresh,"F5",!busy));projects.Items.Add(ActionItem("设置",ShowDeskSettings));projects.Items.Add(new Separator());projects.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return projects;}
    if(browserMode){var browsing=Theme.Menu(Window);browsing.Items.Add(ActionItem("返回收藏",HideBrowser));browsing.Items.Add(ActionItem("设置",ShowDeskSettings));browsing.Items.Add(new Separator());browsing.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return browsing;}
    if(boardMode){var desktop=Theme.Menu(Window);desktop.Items.Add(ActionItem("设置",ShowDeskSettings));desktop.Items.Add(ActionItem("图库高级管理",()=>{HideBoard();Navigate("all");}));desktop.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));desktop.Items.Add(new Separator());desktop.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return desktop;}
    if(referenceMode){var local=Theme.Menu(Window);local.Items.Add(ActionItem("返回素材库",HideReferences));local.Items.Add(ActionItem("设置",ShowDeskSettings));local.Items.Add(new Separator());local.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return local;}
@@ -85,14 +87,15 @@ namespace Mori {
    if(view=="trash")menu.Items.Add(ActionItem("恢复素材",RestoreTrash,"",!busy));
    else{
     if(LocalCollectionsActive&&selected.Count>0&&selected.All(x=>x.IsReference)){
-     menu.Items.Add(ActionItem("移到分类文件夹…",ChooseLocalCollection,"",!busy));
+     menu.Items.Add(ActionItem("移动到分类文件夹…",ChooseLocalCollection,"",!busy));
      menu.Items.Add(ActionItem("新建分类并移入…",()=>NewLocalCollection(true),"",!busy));
      if(selected.Any(x=>!string.IsNullOrEmpty(x.LocalCollection)))menu.Items.Add(ActionItem("移回本地收藏外层",()=>MoveLocalCollection(selection.ToArray(),""),"",!busy));
      menu.Items.Add(new Separator());
+    }else{
+     if(!web)menu.Items.Add(ActionItem("移动到分类…",()=>ChooseCategory(true),"",!busy));
+     menu.Items.Add(ActionItem(web?"移动到文件夹…":"添加到分类…",Categorize,"",!busy));
+     if(CurrentFolder()!="")menu.Items.Add(ActionItem(web?"移到未分类":"从当前分类移除",delegate{if(!PrepareLibraryChange())return;Edit("从分类移除",()=>library.RemoveFromFolder(selection,view));Refresh(true);},"",!busy));
     }
-    if(!web)menu.Items.Add(ActionItem("移动到分类…",()=>ChooseCategory(true),"",!busy));
-    menu.Items.Add(ActionItem(web?"移动到文件夹…":"添加到分类…",Categorize,"",!busy));
-    if(CurrentFolder()!="")menu.Items.Add(ActionItem(web?"移到未分类":"从当前分类移除",delegate{if(!PrepareLibraryChange())return;Edit("从分类移除",()=>library.RemoveFromFolder(selection,view));Refresh(true);},"",!busy));
     menu.Items.Add(ActionItem(selected.Count>0&&selected.All(x=>x.Favorite)?"取消星标":"添加星标",Star,"",!busy));
     AddOverviewVisibilityMenu(menu,selected);
    }
@@ -100,11 +103,11 @@ namespace Mori {
   }
   internal static string BookmarkCopyText(IEnumerable<Asset> items){return string.Join(Environment.NewLine,items.Where(a=>a.IsBookmark).Select(a=>a.Source));}
   void CopySelection(){
-   var items=Selected();if(items.Count==0||busy)return;
+   var items=Selected();if(canvasProjectsMode||items.Count==0||busy)return;
    try{if(items.All(a=>a.IsBookmark))Clipboard.SetText(BookmarkCopyText(items));else{var files=new System.Collections.Specialized.StringCollection();files.AddRange(items.Select(library.FullPath).ToArray());Clipboard.SetFileDropList(files);}Status("已复制 "+items.Count+(items.All(a=>a.IsBookmark)?" 个网址":" 个文件"));}catch(Exception error){Status("复制失败："+error.Message);}
   }
   internal string RevealImported(IEnumerable<string> ids,string folder){
-   HideBrowser();
+   HideCanvasProjects();HideBrowser();
    var imported=new HashSet<string>(ids);var items=library.All().Where(a=>imported.Contains(a.Id)&&!a.Deleted).ToList();if(items.Count==0)return "";
    bool web=items.All(a=>a.IsBookmark);bookmarkMode=web;
    var target=library.Folders(web).FirstOrDefault(f=>f.Id==folder);
@@ -115,6 +118,6 @@ namespace Mori {
    selection.Clear();foreach(var a in items.Where(a=>a.IsBookmark==web))selection.Add(a.Id);ReloadFolders();
    return (items.Any(a=>a.IsBookmark)&&!web?" · 网址已单独保存到“网址”页面":"")+(mediaSection=="assets"&&local.Any(a=>SectionContains(a,"documents"))?" · 文档已单独保存到“文档”页面":"");
   }
-  void ChooseMediaFiles(){if(busy||!PrepareLibraryChange())return;var dialog=new Microsoft.Win32.OpenFileDialog{Multiselect=true,Title="导入素材 · 原文件保持不动",Filter="素材文件|"+string.Join(";",Library.Extensions.Select(x=>"*"+x))+"|所有文件|*.*"};if(dialog.ShowDialog(Window)==true)ImportPaths(dialog.FileNames,null);}
+  void ChooseMediaFiles(){if(canvasProjectsMode||busy||!PrepareLibraryChange())return;var dialog=new Microsoft.Win32.OpenFileDialog{Multiselect=true,Title="导入素材 · 原文件保持不动",Filter="素材文件|"+string.Join(";",Library.Extensions.Select(x=>"*"+x))+"|所有文件|*.*"};if(dialog.ShowDialog(Window)==true)ImportPaths(dialog.FileNames,null);}
  }
 }

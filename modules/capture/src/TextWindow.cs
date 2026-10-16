@@ -15,11 +15,14 @@ namespace QingJie {
     public sealed class TextWindow : Window {
         readonly BitmapSource image;
         BitmapSource translatedImage;
+        ImageTranslationResult imageTranslation;
         readonly Image picture=new Image {Name="OcrPicture",Stretch=Stretch.Fill};
         readonly OcrHighlights highlights=new OcrHighlights {Cursor=Cursors.IBeam};
         readonly TextBox original=new TextBox {Name="RecognizedText",IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,FontSize=14,Padding=new Thickness(16,18,14,12),BorderThickness=new Thickness(0),IsInactiveSelectionHighlightEnabled=true,SelectionOpacity=.65};
         readonly TextBox result=new TextBox {Name="SelectedTranslation",IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,MaxHeight=150,MinHeight=40,BorderThickness=new Thickness(0),Padding=new Thickness(8),FontSize=14};
         readonly StackPanel selectionActions=new StackPanel {Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(6),Visibility=Visibility.Collapsed};
+        readonly StackPanel imageTranslationActions=new StackPanel {Name="ImageTranslationActions",Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(6),Visibility=Visibility.Collapsed};
+        readonly TextBlock resultHeading=new TextBlock {Text="所选译文",VerticalAlignment=VerticalAlignment.Center};
         readonly Border resultCard=new Border {Background=Ui.Brush("#ECF7F1"),BorderBrush=Ui.Brush("#D6E5DB"),BorderThickness=new Thickness(0,1,0,0),Visibility=Visibility.Collapsed};
         readonly TextBlock status=new TextBlock {Foreground=Brushes.White,TextWrapping=TextWrapping.Wrap,FontSize=12,Margin=new Thickness(8)};
         readonly Border statusCard;
@@ -34,11 +37,17 @@ namespace QingJie {
         string translationTarget;
         Task<OcrPage> ocrTask;
         OcrPage page;
-        bool closed,selectingImage,draggingText,showTranslated,fitMode=true;
+        bool closed,selectingImage,draggingText,showTranslated,showingImageTranscript,fitMode=true;
         int imageAnchor=-1,textAnchor;
         double zoom=1;
 
         public TextWindow(BitmapSource source,string targetLanguage="zh"):this(source,targetLanguage,OcrService.Read){}
+        // A capture's partial image result already owns OCR and complete text.
+        // Reusing them must not start another recognition or translation request.
+        internal TextWindow(BitmapSource source,string targetLanguage,OcrPage knownPage,ImageTranslationResult knownTranslation,string provider):this(source,targetLanguage,OcrService.Read){
+            if(knownPage!=null){page=knownPage;ocrTask=Task.FromResult(knownPage);original.Text=knownPage.Text;}
+            if(knownTranslation!=null&&provider==Translation.Provider)ApplyImageTranslation(knownTranslation,true);
+        }
         internal TextWindow(BitmapSource source,string targetLanguage,Func<BitmapSource,CancellationToken,Task<OcrPage>> recognize) {
             this.recognize=recognize;
             translationTarget=Translation.TargetLanguage(targetLanguage);
@@ -72,20 +81,23 @@ namespace QingJie {
             preview=new Viewbox {Child=drawing,Stretch=Stretch.Fill};scroll.Content=preview;scroll.SizeChanged+=(s,e)=>{if(fitMode)Fit();};
             scroll.PreviewMouseWheel+=(s,e)=>{if((Keyboard.Modifiers&ModifierKeys.Control)!=0){ChangeZoom(zoom*(e.Delta>0?1.12:1/1.12));e.Handled=true;}};
             statusCard=new Border {Child=status,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(4),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Bottom,Margin=new Thickness(12),MaxWidth=480,Visibility=Visibility.Collapsed};Ui.Theme(statusCard,Border.BackgroundProperty,"Surface");Ui.Theme(statusCard,Border.BorderBrushProperty,"Border");imageArea.Children.Add(statusCard);
-            var right=new Grid();right.RowDefinitions.Add(new RowDefinition());right.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});right.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});
+            var right=new Grid();right.RowDefinitions.Add(new RowDefinition());right.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});right.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});right.RowDefinitions.Add(new RowDefinition {Height=GridLength.Auto});
             sidebar=new Border {Child=right,BorderThickness=new Thickness(1,0,0,0)};Ui.Theme(sidebar,Border.BackgroundProperty,"Surface");Ui.Theme(sidebar,Border.BorderBrushProperty,"Divider");Grid.SetColumn(sidebar,1);columns.Children.Add(sidebar);
-            right.Children.Add(original);Grid.SetRow(selectionActions,1);right.Children.Add(selectionActions);
+            right.Children.Add(original);Grid.SetRow(imageTranslationActions,1);right.Children.Add(imageTranslationActions);
+            var allText=ActionButton("完整译文",ShowImageTranscript);allText.Name="ShowImageTranslationTranscript";imageTranslationActions.Children.Add(allText);
+            var copyAll=ActionButton("复制全部译文",()=>{if(imageTranslation!=null)CopyText(imageTranslation.Transcript);});copyAll.Name="CopyImageTranslationTranscript";imageTranslationActions.Children.Add(copyAll);
+            Grid.SetRow(selectionActions,2);right.Children.Add(selectionActions);
             selectionActions.Children.Add(ActionButton("复制",()=>CopyText(original.SelectedText)));
             translateSelection=ActionButton("翻译所选",TranslateSelected,true);translateSelection.ToolTip="翻译所选文字 · Ctrl+Enter";selectionActions.Children.Add(translateSelection);
             var resultPanel=new StackPanel();var resultHeader=new DockPanel {Margin=new Thickness(8,4,4,0)};
             var closeResult=Symbol("\uE8BB","收起译文",()=>resultCard.Visibility=Visibility.Collapsed,28);DockPanel.SetDock(closeResult,Dock.Right);resultHeader.Children.Add(closeResult);
-            copyResult=ActionButton("复制译文",()=>CopyText(result.Text));copyResult.IsEnabled=false;DockPanel.SetDock(copyResult,Dock.Right);resultHeader.Children.Add(copyResult);resultHeader.Children.Add(Ui.Theme(new TextBlock {Text="译文",VerticalAlignment=VerticalAlignment.Center},TextBlock.ForegroundProperty,"Text"));
-            resultPanel.Children.Add(resultHeader);resultPanel.Children.Add(result);resultCard.Child=resultPanel;Grid.SetRow(resultCard,2);right.Children.Add(resultCard);
+            copyResult=ActionButton("复制译文",()=>CopyText(result.Text));copyResult.IsEnabled=false;DockPanel.SetDock(copyResult,Dock.Right);resultHeader.Children.Add(copyResult);resultHeader.Children.Add(Ui.Theme(resultHeading,TextBlock.ForegroundProperty,"Text"));
+            resultPanel.Children.Add(resultHeader);resultPanel.Children.Add(result);resultCard.Child=resultPanel;Grid.SetRow(resultCard,3);right.Children.Add(resultCard);
             ConfigureTextSelection();ConfigureImageSelection();
             original.SelectionChanged+=(s,e)=>{ResetSelectedTranslation();selectionActions.Visibility=original.SelectionLength>0?Visibility.Visible:Visibility.Collapsed;HighlightSelected();};
             Loaded+=async(s,e)=>{Fit();try{await EnsureOcr();}catch(Exception ex){if(!closed)Status(ex.Message);}};
             AppState.TranslationProviderChanged+=RefreshProvider;
-            Closed+=(s,e)=>{closed=true;AppState.TranslationProviderChanged-=RefreshProvider;cancel.Cancel();picture.Source=null;translatedImage=null;highlights.SetSelection(null,0,0);};
+            Closed+=(s,e)=>{closed=true;AppState.TranslationProviderChanged-=RefreshProvider;cancel.Cancel();picture.Source=null;translatedImage=null;imageTranslation=null;highlights.SetSelection(null,0,0);};
             PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape){Close();e.Handled=true;}else if(e.Key==Key.Enter&&(Keyboard.Modifiers&ModifierKeys.Control)!=0){TranslateSelected();e.Handled=true;}else if(e.Key==Key.S&&(Keyboard.Modifiers&ModifierKeys.Control)!=0){Try(()=>ImageFiles.Save(Displayed,this));e.Handled=true;}};
         }
         BitmapSource Displayed {get{return showTranslated&&translatedImage!=null?translatedImage:image;}}
@@ -103,28 +115,53 @@ namespace QingJie {
         void ClearStatus(){statusCard.Visibility=Visibility.Collapsed;}
         void Try(Action action){try{action();}catch(Exception ex){Status(ex.Message);}}
         void CopyText(string text){if(!string.IsNullOrEmpty(text))Try(()=>Clipboard.SetText(text));}
-        void Fit(){zoom=Math.Max(.02,Math.Min(1,Math.Min(Math.Max(1,scroll.ActualWidth-4)/image.PixelWidth,Math.Max(1,scroll.ActualHeight-4)/image.PixelHeight)));ApplyZoom();}
+        void Fit(){Fit(VisualTreeHelper.GetDpi(this));}
+        void Fit(DpiScale dpi){zoom=TextPreviewScale.Fit(new Size(image.PixelWidth,image.PixelHeight),new Size(Math.Max(1,scroll.ActualWidth-4),Math.Max(1,scroll.ActualHeight-4)),dpi);ApplyZoom(dpi);}
         void ChangeZoom(double amount){fitMode=false;zoom=Geometry.Clamp(amount,.02,8);ApplyZoom();}
-        void ApplyZoom(){preview.Width=image.PixelWidth*zoom;preview.Height=image.PixelHeight*zoom;}
+        void ApplyZoom(){ApplyZoom(VisualTreeHelper.GetDpi(this));}
+        void ApplyZoom(DpiScale dpi){var size=TextPreviewScale.LogicalSize(new Size(image.PixelWidth,image.PixelHeight),zoom,dpi);preview.Width=size.Width;preview.Height=size.Height;}
+        protected override void OnDpiChanged(DpiScale oldDpi,DpiScale newDpi){
+            base.OnDpiChanged(oldDpi,newDpi);
+            if(preview==null||closed)return;
+            // Keep the chosen physical magnification while moving between
+            // monitors. A fit view instead refits to the new viewport scale.
+            if(fitMode)Fit(newDpi);else ApplyZoom(newDpi);
+        }
         void ToggleSidebar(){bool show=sidebar.Visibility!=Visibility.Visible;sidebar.Visibility=show?Visibility.Visible:Visibility.Collapsed;sidebarColumn.Width=new GridLength(show?284:0);Mark(showText,show);}
+        void ShowImageTranscript(){
+            if(imageTranslation==null)return;
+            if(selectionRequest!=null){selectionRequest.Cancel();selectionRequest=null;}translateSelection.IsEnabled=true;
+            showingImageTranscript=true;resultHeading.Text="整图译文";result.Text=imageTranslation.Transcript??"";copyResult.IsEnabled=!string.IsNullOrWhiteSpace(result.Text);resultCard.Visibility=Visibility.Visible;
+            if(sidebar.Visibility!=Visibility.Visible)ToggleSidebar();
+        }
+        void ImageTranslationStatus(){
+            if(imageTranslation!=null&&imageTranslation.UnplacedCount>0)Status("有 "+imageTranslation.UnplacedCount+" 处未能安全排入，已保留原文。可查看或复制「完整译文」。");
+            else ClearStatus();
+        }
+        void ApplyImageTranslation(ImageTranslationResult translated,bool revealTranscript){
+            imageTranslation=translated;translatedImage=translated.Image;showTranslated=true;picture.Source=Displayed;Mark(translatePicture,true);
+            imageTranslationActions.Visibility=string.IsNullOrWhiteSpace(translated.Transcript)?Visibility.Collapsed:Visibility.Visible;
+            if(revealTranscript||translated.UnplacedCount>0)ShowImageTranscript();
+            HighlightSelected();ImageTranslationStatus();
+        }
         internal async Task<OcrPage> EnsureOcr(){
             if(page!=null)return page;if(ocrTask==null){Status("正在本机识别文字…");ocrTask=recognize(image,cancel.Token);}var request=ocrTask;OcrPage read;
             try{read=await request;}catch{if(ocrTask==request)ocrTask=null;throw;}if(closed)return read;
             if(page==null){page=read;original.Text=page.Text;ClearStatus();if(page.Words.Count==0)Status("未识别到文字，原图保留。");}return page;
         }
         async void ToggleImageTranslation(){
-            if(imageRequest!=null)return;if(translatedImage!=null){showTranslated=!showTranslated;picture.Source=Displayed;Mark(translatePicture,showTranslated);HighlightSelected();return;}
-            var request=CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);imageRequest=request;string target=translationTarget;translatePicture.IsEnabled=false;
-            try{var text=await EnsureOcr();request.Token.ThrowIfCancellationRequested();if(closed||text.Words.Count==0)return;Status(Translation.ProgressText);var regions=ImageTranslation.Regions(text);var translated=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),request.Token,target);if(closed||imageRequest!=request||request.IsCancellationRequested)return;translatedImage=ImageTranslation.Render(image,regions,translated);showTranslated=true;picture.Source=translatedImage;Mark(translatePicture,true);HighlightSelected();ClearStatus();}
+            if(imageRequest!=null)return;if(translatedImage!=null){showTranslated=!showTranslated;picture.Source=Displayed;Mark(translatePicture,showTranslated);HighlightSelected();ImageTranslationStatus();return;}
+            var request=CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);imageRequest=request;string target=translationTarget,provider=Translation.Provider;translatePicture.IsEnabled=false;
+            try{var text=await EnsureOcr();request.Token.ThrowIfCancellationRequested();if(closed||text.Words.Count==0)return;Status(Translation.ProgressText);var regions=ImageTranslation.Regions(text);var translated=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),request.Token,target,provider);if(closed||imageRequest!=request||request.IsCancellationRequested||translationTarget!=target||Translation.Provider!=provider)return;ApplyImageTranslation(ImageTranslation.RenderWithStatus(image,regions,translated),false);}
             catch(OperationCanceledException){if(!closed&&imageRequest==request&&!request.IsCancellationRequested)Status("翻译超时，原图保留。可再次点击翻译。");}catch(Exception ex){if(!closed&&imageRequest==request)Status(ex.Message);}
             finally{if(imageRequest==request){imageRequest=null;if(!closed)translatePicture.IsEnabled=true;}request.Dispose();}
         }
-        void ResetSelectedTranslation(){if(selectionRequest!=null){selectionRequest.Cancel();selectionRequest=null;}translateSelection.IsEnabled=true;result.Clear();copyResult.IsEnabled=false;resultCard.Visibility=Visibility.Collapsed;}
-        void ChangeTarget(string language){translationTarget=language;if(imageRequest!=null){imageRequest.Cancel();imageRequest=null;}ResetSelectedTranslation();translatedImage=null;showTranslated=false;picture.Source=image;translatePicture.IsEnabled=true;Mark(translatePicture,false);ClearStatus();HighlightSelected();}
+        void ResetSelectedTranslation(){if(selectionRequest!=null){selectionRequest.Cancel();selectionRequest=null;}translateSelection.IsEnabled=true;if(showingImageTranscript&&imageTranslation!=null)return;result.Clear();copyResult.IsEnabled=false;resultCard.Visibility=Visibility.Collapsed;}
+        void ChangeTarget(string language){translationTarget=Translation.TargetLanguage(language);if(imageRequest!=null){imageRequest.Cancel();imageRequest=null;}imageTranslation=null;showingImageTranscript=false;imageTranslationActions.Visibility=Visibility.Collapsed;ResetSelectedTranslation();translatedImage=null;showTranslated=false;picture.Source=image;translatePicture.IsEnabled=true;Mark(translatePicture,false);ClearStatus();HighlightSelected();}
         void RefreshProvider(){ChangeTarget(translationTarget);}
         async void TranslateSelected(){
-            string selected=original.SelectedText;if(string.IsNullOrWhiteSpace(selected)||selectionRequest!=null)return;var request=CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);selectionRequest=request;string target=translationTarget;translateSelection.IsEnabled=false;copyResult.IsEnabled=false;resultCard.Visibility=Visibility.Visible;result.Text="正在翻译所选文字…";
-            try{string translated=await Translation.Translate(selected,request.Token,target);if(!closed&&selectionRequest==request&&!request.IsCancellationRequested){result.Text=translated;copyResult.IsEnabled=true;}}
+            string selected=original.SelectedText;if(string.IsNullOrWhiteSpace(selected)||selectionRequest!=null)return;var request=CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);selectionRequest=request;string target=translationTarget,provider=Translation.Provider;showingImageTranscript=false;resultHeading.Text="所选译文";translateSelection.IsEnabled=false;copyResult.IsEnabled=false;resultCard.Visibility=Visibility.Visible;result.Text="正在翻译所选文字…";
+            try{string translated=await Translation.Translate(selected,request.Token,target,provider);if(!closed&&selectionRequest==request&&!request.IsCancellationRequested&&translationTarget==target&&Translation.Provider==provider){result.Text=translated;copyResult.IsEnabled=true;}}
             catch(OperationCanceledException){if(!closed&&selectionRequest==request&&!request.IsCancellationRequested)result.Text="请求超时，请重试。";}catch(Exception ex){if(!closed&&selectionRequest==request)result.Text=ex.Message;}
             finally{if(selectionRequest==request){selectionRequest=null;if(!closed)translateSelection.IsEnabled=true;}request.Dispose();}
         }

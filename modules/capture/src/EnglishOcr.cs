@@ -24,7 +24,7 @@ namespace QingJie {
                     Merge(oldLines,lines,"");
                     engine.SetVariable("thresholding_method",2);engine.SetVariable("thresholding_kfactor",0.04);
                     var faint=ReadLines(engine,pix,ratio,PageSegMode.Auto);
-                    Merge(oldLines,faint.Where(l=>!lines.Any(prior=>prior.Confidence>=70&&Overlaps(prior.Bounds,l.Bounds))).ToList(),"");
+                    Merge(oldLines,faint.Where(l=>!lines.Any(prior=>prior.Confidence>=70&&Overlaps(prior.Bounds,l.Bounds)&&!CompleteEnglishExtension(l,prior))).ToList(),"");
                 }
                 // Load enabled models sequentially after releasing English; no
                 // resident engines and no loading of merely installed languages.
@@ -82,11 +82,26 @@ namespace QingJie {
                     if((!supplemental||OcrLanguagePacks.IsLatin(language))&&(chinese>=4||chinese>Math.Max(2,prior.Length*.3)))continue;
                     // A small fragment must not erase a complete Windows OCR line.
                     if(supplemental&&matches.Any(g=>Rect.Intersect(Bounds(g),line.Bounds).Width<Bounds(g).Width*.65))continue;
+                    // Sparse English can confidently read only the beginning of
+                    // a line. Require both lost geometry and lost text before
+                    // retaining Windows' more complete fallback; width alone
+                    // would also reject legitimate shorter spelling corrections.
+                    if(!supplemental&&matches.Any(g=>Rect.Intersect(Bounds(g),line.Bounds).Width<Bounds(g).Width*.85&&EnglishText(text).Length<EnglishText(Geometry.JoinWords(g)).Length*.9))continue;
                     if(matches.Count==0&&line.Confidence<85)continue;
                     foreach(var group in matches){oldLines.Remove(group);if(claimed!=null)claimed.Remove(group);}
                     oldLines.Add(line.Words);
                     if(claimed!=null){line.Language=language;claimed[line.Words]=line;}
                 }
+        }
+        static string EnglishText(string text){return new string(text.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();}
+        static bool CompleteEnglishExtension(Line candidate,Line prior){
+            if(candidate.Confidence<85||candidate.Confidence+10<prior.Confidence||candidate.Bounds.IsEmpty||prior.Bounds.IsEmpty)return false;
+            string next=EnglishText(Geometry.JoinWords(candidate.Words)),previous=EnglishText(Geometry.JoinWords(prior.Words));
+            if(previous.Length<2||next.Length<previous.Length+2||(!next.StartsWith(previous,StringComparison.Ordinal)&&!next.EndsWith(previous,StringComparison.Ordinal)))return false;
+            var a=candidate.Bounds;var b=prior.Bounds;double height=Math.Min(a.Height,b.Height);
+            // A complete same-baseline extension may rescue a Sparse fragment,
+            // but must not join distant columns or absorb a different text row.
+            return height>0&&Math.Abs((a.Top+a.Bottom)-(b.Top+b.Bottom))<height&&Math.Max(a.Height,b.Height)<height*1.8&&a.Width<=b.Width*3&&Rect.Intersect(a,b).Width>=b.Width*.9;
         }
         static bool IsSupplemental(Line line,string language){string text=Geometry.JoinWords(line.Words);int count=text.Count(c=>OcrLanguagePacks.IsScript(c,language));return count>=2&&line.Confidence>=(count<4?90:85)&&(language=="jpn"||count>=text.Count(char.IsLetter)*.55);}
         static string WithoutAccents(string text){return new string(text.Normalize(System.Text.NormalizationForm.FormD).Where(c=>System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)!=System.Globalization.UnicodeCategory.NonSpacingMark).ToArray()).ToLowerInvariant();}

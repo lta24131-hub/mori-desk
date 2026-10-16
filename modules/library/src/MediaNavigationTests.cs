@@ -34,7 +34,9 @@ namespace Mori {
      var image=fixtures.First(a=>a.Ext==".png");var gif=fixtures.First(a=>a.Ext==".gif");var video=fixtures.First(a=>a.Ext==".mp4");var pdf=fixtures.First(a=>a.Ext==".pdf");var audio=fixtures.First(a=>a.Ext==".mp3");
      check((string)Field(main,"mediaSection")=="assets"&&Visible(main).Count==13&&Visible(main).All(a=>a.Ext!=".pdf"&&!a.IsBookmark),"startup overview combines 2 pictures + 1 video + 10 audio, excludes documents and URLs");
      var names=new[]{"All","Pictures","Videos","Audio","Bookmarks","Documents"};var parent=(Panel)((Button)main.Window.FindName("All")).Parent;
-     check(parent.Children.OfType<Button>().Take(6).Select(b=>b.Name).SequenceEqual(names),"navigation order is overview, pictures, videos, audio, websites, documents");
+     var expectedNavigation=new[]{"All","Pictures","Videos","Audio","CanvasNav","Bookmarks","Documents"}.Select(name=>(Button)main.Window.FindName(name)).Concat(new[]{(Button)Field(main,"referenceNav"),(Button)main.Window.FindName("Unfiled"),(Button)main.Window.FindName("Favorites")});
+     check(parent.Children.OfType<Button>().SequenceEqual(expectedNavigation),"complete navigation order is overview, pictures, videos, audio, projects, websites, documents, local shortcuts, unfiled and favorites");
+     check(Convert.ToString(((Button)main.Window.FindName("CanvasNav")).Content)=="项目","canvas navigation is presented as projects without replacing a media filter");
      foreach(string name in names){var button=(Button)main.Window.FindName(name);button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));string section=name=="All"?"assets":name.ToLowerInvariant();
       check((string)Field(main,"mediaSection")==section&&Same(button.Background,Theme.Brush("AccentSoft")),"shortcut and active highlight: "+name);
       check(Visible(main).All(a=>section=="bookmarks"?a.IsBookmark:MainWindow.SectionContains(a,section)),"shortcut has no cross-type leakage: "+name);

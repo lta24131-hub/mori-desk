@@ -38,18 +38,37 @@ namespace Mori {
    bytes=0;try{var file=new FileInfo(a.ReferencePath);if(!file.Exists)return null;bytes=file.Length;return file.FullName.ToUpperInvariant()+"|"+bytes.ToString(CultureInfo.InvariantCulture)+"|"+file.LastWriteTimeUtc.Ticks.ToString(CultureInfo.InvariantCulture);}
    catch(IOException){return null;}catch(UnauthorizedAccessException){return null;}catch(ArgumentException){return null;}
   }
+  sealed class ReferenceEagleData {internal string Name,Source,Tags,Notes,Created;internal int Width,Height;}
+  static string ReferenceEagleText(Dictionary<string,object> data,string key){object value;return data.TryGetValue(key,out value)?value as string??"":"";}
+  static ReferenceEagleData ReadReferenceEagleData(string path){
+   // Use the same bounded, matching-original sidecar reader as explicit import.
+   // Metadata is only read when collecting a file, never while listing shortcuts.
+   var data=EagleMetadataForFile(path);if(data==null)return null;
+   var result=new ReferenceEagleData{Name=ReferenceEagleText(data,"name").Trim(),Source="",Tags="",Notes=ReferenceEagleText(data,"annotation"),Created=EagleCreated(data)};
+   Uri address;string source=ReferenceEagleText(data,"url").Trim();if(SourceLink.TryParse(source,out address))result.Source=source;
+   object value;var tags=data.TryGetValue("tags",out value)&&!(value is string)?value as System.Collections.IEnumerable:null;
+   if(tags!=null)result.Tags=string.Join(", ",tags.Cast<object>().OfType<string>().Select(t=>t.Trim()).Where(t=>t.Length>0).Distinct(StringComparer.OrdinalIgnoreCase));
+   int width,height;if(int.TryParse(Str(data,"width"),out width)&&int.TryParse(Str(data,"height"),out height)&&width>0&&height>0&&width<=1000000&&height<=1000000){result.Width=width;result.Height=height;}
+   return result;
+  }
   internal string[] AddReferenceAssets(IEnumerable<string> paths,string folder){
    if(!IncludeReferences)throw new InvalidOperationException("快捷收藏未初始化。");
    folder=folder??"";
    var values=paths.Select(ReferenceStore.Normalize).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
    foreach(var path in values)if(!File.Exists(path)&&!Directory.Exists(path))throw new FileNotFoundException("文件不存在或磁盘未连接："+path);
+   var metadata=values.ToDictionary(path=>path,ReadReferenceEagleData,StringComparer.OrdinalIgnoreCase);
    var ids=new List<string>();
    Db.Transaction(()=>{if(folder!=""&&!Folders(false).Any(f=>f.Id==folder))throw new InvalidOperationException("目标素材分类已不存在，请刷新后重试；未添加任何收藏。");DateTime latest;string newest=Db.Query("SELECT MAX(added) AS newest FROM (SELECT added FROM assets UNION ALL SELECT added FROM desk_refs)")[0]["newest"];if(!DateTime.TryParse(newest,CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind,out latest))latest=DateTime.MinValue;latest=latest.ToUniversalTime();foreach(var path in values){
-    var existing=Db.Query("SELECT id FROM desk_refs WHERE path="+Q(path));
-    if(existing.Count>0){string found=existing[0]["id"];if(folder!="")Db.Exec("UPDATE desk_refs SET folder="+Q(folder)+" WHERE id="+Q(found));ids.Add(ReferencePrefix+found);continue;}
+    var eagle=metadata[path];var existing=Db.Query("SELECT id,source,tags,notes,created,width,height FROM desk_refs WHERE path="+Q(path));
+    if(existing.Count>0){var row=existing[0];string found=row["id"];var changes=new List<string>();if(folder!="")changes.Add("folder="+Q(folder));
+     // Repeated drops repair missing metadata but never replace the user's edits.
+     if(eagle!=null){if(string.IsNullOrWhiteSpace(row["source"])&&eagle.Source!="")changes.Add("source="+Q(eagle.Source));if(string.IsNullOrWhiteSpace(row["tags"])&&eagle.Tags!="")changes.Add("tags="+Q(eagle.Tags));if(string.IsNullOrWhiteSpace(row["notes"])&&!string.IsNullOrWhiteSpace(eagle.Notes))changes.Add("notes="+Q(eagle.Notes));if(string.IsNullOrWhiteSpace(row["created"])&&!string.IsNullOrEmpty(eagle.Created))changes.Add("created="+Q(eagle.Created));if(row["width"]=="0"&&row["height"]=="0"&&eagle.Width>0){changes.Add("width="+eagle.Width);changes.Add("height="+eagle.Height);}}
+     if(changes.Count>0)Db.Exec("UPDATE desk_refs SET "+string.Join(",",changes)+" WHERE id="+Q(found));ids.Add(ReferencePrefix+found);continue;}
     string id=Guid.NewGuid().ToString("N"),name=Path.GetFileName(path);bool directory=Directory.Exists(path);long bytes=directory?0:new FileInfo(path).Length;
+    if(eagle!=null&&!string.IsNullOrWhiteSpace(eagle.Name))name=eagle.Name;
     DateTime added=DateTime.UtcNow;if(added<=latest)added=latest.AddTicks(1);latest=added;
-    Db.Exec("INSERT INTO desk_refs(id,path,name,folder,is_dir,bytes,added,created) VALUES("+Q(id)+","+Q(path)+","+Q(name.Length==0?path:name)+","+Q(folder)+","+(directory?1:0)+","+bytes+","+Q(added.ToString("o",CultureInfo.InvariantCulture))+","+Q(FileCreated(path))+")");ids.Add(ReferencePrefix+id);
+    string created=eagle==null||string.IsNullOrEmpty(eagle.Created)?FileCreated(path):eagle.Created;
+    Db.Exec("INSERT INTO desk_refs(id,path,name,folder,is_dir,bytes,added,created,source,tags,notes,width,height) VALUES("+Q(id)+","+Q(path)+","+Q(name.Length==0?path:name)+","+Q(folder)+","+(directory?1:0)+","+bytes+","+Q(added.ToString("o",CultureInfo.InvariantCulture))+","+Q(created)+","+Q(eagle==null?"":eagle.Source)+","+Q(eagle==null?"":eagle.Tags)+","+Q(eagle==null?"":eagle.Notes)+","+(eagle==null?0:eagle.Width)+","+(eagle==null?0:eagle.Height)+")");ids.Add(ReferencePrefix+id);
    }});return ids.ToArray();
   }
   internal void RelinkReferenceAsset(string id,string path){

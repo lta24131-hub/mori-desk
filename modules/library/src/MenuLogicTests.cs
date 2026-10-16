@@ -64,6 +64,40 @@ namespace Mori {
      check(!main.Window.IsVisible,"menu logic tests never show or interact with user's library");
     }finally{main.Window.Close();ThumbnailImage.CurrentLibrary=null;app.ShutdownMode=previous;}
    }
+   LocalShortcutMenus(Path.Combine(output,"local-shortcut-menus"),check);
+  }
+  static void LocalShortcutMenus(string output,Action<bool,string> check){
+   Directory.CreateDirectory(output);var app=Application.Current??new Application();var previous=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+   string first=Path.Combine(output,"shortcut-one.png"),second=Path.Combine(output,"shortcut-two.png");
+   using(var bitmap=new System.Drawing.Bitmap(24,18)){using(var graphics=System.Drawing.Graphics.FromImage(bitmap))graphics.Clear(System.Drawing.Color.SlateBlue);bitmap.Save(first,System.Drawing.Imaging.ImageFormat.Png);bitmap.Save(second,System.Drawing.Imaging.ImageFormat.Png);}
+   byte[] original=File.ReadAllBytes(first);DateTime written=File.GetLastWriteTimeUtc(first);
+   using(var library=new Library(Path.Combine(output,"library"))){
+    library.EnableReferenceAssets();var managed=library.Import(first,"","图库副本","","","").Item;
+    string[] ids=library.AddReferenceAssets(new[]{first,second},"");string group=library.CreateLocalCollection("项目参考"),category=library.CreateFolder("素材分类","");
+    var main=new MainWindow(library){PreviewMode=true};
+    try{
+     main.SetSection("shortcuts");var references=library.All().Where(a=>a.IsReference).ToArray();Select(main,references[0]);
+     var menu=main.CreateAssetMenu(references[0]);var labels=Labels(menu);
+     check(labels.Count(l=>l=="移动到分类文件夹…")==1&&!labels.Contains("移到分类文件夹…")&&!labels.Contains("移动到分类…")&&!labels.Contains("添加到分类…"),"local shortcut menu has exactly one clearly named existing-folder move, never a misleading add action");
+     check(labels.Contains("新建分类并移入…")&&!labels.Contains("移回本地收藏外层"),"root shortcut keeps new-folder action without an irrelevant return-to-root action");
+     Select(main,references);labels=Labels(main.CreateAssetMenu(references[0]));
+     check(labels.Count(l=>l=="移动到分类文件夹…")==1&&!labels.Contains("添加到分类…")&&!labels.Contains("移动到分类…"),"multi-selected local shortcuts do not duplicate classification actions");
+     library.MoveToLocalCollection(ids,group);main.OpenLocalCollection(group);references=library.All().Where(a=>a.IsReference).ToArray();Select(main,references);menu=main.CreateAssetMenu(references[0]);labels=Labels(menu);
+     check(labels.Contains("移回本地收藏外层")&&labels.Count(l=>l=="移动到分类文件夹…")==1&&!labels.Contains("从当前分类移除"),"grouped shortcut menu offers local return-to-root, not unrelated library-category removal");
+     Item(menu,"移回本地收藏外层").RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+     check(library.All().Where(a=>a.IsReference).All(a=>string.IsNullOrEmpty(a.LocalCollection)),"actual local return-to-root menu action moves every selected shortcut");
+     main.OpenLocalCollection("");references=library.All().Where(a=>a.IsReference).ToArray();Select(main,references);Set(main,"busy",true);menu=main.CreateAssetMenu(references[0]);
+     check(!Item(menu,"移动到分类文件夹…").IsEnabled&&!Item(menu,"新建分类并移入…").IsEnabled,"local move and new-folder menu actions remain disabled while an operation is busy");Set(main,"busy",false);
+     main.SetSection("assets");Select(main,managed);labels=Labels(main.CreateAssetMenu(managed));
+     check(labels.Contains("移动到分类…")&&labels.Contains("添加到分类…")&&!labels.Contains("移动到分类文件夹…"),"managed library menu preserves distinct move and multi-category add actions");
+     Select(main,managed,references[0]);labels=Labels(main.CreateAssetMenu(managed));
+     check(labels.Contains("移动到分类…")&&labels.Contains("添加到分类…")&&!labels.Contains("移动到分类文件夹…"),"mixed all-materials selection preserves library category semantics");
+     library.AddToFolder(new[]{managed.Id},category);main.RequestNavigate(category);Select(main,managed);labels=Labels(main.CreateAssetMenu(managed));
+     check(labels.Contains("从当前分类移除")&&labels.Contains("添加到分类…"),"library category page retains its remove-from-current and add-to-other controls");
+     check(library.All().Count==3&&library.LocalCollections().Single().Id==group&&library.AssetFolders(managed.Id).Single().Id==category&&File.ReadAllBytes(first).SequenceEqual(original)&&File.GetLastWriteTimeUtc(first)==written,"menu cleanup preserves shortcut originals and unrelated library/category data");
+     check(!main.Window.IsVisible,"local shortcut menu regression never opens a user-visible test window");
+    }finally{main.Window.Close();ThumbnailImage.CurrentLibrary=null;app.ShutdownMode=previous;}
+   }
   }
  }
 }

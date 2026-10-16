@@ -41,6 +41,9 @@ Copy-Item "$suiteRoot\modules\library\App.config" "$output\Mori.exe.config" -For
 Copy-Item -LiteralPath "$suiteRoot\assets\nook-256.png" -Destination "$output\qingjie-icon.png" -Force
 New-Item -ItemType Directory -Force "$output\web" | Out-Null
 Copy-Item "$suiteRoot\web\model" "$output\web" -Recurse -Force
+if(Test-Path -LiteralPath "$suiteRoot\web\canvas\index.html"){
+ Copy-Item -LiteralPath "$suiteRoot\web\canvas" -Destination "$output\web" -Recurse -Force
+}
 Copy-Item "$suiteRoot\browser-extension" $output -Recurse -Force
 if($Test){$testProcess=Start-Process "$output\Mori.exe" -ArgumentList '--suite-test' -Wait -PassThru -WindowStyle Hidden;if($testProcess.ExitCode -ne 0){throw 'Suite tests failed'}}
 if($CaptureTests){

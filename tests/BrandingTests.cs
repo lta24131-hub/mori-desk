@@ -60,9 +60,9 @@ namespace MoriDesk {
    var title=(AssemblyTitleAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyTitleAttribute));
    var fileVersion=(AssemblyFileVersionAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyFileVersionAttribute));
    check(product!=null&&product.Product=="Nook"&&title!=null&&title.Title=="Nook","executable metadata exposes the chosen Nook product and title");
-   check(assembly.GetName().Version.Equals(new Version(0,1,22,0))&&fileVersion!=null&&fileVersion.Version=="0.1.22.0","Nook assembly and file versions are exactly 0.1.22.0");
+   check(assembly.GetName().Version.Equals(new Version(0,1,23,0))&&fileVersion!=null&&fileVersion.Version=="0.1.23.0","Nook assembly and file versions are exactly 0.1.23.0");
    check(assembly.GetName().Name=="Mori"&&Path.GetFileName(assembly.Location)=="Mori.exe"&&File.Exists(assembly.Location+".config"),"branding preserves the Mori executable/assembly/config identity");
-   var info=FileVersionInfo.GetVersionInfo(assembly.Location);check(info.ProductName=="Nook"&&info.FileVersion=="0.1.22.0","Windows executable details report Nook and the exact release version");
+   var info=FileVersionInfo.GetVersionInfo(assembly.Location);check(info.ProductName=="Nook"&&info.FileVersion=="0.1.23.0","Windows executable details report Nook and the exact release version");
    check(assembly.GetManifestResourceNames().Count(n=>n=="QingJie.Icon.png")==1&&!assembly.GetManifestResourceNames().Contains("Nook.Icon.png"),"capture keeps its single established QingJie.Icon.png resource identity");
    byte[] embedded;using(var resource=assembly.GetManifestResourceStream("QingJie.Icon.png")){using(var copy=new MemoryStream()){resource.CopyTo(copy);embedded=copy.ToArray();}}
    byte[] shipped=File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(assembly.Location),"qingjie-icon.png"));

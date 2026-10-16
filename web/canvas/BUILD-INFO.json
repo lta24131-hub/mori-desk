@@ -1,0 +1,8 @@
+{
+  "upstreamVersion": "2.4.6",
+  "sourceCommit": "16ba10a88e7145a5bec772a985df5a8c5b943c74",
+  "licenseSha256": "d113f392e813269f31c5af93d5e61ba4dccccdceecc014c15cb0c64010cc9533",
+  "protocol": "nook-canvas-v1",
+  "selfHosted": true,
+  "sourceModule": "web/canvas-src"
+}

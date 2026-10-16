@@ -1,0 +1,32 @@
+/* Nook chrome stays quiet; the editor's native tool/shape menus remain intact. */
+:root { font-family: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif; color: #171717; background: #fff; }
+html, body, #root, .nook-canvas { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+.nook-canvas { position: relative; }
+.nook-canvas .tl-container {
+  --font-body: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  --color-primary: #7c5cce;
+  --color-selected: #7c5cce;
+}
+.nook-canvas .tl-theme__light { --color-background: #fff; --color-panel: #fff; --color-text-0: #171717; --color-text-3: #777; }
+.nook-canvas .tl-theme__dark { --color-background: #171717; --color-panel: #242424; --color-text-0: #eee; }
+.nook-canvas .tlui-style-panel { max-width: 232px; }
+.nook-canvas .tlui-button { font-family: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif; }
+.nook-opacity-presets { display: flex; gap: 6px; padding: 4px 0 8px; border-bottom: 1px solid var(--color-divider); margin-bottom: 4px; }
+.nook-opacity-presets .tlui-button { width: 30px; height: 28px; border-radius: 5px; }
+.nook-opacity-presets .tlui-button[aria-pressed="true"] { background: var(--color-muted-2); box-shadow: inset 0 0 0 1px var(--color-selected); }
+.nook-opacity-icon { display: block; width: 17px; height: 17px; border: 1px solid var(--color-text-1); background: repeating-conic-gradient(#bbb 0% 25%, #fff 0% 50%) 50% / 6px 6px; }
+.nook-opacity-icon > span { display: block; width: 100%; height: 100%; background: #111; }
+.nook-alignment-presets { border-top: 1px solid var(--color-divider); margin-top: 4px; padding-top: 6px; }
+.nook-alignment-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+.nook-distribution-row { display: flex; gap: 4px; margin-top: 4px; }
+.nook-alignment-presets .tlui-button { min-width: 28px; height: 30px; }
+.nook-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none; color: #777; font-size: 15px; }
+.nook-empty small { font-size: 12px; opacity: .75; }
+.nook-save-state { position: absolute; left: 60px; bottom: 15px; pointer-events: none; font-size: 11px; color: #777; }
+.nook-save-state button { pointer-events: auto; border: 0; background: transparent; color: #7c5cce; cursor: pointer; margin-left: 7px; font: inherit; }
+.nook-save-state--error { color: #ba4545; }
+.nook-message { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); max-width: min(560px, 80%); display: flex; align-items: center; gap: 20px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fff; color: #171717; padding: 10px 14px; box-shadow: 0 4px 18px #0001; font-size: 13px; z-index: 400; }
+.nook-message button { border: 0; background: transparent; cursor: pointer; font-size: 18px; color: #777; }
+.nook-fatal { padding: 32px; font-size: 14px; }
+@media (max-width: 560px) { .nook-save-state { bottom: 65px; left: 12px; } .nook-empty small { max-width: 180px; text-align: center; line-height: 1.6; } }
+@media (prefers-reduced-motion: reduce) { .nook-canvas * { scroll-behavior: auto !important; } }

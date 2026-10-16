@@ -14,7 +14,11 @@ namespace QingJie {
         public string Text="";
         public List<Point> Points=new List<Point>();
         public BitmapSource Mosaic;
-        public Rect Bounds {get{return Geometry.FromPoints(Start,End);}}
+        public double TextFontSize {get{return Math.Max(16,Width*5);}}
+        FormattedText CreateText(Brush brush){return new FormattedText(Text??"",CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),TextFontSize,brush);}
+        // Hit testing and the selection frame use the very same metrics as export,
+        // including explicit newlines and trailing whitespace.
+        public Rect Bounds {get{if(Kind=="pen"&&Points.Count>0){var box=new Rect(Points[0],new Size(0,0));for(int i=1;i<Points.Count;i++)box.Union(Points[i]);return box;}if(Kind!="text")return Geometry.FromPoints(Start,End);var text=CreateText(Brushes.Black);return new Rect(Start,new Size(Math.Max(1,text.WidthIncludingTrailingWhitespace),Math.Max(1,text.Height)));}}
         public void Draw(DrawingContext d) {
             var brush=Ui.Brush(Color);var pen=new Pen(brush,Width){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round,LineJoin=PenLineJoin.Round};
             switch(Kind) {
@@ -25,7 +29,7 @@ namespace QingJie {
                     d.DrawLine(pen,Start,End);double a=Math.Atan2(End.Y-Start.Y,End.X-Start.X),len=Math.Max(10,Width*3.5);
                     d.DrawLine(pen,End,new Point(End.X-len*Math.Cos(a-.5),End.Y-len*Math.Sin(a-.5)));d.DrawLine(pen,End,new Point(End.X-len*Math.Cos(a+.5),End.Y-len*Math.Sin(a+.5)));break;
                 case "pen": for(int i=1;i<Points.Count;i++) d.DrawLine(pen,Points[i-1],Points[i]);break;
-                case "text":d.DrawText(new FormattedText(Text,CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),Math.Max(16,Width*5),brush),Start);break;
+                case "text":d.DrawText(CreateText(brush),Start);break;
                 case "mosaic":
                     if(Mosaic!=null) {var group=new DrawingGroup();group.Children.Add(new ImageDrawing(Mosaic,Bounds));RenderOptions.SetBitmapScalingMode(group,BitmapScalingMode.NearestNeighbor);d.DrawDrawing(group);}
                     else d.DrawRectangle(Ui.Brush("#889294"),null,Bounds);
@@ -43,6 +47,8 @@ namespace QingJie {
         public Rect HoverSelection=Rect.Empty;
         public List<Annotation> Marks=new List<Annotation>();
         public Annotation Draft;
+        public Annotation SelectedText,EditingText;
+        public Annotation SelectedAnnotation;
         public bool ShowHandles=true;
         public Point? BrushPoint;
         public double BrushDiameter=3;
@@ -61,7 +67,14 @@ namespace QingJie {
                 d.DrawRectangle(mask,null,new Rect(0,s.Bottom,ActualWidth,Math.Max(0,ActualHeight-s.Bottom)));
                 d.DrawRectangle(mask,null,new Rect(0,s.Top,Math.Max(0,s.Left),s.Height));
                 d.DrawRectangle(mask,null,new Rect(s.Right,s.Top,Math.Max(0,ActualWidth-s.Right),s.Height));
-                d.PushClip(new RectangleGeometry(s));if(ShowTranslation&&TranslationImage!=null)d.DrawImage(TranslationImage,TranslationBounds);foreach(var a in Marks)a.Draw(d);if(Draft!=null)Draft.Draw(d);d.Pop();
+                d.PushClip(new RectangleGeometry(s));if(ShowTranslation&&TranslationImage!=null)d.DrawImage(TranslationImage,TranslationBounds);foreach(var a in Marks)if(a!=EditingText)a.Draw(d);if(Draft!=null)Draft.Draw(d);d.Pop();
+                if(SelectedText!=null&&Marks.Contains(SelectedText)&&SelectedText!=EditingText){var box=TextFrame(SelectedText);d.DrawRectangle(null,new Pen(Ui.Green,1),box);foreach(var p in Handles(box))d.DrawRectangle(Brushes.White,new Pen(Ui.Green,1),new Rect(p.X-3,p.Y-3,6,6));}
+                if(SelectedAnnotation!=null&&Marks.Contains(SelectedAnnotation)){
+                    var mark=SelectedAnnotation;var accent=Ui.Tone("Accent");
+                    // Lines use their actual endpoints, never a misleading box.
+                    if(!CaptureAnnotationGeometry.Linear(mark))d.DrawRectangle(null,new Pen(accent,1),mark.Bounds);
+                    foreach(var p in CaptureAnnotationGeometry.Handles(mark))d.DrawEllipse(Brushes.White,new Pen(accent,1.2),p,3.5,3.5);
+                }
                 d.DrawRectangle(null,new Pen(Ui.Green,1.3),s);
                 if(ShowHandles&&!Selection.IsEmpty)foreach(var p in Handles())d.DrawRectangle(Brushes.White,new Pen(Ui.Green,1),new Rect(p.X-3,p.Y-3,6,6));
                 string size=string.Format("{0} × {1}",Math.Round(s.Width*ScaleX),Math.Round(s.Height*ScaleY));
@@ -74,7 +87,9 @@ namespace QingJie {
                 if(ShowBrushSize){var label=new FormattedText(BrushDiameter.ToString("0")+" px",CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),12,Brushes.White,VisualTreeHelper.GetDpi(this).PixelsPerDip);double x=Geometry.Clamp(p.X+radius+10,0,Math.Max(0,ActualWidth-label.Width-14)),y=Geometry.Clamp(p.Y+radius+10,0,Math.Max(0,ActualHeight-24));d.DrawRoundedRectangle(Ui.Brush("#DB202727"),null,new Rect(x,y,label.Width+12,23),4,4);d.DrawText(label,new Point(x+6,y+3));}
             }
         }
-        public Point[] Handles() {var s=Selection;return new[]{new Point(s.Left,s.Top),new Point(s.Left+s.Width/2,s.Top),new Point(s.Right,s.Top),new Point(s.Right,s.Top+s.Height/2),new Point(s.Right,s.Bottom),new Point(s.Left+s.Width/2,s.Bottom),new Point(s.Left,s.Bottom),new Point(s.Left,s.Top+s.Height/2)};}
+        public Point[] Handles() {return Handles(Selection);}
+        public static Rect TextFrame(Annotation mark){var bounds=mark.Bounds;double width=Math.Max(28,bounds.Width),height=Math.Max(28,bounds.Height);return new Rect(bounds.Left+(bounds.Width-width)/2,bounds.Top+(bounds.Height-height)/2,width,height);}
+        public static Point[] Handles(Rect s) {return new[]{new Point(s.Left,s.Top),new Point(s.Left+s.Width/2,s.Top),new Point(s.Right,s.Top),new Point(s.Right,s.Top+s.Height/2),new Point(s.Right,s.Bottom),new Point(s.Left+s.Width/2,s.Bottom),new Point(s.Left,s.Bottom),new Point(s.Left,s.Top+s.Height/2)};}
         public BitmapSource Export(bool annotated=true,bool translated=true) {
             if(Selection.IsEmpty||Selection.Width<2||Selection.Height<2)throw new InvalidOperationException("请先框选截图区域。");
             var crop=Geometry.PixelCrop(Selection,ScaleX,ScaleY,Image.PixelWidth,Image.PixelHeight);
