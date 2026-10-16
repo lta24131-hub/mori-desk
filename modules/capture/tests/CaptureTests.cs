@@ -79,8 +79,8 @@ static class CaptureTests {
         typeof(CaptureWindow).GetField("moving",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(capture,false);
         cursorUpdate.Invoke(capture,new object[]{new Point(100,50)});check(captureSurface.Cursor==Cursors.Cross,"new manual crop never inherits a move cursor");
         typeof(CaptureWindow).GetField("dragging",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(capture,false);
-        var setTool=typeof(CaptureWindow).GetMethod("SetTool",BindingFlags.Instance|BindingFlags.NonPublic);setTool.Invoke(capture,new object[]{"rect"});cursorUpdate.Invoke(capture,new object[]{handlePoints[0]});check(captureSurface.Cursor==Cursors.None&&captureSurface.BrushPoint==handlePoints[0],"drawing tool retains circular brush preview instead of resize cursor");
-        setTool.Invoke(capture,new object[]{"text"});cursorUpdate.Invoke(capture,new object[]{handlePoints[0]});check(captureSurface.Cursor==Cursors.IBeam,"text tool retains text cursor on selection handles");
+        var setTool=typeof(CaptureWindow).GetMethod("SetTool",BindingFlags.Instance|BindingFlags.NonPublic);setTool.Invoke(capture,new object[]{"rect"});cursorUpdate.Invoke(capture,new object[]{handlePoints[0]});check(captureSurface.Cursor==Cursors.SizeNWSE&&captureSurface.BrushPoint==null,"drawing tool directly advertises crop resize without a brush on the border");
+        setTool.Invoke(capture,new object[]{"text"});cursorUpdate.Invoke(capture,new object[]{handlePoints[0]});check(captureSurface.Cursor==Cursors.SizeNWSE&&captureSurface.BrushPoint==null,"text tool gives crop resize priority at the selection border");
         setTool.Invoke(capture,new object[]{"select"});captureSurface.Selection=Rect.Empty;cursorUpdate.Invoke(capture,new object[]{handlePoints[0]});check(captureSurface.Cursor==Cursors.Cross,"no confirmed selection has no resize or move cursor");
         captureSurface.Selection=new Rect(10,10,200,100);
         var mosaic=new Annotation {Kind="mosaic",Start=new Point(20,20),End=new Point(90,60)};captureSurface.PrepareMosaic(mosaic);

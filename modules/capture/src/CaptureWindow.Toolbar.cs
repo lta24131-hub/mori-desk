@@ -159,7 +159,7 @@ namespace QingJie {
             host.Children.Add(panel);return panel;
         }
         int CaptureActionGroup(UIElement child){
-            if(child==tools["select"])return 0;
+            Button select;if(tools.TryGetValue("select",out select)&&child==select)return 0;
             foreach(var entry in tools)if(child==entry.Value)return 1;
             var button=child as Button;if(button==null)return 4;
             if(button.Name=="CaptureUndo"||button.Name=="CaptureRedo")return 2;

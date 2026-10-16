@@ -84,14 +84,14 @@ namespace QingJie {
             if(textDrag!=null)return textResize>=0?ResizeCursor(textResize):Cursors.SizeAll;
             if(tool!="select"&&tool!="text")return null;
             // The screenshot's existing resize targets keep precedence at its edges.
-            if(tool=="select"&&HitSelectionHandle(point)>=0)return null;
+            if(HitSelectionHandle(point)>=0)return null;
             var top=tool=="select"?TopAnnotation(point):null;if(top!=null&&top.Kind!="text")return null;
             int handle=HitTextHandle(point);if(handle>=0)return ResizeCursor(handle);
             return HitText(point)!=null?Cursors.SizeAll:null;
         }
         bool BeginTextPointer(Point point,int clickCount){
             if(tool!="select"&&tool!="text")return false;
-            if(tool=="select"&&HitSelectionHandle(point)>=0)return false;
+            if(HitSelectionHandle(point)>=0)return false;
             var top=tool=="select"?TopAnnotation(point):null;if(top!=null&&top.Kind!="text")return false;
             var body=HitText(point);int handle=clickCount>=2&&body!=null?-1:HitTextHandle(point);var mark=handle>=0?surface.SelectedText:body;if(mark==null)return false;
             SelectText(mark);

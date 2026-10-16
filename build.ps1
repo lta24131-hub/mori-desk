@@ -1,10 +1,10 @@
-param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist')
+param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory)
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{Join-Path $suiteRoot $OutputDirectory}
 New-Item -ItemType Directory -Force $output | Out-Null
-Get-ChildItem -LiteralPath "$suiteRoot\dependencies" | Where-Object {$_.Name -notin @('image-codecs','pdf-text','preview-support','Restore-PreviewComponents.ps1','PREVIEW-NOTICES.md')} | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination $output -Recurse -Force}
+Get-ChildItem -LiteralPath "$suiteRoot\dependencies" | Where-Object {$_.Name -notin @('image-codecs','pdf-text','preview-support','scroll-capture','Restore-PreviewComponents.ps1','PREVIEW-NOTICES.md')} | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination $output -Recurse -Force}
 foreach($component in @('image-codecs','pdf-text','preview-support')){
  $componentPath=Join-Path "$suiteRoot\dependencies" $component
  if(!(Test-Path -LiteralPath $componentPath)){throw 'Preview components missing. Run dependencies\Restore-PreviewComponents.ps1 first.'}
@@ -16,7 +16,7 @@ foreach($component in @('image-codecs','pdf-text','preview-support')){
  if(Test-Path -LiteralPath (Join-Path $componentPath 'config')){Copy-Item -LiteralPath (Join-Path $componentPath 'config') -Destination $noticePath -Recurse -Force}
 }
 Copy-Item -LiteralPath "$suiteRoot\dependencies\PREVIEW-NOTICES.md" -Destination $output -Force
-$refs=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Xaml.dll','System.Xml.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','Microsoft.CSharp.dll','System.Runtime.WindowsRuntime.dll','System.Runtime.InteropServices.WindowsRuntime.dll','System.Runtime.dll','System.ObjectModel.dll','System.Threading.Tasks.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }
+$refs=@('System.dll','System.Core.dll','System.Security.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Xaml.dll','System.Xml.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','Microsoft.CSharp.dll','System.Runtime.WindowsRuntime.dll','System.Runtime.InteropServices.WindowsRuntime.dll','System.Runtime.dll','System.ObjectModel.dll','System.Threading.Tasks.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }
 $refs+=@('PresentationCore.dll','PresentationFramework.dll','WindowsBase.dll','WindowsFormsIntegration.dll') | ForEach-Object { '/r:'+(Join-Path $framework ('WPF\'+$_)) }
 $refs+=@('Windows.Foundation.winmd','Windows.Globalization.winmd','Windows.Media.winmd','Windows.Graphics.winmd','Windows.Storage.winmd','Windows.Data.winmd') | ForEach-Object { '/r:'+(Join-Path $env:WINDIR ('System32\WinMetadata\'+$_)) }
 $refs+=@('Svg.dll','Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2.Wpf.dll','Tesseract.dll') | ForEach-Object { '/r:'+(Join-Path $output $_) }
@@ -35,7 +35,12 @@ $resources=@(
  '/resource:'+$suiteRoot+'\modules\capture\offline\catalog.json,QingJie.OfflineCatalog.json'
  '/resource:'+$suiteRoot+'\modules\capture\offline\worker.py,QingJie.OfflineWorker.py'
 )
-& "$framework\csc.exe" /nologo /target:winexe /main:MoriDesk.Entry /platform:x64 /optimize+ /codepage:65001 ('/out:'+$output+'\Mori.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/win32manifest:'+$suiteRoot+'\modules\library\app.manifest') @resources @refs @sources
+$compilerArgs=@('/nologo','/target:winexe','/main:MoriDesk.Entry','/platform:x64','/optimize+','/codepage:65001',('/out:'+$output+'\Mori.exe'),('/win32icon:'+$suiteRoot+'\assets\mori.ico'),('/win32manifest:'+$suiteRoot+'\modules\library\app.manifest'))+$resources+$refs+$sources
+# A response file avoids Windows' command-line limit as the suite grows.
+# It is build-local and is not part of the release payload allowlist.
+$responseFile=Join-Path $output 'compile.rsp'
+[IO.File]::WriteAllLines($responseFile,[string[]]($compilerArgs | ForEach-Object {'"'+$_+'"'}),(New-Object Text.UTF8Encoding($false)))
+& "$framework\csc.exe" ('@'+$responseFile)
 if($LASTEXITCODE -ne 0){throw 'Suite build failed'}
 Copy-Item "$suiteRoot\modules\library\App.config" "$output\Mori.exe.config" -Force
 Copy-Item -LiteralPath "$suiteRoot\assets\nook-256.png" -Destination "$output\qingjie-icon.png" -Force
@@ -45,6 +50,20 @@ if(Test-Path -LiteralPath "$suiteRoot\web\canvas\index.html"){
  Copy-Item -LiteralPath "$suiteRoot\web\canvas" -Destination "$output\web" -Recurse -Force
 }
 Copy-Item "$suiteRoot\browser-extension" $output -Recurse -Force
+if($ScrollCaptureDirectory){
+ $scrollRoot=[IO.Path]::GetFullPath($ScrollCaptureDirectory)
+ foreach($required in @('Nook.ScrollCapture.exe','component.json','LICENSE-eSearch.txt','NOTICES.md','corresponding-source','resources\app\out\main\main.js')){
+  if(!(Test-Path -LiteralPath (Join-Path $scrollRoot $required))){throw ('Incomplete scroll capture component: '+$required)}
+ }
+ $scrollManifest=Get-Content -LiteralPath (Join-Path $scrollRoot 'component.json') -Raw | ConvertFrom-Json
+ if($scrollManifest.schemaVersion -ne 1 -or $scrollManifest.upstreamCommit -ne '6f3f56241cccc8ada2c503df642566322dc67a3e'){throw 'Unexpected scroll capture component revision'}
+ $scrollHash=(Get-FileHash -LiteralPath (Join-Path $scrollRoot 'resources\app\out\main\main.js') -Algorithm SHA256).Hash
+ if($scrollHash -ne $scrollManifest.applicationSha256){throw 'Scroll capture component integrity check failed'}
+ $scrollTarget=Join-Path $output 'scroll-capture'
+ if(Test-Path -LiteralPath $scrollTarget){throw 'Use a fresh build directory when including scroll capture; do not merge runtime versions.'}
+ New-Item -ItemType Directory -Path $scrollTarget | Out-Null
+ Get-ChildItem -LiteralPath $scrollRoot | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination $scrollTarget -Recurse}
+}else{Write-Warning 'Capture helper omitted from this development build. Release packaging requires -ScrollCaptureDirectory.'}
 if($Test){$testProcess=Start-Process "$output\Mori.exe" -ArgumentList '--suite-test' -Wait -PassThru -WindowStyle Hidden;if($testProcess.ExitCode -ne 0){throw 'Suite tests failed'}}
 if($CaptureTests){
  $captureTestSources=Get-ChildItem "$suiteRoot\modules\capture\tests\*.cs" | ForEach-Object FullName

@@ -55,7 +55,7 @@ namespace QingJie {
             // follow the same physical corner, not the original pressed index.
             bool left=resize==0||resize==6,top=resize==0||resize==2;
             double anchorX=left?oldSelection.Right:oldSelection.Left,anchorY=top?oldSelection.Bottom:oldSelection.Top;
-            double x=Geometry.Clamp(point.X,0,surface.ActualWidth),y=Geometry.Clamp(point.Y,0,surface.ActualHeight);
+            double x=Geometry.Clamp((left?oldSelection.Left:oldSelection.Right)+point.X-down.X,0,surface.ActualWidth),y=Geometry.Clamp((top?oldSelection.Top:oldSelection.Bottom)+point.Y-down.Y,0,surface.ActualHeight);
             bool currentLeft=x==anchorX?left:x<anchorX,currentTop=y==anchorY?top:y<anchorY;
             return currentTop?(currentLeft?0:2):(currentLeft?6:4);
         }

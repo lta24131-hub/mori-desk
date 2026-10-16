@@ -58,19 +58,20 @@ namespace QingJie {
             toolbarCard=Ui.Card(toolbar);propertiesCard=Ui.Card(properties);overlay.Children.Add(toolbarCard);overlay.Children.Add(propertiesCard);HideTools();
             toolbarCard.Cursor=Cursors.Arrow;propertiesCard.Cursor=Cursors.Arrow;
             Ui.Theme(widthLabel,TextBlock.ForegroundProperty,"Text");Ui.Theme(translationStatus,TextBlock.ForegroundProperty,"Text");Ui.Theme(translationStatus,TextBlock.BackgroundProperty,"Surface");
-            AddTool("select","选择 / 调整 · V · 方向键微调 · Shift 调大小 · Ctrl 加速");AddTool("rect","矩形 · R · 滚轮调粗细");AddTool("ellipse","椭圆 · O · 滚轮调粗细");AddTool("arrow","箭头 A / 直线 L · 下方切换");AddTool("pen","画笔 · P · 滚轮调粗细");AddTool("text","文字 · T · 双击已有文字编辑");AddTool("mosaic","马赛克 · M");
+            AddTool("rect","矩形 · R · 滚轮调粗细");AddTool("ellipse","椭圆 · O · 滚轮调粗细");AddTool("arrow","箭头 A / 直线 L · 下方切换");AddTool("pen","画笔 · P · 滚轮调粗细");AddTool("text","文字 · T · 双击已有文字编辑");AddTool("mosaic","马赛克 · M");
             Ui.Separator(toolbar);toolbar.Children.Add(CaptureAction("Undo",Ui.Tool("undo","撤销 · Ctrl+Z",Undo)));
             toolbar.Children.Add(CaptureAction("Ocr",Ui.Tool("ocr","文字选择 / 翻译",()=>ReadText(false))));translateButton=Ui.Tool("translate","选区原位翻译 / 原图",()=>ReadText(true));toolbar.Children.Add(translateButton);
             var targetMenu=Ui.TranslationTarget(translationTarget,language=>{translationTarget=language;ResetTranslation();surface.InvalidateVisual();});toolbar.Children.Add(targetMenu);
-            targetMenu.ContextMenu.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape){e.Handled=true;targetMenu.ContextMenu.IsOpen=false;}};
+            targetMenu.ContextMenu.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape&&HandleCaptureKey(e.Key,ModifierKeys.None))e.Handled=true;};
             targetMenu.ContextMenu.Closed+=(s,e)=>FocusCaptureOverlay();
+            toolbar.Children.Add(CaptureAction("Scroll",Ui.Tool("scroll","滚动截屏 · 在选区内向下滚动",BeginScrollingCapture)));
             toolbar.Children.Add(CaptureAction("Pin",Ui.Tool("pin","贴到屏幕",Pin)));toolbar.Children.Add(CaptureAction("Save",Ui.Tool("save","保存 · Ctrl+S",Save)));
             if(MoriDesk.DeskRuntime.CollectImage!=null){
                 var collect=Ui.Tool("library","收藏到素材库 · 未分类 · Ctrl+D",async ()=>{await CollectToLibraryAsync();});
                 collect.Name="CaptureCollect";toolbar.Children.Add(collect);
             }
             overlay.Children.Add(translationStatus);
-            Ui.Separator(toolbar);toolbar.Children.Add(CaptureAction("Cancel",Ui.Tool("close","退出截图 · Esc 逐步返回",AppState.CancelCapture)));toolbar.Children.Add(CaptureAction("Copy",Ui.Tool("done","复制并完成 · Enter / Ctrl+C",Copy)));
+            Ui.Separator(toolbar);toolbar.Children.Add(CaptureAction("Cancel",Ui.Tool("close","退出截图 · Esc 立即退出 · 右键逐步返回",AppState.CancelCapture)));toolbar.Children.Add(CaptureAction("Copy",Ui.Tool("done","复制并完成 · Enter / Ctrl+C",Copy)));
             properties.Children.Add(lineModes);
             foreach(string kind in new[]{"arrow","line"}){string choice=kind;var b=Ui.Tool(kind,kind=="arrow"?"箭头":"直线",()=>SetTool(choice),28);b.Name="LineMode_"+kind;lineModeButtons[kind]=b;lineModes.Children.Add(b);}Ui.Separator(lineModes);
             foreach(string color in new[]{"#EF4444","#F2B01E","#07A56B","#3478F6","#222222","#FFFFFF"}) {
@@ -91,7 +92,7 @@ namespace QingJie {
             PreviewKeyUp+=(s,e)=>{if(e.Key==Key.LeftCtrl||e.Key==Key.RightCtrl)UpdateSnap(Mouse.GetPosition(surface));};
             SizeChanged+=(s,e)=>{PositionTools();surface.InvalidateVisual();};
             AppState.TranslationProviderChanged+=RefreshProvider;
-            Closed+=(s,e)=>{closed=true;if(visualTargetCancel!=null)visualTargetCancel.Cancel();snapTargets=null;visualTargets=null;ClearSnap();targetMenu.ContextMenu.IsOpen=false;AppState.TranslationProviderChanged-=RefreshProvider;ResetTranslation();cursorLabelTimer.Stop();ClearTextState();surface.Image=null;surface.Marks.Clear();surface.Draft=null;redo.Clear();last=null;shot.Image=null;AppState.CaptureClosed(this);};
+            Closed+=(s,e)=>{closed=true;DisposeScrollingCapture();if(visualTargetCancel!=null)visualTargetCancel.Cancel();snapTargets=null;visualTargets=null;ClearSnap();targetMenu.ContextMenu.IsOpen=false;AppState.TranslationProviderChanged-=RefreshProvider;ResetTranslation();cursorLabelTimer.Stop();ClearTextState();surface.Image=null;surface.Marks.Clear();surface.Draft=null;redo.Clear();last=null;shot.Image=null;AppState.CaptureClosed(this);};
         }
         async void PrepareVisualTargets(){
             if(closed||visualTargetCancel!=null||visualTargets!=null||shot.Image==null)return;
@@ -127,7 +128,7 @@ namespace QingJie {
         void AddTool(string id,string title) {var b=Ui.Tool(id,title,()=>SetTool(id=="arrow"?lineKind:id));b.Name="CaptureTool_"+id;tools[id]=b;toolbar.Children.Add(b);}
         internal string SelectedTool {get{return tool;}}
         void SetTool(string name) {
-            FinishShapeGesture();FinishTextGesture();CommitText();tool=name;last=null;if(name!="select"&&(name!="text"||surface.SelectedAnnotation!=null))SelectText(null);else last=SelectedAnnotation;surface.ShowHandles=name=="select";Cursor=Cursors.Arrow;UpdateBrushCursor(Mouse.GetPosition(surface));
+            FinishShapeGesture();FinishTextGesture();CommitText();tool=name;last=null;if(name!="select"&&(name!="text"||surface.SelectedAnnotation!=null))SelectText(null);else last=SelectedAnnotation;surface.ShowHandles=true;Cursor=Cursors.Arrow;UpdateBrushCursor(Mouse.GetPosition(surface));
             bool linear=name=="arrow"||name=="line";if(linear){lineKind=name;tools["arrow"].Content=new ToolIcon(name);tools["arrow"].ToolTip=(name=="line"?"直线 · L":"箭头 · A")+" · 下方切换 · 滚轮调粗细";System.Windows.Automation.AutomationProperties.SetName(tools["arrow"],tools["arrow"].ToolTip.ToString());}
             lineModes.Visibility=linear?Visibility.Visible:Visibility.Collapsed;
             foreach(var kv in lineModeButtons)Ui.SetActive(kv.Value,kv.Key==lineKind);
@@ -135,9 +136,18 @@ namespace QingJie {
         }
         int HitSelectionHandle(Point point){
             if(surface.Selection.IsEmpty)return -1;
-            var points=surface.Handles();int handle=-1;double closest=81;
-            for(int i=0;i<points.Length;i++){double distance=(point-points[i]).LengthSquared;if(distance<closest){closest=distance;handle=i;}}
-            return handle;
+            var area=surface.Selection;
+            // The complete border is adjustable in every annotation tool, not
+            // just its eight painted dots. Keep a narrow interior hit band so
+            // drawing near an edge remains possible, even for a tiny crop.
+            double corner=Math.Min(8,Math.Min(area.Width,area.Height)/4),edge=Math.Min(5,Math.Min(area.Width,area.Height)/4);
+            var points=surface.Handles();int handle=-1;double closest=corner*corner;
+            for(int i=0;i<points.Length;i+=2){double distance=(point-points[i]).LengthSquared;if(distance<=closest){closest=distance;handle=i;}}
+            if(handle>=0)return handle;
+            if(point.X<area.Left-edge||point.X>area.Right+edge||point.Y<area.Top-edge||point.Y>area.Bottom+edge)return -1;
+            double left=Math.Abs(point.X-area.Left),right=Math.Abs(point.X-area.Right),top=Math.Abs(point.Y-area.Top),bottom=Math.Abs(point.Y-area.Bottom);
+            double nearest=Math.Min(Math.Min(left,right),Math.Min(top,bottom));if(nearest>edge)return -1;
+            return nearest==top?1:nearest==right?3:nearest==bottom?5:7;
         }
         static Cursor ResizeCursor(int handle){
             if(handle==0||handle==4)return Cursors.SizeNWSE;
@@ -145,6 +155,8 @@ namespace QingJie {
             return handle==1||handle==5?Cursors.SizeNS:Cursors.SizeWE;
         }
         void UpdateBrushCursor(Point point){
+            int cropHandle=ActiveSelectionHandle(point);
+            if(cropHandle>=0&&textDrag==null&&shapeDrag==null){surface.Cursor=ResizeCursor(cropHandle);surface.BrushPoint=null;surface.InvalidateVisual();return;}
             Cursor textCursor=(!dragging||textDrag!=null)?TextPointerCursor(point):null;
             if(textCursor==null&&(!dragging||shapeDrag!=null))textCursor=ShapePointerCursor(point);
             if(textCursor!=null){surface.Cursor=textCursor;surface.BrushPoint=null;surface.InvalidateVisual();return;}
@@ -162,6 +174,13 @@ namespace QingJie {
             if(closed||collecting||captureOverlaySuspended||!AppState.CanEnterCapture(this))return false;
             CommitText();
             down=p;oldSelection=surface.Selection;moving=false;resize=-1;selectingNew=false;
+            // Crop edges always win over annotation hit targets. The current
+            // drawing tool remains selected after the resize, ready to resume.
+            resize=HitSelectionHandle(p);
+            if(resize>=0){
+                ResetTranslation();selectionBefore=CaptureScene();SelectText(null);
+                dragging=true;UpdateBrushCursor(p);HideTools();surface.CaptureMouse();return true;
+            }
             if(BeginTextPointer(p,clickCount))return true;
             if(BeginShapePointer(p))return true;
             if(clickCount==2&&CanCompleteCaptureAt(p)){Copy();return true;}
@@ -188,13 +207,18 @@ namespace QingJie {
             if(textDrag!=null){MoveSelectedText(p);surface.InvalidateVisual();return;}
             if(shapeDrag!=null){MoveSelectedShape(p);return;}
             if(!dragging){UpdateSnap(p);return;}
-            if(tool=="select") {
+            if(selectionBefore!=null) {
+                var pointer=p;
                 p=new Point(Geometry.Clamp(p.X,0,surface.ActualWidth),Geometry.Clamp(p.Y,0,surface.ActualHeight));
                 if(moving){double dx=Geometry.Clamp(p.X-down.X,-oldSelection.Left,surface.ActualWidth-oldSelection.Right),dy=Geometry.Clamp(p.Y-down.Y,-oldSelection.Top,surface.ActualHeight-oldSelection.Bottom);surface.Selection=new Rect(oldSelection.X+dx,oldSelection.Y+dy,oldSelection.Width,oldSelection.Height);}
                 else if(resize>=0) {
                     double l=oldSelection.Left,r=oldSelection.Right,t=oldSelection.Top,b=oldSelection.Bottom;
-                    if(resize==0||resize==6||resize==7)l=p.X;if(resize==2||resize==3||resize==4)r=p.X;
-                    if(resize==0||resize==1||resize==2)t=p.Y;if(resize==4||resize==5||resize==6)b=p.Y;
+                    // The hit band extends either side of the painted edge.
+                    // Apply displacement, not its absolute pointer coordinate,
+                    // so a press/release within that band never jumps the crop.
+                    double dx=pointer.X-down.X,dy=pointer.Y-down.Y;
+                    if(resize==0||resize==6||resize==7)l=Geometry.Clamp(l+dx,0,surface.ActualWidth);if(resize==2||resize==3||resize==4)r=Geometry.Clamp(r+dx,0,surface.ActualWidth);
+                    if(resize==0||resize==1||resize==2)t=Geometry.Clamp(t+dy,0,surface.ActualHeight);if(resize==4||resize==5||resize==6)b=Geometry.Clamp(b+dy,0,surface.ActualHeight);
                     surface.Selection=Geometry.FromPoints(new Point(l,t),new Point(r,b));
                 } else if(snap.Move(p))surface.Selection=Geometry.FromPoints(down,p);
             } else if(surface.Draft!=null) {p=ClampPoint(p);surface.Draft.End=p;if(tool=="pen")surface.Draft.Points.Add(p);}
@@ -204,10 +228,11 @@ namespace QingJie {
         internal void EndPointer(Point p) {
             if(!dragging)return;ContinuePointer(p);if(textDrag!=null){FinishTextGesture();return;}if(shapeDrag!=null){FinishShapeGesture();return;}dragging=false;surface.ReleaseMouseCapture();
             if(surface.Draft!=null){if(HasDrawingContent(surface.Draft)){if(tool=="mosaic")surface.PrepareMosaic(surface.Draft);surface.Marks.Add(surface.Draft);last=surface.Draft;RecordAnnotationAdded(last);}surface.Draft=null;}
-            if(tool=="select")FinishSelectionGesture();
+            if(selectionBefore!=null)FinishSelectionGesture();
             if(surface.Selection.IsEmpty)UpdateSnap(p);else ClearSnap();UpdateBrushCursor(p);PositionTools();surface.InvalidateVisual();
         }
         void Wheel(object s,MouseWheelEventArgs e) {
+            if(!AcceptCaptureWheel(closed,collecting,captureOverlaySuspended,scrollingCapture!=null)){e.Handled=true;return;}
             if(textEditor!=null){textEditor.FontSize=Geometry.Clamp(textEditor.FontSize+(e.Delta>0?5:-5),16,250);UpdateWidth();e.Handled=true;return;}
             if(!dragging&&surface.Selection.IsEmpty&&tool=="select"&&snapTargets!=null){
                 CycleSnap(e.GetPosition(surface),e.Delta<0?1:-1);e.Handled=true;return;

@@ -10,7 +10,7 @@ $fixture=Join-Path ([System.IO.Path]::GetTempPath()) ('Mori-package-guard-'+[gui
 $extension=Join-Path $fixture 'browser-extension'
 New-Item -ItemType Directory -Path $extension | Out-Null
 Assert-NoMachineSecrets $fixture
-foreach($name in @('local-connection.js','local-connection.js.123.tmp','local-key.txt','local-key.txt.123.tmp')){
+foreach($name in @('local-connection.js','local-connection.js.123.tmp','local-key.txt','local-key.txt.123.tmp','github-token.dat','pairing.json')){
  $path=Join-Path $extension $name
  [System.IO.File]::WriteAllText($path,'synthetic fixture; no actual pairing key')
  $rejected=$false

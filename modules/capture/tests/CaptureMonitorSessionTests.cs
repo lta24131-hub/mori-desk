@@ -58,7 +58,7 @@ static class CaptureMonitorSessionTests {
     internal static void Run(Action<bool,string> check){
         check(Thread.CurrentThread.GetApartmentState()==ApartmentState.STA&&AppState.Captures.Count==0,"monitor session fixtures start on STA without an existing capture");
         var settings=AppState.Settings;AppState.Settings=new Preferences {Stroke=4,Color="#EF4444"};
-        try{MonitorCoordinates(check);UncommittedGestures(check);CommittedSelection(check);SameMonitorReselection(check);EscapeAndHistory(check);SwitchMonitor(check);CompleteSession(check);LateSessionResult(check);}
+        try{MonitorCoordinates(check);UncommittedGestures(check);CommittedSelection(check);SameMonitorReselection(check);EscapeAndHistory(check);EscapeStages(check);SwitchMonitor(check);CompleteSession(check);LateSessionResult(check);}
         finally{AppState.Settings=settings;}
         check(AppState.Captures.Count==0,"monitor session fixtures leave no capture members behind");
     }
@@ -81,7 +81,8 @@ static class CaptureMonitorSessionTests {
             left.Window.ContinuePointer(new Point(240,160));AppState.SyncCaptureSelection(left.Window);
             check(left.Window.HasCaptureRegion&&left.Window.HasCaptureGesture&&s.Resumed,"a temporarily valid crop during dragging cannot suspend another monitor before commit");
             check(!AppState.CanFocusCaptureFromPointer(s.Right.Window),"another monitor cannot steal focus during a capture gesture");
-            check(left.Key(Key.Escape)&&!left.Window.HasCaptureGesture&&!left.Window.HasCaptureRegion&&s.Resumed&&s.Open,"Escape rolls back the first crop gesture while preserving both monitor snapshots");
+            left.Window.CancelFromPointer();
+            check(!left.Window.HasCaptureGesture&&!left.Window.HasCaptureRegion&&s.Resumed&&s.Open,"right click rolls back the first crop gesture while preserving both monitor snapshots");
             left.Window.BeginPointer(start);left.Window.EndPointer(start);
             check(!left.Window.HasCaptureRegion&&s.Resumed&&s.Open,"an empty click without an automatic target leaves all overlays available");
             left.Window.BeginPointer(start);left.Window.EndPointer(new Point(240,31));
@@ -115,7 +116,7 @@ static class CaptureMonitorSessionTests {
             var left=s.Left;s.Left.Drag(s.Crop);var outside=new Point(300,210);
             left.Window.BeginPointer(outside);AppState.SyncCaptureSelection(left.Window);
             check(left.Surface.Selection.IsEmpty&&left.Window.HasCaptureGesture&&s.Right.Window.IsCaptureOverlaySuspended,"temporary empty crop during reselection does not resume a suspended monitor");
-            left.Window.ContinuePointer(new Point(380,280));left.Key(Key.Escape);
+            left.Window.ContinuePointer(new Point(380,280));left.Window.CancelFromPointer();
             check(left.Surface.Selection==s.Crop&&!left.Window.HasCaptureGesture&&s.Right.Window.IsCaptureOverlaySuspended,"cancelling same-monitor reselection restores the committed owner without resuming siblings");
             left.Window.BeginPointer(outside);left.Window.EndPointer(new Point(380,211));
             check(left.Surface.Selection==s.Crop&&s.Right.Window.IsCaptureOverlaySuspended,"invalid same-monitor replacement retains the previous crop and suspended siblings");
@@ -127,10 +128,11 @@ static class CaptureMonitorSessionTests {
     static void EscapeAndHistory(Action<bool,string> check){
         using(var s=new Session()){
             var left=s.Left;left.Drag(s.Crop);left.Key(Key.R);left.Window.BeginPointer(new Point(90,70));left.Window.EndPointer(new Point(160,120));var mark=left.Surface.Marks.Single();
-            check(left.Key(Key.Escape)&&left.Window.SelectedTool=="select"&&left.Surface.Selection==s.Crop&&s.Right.Window.IsCaptureOverlaySuspended,"Escape exits a drawing tool before resuming other monitors");
+            left.Window.CancelFromPointer();check(left.Window.SelectedTool=="select"&&left.Surface.Selection==s.Crop&&s.Right.Window.IsCaptureOverlaySuspended,"right click exits a drawing tool before resuming other monitors");
             left.Window.BeginPointer(new Point(90,90));left.Window.EndPointer(new Point(90,90));
-            check(left.Surface.SelectedAnnotation==mark&&left.Key(Key.Escape)&&left.Surface.SelectedAnnotation==null&&s.Right.Window.IsCaptureOverlaySuspended,"Escape deselects a mark without clearing the crop or exposing siblings");
-            check(left.Key(Key.Escape)&&left.Surface.Selection.IsEmpty&&left.Surface.Marks.Count==0&&s.Resumed&&s.Open,"Escape clearing the crop resumes all original overlays without closing their snapshots");
+            check(left.Surface.SelectedAnnotation==mark,"pointer can select an existing annotation before cancellation");left.Window.CancelFromPointer();
+            check(left.Surface.SelectedAnnotation==null&&s.Right.Window.IsCaptureOverlaySuspended,"right click deselects a mark without clearing the crop or exposing siblings");
+            left.Window.CancelFromPointer();check(left.Surface.Selection.IsEmpty&&left.Surface.Marks.Count==0&&s.Resumed&&s.Open,"right click clearing the crop resumes all original overlays without closing their snapshots");
             check(AppState.CaptureForPoint(new System.Drawing.Point(100,100))==s.Right.Window,"after clearing a region, point-based selection can target the other monitor");
             check(left.Key(Key.Z,ModifierKeys.Control)&&left.Surface.Selection==s.Crop&&left.Surface.Marks.Single()==mark&&s.Right.Window.IsCaptureOverlaySuspended,"undo of region clearing restores the original annotation object and monitor owner");
             check(left.Key(Key.Y,ModifierKeys.Control)&&left.Surface.Selection.IsEmpty&&s.Resumed,"redo of region clearing resumes every retained monitor");
@@ -138,18 +140,31 @@ static class CaptureMonitorSessionTests {
             check(left.Surface.Selection==s.Crop&&left.Surface.Marks.Count==0&&s.Right.Window.IsCaptureOverlaySuspended,"undoing only an annotation cannot change the monitor-session owner");
             check(left.Key(Key.Z,ModifierKeys.Control)&&left.Surface.Selection.IsEmpty&&s.Resumed&&s.Open,"undo of the first region selection returns to an empty multi-monitor session");
             check(left.Key(Key.Z,ModifierKeys.Control|ModifierKeys.Shift)&&left.Surface.Selection==s.Crop&&s.Right.Window.IsCaptureOverlaySuspended,"redo of the first region reclaims its monitor and suspends siblings");
-            left.Key(Key.Escape);
-            check(left.Key(Key.Escape)&&AppState.Captures.Count==0&&Closed(left.Window)&&Closed(s.Right.Window),"Escape from the fully unselected state closes the entire capture session");
+            check(left.Key(Key.Escape)&&AppState.Captures.Count==0&&Closed(left.Window)&&Closed(s.Right.Window),"one Escape from a committed crop closes the entire capture session without an intermediate cleared state");
         }
     }
     static void SwitchMonitor(Action<bool,string> check){
         using(var s=new Session()){
-            s.Left.Drag(s.Crop);s.Left.Key(Key.Escape);var otherCrop=new Rect(60,50,260,180);s.Right.Drag(otherCrop);
+            s.Left.Drag(s.Crop);s.Left.Window.CancelFromPointer();var otherCrop=new Rect(60,50,260,180);s.Right.Drag(otherCrop);
             check(s.Right.Surface.Selection==otherCrop&&s.Left.Surface.Selection.IsEmpty&&s.Left.Window.IsCaptureOverlaySuspended&&!s.Right.Window.IsCaptureOverlaySuspended,"clearing one monitor allows a valid crop on the other to become the owner");
             check(AppState.CaptureForPoint(new System.Drawing.Point(-500,100))==s.Right.Window&&!s.Left.Key(Key.Z,ModifierKeys.Control)&&!s.Left.Window.BeginPointer(new Point(50,50)),"the old monitor's history and pointer path cannot steal a new monitor owner");
-            s.Right.Key(Key.Escape);
+            s.Right.Window.CancelFromPointer();
             check(s.Resumed&&s.Open&&ReferenceEquals(s.Left.Shot.Image,s.Left.Image)&&ReferenceEquals(s.Right.Shot.Image,s.Right.Image),"switching screens and clearing again keeps the original frozen images available");
             check(s.Left.Key(Key.Z,ModifierKeys.Control)&&s.Left.Surface.Selection==s.Crop&&s.Right.Window.IsCaptureOverlaySuspended,"undo may reclaim the original monitor only after the newer owner has been cleared");
+        }
+    }
+    static void EscapeStages(Action<bool,string> check){
+        foreach(string stage in new[]{"empty","first-crop-gesture","selected","crop-adjust","new-drawing","live-text"})using(var s=new Session()){
+            var left=s.Left;
+            if(stage=="first-crop-gesture"){left.Window.BeginPointer(s.Crop.TopLeft);left.Window.ContinuePointer(s.Crop.BottomRight);}
+            else if(stage!="empty"){
+                left.Drag(s.Crop);
+                if(stage=="crop-adjust"){left.Window.BeginPointer(s.Crop.TopLeft);left.Window.ContinuePointer(s.Crop.TopLeft+new Vector(10,10));}
+                if(stage=="new-drawing"){left.Key(Key.R);left.Window.BeginPointer(new Point(90,70));left.Window.ContinuePointer(new Point(160,120));}
+                if(stage=="live-text"){left.Key(Key.T);left.Window.BeginPointer(new Point(90,70));Field<TextBox>(left.Window,"textEditor").Text="unfinished";}
+            }
+            check(left.Key(Key.Escape)&&Closed(left.Window)&&Closed(s.Right.Window)&&AppState.Captures.Count==0,"one Escape ends every monitor overlay immediately from "+stage);
+            check(left.Shot.Image==null&&s.Right.Shot.Image==null&&left.Surface.Image==null&&s.Right.Surface.Image==null&&left.Surface.Marks.Count==0&&left.Surface.Draft==null&&Field<TextBox>(left.Window,"textEditor")==null,"whole-session Escape releases original snapshots and unfinished edits: "+stage);
         }
     }
     static void CompleteSession(Action<bool,string> check){
@@ -163,15 +178,20 @@ static class CaptureMonitorSessionTests {
         }
     }
     static void LateSessionResult(Action<bool,string> check){
+        foreach(string outcome in new[]{"success","not-saved","error"})LateSessionResult(check,outcome);
+    }
+    static void LateSessionResult(Action<bool,string> check,string outcome){
         var collect=MoriDesk.DeskRuntime.CollectImage;var context=SynchronizationContext.Current;var pending=new TaskCompletionSource<bool>();Task<bool> result=null;
         MoriDesk.DeskRuntime.CollectImage=image=>pending.Task;SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
         try{using(var old=new Session()){
             old.Left.Drag(old.Crop);result=old.Left.Window.CollectToLibraryAsync();
             check(!result.IsCompleted&&old.Left.Window.HasCaptureGesture&&old.Right.Window.IsCaptureOverlaySuspended,"synthetic pending collection keeps its original monitor session owned and suspended");
-            old.Left.Window.Close();
+            check(old.Left.Key(Key.Escape)&&AppState.Captures.Count==0&&Closed(old.Left.Window)&&Closed(old.Right.Window),"one Escape closes every overlay even while an already-submitted library collection is pending");
             using(var current=new Session()){
-                var crop=new Rect(60,50,260,180);current.Right.Drag(crop);pending.SetResult(true);
-                check(Await(result)&&current.Open&&current.Right.Surface.Selection==crop&&current.Left.Window.IsCaptureOverlaySuspended,"late successful collection from a closed session cannot close or reveal a newer session");
+                var crop=new Rect(60,50,260,180);current.Right.Drag(crop);
+                if(outcome=="error")pending.SetException(new InvalidOperationException("synthetic collection failure"));else pending.SetResult(outcome=="success");
+                check(Await(result)==(outcome=="success")&&current.Open&&current.Right.Surface.Selection==crop&&current.Left.Window.IsCaptureOverlaySuspended,"late collection result from a closed session cannot close or reveal a newer session: "+outcome);
+                check(Field<TextBlock>(old.Left.Window,"translationStatus").Visibility==Visibility.Collapsed,"late collection result never restores status on its closed overlay: "+outcome);
                 AppState.CaptureClosed(old.Left.Window);AppState.SyncCaptureSelection(old.Left.Window);AppState.ChooseCapture(old.Left.Window);
                 check(current.Open&&AppState.CaptureForPoint(new System.Drawing.Point(-500,100))==current.Right.Window&&current.Left.Window.IsCaptureOverlaySuspended&&!old.Left.Key(Key.Escape),"late close and selection notifications from old windows cannot affect the new session owner");
             }

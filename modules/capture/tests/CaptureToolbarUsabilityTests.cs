@@ -51,7 +51,7 @@ internal static class CaptureToolbarUsabilityTests {
             check(buttons.Select(button=>button.Name).Where(name=>name.Length>0).Distinct().Count()==buttons.Count(button=>button.Name.Length>0),"toolbar action identities remain unique after adaptive grouping");
             check(!undo.IsEnabled&&!redo.IsEnabled&&undo.Opacity<.5&&redo.Opacity<.5,"empty capture history visibly disables both undo and redo");
             check(ToolTipService.GetShowOnDisabled(undo)&&ToolTipService.GetShowOnDisabled(redo)&&AutomationProperties.GetName(redo).Contains("Ctrl+Y"),"disabled history still explains each action and its keyboard shortcut");
-            check(Gap(Action(window,"Tool_select"),Action(window,"Tool_rect"),toolbar)>=10&&Gap(Action(window,"Tool_rect"),Action(window,"Tool_ellipse"),toolbar)<5,"crop adjustment is visually separated from the consecutive drawing tools");
+            check(!buttons.Any(button=>button.Name=="CaptureTool_select")&&Gap(Action(window,"Tool_rect"),Action(window,"Tool_ellipse"),toolbar)<5,"crop adjustment is direct on the border; drawing tools stay consecutive without a redundant selection button");
             check(Gap(undo,redo,toolbar)<5&&Gap(redo,Action(window,"Ocr"),toolbar)>=10,"undo and redo stay together before a distinct recognition group");
             check(Gap(Action(window,"Save"),Action(window,"Cancel"),toolbar)>=10&&Gap(Action(window,"Cancel"),Action(window,"Copy"),toolbar)<5,"finish actions stay together after the export group");
             check(card.Visibility==Visibility.Collapsed,"crop adjustment has no irrelevant drawing properties");

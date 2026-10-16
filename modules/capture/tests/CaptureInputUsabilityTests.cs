@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -37,7 +38,7 @@ static class CaptureInputUsabilityTests {
     }
     internal static void Run(Action<bool,string> check){
         var preferences=AppState.Settings;AppState.Settings=new Preferences {Stroke=4,Color="#EF4444"};
-        try{ToolKeys(check);HistoryKeys(check);TextKeys(check);CompletionGuards(check);RightCancel(check);ClosedPen(check);OverlapCursor(check);}
+        try{ToolKeys(check);HistoryKeys(check);TextKeys(check);CompletionGuards(check);RightCancel(check);EscapeOnce(check);ClosedPen(check);OverlapCursor(check);}
         finally{AppState.Settings=preferences;}
     }
     static void ToolKeys(Action<bool,string> check){
@@ -107,6 +108,48 @@ static class CaptureInputUsabilityTests {
             f.Tool("text");f.Window.BeginPointer(new Point(300,200));Field<TextBox>(f.Window,"textEditor").Text="cancel me";f.Window.CancelFromPointer();
             check(Field<TextBox>(f.Window,"textEditor")==null&&f.Surface.Marks.Single()==mark&&f.Surface.Selection==f.Crop,"right click cancels uncommitted text rather than unexpectedly exporting or ending capture");
         }
+    }
+    static void EscapeOnce(Action<bool,string> check){
+        var collect=MoriDesk.DeskRuntime.CollectImage;int submissions=0;
+        MoriDesk.DeskRuntime.CollectImage=image=>{submissions++;return Task.FromResult(true);};
+        try{
+            foreach(string state in new[]{"empty","crop","tool","selected-shape","drawing","shape-move","text-new","text-edit","text-move","text-resize","translation","language-menu"})using(var f=new Fixture()){
+                AppState.Captures.Add(f.Window);Annotation original=null;CancellationTokenSource translation=null;KeyEventArgs e;
+                if(state=="empty")f.Surface.Selection=Rect.Empty;
+                if(state=="tool")f.Tool("pen");
+                if(state=="selected-shape"||state=="shape-move"){
+                    var mark=f.Draw("rect");f.Tool("select");f.Window.BeginPointer(new Point(180,120));
+                    if(state=="shape-move")f.Window.ContinuePointer(new Point(210,140));else f.Window.EndPointer(new Point(180,120));
+                }
+                if(state=="drawing"){f.Tool("pen");f.Window.BeginPointer(new Point(140,120));f.Window.ContinuePointer(new Point(240,190));}
+                if(state=="text-new"){f.Tool("text");f.Window.BeginPointer(new Point(140,120));Field<TextBox>(f.Window,"textEditor").Text="must not be committed";}
+                if(state=="text-edit"||state=="text-move"||state=="text-resize"){
+                    original=new Annotation {Kind="text",Text="original text",Start=new Point(140,120),Width=4};f.Surface.Marks.Add(original);f.Tool("select");
+                    if(state=="text-edit"){f.Window.BeginPointer(new Point(original.Bounds.Left+original.Bounds.Width/2,original.Bounds.Top+original.Bounds.Height/2),2);Field<TextBox>(f.Window,"textEditor").Text="must not replace original";}
+                    else{
+                        Call(f.Window,"SelectText",original);
+                        var point=state=="text-resize"?ScreenshotSurface.Handles(ScreenshotSurface.TextFrame(original))[4]:new Point(original.Bounds.Left+original.Bounds.Width/2,original.Bounds.Top+original.Bounds.Height/2);
+                        f.Window.BeginPointer(point);f.Window.ContinuePointer(point+new Vector(20,10));
+                    }
+                }
+                if(state=="translation"){
+                    translation=new CancellationTokenSource();typeof(CaptureWindow).GetField("translationCancel",Hidden).SetValue(f.Window,translation);
+                    f.Surface.TranslationImage=f.Surface.Image;f.Surface.ShowTranslation=true;
+                }
+                e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,Key.Escape){RoutedEvent=Keyboard.PreviewKeyDownEvent};
+                if(state=="language-menu"){
+                    // Exercise the actual popup handler without opening a native
+                    // popup: this context menu is intentionally always closed.
+                    var menu=Field<StackPanel>(f.Window,"toolbar").Children.OfType<Button>().Single(button=>button.ContextMenu!=null).ContextMenu;
+                    menu.RaiseEvent(e);
+                }else Call(f.Window,"KeyDownHandler",f.Window,e);
+                check(e.Handled&&Field<bool>(f.Window,"closed")&&AppState.Captures.Count==0&&f.Surface.Image==null&&f.Surface.Marks.Count==0&&f.Surface.Draft==null&&Field<TextBox>(f.Window,"textEditor")==null,"one Escape exits screenshot immediately from "+state+" without intermediate cancellation");
+                check(submissions==0&&History(f.Window)==0&&!Field<bool>(f.Window,"dragging"),"Escape never submits unfinished pixels or retains a gesture/history: "+state);
+                if(state=="text-edit")check(original.Text=="original text","Escape closes a live reopened editor without committing replacement text");
+                if(translation!=null){check(translation.IsCancellationRequested&&f.Surface.TranslationImage==null,"Escape cancels in-flight translation and releases its visual result");translation.Dispose();}
+                check(!f.Key(Key.Escape),"a duplicate Escape delivered to an already-closed screenshot is ignored: "+state);
+            }
+        }finally{MoriDesk.DeskRuntime.CollectImage=collect;}
     }
     static void ClosedPen(Action<bool,string> check){
         using(var f=new Fixture()){

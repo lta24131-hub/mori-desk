@@ -112,6 +112,7 @@ namespace QingJie {
                 case "translate":line(2,5,12,5);line(7,2,7,5);line(4,6,10,13);line(10,5,3,14);line(10,18,14,8);line(14,8,18,18);line(12,14,16,14);break;
                 case "pin":line(7,3,13,3);line(8,3,7,9);line(12,3,13,9);line(7,9,4,12);line(13,9,16,12);line(4,12,16,12);line(10,12,10,18);break;
                 case "save":line(10,2,10,13);line(6,9,10,13);line(10,13,14,9);line(3,12,3,18);line(3,18,17,18);line(17,18,17,12);break;
+                case "scroll":line(3,7,3,2);line(3,2,8,2);line(12,2,17,2);line(17,2,17,7);line(3,13,3,18);line(3,18,8,18);line(12,18,17,18);line(17,18,17,13);line(10,5,10,15);line(7,12,10,15);line(10,15,13,12);break;
                 case "close":line(4,4,16,16);line(4,16,16,4);break;
                 case "done":line(3,10,8,15);line(8,15,17,5);break;
                 case "copy":d.DrawRectangle(null,p,new Rect(6,6,11,11));line(3,14,3,3);line(3,3,14,3);break;

@@ -69,15 +69,23 @@ static class CaptureSelectionInteractionTests {
     static void Cancel(Action<bool,string> check){
         using(var f=new Fixture()){
             var window=f.Window;var surface=f.Surface;AppState.Captures.Add(window);int history=History(window);var topLeft=surface.Handles()[0];
-            window.BeginPointer(topLeft);window.ContinuePointer(topLeft+new Vector(20,20));var escaped=Key(window,System.Windows.Input.Key.Escape);
-            check(escaped.Handled&&AppState.Captures.Contains(window)&&surface.Image!=null&&surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark&&!Flag(window,"dragging")&&History(window)==history,"Escape during crop resizing cancels only the gesture and retains the screenshot session");
-            window.BeginPointer(new Point(440,310));window.ContinuePointer(new Point(550,380));Key(window,System.Windows.Input.Key.Escape);
-            check(surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark&&!Flag(window,"dragging")&&History(window)==history,"Escape during reselection restores the original crop and annotations without phantom history");
-            Call(window,"SetTool","rect");window.BeginPointer(new Point(270,190));window.ContinuePointer(new Point(340,250));Key(window,System.Windows.Input.Key.Escape);
-            check(AppState.Captures.Contains(window)&&surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark&&surface.Draft==null&&!Flag(window,"dragging")&&History(window)==history,"Escape during a new drawing cancels only the draft, keeping older annotations and screenshot");
-            Key(window,System.Windows.Input.Key.Escape);check(window.SelectedTool=="select"&&surface.Selection==f.Crop,"Escape exits a drawing tool before clearing the screenshot region");
-            Key(window,System.Windows.Input.Key.Escape);check(surface.Selection.IsEmpty&&surface.Marks.Count==0&&AppState.Captures.Contains(window),"Escape on a confirmed crop returns to region selection without ending capture");
-            Call(window,"Undo");check(surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark,"clearing a region with Escape is reversible with its annotations intact");
+            window.BeginPointer(topLeft);window.ContinuePointer(topLeft+new Vector(20,20));window.CancelFromPointer();
+            check(AppState.Captures.Contains(window)&&surface.Image!=null&&surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark&&!Flag(window,"dragging")&&History(window)==history,"right click during crop resizing cancels only the gesture and retains the screenshot session");
+            window.BeginPointer(new Point(440,310));window.ContinuePointer(new Point(550,380));window.CancelFromPointer();
+            check(surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark&&!Flag(window,"dragging")&&History(window)==history,"right click during reselection restores the original crop and annotations without phantom history");
+            Call(window,"SetTool","rect");window.BeginPointer(new Point(270,190));window.ContinuePointer(new Point(340,250));window.CancelFromPointer();
+            check(AppState.Captures.Contains(window)&&surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark&&surface.Draft==null&&!Flag(window,"dragging")&&History(window)==history,"right click during a new drawing cancels only the draft, keeping older annotations and screenshot");
+            window.CancelFromPointer();check(window.SelectedTool=="select"&&surface.Selection==f.Crop,"right click exits a drawing tool before clearing the screenshot region");
+            window.CancelFromPointer();check(surface.Selection.IsEmpty&&surface.Marks.Count==0&&AppState.Captures.Contains(window),"right click on a confirmed crop returns to region selection without ending capture");
+            Call(window,"Undo");check(surface.Selection==f.Crop&&surface.Marks.Single()==f.Mark,"clearing a region with right click is reversible with its annotations intact");
+        }
+        foreach(string state in new[]{"crop","resize","reselect","draft"})using(var f=new Fixture()){
+            var window=f.Window;var surface=f.Surface;AppState.Captures.Add(window);
+            if(state=="resize"){var topLeft=surface.Handles()[0];window.BeginPointer(topLeft);window.ContinuePointer(topLeft+new Vector(20,20));}
+            if(state=="reselect"){window.BeginPointer(new Point(440,310));window.ContinuePointer(new Point(550,380));}
+            if(state=="draft"){Call(window,"SetTool","rect");window.BeginPointer(new Point(270,190));window.ContinuePointer(new Point(340,250));}
+            var escaped=Key(window,System.Windows.Input.Key.Escape);
+            check(escaped.Handled&&Flag(window,"closed")&&!AppState.Captures.Contains(window)&&surface.Image==null&&surface.Marks.Count==0&&surface.Draft==null&&!Flag(window,"dragging")&&History(window)==0,"one Escape immediately closes a screenshot and discards unfinished state: "+state);
         }
     }
     static void FlipCursors(Action<bool,string> check){

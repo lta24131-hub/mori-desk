@@ -10,8 +10,14 @@ namespace QingJie {
         // after an event has already been interpreted.
         internal bool HandleCaptureKey(Key key,ModifierKeys modifiers){
             if(closed||captureOverlaySuspended||!AppState.CanEnterCapture(this))return false;
+            // Escape is always the one-press emergency exit, even during text
+            // editing, pointer gestures, translation or a submitted collection.
+            // Closing (not committing) discards unfinished annotations and ends
+            // only the monitor session containing this window. A collection
+            // already handed to the library may finish, but its closed-window
+            // continuation cannot reopen this overlay or affect a newer capture.
+            if(key==Key.Escape){Close();return true;}
             if(collecting)return true;
-            if(key==Key.Escape){CancelCaptureStep();return true;}
             if(textEditor!=null){
                 if(key==Key.Enter&&modifiers==ModifierKeys.Control){CommitText();return true;}
                 // Typing, selection, clipboard and undo belong to the editor.

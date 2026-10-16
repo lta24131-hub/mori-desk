@@ -22,6 +22,9 @@ namespace MoriDesk {
    var testApp=System.Windows.Application.Current??new System.Windows.Application();testApp.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
    IterationTests.Run(root,Check);BrowserLocalBridgeTests.Run(root,Check);BrowserExtensionManagerTests.Run(root,Check);ScreenshotCollectionTests.Run(root,Check);LaunchTests.Run(root,Check);ReferenceTests.Run(root,Check);LibraryConsistencyTests.Run(root,Check);ReferenceThumbnailFreshnessTests.Run(root,Check);MetadataRefreshCacheTests.Run(root,Check);InspectorDraftTests.Run(root,Check);BoardTests.Run(root,Check);ClassicTests.Run(root,Check);LocalCollectionTests.Run(root,Check);OverviewVisibilityTests.Run(root,Check);DesktopDropTests.Run(root,Check);DeskSettingsTests.Run(root,Check);
    BrandingTests.Run(Path.Combine(root,"branding"),Check);
+   AppUpdateServiceTests.Run(Path.Combine(root,"app-update-service"),Check);
+   AppUpdatePanelTests.Run(Path.Combine(root,"app-update-panel"),Check);
+   AppUpdateCoordinatorTests.Run(Path.Combine(root,"app-update-coordinator"),Check);
    ReferenceEagleMetadataTests.Run(Path.Combine(root,"reference-eagle"),Check);
    ExportNamingTests.Run(Path.Combine(root,"export-naming"),Check);
    ImageBrowserLifecycleTests.Run(Path.Combine(root,"image-browser-lifecycle"),Check);
@@ -53,6 +56,7 @@ namespace MoriDesk {
    CustomizationTests.Run(Path.Combine(root,"customization"),Check);
    PreviewPreferencesTests.Run(Path.Combine(root,"preview-preferences"),Check);
    DesktopImagePinTests.Run(Path.Combine(root,"desktop-image-pins"),Check);
+   PreviewClipboardTests.Run(Path.Combine(root,"preview-clipboard"),Check);
    PinLifecycleTests.Run(Path.Combine(root,"pin-lifecycle"),Check);
    PinRuntimeTests.Run(Path.Combine(root,"pin-runtime"),Check);
    MiddleDragPanTests.Run(Check);

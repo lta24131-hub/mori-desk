@@ -24,6 +24,7 @@ namespace Mori {
    canvasNav=new Button{Name="CanvasNav",Content="项目",ToolTip="按项目查看画板缩略图；拖图片到指定画板加入",Style=B("All").Style,Margin=new Thickness(10,8,10,0)};UiIcons.SetGlyph(canvasNav,"\uE7C5");navigation.Children.Insert(navigation.Children.IndexOf(B("Audio"))+1,canvasNav);Window.RegisterName("CanvasNav",canvasNav);canvasNav.Click+=delegate{ShowCanvasProjects();};Window.Activated+=delegate{RefreshCanvasProjects();};
    Window.Loaded+=delegate{deskLoaded=true;if(!deskDeferred)StartDeskServices();Application.Current.ShutdownMode=ShutdownMode.OnMainWindowClose;};
    Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(e.Cancel)return;if(matureCanvas!=null&&!matureCanvas.PreparedForExit){e.Cancel=true;matureCanvas.SaveAndRun(delegate{exitRequested=true;Window.Close();});return;}if(freeCanvas!=null&&!freeCanvas.PrepareExit()){e.Cancel=true;return;}if(!DeskRuntime.PrepareExit(Window)){e.Cancel=true;return;}CloseFreeCanvasForExit(s,e);if(e.Cancel&&!DeskRuntime.SessionEnding)QingJie.AppState.Quitting=false;};
+   InitializeAppUpdate();
    // Keep the capture lease until pin windows have finished saving on shutdown.
    Application.Current.Exit+=delegate{BrowserConnection.StopLocal();DeskRuntime.Stop();};
    if(Entry.BoardEnabled)ShowBoard("all");if(Entry.ClassicEnabled){InitializeLocalAddress();UpdateInspector();UpdateNavigationScope();}

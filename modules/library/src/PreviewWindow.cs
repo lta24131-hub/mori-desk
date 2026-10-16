@@ -13,7 +13,11 @@ using Drawing=System.Drawing;
 
 namespace Mori {
  sealed class PreviewCanvas : Forms.Panel {
+  internal Action CopyImage;
   public PreviewCanvas(){SetStyle(Forms.ControlStyles.Selectable|Forms.ControlStyles.OptimizedDoubleBuffer|Forms.ControlStyles.AllPaintingInWmPaint,true);TabStop=true;}
+  internal bool TryCopyShortcut(Forms.Keys keys){if(keys!=(Forms.Keys.Control|Forms.Keys.C)||CopyImage==null)return false;CopyImage();return true;}
+  protected override bool ProcessCmdKey(ref Forms.Message message,Forms.Keys keys){return TryCopyShortcut(keys)||base.ProcessCmdKey(ref message,keys);}
+  protected override void Dispose(bool disposing){if(disposing)CopyImage=null;base.Dispose(disposing);}
  }
  sealed class PreviewDragController : IDisposable {
   readonly Forms.Control surface,picture;readonly PreviewViewport viewport;readonly Action changed;readonly bool captureMouse;
@@ -78,11 +82,17 @@ namespace Mori {
    UpdateMenuTheme();Theme.Changed+=UpdateMenuTheme;
   }
   void UpdateBackgroundChecks(){foreach(Forms.ToolStripItem entry in backgroundMenu.Items){var item=entry as Forms.ToolStripMenuItem;if(item!=null&&item.Tag is PreviewBackground)item.Checked=(PreviewBackground)item.Tag==BackgroundMode;}}
+  void EnsureActionSeparator(){if(!backgroundMenu.Items.ContainsKey("ImageActionsSeparator"))backgroundMenu.Items.Insert(0,new Forms.ToolStripSeparator{Name="ImageActionsSeparator"});backgroundMenu.AccessibleName="图片操作";AccessibleDescription="滚轮缩放，拖动查看细节，Ctrl+C 复制图片，右键复制、钉在桌面或切换图片背景。";}
+  internal void AttachCopy(Action copy){
+   if(copy==null)throw new ArgumentNullException("copy");if(backgroundMenu.Items.ContainsKey("CopyImage"))return;
+   EnsureActionSeparator();var item=new Forms.ToolStripMenuItem("复制图片"){Name="CopyImage",AccessibleName="复制图片",ShortcutKeyDisplayString="Ctrl+C",ToolTipText="复制完整预览图片，不含背景底纹；动图复制当前静态画面。"};
+   item.Click+=delegate{copy();};backgroundMenu.Items.Insert(0,item);UpdateMenuTheme();
+  }
   internal void AttachDesktopPin(Func<Task> pin){
    if(pin==null)throw new ArgumentNullException("pin");if(backgroundMenu.Items.ContainsKey("PinToDesktop"))return;
    var item=new Forms.ToolStripMenuItem("钉在桌面"){Name="PinToDesktop",AccessibleName="钉在桌面",ToolTipText="无边框置顶；拖动移动，滚轮缩放。动图保存当前静态画面。"};
    item.Click+=async delegate{if(!item.Enabled)return;item.Enabled=false;try{await pin();}finally{if(!item.IsDisposed)item.Enabled=true;}};
-   backgroundMenu.Items.Insert(0,new Forms.ToolStripSeparator());backgroundMenu.Items.Insert(0,item);AccessibleDescription="滚轮缩放，拖动查看细节，右键钉在桌面或切换图片背景。";UpdateMenuTheme();
+   EnsureActionSeparator();backgroundMenu.Items.Insert(backgroundMenu.Items.ContainsKey("CopyImage")?1:0,item);UpdateMenuTheme();
   }
   static PreviewBackground DefaultBackground(string value){switch(value){case "light-checker":return PreviewBackground.LightChecker;case "dark-checker":return PreviewBackground.DarkChecker;case "white":return PreviewBackground.White;case "dark":return PreviewBackground.Dark;default:return PreviewBackground.Automatic;}}
   void UpdateMenuTheme(){if(IsDisposed||Disposing||Application.Current==null||string.IsNullOrEmpty(Theme.Current))return;backgroundMenu.BackColor=Theme.DrawingColor("Surface");backgroundMenu.ForeColor=Theme.DrawingColor("Text");backgroundMenu.Renderer=new Forms.ToolStripProfessionalRenderer(new PreviewMenuColors());foreach(Forms.ToolStripItem item in backgroundMenu.Items){item.BackColor=backgroundMenu.BackColor;item.ForeColor=backgroundMenu.ForeColor;}}
@@ -121,6 +131,8 @@ namespace Mori {
     var panel=(DockPanel)grid.Children[i];string formatNotice=FormatPreviewInfo.Notice(files[i]);if(formatNotice.Length>0){var hint=new TextBlock{Text=formatNotice,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(12,6,12,6)};DockPanel.SetDock(hint,Dock.Bottom);panel.Children.Add(hint);}
     try{string file=files[i];var loading=new TextBlock{Text=string.Equals(Path.GetExtension(file),".svg",StringComparison.OrdinalIgnoreCase)?"正在预览 SVG…":"正在加载…",Margin=new Thickness(20)};panel.Children.Add(loading);var loaded=await PreviewImage.OpenAsync(file,cancellation.Token);if(closed){loaded.Dispose();return;}panel.Children.Remove(loading);dispose.Add(loaded);var image=loaded.Image;var viewport=new PreviewViewport(image.Width,image.Height);var host=new WindowsFormsHost();var scroll=new PreviewCanvas{AutoScroll=false,Dock=Forms.DockStyle.Fill,BackColor=Theme.DrawingColor("Canvas")};var picture=new PreviewPicture(image,viewport){BackColor=scroll.BackColor};Action updateTheme=delegate{scroll.BackColor=Theme.DrawingColor("Canvas");picture.BackColor=scroll.BackColor;};Theme.Changed+=updateTheme;window.Closed+=delegate{Theme.Changed-=updateTheme;};scroll.Controls.Add(picture);host.Child=scroll;panel.Children.Add(host);dispose.Add(host);
      if(files.Length==1)picture.AttachDesktopPin(()=>MoriDesk.DesktopImagePins.ShowAsync(window,image));
+     Action copy=()=>MoriDesk.PreviewClipboard.CopyForWindow(window,image);picture.AttachCopy(copy);scroll.CopyImage=copy;
+     if(files.Length==1)window.PreviewKeyDown+=(sender,args)=>{if(args.Key==Key.C&&Keyboard.Modifiers==ModifierKeys.Control){copy();args.Handled=true;}};
      PreviewDragController drag=null;Action layout=delegate{picture.Invalidate();if(drag!=null)drag.UpdateCursor();};drag=new PreviewDragController(scroll,picture,viewport,layout);dispose.Add(drag);Action endDrag=drag.Cancel;
      EventHandler focus=delegate{scroll.Focus();};picture.MouseEnter+=focus;scroll.MouseEnter+=focus;
      Forms.MouseEventHandler wheel=delegate(object sender,Forms.MouseEventArgs e){if(e.Delta==0)return;var handled=e as Forms.HandledMouseEventArgs;if(handled!=null)handled.Handled=true;endDrag();var point=scroll.PointToClient(((Forms.Control)sender).PointToScreen(e.Location));viewport.ZoomAt(Math.Pow(1.15,e.Delta/120.0),point.X,point.Y);layout();};

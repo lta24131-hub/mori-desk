@@ -267,6 +267,8 @@ class Tests {
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
         CaptureTests.Run(Check);
+        CaptureInputUsabilityTests.Run(Check);CaptureDirectResizeTests.Run(Check);
+        ScrollCaptureStitcherTests.Run(Check);ScrollCaptureSessionTests.Run(Check);ScrollCapturePreviewTests.Run(Check);ExternalScrollCaptureTests.Run(Check);
         if(args.Length==1&&args[0]=="--snap-only"){Console.WriteLine(count+" capture selection tests passed.");return 0;}
         if(args.Length==1&&args[0]=="--snap-native"){CaptureTests.Native(Check);Console.WriteLine(count+" capture tests passed.");return 0;}
         IconTests();

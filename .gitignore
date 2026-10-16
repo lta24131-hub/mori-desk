@@ -31,6 +31,7 @@
 **/local-connection.js*
 **/local-key.txt*
 **/pairing.json
+**/github-token.dat
 **/profile/
 **/test-output/
 **/test-languages/
