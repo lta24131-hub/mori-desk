@@ -93,6 +93,13 @@ fs.copyFileSync(notices, path.join(output, 'NOTICES.md'));
 const licenses = path.join(output, 'licenses');
 fs.mkdirSync(licenses, { recursive: true });
 fs.cpSync(path.join(moduleRoot, 'licenses'), licenses, { recursive: true });
+// The native toolbar embeds the official Fluent checkmark during preparation.
+// Keep its MIT notice beside other runtime third-party licenses, not only in
+// the full corresponding-source copy.
+const fluentLicense = path.join(licenses, 'MicrosoftFluentSystemIcons');
+fs.mkdirSync(fluentLicense, { recursive: true });
+for (const name of ['LICENSE.txt', 'SOURCE.txt'])
+  fs.copyFileSync(path.join(moduleRoot, 'host/assets/fluent', name), path.join(fluentLicense, name));
 const upstreamPkg = JSON.parse(fs.readFileSync(path.join(upstream, 'package.json'), 'utf8'));
 for (const name of Object.keys(upstreamPkg.dependencies)) {
   const root = path.join(upstream, 'node_modules', name);
@@ -107,7 +114,7 @@ for (const name of Object.keys(upstreamPkg.dependencies)) {
 }
 const digest = (p) => createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const manifest = {
-  schemaVersion: 1, upstream: 'https://github.com/xushengfeng/eSearch', upstreamVersion: '15.6.0',
+  schemaVersion: 1, deferredStart: true, captureFeaturePolicy: true, capturePrewarm: true, upstream: 'https://github.com/xushengfeng/eSearch', upstreamVersion: '15.6.0',
   upstreamCommit: '6f3f56241cccc8ada2c503df642566322dc67a3e', electronVersion,
   entryPoint: 'Nook.ScrollCapture.exe', application: 'resources/app/out/main/main.js',
   applicationSha256: digest(path.join(app, 'out/main/main.js')),

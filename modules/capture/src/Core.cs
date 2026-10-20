@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -19,11 +21,15 @@ namespace QingJie {
     }
     public sealed class Preferences {
         public double Stroke = 3;
+        // Text has its own remembered size; making a thick arrow must not make
+        // the next caption unexpectedly enormous.
+        public double TextSize = 20;
         public string Color = "#EF4444";
         // Canonical '+'-separated optional languages; legacy single values still work.
         public string OcrLanguage = "";
         public string TranslationProvider = "tencent";
         public ShortcutSet Shortcuts = new ShortcutSet();
+        public CaptureFeatures CaptureFeatures = new CaptureFeatures();
         public string SaveFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         internal static string TestFilePath;
         static string FilePath { get { return TestFilePath??Path.Combine(MoriDesk.Entry.DataRoot, "capture", "settings.json"); } }
@@ -32,8 +38,10 @@ namespace QingJie {
                 if (File.Exists(FilePath)) {
                     var p = new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(FilePath));
                     p.Stroke = Geometry.Clamp(p.Stroke, 1, 25);
+                    p.TextSize = Geometry.Clamp(p.TextSize, 16, 250);
                     ColorConverter.ConvertFromString(p.Color);
                     if(p.Shortcuts==null||p.Shortcuts.Error()!=null)p.Shortcuts=new ShortcutSet();
+                    if(p.CaptureFeatures==null)p.CaptureFeatures=new CaptureFeatures();
                     if(p.TranslationProvider!="google"&&p.TranslationProvider!="offline")p.TranslationProvider="tencent";
                     if (!Directory.Exists(p.SaveFolder)) p.SaveFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
                     return p;
@@ -42,7 +50,14 @@ namespace QingJie {
             return new Preferences();
         }
         public void Save() {try{SaveChecked();}catch{}}
-        public void SaveChecked(){Directory.CreateDirectory(Path.GetDirectoryName(FilePath));string temp=FilePath+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.WriteAllText(temp,new JavaScriptSerializer().Serialize(this));if(File.Exists(FilePath))File.Replace(temp,FilePath,null);else File.Move(temp,FilePath);}finally{if(File.Exists(temp))File.Delete(temp);}}
+        public void SaveChecked(){Directory.CreateDirectory(Path.GetDirectoryName(FilePath));string temp=FilePath+"."+Guid.NewGuid().ToString("N")+".tmp";try{
+            var serializer=new JavaScriptSerializer();var values=serializer.DeserializeObject(serializer.Serialize(this)) as Dictionary<string,object>;
+            // An older Nook saving these preferences must not erase fields it
+            // does not yet understand, including future feature selections.
+            if(File.Exists(FilePath)){Dictionary<string,object> existing=null;try{existing=serializer.DeserializeObject(File.ReadAllText(FilePath)) as Dictionary<string,object>;}catch(ArgumentException){}if(existing!=null){MergeSettings(existing,values);values=existing;}}
+            File.WriteAllText(temp,serializer.Serialize(values));if(File.Exists(FilePath))File.Replace(temp,FilePath,null);else File.Move(temp,FilePath);
+        }finally{if(File.Exists(temp))File.Delete(temp);}}
+        static void MergeSettings(Dictionary<string,object> target,Dictionary<string,object> values){foreach(var pair in values){object old;var nested=pair.Value as Dictionary<string,object>;if(nested!=null&&target.TryGetValue(pair.Key,out old)&&old is Dictionary<string,object>)MergeSettings((Dictionary<string,object>)old,nested);else target[pair.Key]=pair.Value;}}
     }
     public static class Geometry {
         public static bool IsHangul(char c){return (c>='\uac00'&&c<='\ud7a3')||(c>='\u1100'&&c<='\u11ff')||(c>='\u3130'&&c<='\u318f');}
@@ -86,12 +101,51 @@ namespace QingJie {
         }
     }
     public static class ImageFiles {
-        public static void Write(BitmapSource image,string path) { using(var stream=File.Create(path)) { var e=new PngBitmapEncoder();e.Frames.Add(BitmapFrame.Create(image));e.Save(stream); } }
+        public static void Write(BitmapSource image,string path) { WriteAtomic(path,stream=>{var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(image));encoder.Save(stream);},CancellationToken.None); }
+        // Encode beside the destination first. An encoder, disk-full or replace
+        // failure must not truncate the user's existing PNG. The temporary name
+        // is owned by this call; never clean up a glob or an unrelated file.
+        internal static void WriteAtomic(string path,Action<Stream> encode,CancellationToken cancel){
+            if(encode==null)throw new ArgumentNullException("encode");
+            var target=Path.GetFullPath(path);var temporary=Path.Combine(Path.GetDirectoryName(target),"."+Path.GetFileName(target)+"."+Guid.NewGuid().ToString("N")+".tmp");
+            try{
+                cancel.ThrowIfCancellationRequested();
+                using(var stream=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
+                    encode(stream);cancel.ThrowIfCancellationRequested();stream.Flush(true);
+                }
+                cancel.ThrowIfCancellationRequested();
+                if(File.Exists(target))File.Replace(temporary,target,null);else File.Move(temporary,target);
+            }finally{try{if(File.Exists(temporary))File.Delete(temporary);}catch(IOException){}catch(UnauthorizedAccessException){}}
+        }
+        static Microsoft.Win32.SaveFileDialog SaveDialog(){return new Microsoft.Win32.SaveFileDialog {Filter="PNG 图片|*.png",FileName="Nook_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".png",InitialDirectory=AppState.Settings.SaveFolder};}
+        static void RememberFolder(string path){AppState.Settings.SaveFolder=Path.GetDirectoryName(path);AppState.Settings.Save();}
         public static bool Save(BitmapSource image, Window owner) {
-            var dialog=new Microsoft.Win32.SaveFileDialog { Filter="PNG 图片|*.png", FileName="Nook_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".png", InitialDirectory=AppState.Settings.SaveFolder };
+            var dialog=SaveDialog();
             if(dialog.ShowDialog(owner)!=true) return false;
-            Write(image,dialog.FileName); AppState.Settings.SaveFolder=Path.GetDirectoryName(dialog.FileName); AppState.Settings.Save(); return true;
+            Write(image,dialog.FileName);RememberFolder(dialog.FileName);return true;
+        }
+        public static async Task<bool> SaveAsync(BitmapSource image,Window owner,CancellationToken cancel){
+            cancel.ThrowIfCancellationRequested();var dialog=SaveDialog();
+            if(dialog.ShowDialog(owner)!=true)return false;
+            cancel.ThrowIfCancellationRequested();var frozen=image.IsFrozen?image:(BitmapSource)image.GetCurrentValueAsFrozen();string path=dialog.FileName;
+            await Task.Run(()=>WriteAtomic(path,stream=>{var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(frozen));encoder.Save(stream);},cancel),cancel);
+            RememberFolder(path);return true;
         }
         public static void Copy(BitmapSource image) { Clipboard.SetImage(image); }
+        public static Task CopyAsync(BitmapSource image,CancellationToken cancel){return RetryClipboardAsync(()=>Clipboard.SetImage(image),(delay,token)=>Task.Delay(delay,token),cancel);}
+        // Each attempt stays on the caller's STA dispatcher. Yield between busy
+        // failures rather than sleeping on the UI thread or invoking clipboard
+        // APIs on a worker thread. Only the documented busy HRESULT is retried.
+        internal static async Task RetryClipboardAsync(Action copy,Func<int,CancellationToken,Task> wait,CancellationToken cancel){
+            var delays=new[]{40,60,90,130};
+            for(int attempt=0;;attempt++){
+                cancel.ThrowIfCancellationRequested();
+                try{copy();return;}
+                catch(ExternalException error){
+                    if(error.ErrorCode!=unchecked((int)0x800401D0)||attempt>=delays.Length)throw;
+                }
+                await wait(delays[attempt],cancel);
+            }
+        }
     }
 }

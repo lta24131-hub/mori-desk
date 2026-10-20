@@ -28,16 +28,16 @@ namespace MoriDesk {
     var pending=new TaskCompletionSource<bool>();BitmapSource exported=null;
     DeskRuntime.CollectImage=image=>{calls++;exported=image;return pending.Task;};w=Capture();
     var toolbar=(StackPanel)typeof(CaptureWindow).GetField("toolbar",Hidden).GetValue(w);
-    var button=toolbar.Children.OfType<Button>().Single(b=>b.Name=="CaptureCollect");
+    var button=(Button)LogicalTreeHelper.FindLogicalNode(w,"CaptureCollect");
     check(System.Windows.Automation.AutomationProperties.GetName(button).Contains("Ctrl+D")&&button.ToolTip.ToString().Contains("收藏到素材库"),"icon-only collection retains accessible name and shortcut tooltip");
     check(button.Content is ToolIcon&&button.Width==36&&button.Height==36,"collection is an ordinary-sized icon with no visible text");
     var icon=(ToolIcon)button.Content;icon.Measure(new Size(20,20));icon.Arrange(new Rect(0,0,20,20));var iconImage=new RenderTargetBitmap(20,20,96,96,PixelFormats.Pbgra32);iconImage.Render(icon);byte[] iconPixels=new byte[20*20*4];iconImage.CopyPixels(iconPixels,80,0);
     bool bluePixel=false;for(int i=0;i<iconPixels.Length;i+=4)if(iconPixels[i+3]>200&&iconPixels[i]>iconPixels[i+2]+50&&iconPixels[i]>iconPixels[i+1]+40){bluePixel=true;break;}
     check(bluePixel,"collection glyph is blue rather than ordinary toolbar ink");
     typeof(CaptureWindow).GetMethod("StartText",Hidden,null,new[]{typeof(Point)},null).Invoke(w,new object[]{new Point(5,5)});
-    ((TextBox)typeof(CaptureWindow).GetField("textEditor",Hidden).GetValue(w)).Text="Unsaved annotation";
+    ((TextBox)typeof(CaptureWindow).GetField("textEditor",Hidden).GetValue(w)).Text="Note";
     var task=w.CollectToLibraryAsync();
-    check(Surface(w).Marks.Any(m=>m.Kind=="text"&&m.Text=="Unsaved annotation"),"collection commits current text annotation before export");
+    check(Surface(w).Marks.Any(m=>m.Kind=="text"&&m.Text=="Note"),"collection commits current text annotation before export");
     check(exported!=null&&exported.IsFrozen&&exported.PixelWidth==160&&exported.PixelHeight==80,"collection exports frozen physical pixels for background work");
     check(!Surface(w).IsEnabled&&!toolbar.IsEnabled&&!Closed(w),"capture remains visible and locked until import commits");
     check(!Await(w.CollectToLibraryAsync())&&calls==1,"double click cannot save a second copy");
@@ -58,6 +58,13 @@ namespace MoriDesk {
     Surface(w).ShowTranslation=false;Await(w.CollectToLibraryAsync());exported.CopyPixels(new Int32Rect(70,40,1,1),pixel,4,0);check(pixel[2]==220,"toggling to original collects original pixels instead");
    }finally{if(w!=null&&!Closed(w))w.Close();DeskRuntime.CollectImage=previous;}
   }
+  #if CAPTURE_BACKGROUND_TESTS
+  public static void Run(Action<bool,string> check){
+   string data=Environment.GetEnvironmentVariable("MORI_DESK_DATA");
+   if(string.IsNullOrEmpty(data)||!Path.IsPathRooted(data)||!File.Exists(Path.Combine(Path.GetDirectoryName(data),".capture-background-sandbox")))throw new InvalidOperationException("Screenshot collection requires the isolated background runner.");
+   Run(Path.Combine(data,"screenshot-collection"),check);
+  }
+  #endif
   public static void Run(string root,Action<bool,string> check){
    var app=Application.Current??new Application();var mode=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
    var context=System.Threading.SynchronizationContext.Current;System.Threading.SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());

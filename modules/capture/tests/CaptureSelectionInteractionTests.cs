@@ -17,7 +17,8 @@ static class CaptureSelectionInteractionTests {
     static object Call(CaptureWindow window,string name,params object[] args){return typeof(CaptureWindow).GetMethod(name,Hidden).Invoke(window,args);}
     static int History(CaptureWindow window,string name="annotationUndo"){var value=typeof(CaptureWindow).GetField(name,Hidden).GetValue(window);return (int)value.GetType().GetProperty("Count").GetValue(value,null);}
     static bool Flag(CaptureWindow window,string name){return (bool)typeof(CaptureWindow).GetField(name,Hidden).GetValue(window);}
-    static KeyEventArgs Key(CaptureWindow window,System.Windows.Input.Key key){var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,key){RoutedEvent=Keyboard.PreviewKeyDownEvent};Call(window,"KeyDownHandler",window,e);return e;}
+    // Synthetic keys carry explicit modifiers; never sample the live keyboard.
+    static KeyEventArgs Key(CaptureWindow window,System.Windows.Input.Key key){var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,key){RoutedEvent=Keyboard.PreviewKeyDownEvent};e.Handled=window.HandleCaptureKey(key,ModifierKeys.None);return e;}
     sealed class Fixture : IDisposable {
         internal readonly CaptureWindow Window;
         internal readonly ScreenshotSurface Surface;

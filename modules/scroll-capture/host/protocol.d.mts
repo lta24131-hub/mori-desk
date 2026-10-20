@@ -1,9 +1,11 @@
 export type CaptureAction = "copy" | "save" | "pin" | "collect";
+export type WarmRequest = { schemaVersion: 1; sessionId: string; outputDirectory: string; parentProcessId: number };
+export type CaptureFeatures = Readonly<Record<"rectangle" | "ellipse" | "lines" | "pen" | "text" | "mosaic" | "pin" | "collect" | "scrolling", boolean>>;
 export type CaptureAnnotation = {
     kind: "rect" | "ellipse" | "line" | "arrow" | "pen" | "text" | "mosaic";
     x1: number; y1: number; x2: number; y2: number;
     color: string; strokeWidth: number; fontSize: number;
-    text?: string; points?: {x:number;y:number}[]; mosaicPath?: string;
+    text?: string; textWrapWidth?: number; points?: {x:number;y:number}[]; mosaicPath?: string;
 };
 export type CaptureRequest = {
     schemaVersion: 1; sessionId: string; outputDirectory: string;
@@ -12,14 +14,28 @@ export type CaptureRequest = {
     initialAnnotations: CaptureAnnotation[];
     annotationsClip: {x:number;y:number;width:number;height:number};
     parentProcessId?: number;
+    transactionalOutputs?: boolean;
+    deferredStart?: boolean;
+    features?: CaptureFeatures;
 };
 export const SCHEMA_VERSION: number;
 export const ACTIONS: readonly CaptureAction[];
 export const MAX_PIXELS: number;
 export const MAX_PNG_BYTES: number;
 export function validateRequest(raw: unknown, requestPath?: string): CaptureRequest;
+export function validateFeatures(raw: unknown): CaptureFeatures;
+export function allowsAction(request: CaptureRequest, action: unknown): boolean;
+export function hasAnnotations(request: CaptureRequest): boolean;
 export function readRequest(requestPath: string): CaptureRequest;
+export function readWarmRequest(filename: string): WarmRequest;
+export function readWarmActivation(warm: WarmRequest): CaptureRequest | null;
+export function writeWarmReady(warm: WarmRequest): object;
+export function writeStartupTiming(identity: CaptureRequest | WarmRequest, timings: Record<string, number | boolean>): void;
 export function validateAnnotations(raw: unknown, outputDirectory: string): CaptureAnnotation[];
 export function validatePng(png: Buffer): {width:number;height:number};
-export function writeResult(request: CaptureRequest, status: "ok"|"cancelled"|"error", options?: {action?:CaptureAction;png?:Buffer;message?:string}): object;
+export function writeResult(request: CaptureRequest, status: "ok"|"cancelled"|"error", options?: {action?:CaptureAction;png?:Buffer;message?:string;exportId?:number}): object;
 export function writeReady(request: CaptureRequest): object;
+export function writePrepared(request: CaptureRequest): object;
+export function readStartRequest(request: CaptureRequest): boolean;
+export function writeExportRequest(request: CaptureRequest, exportId: number, action: CaptureAction, png: Buffer): object;
+export function readExportReply(request: CaptureRequest, exportId: number): {status:"ok"|"cancelled"|"error";message:string}|null;

@@ -15,7 +15,7 @@ namespace QingJie {
         // arrows move, Shift resizes the right/bottom edge, Ctrl uses a 10-DIP step.
         // A selected mark keeps its own keyboard behavior in the annotation path.
         internal bool AdjustCropWithKeyboard(Key key,ModifierKeys modifiers){
-            if(closed||collecting||tool!="select"||dragging||textEditor!=null||surface.EditingText!=null||SelectedAnnotation!=null||surface.Draft!=null||surface.Selection.IsEmpty)return false;
+            if(!CanEditCapture||tool!="select"||dragging||textEditor!=null||surface.EditingText!=null||SelectedAnnotation!=null||surface.Draft!=null||surface.Selection.IsEmpty)return false;
             if((modifiers&~(ModifierKeys.Control|ModifierKeys.Shift))!=0)return false;
             double step=(modifiers&ModifierKeys.Control)!=0?10:1;
             var delta=new Vector(key==Key.Left?-step:key==Key.Right?step:0,key==Key.Up?-step:key==Key.Down?step:0);

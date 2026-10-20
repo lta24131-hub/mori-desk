@@ -21,7 +21,7 @@ namespace QingJie {
     public sealed partial class CaptureWindow {
         bool captureOverlaySuspended,resumeCaptureVisible;
         internal System.Drawing.Rectangle CaptureScreenBounds {get{return shot.Bounds;}}
-        internal bool HasCaptureGesture {get{return dragging||textEditor!=null||collecting;}}
+        internal bool HasCaptureGesture {get{return dragging||textEditor!=null||collecting||scrollingCapture!=null;}}
         internal bool HasCaptureRegion {get{return !surface.Selection.IsEmpty&&surface.Selection.Width>=3&&surface.Selection.Height>=3;}}
         internal bool IsCaptureOverlaySuspended {get{return captureOverlaySuspended;}}
         internal void SuspendCaptureOverlay(){
@@ -36,6 +36,7 @@ namespace QingJie {
             if(resumeCaptureVisible){resumeCaptureVisible=false;Show();}
         }
         internal void FocusCaptureOverlay(){
+            if(!closed&&FocusCaptureTextViewer())return;
             if(closed||captureOverlaySuspended||!IsVisible)return;
             if(!IsActive)Activate();
             if(textEditor!=null)textEditor.Focus();else Focus();

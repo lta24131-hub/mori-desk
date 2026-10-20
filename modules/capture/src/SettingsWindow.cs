@@ -31,6 +31,8 @@ namespace QingJie {
             panel.Children.Add(new TextBlock {Text="登录 Windows 后在托盘运行，并恢复未收起的贴图。",FontSize=12,Foreground=Ui.Brush("#718078"),TextWrapping=TextWrapping.Wrap});
             panel.Children.Add(new Border {Height=1,Background=Ui.Brush("#EBEFED"),Margin=new Thickness(0,18,0,16)});
             }
+            panel.Children.Add(new CaptureFeaturesPanel(AppState.Settings,()=>AppState.Settings.SaveChecked()));
+            panel.Children.Add(Ui.Theme(new Border {Height=1,Margin=new Thickness(0,18,0,16)},Border.BackgroundProperty,"Divider"));
             panel.Children.Add(new TextBlock {Text="快捷键",FontSize=16,FontWeight=FontWeights.SemiBold,Foreground=Ui.Ink});
             panel.Children.Add(new TextBlock {Text="点击右侧按键，再按新组合键。保存后立即生效。",FontSize=12,Foreground=Ui.Brush("#718078"),Margin=new Thickness(0,6,0,6)});
             captureKey=ShortcutRow(panel,"截图",AppState.Settings.Shortcuts.Capture);pinKey=ShortcutRow(panel,"贴图 / 找回",AppState.Settings.Shortcuts.Pin);togglePinsKey=ShortcutRow(panel,"显示 / 隐藏全部贴图",AppState.Settings.Shortcuts.TogglePins);translationKey=ShortcutRow(panel,"输入翻译",AppState.Settings.Shortcuts.Translate);

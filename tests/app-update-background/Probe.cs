@@ -11,7 +11,13 @@ namespace NookBackgroundUpdateTests {
  internal static class Probe {
   public static int Main(string[] args){
    try{
-    if(args.Length!=2||args[1]!="--anonymous-metadata-only")throw new ArgumentException("Explicit anonymous metadata probe flag required");
+    if(args.Length!=5||args[1]!="--anonymous-metadata-only")throw new ArgumentException("Usage: Probe.exe <Mori.exe> --anonymous-metadata-only <previous-version> <expected-release-tag> <current-version>");
+    Version previousVersion,expectedCurrent;
+    if(!Version.TryParse(args[2],out previousVersion)||!Version.TryParse(args[4],out expectedCurrent)||previousVersion>=expectedCurrent)
+     throw new ArgumentException("Expected explicit increasing previous/current versions");
+    string expectedTag=args[3];
+    if(expectedTag!="v"+expectedCurrent.ToString(3)+"-preview"&&expectedTag!="v"+expectedCurrent.ToString(3))
+     throw new ArgumentException("Expected release tag must match the current version");
     string executable=Path.GetFullPath(args[0]),directory=Path.GetDirectoryName(executable);
     AppDomain.CurrentDomain.AssemblyResolve+=(sender,eventArgs)=>{string dependency=Path.Combine(directory,new AssemblyName(eventArgs.Name).Name+".dll");return File.Exists(dependency)?Assembly.LoadFrom(dependency):null;};
     var assembly=Assembly.LoadFrom(executable);var type=assembly.GetType("MoriDesk.AppUpdateService",true);
@@ -20,14 +26,14 @@ namespace NookBackgroundUpdateTests {
     if(constructor==null||method==null)throw new MissingMethodException("Updater constructor / check missing");
     using(var service=(IDisposable)constructor.Invoke(new object[0])){
      using(var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(90))){
-      object prior=Check(method,service,new Version(0,1,22,0),timeout.Token);
+      Version current=assembly.GetName().Version;
+      if(current!=expectedCurrent)throw new InvalidOperationException("Probe target is not expected current build");
+      object prior=Check(method,service,previousVersion,timeout.Token);
       if(prior==null)throw new InvalidOperationException("Expected published update was not discovered");
       Type release=prior.GetType();string tag=(string)release.GetProperty("Tag").GetValue(prior,null),hash=(string)release.GetProperty("ExpectedSha256").GetValue(prior,null);
       long size=(long)release.GetProperty("Size").GetValue(prior,null);bool hasHash=hash!=null&&hash.Length==64;
-      if(tag!="v0.1.23-preview"||size<=0||!hasHash)throw new InvalidOperationException("Public release identity / size / checksum differs from expected");
-      Console.WriteLine("PASS current=0.1.22.0 release="+tag+" size="+size+" hasSha256="+hasHash);
-      Version current=assembly.GetName().Version;
-      if(current!=new Version(0,1,24,0))throw new InvalidOperationException("Probe target is not expected current build");
+      if(tag!=expectedTag||size<=0||!hasHash)throw new InvalidOperationException("Public release identity / size / checksum differs from expected");
+      Console.WriteLine("PASS current="+previousVersion+" release="+tag+" size="+size+" hasSha256="+hasHash);
       object latest=Check(method,service,current,timeout.Token);
       if(latest!=null)throw new InvalidOperationException("Current build unexpectedly offers a downgrade / reinstall");
       Console.WriteLine("PASS current="+current+" release=none; anonymous real .NET TLS/proxy/JSON path verified");

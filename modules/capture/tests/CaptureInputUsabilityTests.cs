@@ -10,8 +10,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using QingJie;
 
-// Generated pixels, explicit modifiers and inert windows only. In particular,
-// completion tests never execute an export action or alter clipboard state.
+// Generated pixels, explicit modifiers and inert windows only. Output shortcuts
+// use fake services: no native output dialog, pin or clipboard is touched.
 static class CaptureInputUsabilityTests {
     const BindingFlags Hidden=BindingFlags.Instance|BindingFlags.NonPublic;
     sealed class TestSource : PresentationSource {
@@ -21,14 +21,24 @@ static class CaptureInputUsabilityTests {
     }
     static object Call(CaptureWindow window,string name,params object[] args){return typeof(CaptureWindow).GetMethod(name,Hidden).Invoke(window,args);}
     static T Field<T>(CaptureWindow window,string name){return (T)typeof(CaptureWindow).GetField(name,Hidden).GetValue(window);}
+    static System.Collections.Generic.IEnumerable<DependencyObject> Tree(DependencyObject node){yield return node;foreach(object value in LogicalTreeHelper.GetChildren(node)){var child=value as DependencyObject;if(child!=null)foreach(var item in Tree(child))yield return item;}}
     static int History(CaptureWindow window){var stack=Field<object>(window,"annotationUndo");return (int)stack.GetType().GetProperty("Count").GetValue(stack,null);}
+    sealed class OutputProbe : ICaptureOutputActions {
+        internal int Saves,Copies,Pins;
+        internal Func<BitmapSource,Task<bool>> SaveResult=image=>Task.FromResult(false);
+        public Task<bool> Save(BitmapSource image,Window owner,CancellationToken cancel){Saves++;return SaveResult(image);}
+        public Task<bool> Copy(BitmapSource image,CancellationToken cancel){Copies++;return Task.FromResult(false);}
+        public Task<bool> Pin(BitmapSource image,Int32Rect bounds,CancellationToken cancel){Pins++;return Task.FromResult(false);}
+    }
     sealed class Fixture : IDisposable {
         internal readonly CaptureWindow Window;
         internal readonly ScreenshotSurface Surface;
+        internal readonly OutputProbe Outputs=new OutputProbe();
         internal readonly Rect Crop=new Rect(40,30,480,300);
         internal Fixture(){
             var image=BitmapSource.Create(600,400,96,96,PixelFormats.Bgra32,null,new byte[600*400*4],2400);image.Freeze();
             Window=new CaptureWindow(new Snapshot {Image=image,Bounds=new System.Drawing.Rectangle(0,0,600,400)});
+            Window.OutputActions=Outputs;
             Surface=((Grid)Window.Content).Children.OfType<ScreenshotSurface>().Single();Surface.Measure(new Size(600,400));Surface.Arrange(new Rect(0,0,600,400));Surface.Selection=Crop;
         }
         internal bool Key(Key key,ModifierKeys modifiers=ModifierKeys.None){return Window.HandleCaptureKey(key,modifiers);}
@@ -38,7 +48,7 @@ static class CaptureInputUsabilityTests {
     }
     internal static void Run(Action<bool,string> check){
         var preferences=AppState.Settings;AppState.Settings=new Preferences {Stroke=4,Color="#EF4444"};
-        try{ToolKeys(check);HistoryKeys(check);TextKeys(check);CompletionGuards(check);RightCancel(check);EscapeOnce(check);ClosedPen(check);OverlapCursor(check);}
+        try{ToolKeys(check);HistoryKeys(check);TextKeys(check);EditorOutputKeys(check);CompletionGuards(check);RightCancel(check);EscapeOnce(check);ClosedPen(check);OverlapCursor(check);}
         finally{AppState.Settings=preferences;}
     }
     static void ToolKeys(Action<bool,string> check){
@@ -49,8 +59,7 @@ static class CaptureInputUsabilityTests {
             check(!f.Key(Key.R,ModifierKeys.Alt)&&f.Window.SelectedTool=="select","Alt combinations do not unexpectedly switch screenshot tools");
             check(!f.Key(Key.R,ModifierKeys.Control)&&f.Window.SelectedTool=="select","Control combinations cannot trigger plain-letter tool shortcuts");
             check(!f.Key(Key.T,ModifierKeys.Shift)&&f.Window.SelectedTool=="select","modified text input is not mistaken for a tool shortcut");
-            var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,Key.R){RoutedEvent=Keyboard.PreviewKeyDownEvent};Call(f.Window,"KeyDownHandler",f.Window,e);
-            check(e.Handled&&f.Window.SelectedTool=="rect","real PreviewKeyDown route consumes a recognized tool key");
+            check(f.Key(Key.R,ModifierKeys.None)&&f.Window.SelectedTool=="rect","shared key dispatcher consumes a recognized tool key with explicit modifiers");
             f.Tool("select");check(f.Key(Key.Right)&&f.Surface.Selection==new Rect(41,30,480,300),"real key dispatcher moves an unselected crop by one logical pixel");
             check(f.Key(Key.Down,ModifierKeys.Shift)&&f.Surface.Selection==new Rect(41,30,480,301),"real key dispatcher routes Shift arrows to crop resizing instead of moving it");
             check(f.Key(Key.Left,ModifierKeys.Control)&&f.Surface.Selection==new Rect(31,30,480,301),"real key dispatcher routes Control arrows to accelerated crop movement");
@@ -78,9 +87,45 @@ static class CaptureInputUsabilityTests {
         try{using(var f=new Fixture()){
             f.Key(Key.T);f.Window.BeginPointer(new Point(120,100));var editor=Field<TextBox>(f.Window,"textEditor");editor.Text="Text remains editable";
             foreach(var key in new[]{Key.R,Key.V,Key.P,Key.Delete,Key.Enter,Key.Left})check(!f.Key(key)&&Field<TextBox>(f.Window,"textEditor")==editor&&f.Surface.Marks.Count==0,"live text editor owns ordinary typing/navigation: "+key);
-            foreach(var key in new[]{Key.C,Key.S,Key.D,Key.Z})check(!f.Key(key,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==editor&&calls==0,"live text editor does not accidentally run screenshot commands: Control "+key);
+            foreach(var key in new[]{Key.C,Key.X,Key.V,Key.A,Key.Z,Key.Y,Key.Left,Key.Right})check(!f.Key(key,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==editor&&calls==0&&f.Outputs.Copies==0&&f.Outputs.Saves==0,"live text editor retains native clipboard, selection, undo and navigation: Control "+key);
+            check(!f.Key(Key.Z,ModifierKeys.Control|ModifierKeys.Shift)&&Field<TextBox>(f.Window,"textEditor")==editor&&History(f.Window)==0,"live text editor retains Control Shift Z rather than touching annotation history");
             check(f.Key(Key.Enter,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==null&&f.Surface.Marks.Single().Text=="Text remains editable","Control Enter commits text once while keeping screenshot open");
         }}finally{MoriDesk.DeskRuntime.CollectImage=collect;}
+    }
+    static void EditorOutputKeys(Action<bool,string> check){
+        var previous=MoriDesk.DeskRuntime.CollectImage;
+        try{
+            foreach(var key in new[]{Key.S,Key.D})foreach(string outcome in new[]{"cancelled","failed","success"})using(var f=new Fixture()){
+                var earlier=f.Draw("arrow");int before=History(f.Window),calls=0;bool sawText=false;BitmapSource exported=null;
+                Func<BitmapSource,Task<bool>> respond=image=>{
+                    calls++;exported=image;sawText=f.Surface.Marks.Count==2&&f.Surface.Marks.Any(mark=>mark.Kind=="text"&&mark.Text=="文字 / Caption")&&Field<TextBox>(f.Window,"textEditor")==null;
+                    if(outcome=="failed")throw new InvalidOperationException("Synthetic output failure");
+                    return Task.FromResult(outcome=="success");
+                };
+                f.Outputs.SaveResult=respond;MoriDesk.DeskRuntime.CollectImage=respond;
+                f.Key(Key.T);f.Window.BeginPointer(new Point(280,210));var editor=Field<TextBox>(f.Window,"textEditor");editor.Text="文字 / Caption";
+                string label="live text Control "+key+" / "+outcome;
+                check(f.Key(key,ModifierKeys.Control)&&calls==1&&f.Outputs.Saves==(key==Key.S?1:0)&&f.Outputs.Copies==0&&f.Outputs.Pins==0,label+" routes once to the intended screenshot output, not native text copy or another service");
+                check(sawText&&exported!=null&&exported.IsFrozen&&exported.PixelWidth==480&&exported.PixelHeight==300,label+" commits the caption before exporting the selected immutable pixels");
+                if(outcome=="success")check(Field<bool>(f.Window,"closed")&&f.Surface.Image==null,label+" completes only after successful output acknowledgement");
+                else{
+                    var text=f.Surface.Marks.Single(mark=>mark.Kind=="text");
+                    check(!Field<bool>(f.Window,"closed")&&f.Surface.IsEnabled&&f.Surface.Selection==f.Crop&&f.Surface.Marks.Contains(earlier)&&text.Text=="文字 / Caption"&&History(f.Window)==before+1,label+" cancellation/failure retains editable text, original mark, crop and one commit history entry");
+                    check(f.Key(Key.Z,ModifierKeys.Control)&&f.Surface.Marks.Single()==earlier,label+" Undo removes only the newly committed caption");
+                    check(f.Key(Key.Y,ModifierKeys.Control)&&f.Surface.Marks.Contains(text)&&text.Text=="文字 / Caption"&&calls==1,label+" Redo restores the same caption without repeating the output");
+                }
+            }
+            using(var f=new Fixture()){
+                int collected=0;MoriDesk.DeskRuntime.CollectImage=image=>{collected++;return Task.FromResult(false);};
+                f.Key(Key.T);f.Window.BeginPointer(new Point(120,100));var editor=Field<TextBox>(f.Window,"textEditor");editor.Text="Still typing";
+                foreach(var key in new[]{Key.S,Key.D})foreach(var modifiers in new[]{ModifierKeys.None,ModifierKeys.Control|ModifierKeys.Shift,ModifierKeys.Control|ModifierKeys.Alt})
+                    check(!f.Key(key,modifiers)&&Field<TextBox>(f.Window,"textEditor")==editor&&f.Outputs.Saves==0&&collected==0,"modified/plain output letter stays in live editor rather than accidentally submitting: "+modifiers+" "+key);
+                MoriDesk.DeskRuntime.CollectImage=null;
+                check(!f.Key(Key.D,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==editor&&f.Surface.Marks.Count==0,"Control D with no collection service leaves live text untouched");
+                MoriDesk.DeskRuntime.CollectImage=image=>{collected++;return Task.FromResult(false);};f.Surface.Selection=Rect.Empty;
+                check(!f.Key(Key.S,ModifierKeys.Control)&&!f.Key(Key.D,ModifierKeys.Control)&&Field<TextBox>(f.Window,"textEditor")==editor&&f.Outputs.Saves==0&&collected==0,"even a live editor cannot submit screenshot pixels without a valid crop");
+            }
+        }finally{MoriDesk.DeskRuntime.CollectImage=previous;}
     }
     static void CompletionGuards(Action<bool,string> check){
         using(var f=new Fixture()){
@@ -140,9 +185,13 @@ static class CaptureInputUsabilityTests {
                 if(state=="language-menu"){
                     // Exercise the actual popup handler without opening a native
                     // popup: this context menu is intentionally always closed.
-                    var menu=Field<StackPanel>(f.Window,"toolbar").Children.OfType<Button>().Single(button=>button.ContextMenu!=null).ContextMenu;
+                    var menu=Tree(Field<StackPanel>(f.Window,"toolbar")).OfType<Button>().Single(button=>button.ContextMenu!=null).ContextMenu;
                     menu.RaiseEvent(e);
-                }else Call(f.Window,"KeyDownHandler",f.Window,e);
+                }else {
+                    // Escape is independent of all modifiers in production;
+                    // retain this actual event-handler wiring regression.
+                    Call(f.Window,"KeyDownHandler",f.Window,e);
+                }
                 check(e.Handled&&Field<bool>(f.Window,"closed")&&AppState.Captures.Count==0&&f.Surface.Image==null&&f.Surface.Marks.Count==0&&f.Surface.Draft==null&&Field<TextBox>(f.Window,"textEditor")==null,"one Escape exits screenshot immediately from "+state+" without intermediate cancellation");
                 check(submissions==0&&History(f.Window)==0&&!Field<bool>(f.Window,"dragging"),"Escape never submits unfinished pixels or retains a gesture/history: "+state);
                 if(state=="text-edit")check(original.Text=="original text","Escape closes a live reopened editor without committing replacement text");

@@ -46,7 +46,7 @@ namespace MoriDesk {
   static HttpResponseMessage Response(byte[] bytes){return new HttpResponseMessage(HttpStatusCode.OK){Content=new ByteArrayContent(bytes)};}
   static HttpResponseMessage ReleaseResponse(){return Response(Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(new[]{new{tag_name="v99.2.3-preview",draft=false,prerelease=true,body="Synthetic notes",assets=new[]{new{name="Nook-Setup.exe",id=1001,size=Bytes.Length,digest="sha256:"+Hash()}}}})));}
   static Task<string> NoHandoff(Window owner,string path,Version version,string hash,CancellationToken token){throw new Exception("This scenario must not invoke an installer handoff");}
-  static AppUpdatePanel Panel(string root,bool preview,Func<AppUpdateService> factory,Func<Window,string,Version,string,CancellationToken,Task<string>> handoff=null){return new AppUpdatePanel(null,preview,factory,handoff??NoHandoff,root);}
+  static AppUpdatePanel Panel(string root,bool preview,Func<AppUpdateService> factory,Func<Window,string,Version,string,CancellationToken,Task<string>> handoff=null,bool managed=true){return new AppUpdatePanel(null,preview,factory,handoff??NoHandoff,root,()=>managed);}
   static void Pump(Task task){
    DateTime deadline=DateTime.UtcNow.AddSeconds(8);
    while(!task.IsCompleted){if(DateTime.UtcNow>deadline)throw new TimeoutException("Offscreen update test did not finish");Drain();Thread.Sleep(1);}
@@ -63,7 +63,7 @@ namespace MoriDesk {
    string fixtures=Path.Combine(root,"app-update-panel-fixtures");Directory.CreateDirectory(fixtures);
    var previous=SynchronizationContext.Current;
    SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-   try{Preview(fixtures,check);CheckLifecycle(fixtures,check);CheckCancellation(fixtures,check);InstallLifecycle(fixtures,check);HandoffCancellation(fixtures,check);StaleProgress(fixtures,check);}
+   try{Preview(fixtures,check);ManualUpgrade(fixtures,check);CheckLifecycle(fixtures,check);CheckCancellation(fixtures,check);InstallLifecycle(fixtures,check);HandoffCancellation(fixtures,check);StaleProgress(fixtures,check);}
    finally{SynchronizationContext.SetSynchronizationContext(previous);}
   }
   static void Preview(string root,Action<bool,string> check){
@@ -86,6 +86,25 @@ namespace MoriDesk {
     check(panel.IsDisposed&&!panel.Check.IsEnabled&&!panel.Install.IsEnabled&&factories==0,"disposed preview is idempotent and cannot revive update operations");
    }
    check(AppUpdatePanel.SizeLabel(0)=="1 KB"&&AppUpdatePanel.SizeLabel(1024)=="1 KB"&&AppUpdatePanel.SizeLabel(1572864)=="1.5 MB","installer size labels are compact and do not confuse bytes with megabytes");
+  }
+  static void ManualUpgrade(string root,Action<bool,string> check){
+   string programs=@"C:\Generated\Programs\MoriDesk",installed=Path.Combine(programs,"0.1.24-fixture","Mori.exe");
+   check(AppUpdatePanel.IsManagedUpdateLocation(installed,programs),"standard managed installation retains automatic update eligibility");
+   check(AppUpdatePanel.IsManagedUpdateLocation(installed.ToUpperInvariant(),programs.ToLowerInvariant()+"\\"),"managed installation preflight normalizes case and trailing separator");
+   foreach(string executable in new[]{null,"",@"D:\Nook-portable\Mori.exe",programs+@"-other\Mori.exe",Path.Combine(programs,"..","Other","Mori.exe"),Path.Combine(programs,"0.1.24-fixture","Nook.exe"),@"\\server\share\Mori.exe",@"C:relative\Mori.exe",installed+":stream"})
+    check(!AppUpdatePanel.IsManagedUpdateLocation(executable,programs),"portable, external or invalid parent path cannot expose automatic installation");
+   foreach(string programRoot in new[]{null,""})check(!AppUpdatePanel.IsManagedUpdateLocation(installed,programRoot),"unknown managed installation root fails closed");
+   var handler=new Handler();handler.Reply(ReleaseResponse());int factories=0,handoffs=0;string downloadRoot=Path.Combine(root,"manual-upgrade-no-download");
+   using(var panel=Panel(downloadRoot,false,()=>{factories++;return new AppUpdateService(handler);},(owner,path,version,hash,token)=>{handoffs++;return Task.FromResult("must not install");},false)){
+    check(factories==0&&panel.Check.IsEnabled&&panel.Status.Text.Contains("手动升级")&&!panel.Install.IsEnabled,"portable settings explain manual upgrade before any network or download");
+    check(Children<TextBlock>(panel).Any(label=>label.Text.Contains("便携版")&&label.Text.Contains("不要只替换 Mori.exe")),"portable guidance remains visible independently of changing operation status");
+    check(Children<Button>(panel).Single(button=>Convert.ToString(button.Content)=="前往 GitHub 手动升级").IsEnabled,"portable mode offers a manual releases-page action without automatically opening a browser");
+    Pump(panel.CheckNowAsync());
+    check(factories==1&&handler.Calls==1&&panel.AvailableRelease!=null&&panel.Notes.Text.Contains("Synthetic notes")&&panel.Status.Text.Contains("手动升级"),"portable mode may discover release notes while clearly directing manual upgrade");
+    check(panel.Install.Visibility==Visibility.Collapsed&&!panel.Install.IsEnabled,"available release does not expose a doomed portable auto-install button");
+    Pump(panel.InstallNowAsync());
+    check(factories==1&&handler.Calls==1&&handoffs==0&&!Directory.Exists(downloadRoot)&&!panel.IsBusy&&panel.Status.Text.Contains("便携版"),"programmatic portable install is rejected before service creation, staging writes or installer handoff");
+   }
   }
   static void CheckLifecycle(string root,Action<bool,string> check){
    var reply=new TaskCompletionSource<HttpResponseMessage>();var handler=new Handler();handler.Replies.Enqueue(token=>reply.Task);int factories=0;

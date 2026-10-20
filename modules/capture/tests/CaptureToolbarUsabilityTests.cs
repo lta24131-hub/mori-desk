@@ -71,17 +71,17 @@ internal static class CaptureToolbarUsabilityTests {
             Call(window,"SetTool","text");
             var label=Field<TextBlock>(window,"widthLabel");
             var hint=Tree(Field<StackPanel>(window,"properties")).OfType<TextBlock>().Single(block=>block.Name=="CapturePropertyHint");
-            check(label.Text=="字号 20"&&hint.Text=="滚轮调字号","new text shows its rendered font size and a matching wheel hint without a physical-pixel suffix");
+            check(label.Text=="字号 20"&&hint.Text=="Ctrl+滚轮调字号","new text shows its independently remembered size and an explicit modifier hint");
             var palette=Tree(Field<StackPanel>(window,"properties")).OfType<Button>().Where(button=>button.Width==18&&button.Height==18).ToArray();
             check(palette.Length==6&&palette.Select(AutomationProperties.GetName).Distinct().Count()==6&&palette.All(button=>AutomationProperties.GetName(button).StartsWith("标注颜色：")),"every color swatch has a distinct accessible color name");
             window.BeginPointer(new Point(420,300));var editor=Field<TextBox>(window,"textEditor");editor.Text="Synthetic label";
-            Call(window,"Wheel",surface,new MouseWheelEventArgs(Mouse.PrimaryDevice,Environment.TickCount,120){RoutedEvent=Mouse.MouseWheelEvent});
+            window.HandleCaptureWheel(120,ModifierKeys.Control,new Point(500,340));
             check(label.Text=="字号 25"&&editor.FontSize==25,"live text wheel updates the actual font-size property immediately");
             Call(window,"CommitText");var text=surface.Marks.Single(annotation=>annotation.Kind=="text");
             Call(window,"SetTool","select");
             check(surface.SelectedText==text&&label.Text=="字号 25"&&card.Visibility==Visibility.Visible,"selected text keeps text-specific properties while using crop adjustment");
             Call(window,"SelectShape",surface.Marks.First(annotation=>annotation.Kind=="rect"));
-            check(label.Text=="粗细 4"&&hint.Text=="滚轮调粗细"&&card.Visibility==Visibility.Visible,"selecting a shape restores stroke-specific properties without a stale font-size hint");
+            check(label.Text=="粗细 4"&&hint.Text=="Ctrl+滚轮调粗细"&&card.Visibility==Visibility.Visible,"selecting a shape restores stroke-specific properties without a stale font-size hint");
 
             Call(window,"SetTool","mosaic");
             check(card.Visibility==Visibility.Collapsed,"mosaic hides color and width controls that do not affect mosaic pixels");

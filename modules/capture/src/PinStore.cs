@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows;
 using System.Windows.Controls;
@@ -73,6 +75,37 @@ namespace QingJie {
         [DllImport("user32.dll")] static extern IntPtr MonitorFromPoint(System.Drawing.Point point,uint flags);
         [DllImport("shcore.dll")] static extern int GetDpiForMonitor(IntPtr monitor,int type,out uint dpiX,out uint dpiY);
         public void NewAt(BitmapSource image,Int32Rect bounds){var record=Add(image);Show(record,bounds);}
+        public Task NewAsync(BitmapSource image,CancellationToken cancel){
+            var cursor=System.Windows.Forms.Cursor.Position;var screen=System.Windows.Forms.Screen.FromPoint(cursor);var dpi=MonitorDpi(cursor);
+            foreach(var monitor in System.Windows.Forms.Screen.AllScreens){var other=MonitorDpi(monitor.Bounds.Location);dpi=new DpiScale(Math.Max(dpi.DpiScaleX,other.DpiScaleX),Math.Max(dpi.DpiScaleY,other.DpiScaleY));}
+            return NewAtAsync(image,InitialBounds(image.PixelWidth,image.PixelHeight,screen.WorkingArea,dpi.DpiScaleX,dpi.DpiScaleY,newPlacement++),cancel);
+        }
+        public Task NewAtAsync(BitmapSource image,Int32Rect bounds,CancellationToken cancel){return CreatePinAsync(image,bounds,cancel,(record,area)=>Show(record,area));}
+        // Encoding is the heavy part. Keep it off the dispatcher, while index
+        // changes and native window presentation remain serialized on the UI.
+        // The injected presenter is also used by inert lifecycle regressions.
+        internal async Task CreatePinAsync(BitmapSource image,Int32Rect bounds,CancellationToken cancel,Action<PinRecord,Int32Rect> present){
+            if(image==null)throw new ArgumentNullException("image");if(present==null)throw new ArgumentNullException("present");
+            var frozen=image.IsFrozen?image:(BitmapSource)image.GetCurrentValueAsFrozen();
+            var record=new PinRecord{Id=Guid.NewGuid().ToString("N"),Width=Math.Min(720,image.PixelWidth)};string target=ImagePath(record);bool registered=false;
+            try{
+                await Task.Run(()=>ImageFiles.WriteAtomic(target,stream=>{var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(frozen));encoder.Save(stream);},cancel),cancel);
+                cancel.ThrowIfCancellationRequested();Records.Add(record);registered=true;Save();
+                cancel.ThrowIfCancellationRequested();present(record,bounds);
+            }catch{
+                bool canRemoveImage=true;
+                if(registered){
+                    Records.Remove(record);
+                    try{Save();}catch(Exception rollback){
+                        // Do not erase bytes if a failed rollback might leave a
+                        // manifest pointing at them. The PNG remains recoverable.
+                        canRemoveImage=false;LogFailure("Rollback new pin "+record.Id,rollback);
+                    }
+                }
+                if(canRemoveImage)try{if(File.Exists(target))File.Delete(target);}catch(Exception cleanup){LogFailure("Remove failed new pin "+record.Id,cleanup);}
+                throw;
+            }
+        }
         public void NewTranslation(BitmapSource image){var record=Add(image);record.IsTranslation=true;Save();Show(record).StartTranslation();}
         public void Restore(){int failed=0;foreach(var pin in Records.Where(p=>p.Active).ToList()){try{Show(pin,null,false);}catch(Exception error){failed++;LogFailure("Restore "+pin.Id,error);}}if(failed>0)AppState.Notify(failed+" 张贴图暂未恢复，图片仍保留。可使用“显示 / 隐藏全部贴图”重试。");}
         internal void LogFailure(string action,Exception error){try{string path=Path.Combine(Folder,"pin-errors.log");if(File.Exists(path)&&new FileInfo(path).Length>131072)File.Move(path,path+"."+DateTime.UtcNow.Ticks);File.AppendAllText(path,DateTime.UtcNow.ToString("O")+" "+action+Environment.NewLine+error+Environment.NewLine);}catch{}}

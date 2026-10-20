@@ -13,7 +13,8 @@ static class CaptureAnnotationInteractionTests {
     sealed class TestSource : PresentationSource {public override Visual RootVisual {get;set;}public override bool IsDisposed {get{return false;}}protected override CompositionTarget GetCompositionTargetCore(){return null;}}
     const BindingFlags Hidden=BindingFlags.Instance|BindingFlags.NonPublic;
     static object Call(CaptureWindow window,string name,params object[] args){return typeof(CaptureWindow).GetMethod(name,Hidden).Invoke(window,args);}
-    static KeyEventArgs Key(CaptureWindow window,Key key){var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,key){RoutedEvent=Keyboard.PreviewKeyDownEvent};Call(window,"KeyDownHandler",window,e);return e;}
+    // Background tests must not inherit Shift/Ctrl held on the user's desktop.
+    static KeyEventArgs Key(CaptureWindow window,Key key){var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,key){RoutedEvent=Keyboard.PreviewKeyDownEvent};e.Handled=window.HandleCaptureKey(key,ModifierKeys.None);return e;}
     static byte[] Pixels(BitmapSource image){var pixels=new byte[image.PixelWidth*image.PixelHeight*4];image.CopyPixels(pixels,image.PixelWidth*4,0);return pixels;}
     internal static void Run(Action<bool,string> check){
         var settings=AppState.Settings;AppState.Settings=new Preferences {Stroke=4,Color="#EF4444"};
@@ -31,7 +32,7 @@ static class CaptureAnnotationInteractionTests {
             var mark=surface.Marks.Single();var start=mark.Start;var end=mark.End;
             check(mark.Kind==kind,kind+" is created through the actual drawing entry points");
             Call(window,"SetTool","select");
-            var body=kind=="ellipse"?new Point(160,100):kind=="mosaic"?new Point(160,140):new Point(160,100);
+            var body=kind=="ellipse"?new Point(130,105):kind=="mosaic"?new Point(160,140):new Point(130,100);
             Call(window,"UpdateBrushCursor",body);check(surface.Cursor==Cursors.SizeAll,kind+" body advertises movement instead of moving the screenshot crop");
             window.BeginPointer(body);window.EndPointer(body+new Vector(25,18));
             check(surface.SelectedAnnotation==mark&&mark.Start==start+new Vector(25,18)&&mark.End==end+new Vector(25,18)&&surface.Selection==crop,kind+" movement edits the existing mark, not the crop or a duplicate");
@@ -46,8 +47,8 @@ static class CaptureAnnotationInteractionTests {
             check(baseline.SequenceEqual(Pixels(surface.Export())),kind+" selection outlines and handles never leak into exported pixels");
             window.BeginPointer(body);window.EndPointer(body);var nudge=Key(window,System.Windows.Input.Key.Right);
             check(nudge.Handled&&mark.Start==start+new Vector(1,0)&&surface.Selection==crop,kind+" arrow key nudges selected mark, not screenshot");Call(window,"Undo");
-            window.BeginPointer(body);window.EndPointer(body);var wheel=new MouseWheelEventArgs(Mouse.PrimaryDevice,Environment.TickCount,120){RoutedEvent=Mouse.MouseWheelEvent};double width=mark.Width;
-            Call(window,"Wheel",surface,wheel);check(wheel.Handled&&mark.Width==width+1&&surface.Selection==crop,kind+" selected-mark wheel adjusts its width while using selection tool");Call(window,"Undo");
+            window.BeginPointer(body);window.EndPointer(body);double width=mark.Width;
+            bool adjusted=window.HandleCaptureWheel(120,ModifierKeys.Control,body);check(kind=="mosaic"?!adjusted&&mark.Width==width:adjusted&&mark.Width==width+1&&surface.Selection==crop,kind+" Control-wheel only changes a meaningful selected property");if(kind!="mosaic")Call(window,"Undo");
             window.BeginPointer(body);window.EndPointer(body);var deleted=Key(window,System.Windows.Input.Key.Delete);
             check(deleted.Handled&&surface.Marks.Count==0&&surface.Selection==crop,kind+" Delete removes only the selected mark");Call(window,"Undo");
             check(surface.Marks.Single()==mark&&mark.Start==start,kind+" Delete is reversible and preserves original annotation identity");

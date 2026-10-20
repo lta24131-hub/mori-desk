@@ -13,6 +13,9 @@ using System.Windows.Media.Imaging;
 namespace QingJie {
     public sealed partial class CaptureWindow : Window {
         readonly Snapshot shot;
+        // A running capture owns one feature snapshot. Preferences changed in
+        // another window apply to the next capture, never halfway through a gesture.
+        internal readonly CaptureFeatures captureFeatures;
         readonly Grid root=new Grid();
         readonly Canvas overlay=new Canvas();
         readonly ScreenshotSurface surface=new ScreenshotSurface();
@@ -31,6 +34,7 @@ namespace QingJie {
         bool dragging;
         int resize=-1;
         bool moving;
+        bool pointerForceNew;
         CaptureTargets snapTargets;
         CaptureVisualRegions visualTargets;
         CancellationTokenSource visualTargetCancel;
@@ -50,36 +54,43 @@ namespace QingJie {
         bool closed,collecting;
         readonly System.Windows.Threading.DispatcherTimer cursorLabelTimer=new System.Windows.Threading.DispatcherTimer {Interval=TimeSpan.FromMilliseconds(850)};
         public CaptureWindow(Snapshot snapshot) : this(snapshot,null) {}
-        internal CaptureWindow(Snapshot snapshot,CaptureTargets targets) {
-            snapTargets=targets;
+        internal CaptureWindow(Snapshot snapshot,CaptureTargets targets,CaptureFeatures features=null) {
+            captureFeatures=(features??AppState.Settings.CaptureFeatures??new CaptureFeatures()).Copy();
+            snapTargets=captureFeatures.SmartSelection?targets:null;
             shot=snapshot;surface.Image=shot.Image;Title="Nook · 截图";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;ShowInTaskbar=false;ShowActivated=false;Topmost=true;Background=Brushes.Black;Cursor=Cursors.Cross;
             FontFamily=new FontFamily("Microsoft YaHei UI");UseLayoutRounding=true;
             root.Children.Add(surface);root.Children.Add(overlay);Content=root;
             toolbarCard=Ui.Card(toolbar);propertiesCard=Ui.Card(properties);overlay.Children.Add(toolbarCard);overlay.Children.Add(propertiesCard);HideTools();
             toolbarCard.Cursor=Cursors.Arrow;propertiesCard.Cursor=Cursors.Arrow;
             Ui.Theme(widthLabel,TextBlock.ForegroundProperty,"Text");Ui.Theme(translationStatus,TextBlock.ForegroundProperty,"Text");Ui.Theme(translationStatus,TextBlock.BackgroundProperty,"Surface");
-            AddTool("rect","矩形 · R · 滚轮调粗细");AddTool("ellipse","椭圆 · O · 滚轮调粗细");AddTool("arrow","箭头 A / 直线 L · 下方切换");AddTool("pen","画笔 · P · 滚轮调粗细");AddTool("text","文字 · T · 双击已有文字编辑");AddTool("mosaic","马赛克 · M");
+            AddTool("rect","矩形 · R · Ctrl+滚轮调粗细");AddTool("ellipse","椭圆 · O · Ctrl+滚轮调粗细");AddTool("arrow","箭头 A / 直线 L · 下方切换");AddTool("pen","画笔 · P · Ctrl+滚轮调粗细");AddTool("text","文字 · T · 双击已有文字编辑");AddTool("mosaic","马赛克 · M");
             Ui.Separator(toolbar);toolbar.Children.Add(CaptureAction("Undo",Ui.Tool("undo","撤销 · Ctrl+Z",Undo)));
-            toolbar.Children.Add(CaptureAction("Ocr",Ui.Tool("ocr","文字选择 / 翻译",()=>ReadText(false))));translateButton=Ui.Tool("translate","选区原位翻译 / 原图",()=>ReadText(true));toolbar.Children.Add(translateButton);
-            var targetMenu=Ui.TranslationTarget(translationTarget,language=>{translationTarget=language;ResetTranslation();surface.InvalidateVisual();});toolbar.Children.Add(targetMenu);
-            targetMenu.ContextMenu.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape&&HandleCaptureKey(e.Key,ModifierKeys.None))e.Handled=true;};
-            targetMenu.ContextMenu.Closed+=(s,e)=>FocusCaptureOverlay();
-            toolbar.Children.Add(CaptureAction("Scroll",Ui.Tool("scroll","滚动截屏 · 在选区内向下滚动",BeginScrollingCapture)));
-            toolbar.Children.Add(CaptureAction("Pin",Ui.Tool("pin","贴到屏幕",Pin)));toolbar.Children.Add(CaptureAction("Save",Ui.Tool("save","保存 · Ctrl+S",Save)));
-            if(MoriDesk.DeskRuntime.CollectImage!=null){
+            if(captureFeatures.Ocr)toolbar.Children.Add(CaptureAction("Ocr",Ui.Tool("ocr",captureFeatures.Translation?"文字选择 / 翻译":"文字识别",()=>ReadText(false))));
+            if(captureFeatures.Translation){translateButton=CaptureAction("Translate",Ui.Tool("translate","选区原位翻译 / 原图",()=>ReadText(true)));toolbar.Children.Add(translateButton);}
+            Button targetMenu=null;
+            if(captureFeatures.Translation){
+                targetMenu=CaptureAction("Language",Ui.TranslationTarget(translationTarget,language=>{if(!CanEditCapture)return;translationTarget=language;ResetTranslation();surface.InvalidateVisual();}));toolbar.Children.Add(targetMenu);
+                targetMenu.ContextMenu.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape&&HandleCaptureKey(e.Key,ModifierKeys.None))e.Handled=true;};
+                targetMenu.ContextMenu.Closed+=(s,e)=>FocusCaptureOverlay();
+            }
+            if(captureFeatures.Scrolling)toolbar.Children.Add(CaptureAction("Scroll",Ui.Tool("scroll","滚动截屏 · 在选区内向下滚动",BeginScrollingCapture)));
+            if(captureFeatures.Pin)toolbar.Children.Add(CaptureAction("Pin",Ui.Tool("pin","贴到屏幕",Pin)));toolbar.Children.Add(CaptureAction("Save",Ui.Tool("save","保存 · Ctrl+S",Save)));
+            if(captureFeatures.Collect&&MoriDesk.DeskRuntime.CollectImage!=null){
                 var collect=Ui.Tool("library","收藏到素材库 · 未分类 · Ctrl+D",async ()=>{await CollectToLibraryAsync();});
                 collect.Name="CaptureCollect";toolbar.Children.Add(collect);
             }
             overlay.Children.Add(translationStatus);
             Ui.Separator(toolbar);toolbar.Children.Add(CaptureAction("Cancel",Ui.Tool("close","退出截图 · Esc 立即退出 · 右键逐步返回",AppState.CancelCapture)));toolbar.Children.Add(CaptureAction("Copy",Ui.Tool("done","复制并完成 · Enter / Ctrl+C",Copy)));
-            properties.Children.Add(lineModes);
-            foreach(string kind in new[]{"arrow","line"}){string choice=kind;var b=Ui.Tool(kind,kind=="arrow"?"箭头":"直线",()=>SetTool(choice),28);b.Name="LineMode_"+kind;lineModeButtons[kind]=b;lineModes.Children.Add(b);}Ui.Separator(lineModes);
+            if(captureFeatures.HasAnnotations){
+            if(captureFeatures.Lines){properties.Children.Add(lineModes);
+            foreach(string kind in new[]{"arrow","line"}){string choice=kind;var b=Ui.Tool(kind,kind=="arrow"?"箭头":"直线",()=>SetCaptureLineMode(choice),28);b.Name="LineMode_"+kind;lineModeButtons[kind]=b;lineModes.Children.Add(b);}Ui.Separator(lineModes);}
             foreach(string color in new[]{"#EF4444","#F2B01E","#07A56B","#3478F6","#222222","#FFFFFF"}) {
                 string chosen=color;var b=new Button {Width=18,Height=18,Margin=new Thickness(4),Background=Ui.Brush(color),BorderBrush=Ui.Brush("#B9C0C0"),BorderThickness=new Thickness(1),ToolTip="标注颜色",Focusable=false};
                 Ui.Theme(b,Control.BorderBrushProperty,"Border");
                 b.Click+=(s,e)=>ApplyAnnotationColor(chosen);properties.Children.Add(b);
             }
-            properties.Children.Add(widthLabel);var strokeHint=new TextBlock {Text="滚轮调粗细",FontSize=11,Margin=new Thickness(4,0,7,0),VerticalAlignment=VerticalAlignment.Center};Ui.Theme(strokeHint,TextBlock.ForegroundProperty,"Muted");properties.Children.Add(strokeHint);UpdateWidth();
+            properties.Children.Add(CaptureSizeButton(false));properties.Children.Add(widthLabel);properties.Children.Add(CaptureSizeButton(true));var strokeHint=new TextBlock {Text="Ctrl+滚轮调整",FontSize=11,Margin=new Thickness(4,0,7,0),VerticalAlignment=VerticalAlignment.Center};Ui.Theme(strokeHint,TextBlock.ForegroundProperty,"Muted");properties.Children.Add(strokeHint);UpdateWidth();
+            }
             SourceInitialized+=(s,e)=>Native.SetWindowPos(new WindowInteropHelper(this).Handle,Native.Topmost,shot.Bounds.X,shot.Bounds.Y,shot.Bounds.Width,shot.Bounds.Height,0x0050);
             Loaded+=(s,e)=>{UpdateSnap(Mouse.GetPosition(surface));surface.InvalidateVisual();if(snapTargets!=null)Dispatcher.BeginInvoke(new Action(PrepareVisualTargets),System.Windows.Threading.DispatcherPriority.Background);if(!string.IsNullOrEmpty(shot.ColorWarning)){translationStatus.Text="HDR 兼容采集暂不可用，当前截图颜色可能有偏差。";translationStatus.Visibility=Visibility.Visible;Canvas.SetLeft(translationStatus,16);Canvas.SetTop(translationStatus,Math.Max(16,surface.ActualHeight-48));}};
             MouseEnter+=(s,e)=>{if(AppState.CanFocusCaptureFromPointer(this))FocusCaptureOverlay();};
@@ -91,11 +102,11 @@ namespace QingJie {
             PreviewKeyDown+=KeyDownHandler;
             PreviewKeyUp+=(s,e)=>{if(e.Key==Key.LeftCtrl||e.Key==Key.RightCtrl)UpdateSnap(Mouse.GetPosition(surface));};
             SizeChanged+=(s,e)=>{PositionTools();surface.InvalidateVisual();};
-            AppState.TranslationProviderChanged+=RefreshProvider;
-            Closed+=(s,e)=>{closed=true;DisposeScrollingCapture();if(visualTargetCancel!=null)visualTargetCancel.Cancel();snapTargets=null;visualTargets=null;ClearSnap();targetMenu.ContextMenu.IsOpen=false;AppState.TranslationProviderChanged-=RefreshProvider;ResetTranslation();cursorLabelTimer.Stop();ClearTextState();surface.Image=null;surface.Marks.Clear();surface.Draft=null;redo.Clear();last=null;shot.Image=null;AppState.CaptureClosed(this);};
+            if(captureFeatures.Translation)AppState.TranslationProviderChanged+=RefreshProvider;
+            Closed+=(s,e)=>{closed=true;DisposeCaptureOutput();DisposeScrollingCapture();if(visualTargetCancel!=null)visualTargetCancel.Cancel();snapTargets=null;visualTargets=null;ClearSnap();if(targetMenu!=null)targetMenu.ContextMenu.IsOpen=false;AppState.TranslationProviderChanged-=RefreshProvider;ResetTranslation();cursorLabelTimer.Stop();ClearTextState();surface.Image=null;surface.Marks.Clear();surface.Draft=null;redo.Clear();last=null;shot.Image=null;AppState.CaptureClosed(this);};
         }
         async void PrepareVisualTargets(){
-            if(closed||visualTargetCancel!=null||visualTargets!=null||shot.Image==null)return;
+            if(!captureFeatures.SmartSelection||closed||visualTargetCancel!=null||visualTargets!=null||shot.Image==null)return;
             var cancel=new CancellationTokenSource();visualTargetCancel=cancel;
             var image=shot.Image;var bounds=shot.Bounds;
             try{
@@ -114,7 +125,7 @@ namespace QingJie {
         }
         void ClearSnap(){snap.Candidate=Rect.Empty;snapHover.Clear();if(!surface.HoverSelection.IsEmpty){surface.HoverSelection=Rect.Empty;surface.InvalidateVisual();}}
         void UpdateSnap(Point point){
-            if(dragging||tool!="select"||!surface.Selection.IsEmpty||snapTargets==null||(Keyboard.Modifiers&ModifierKeys.Control)!=0||surface.ActualWidth<=0||surface.ActualHeight<=0){ClearSnap();return;}
+            if(!captureFeatures.SmartSelection||dragging||tool!="select"||!surface.Selection.IsEmpty||snapTargets==null||(Keyboard.Modifiers&ModifierKeys.Control)!=0||surface.ActualWidth<=0||surface.ActualHeight<=0){ClearSnap();return;}
             var screen=new Rect(shot.Bounds.X,shot.Bounds.Y,shot.Bounds.Width,shot.Bounds.Height);
             var physical=new Point(screen.X+point.X*screen.Width/surface.ActualWidth,screen.Y+point.Y*screen.Height/surface.ActualHeight);
             Rect visible;var choices=snapTargets.At(physical,screen,visualTargets,out visible);
@@ -122,14 +133,16 @@ namespace QingJie {
             ApplySnap(candidate);
         }
         void ApplySnap(Rect physical){
+            if(!captureFeatures.SmartSelection){ClearSnap();return;}
             snap.Candidate=CaptureTargets.ToLocal(physical,shot.Bounds,surface.ActualWidth,surface.ActualHeight);
             if(surface.HoverSelection!=snap.Candidate){surface.HoverSelection=snap.Candidate;surface.InvalidateVisual();}
         }
-        void AddTool(string id,string title) {var b=Ui.Tool(id,title,()=>SetTool(id=="arrow"?lineKind:id));b.Name="CaptureTool_"+id;tools[id]=b;toolbar.Children.Add(b);}
+        void AddTool(string id,string title) {if(!captureFeatures.AllowsTool(id))return;var b=Ui.Tool(id,title+" · 点旧标注直接调整，Alt+拖动叠画",()=>SetTool(id=="arrow"?lineKind:id));b.Name="CaptureTool_"+id;tools[id]=b;toolbar.Children.Add(b);}
         internal string SelectedTool {get{return tool;}}
         void SetTool(string name) {
+            if(!CanEditCapture||!captureFeatures.AllowsTool(name))return;
             FinishShapeGesture();FinishTextGesture();CommitText();tool=name;last=null;if(name!="select"&&(name!="text"||surface.SelectedAnnotation!=null))SelectText(null);else last=SelectedAnnotation;surface.ShowHandles=true;Cursor=Cursors.Arrow;UpdateBrushCursor(Mouse.GetPosition(surface));
-            bool linear=name=="arrow"||name=="line";if(linear){lineKind=name;tools["arrow"].Content=new ToolIcon(name);tools["arrow"].ToolTip=(name=="line"?"直线 · L":"箭头 · A")+" · 下方切换 · 滚轮调粗细";System.Windows.Automation.AutomationProperties.SetName(tools["arrow"],tools["arrow"].ToolTip.ToString());}
+            bool linear=name=="arrow"||name=="line";if(linear){lineKind=name;tools["arrow"].Content=new ToolIcon(name);tools["arrow"].ToolTip=(name=="line"?"直线 · L":"箭头 · A")+" · 下方切换 · Ctrl+滚轮调粗细 · 点旧标注直接调整，Alt+拖动叠画";System.Windows.Automation.AutomationProperties.SetName(tools["arrow"],tools["arrow"].ToolTip.ToString());}
             lineModes.Visibility=linear?Visibility.Visible:Visibility.Collapsed;
             foreach(var kv in lineModeButtons)Ui.SetActive(kv.Value,kv.Key==lineKind);
             foreach(var kv in tools)Ui.SetActive(kv.Value,kv.Key==(linear?"arrow":name));PositionTools();surface.InvalidateVisual();
@@ -157,8 +170,9 @@ namespace QingJie {
         void UpdateBrushCursor(Point point){
             int cropHandle=ActiveSelectionHandle(point);
             if(cropHandle>=0&&textDrag==null&&shapeDrag==null){surface.Cursor=ResizeCursor(cropHandle);surface.BrushPoint=null;surface.InvalidateVisual();return;}
-            Cursor textCursor=(!dragging||textDrag!=null)?TextPointerCursor(point):null;
-            if(textCursor==null&&(!dragging||shapeDrag!=null))textCursor=ShapePointerCursor(point);
+            bool drawOver=dragging?pointerForceNew:(Keyboard.Modifiers&ModifierKeys.Alt)!=0&&tool!="select";
+            Cursor textCursor=!drawOver&&(!dragging||textDrag!=null)?TextPointerCursor(point):null;
+            if(!drawOver&&textCursor==null&&(!dragging||shapeDrag!=null))textCursor=ShapePointerCursor(point);
             if(textCursor!=null){surface.Cursor=textCursor;surface.BrushPoint=null;surface.InvalidateVisual();return;}
             bool drawing=tool!="select"&&tool!="text"&&!surface.Selection.IsEmpty&&surface.Selection.Contains(point);
             if(tool=="select"){
@@ -169,11 +183,11 @@ namespace QingJie {
             surface.BrushPoint=drawing?(Point?)point:null;surface.BrushDiameter=AppState.Settings.Stroke;surface.InvalidateVisual();
         }
         Point ClampPoint(Point p) {var bounds=surface.Selection.IsEmpty?new Rect(0,0,surface.ActualWidth,surface.ActualHeight):surface.Selection;return new Point(Geometry.Clamp(p.X,bounds.Left,bounds.Right),Geometry.Clamp(p.Y,bounds.Top,bounds.Bottom));}
-        void Down(object s,MouseButtonEventArgs e) {if(BeginPointer(e.GetPosition(surface),e.ClickCount))e.Handled=true;}
-        internal bool BeginPointer(Point p,int clickCount=1) {
-            if(closed||collecting||captureOverlaySuspended||!AppState.CanEnterCapture(this))return false;
+        void Down(object s,MouseButtonEventArgs e) {if(BeginPointer(e.GetPosition(surface),e.ClickCount,Keyboard.Modifiers))e.Handled=true;}
+        internal bool BeginPointer(Point p,int clickCount=1,ModifierKeys modifiers=ModifierKeys.None) {
+            if(!CanEditCapture||!AppState.CanEnterCapture(this))return false;
             CommitText();
-            down=p;oldSelection=surface.Selection;moving=false;resize=-1;selectingNew=false;
+            down=p;oldSelection=surface.Selection;moving=false;resize=-1;selectingNew=false;pointerForceNew=(modifiers&ModifierKeys.Alt)!=0&&tool!="select";
             // Crop edges always win over annotation hit targets. The current
             // drawing tool remains selected after the resize, ready to resume.
             resize=HitSelectionHandle(p);
@@ -181,8 +195,8 @@ namespace QingJie {
                 ResetTranslation();selectionBefore=CaptureScene();SelectText(null);
                 dragging=true;UpdateBrushCursor(p);HideTools();surface.CaptureMouse();return true;
             }
-            if(BeginTextPointer(p,clickCount))return true;
-            if(BeginShapePointer(p))return true;
+            if(!pointerForceNew&&BeginTextPointer(p,clickCount))return true;
+            if(!pointerForceNew&&BeginShapePointer(p))return true;
             if(clickCount==2&&CanCompleteCaptureAt(p)){Copy();return true;}
             SelectText(null);
             if(tool=="select") {
@@ -191,7 +205,7 @@ namespace QingJie {
                 if(!surface.Selection.IsEmpty){resize=HitSelectionHandle(p);moving=resize<0&&surface.Selection.Contains(p);}
                 if(resize<0&&!moving){
                     if(surface.Selection.IsEmpty)UpdateSnap(p);else ClearSnap();
-                    snap.Begin(p,(Keyboard.Modifiers&ModifierKeys.Control)!=0);snapHover.Clear();selectingNew=true;
+                    snap.Begin(p,(modifiers&ModifierKeys.Control)!=0);snapHover.Clear();selectingNew=true;
                     surface.HoverSelection=Rect.Empty;surface.Selection=Rect.Empty;surface.Marks.Clear();last=null;
                 }
             } else {
@@ -203,6 +217,7 @@ namespace QingJie {
         }
         void Move(object s,MouseEventArgs e) {ContinuePointer(e.GetPosition(surface));}
         internal void ContinuePointer(Point p) {
+            if(!CanEditCapture)return;
             UpdateBrushCursor(p);
             if(textDrag!=null){MoveSelectedText(p);surface.InvalidateVisual();return;}
             if(shapeDrag!=null){MoveSelectedShape(p);return;}
@@ -226,58 +241,44 @@ namespace QingJie {
         }
         void Up(object s,MouseButtonEventArgs e) {EndPointer(e.GetPosition(surface));}
         internal void EndPointer(Point p) {
+            if(!CanEditCapture)return;
             if(!dragging)return;ContinuePointer(p);if(textDrag!=null){FinishTextGesture();return;}if(shapeDrag!=null){FinishShapeGesture();return;}dragging=false;surface.ReleaseMouseCapture();
-            if(surface.Draft!=null){if(HasDrawingContent(surface.Draft)){if(tool=="mosaic")surface.PrepareMosaic(surface.Draft);surface.Marks.Add(surface.Draft);last=surface.Draft;RecordAnnotationAdded(last);}surface.Draft=null;}
+            if(surface.Draft!=null){if(HasDrawingContent(surface.Draft)){if(tool=="mosaic")surface.PrepareMosaic(surface.Draft);surface.Marks.Add(surface.Draft);last=surface.Draft;RecordAnnotationAdded(last);SelectShape(surface.Draft);}surface.Draft=null;}
             if(selectionBefore!=null)FinishSelectionGesture();
             if(surface.Selection.IsEmpty)UpdateSnap(p);else ClearSnap();UpdateBrushCursor(p);PositionTools();surface.InvalidateVisual();
         }
         void Wheel(object s,MouseWheelEventArgs e) {
-            if(!AcceptCaptureWheel(closed,collecting,captureOverlaySuspended,scrollingCapture!=null)){e.Handled=true;return;}
-            if(textEditor!=null){textEditor.FontSize=Geometry.Clamp(textEditor.FontSize+(e.Delta>0?5:-5),16,250);UpdateWidth();e.Handled=true;return;}
-            if(!dragging&&surface.Selection.IsEmpty&&tool=="select"&&snapTargets!=null){
-                CycleSnap(e.GetPosition(surface),e.Delta<0?1:-1);e.Handled=true;return;
+            e.Handled=HandleCaptureWheel(e.Delta,Keyboard.Modifiers,e.GetPosition(surface));
+        }
+        internal bool HandleCaptureWheel(int delta,ModifierKeys modifiers,Point point){
+            if(!CanEditCapture)return true;
+            if(delta==0)return false;
+            if(modifiers==ModifierKeys.None&&!dragging&&surface.Selection.IsEmpty&&tool=="select"&&snapTargets!=null){
+                CycleSnap(point,delta<0?1:-1);return true;
             }
-            if(surface.SelectedText!=null&&textEditor==null&&!dragging){ChangeSelectedTextSize(e.Delta>0?5:-5);e.Handled=true;return;}
-            if(surface.Selection.IsEmpty||tool=="select"&&surface.SelectedAnnotation==null)return;
-            ChangeStroke(e.Delta>0?1:-1);
-            surface.ShowBrushSize=true;cursorLabelTimer.Stop();cursorLabelTimer.Start();UpdateBrushCursor(e.GetPosition(surface));
-            surface.InvalidateVisual();e.Handled=true;
+            // Plain scrolling must never mutate an image. The explicit controls
+            // and Control-wheel share exactly the same selected/default target.
+            if(modifiers!=ModifierKeys.Control||surface.Selection.IsEmpty||!HasCaptureProperties)return false;
+            ChangeStroke(delta>0?1:-1);
+            surface.ShowBrushSize=true;cursorLabelTimer.Stop();cursorLabelTimer.Start();UpdateBrushCursor(point);
+            surface.InvalidateVisual();return true;
         }
         internal void CycleSnap(Point point,int direction){
+            if(!captureFeatures.SmartSelection){ClearSnap();return;}
             UpdateSnap(point);
             if(!snap.Candidate.IsEmpty&&snapHover.Choices.Count>1)ApplySnap(snapHover.Cycle(direction));
         }
         void UpdateWidth(){UpdateCapturePropertyPresentation();}
         void HideTools(){toolbarCard.Visibility=Visibility.Collapsed;propertiesCard.Visibility=Visibility.Collapsed;}
         void PositionTools(){AppState.SyncCaptureSelection(this);PositionAdaptiveTools();}
-        void Undo(){CommitText();UndoAnnotation();}
-        void Redo(){RedoAnnotation();}
+        void Undo(){if(!CanEditCapture)return;CommitText();UndoAnnotation();}
+        void Redo(){if(CanEditCapture)RedoAnnotation();}
         void KeyDownHandler(object s,KeyEventArgs e){
             if(HandleCaptureKey(e.Key,Keyboard.Modifiers))e.Handled=true;
         }
-        void Guard(Action f){try{CommitText();f();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Nook",MessageBoxButton.OK,MessageBoxImage.Information);}}
-        async void CollectToLibrary(){await CollectToLibraryAsync();}
-        internal async System.Threading.Tasks.Task<bool> CollectToLibraryAsync(){
-            var collect=MoriDesk.DeskRuntime.CollectImage;
-            if(closed||collecting||collect==null)return false;
-            collecting=true;
-            try{
-                CommitText();var image=surface.Export();
-                surface.IsEnabled=false;toolbar.IsEnabled=false;properties.IsEnabled=false;
-                TranslationStatus("正在收藏到素材库…");
-                bool saved=await collect(image);
-                if(closed)return saved;
-                if(saved){Close();return true;}
-                TranslationStatus("尚未收藏，截图已保留；可以重试、复制或保存。");return false;
-            }catch(Exception ex){if(!closed)TranslationStatus("收藏失败，截图已保留："+ex.Message);return false;}
-            finally{collecting=false;if(!closed){surface.IsEnabled=true;toolbar.IsEnabled=true;properties.IsEnabled=true;}}
-        }
-        void Copy(){Guard(()=>{ImageFiles.Copy(surface.Export());Close();});}
-        void Save(){Guard(()=>{Topmost=false;try{if(ImageFiles.Save(surface.Export(),this))Close();}finally{Topmost=true;}});}
-        void Pin(){Guard(()=>{var image=surface.Export();var crop=Geometry.PixelCrop(surface.Selection,surface.ScaleX,surface.ScaleY,shot.Image.PixelWidth,shot.Image.PixelHeight);var bounds=new Int32Rect(shot.Bounds.X+crop.X,shot.Bounds.Y+crop.Y,crop.Width,crop.Height);Close();AppState.Pins.NewAt(image,bounds);});}
-        void ReadText(bool translate){if(translate){TranslateInPlace();return;}Guard(()=>{var crop=surface.Export(false,false);Close();new TextWindow(crop,translationTarget).Show();});}
+        void Guard(Action f){if(!CanEditCapture)return;try{CommitText();f();}catch(Exception ex){if(!closed)TranslationStatus("未完成，截图已保留："+ex.Message);}}
         void ResetTranslation(){if(translationCancel!=null){translationCancel.Cancel();translationCancel=null;}imageTranslationResult=null;imageTranslationPage=null;imageTranslationSource=null;imageTranslationProvider=null;imageTranslationTarget=null;surface.ClearTranslation();translationStatus.Text="";translationStatus.Visibility=Visibility.Collapsed;if(translateButton!=null){translateButton.IsEnabled=true;Ui.SetActive(translateButton,false);}}
-        void RefreshProvider(){ResetTranslation();surface.InvalidateVisual();}
+        void RefreshProvider(){if(!CanEditCapture)return;ResetTranslation();surface.InvalidateVisual();}
         void TranslationStatus(string text){translationStatus.Text=text;translationStatus.Visibility=Visibility.Visible;PositionTools();}
         void ImageTranslationStatus(){
             if(imageTranslationResult==null||imageTranslationResult.UnplacedCount==0){translationStatus.Visibility=Visibility.Collapsed;PositionTools();return;}
@@ -286,18 +287,19 @@ namespace QingJie {
             full.Click+=(s,e)=>{e.Handled=true;ViewFullTranslation();};translationStatus.Inlines.Add(full);translationStatus.Visibility=Visibility.Visible;PositionTools();
         }
         void ViewFullTranslation(){
+            if(!CanEditCapture||!captureFeatures.Translation)return;
             if(imageTranslationResult==null||imageTranslationPage==null||imageTranslationSource==null||imageTranslationTarget!=translationTarget||imageTranslationProvider!=Translation.Provider)return;
-            // Keep references before Close clears this capture's cached state.
+            // The reader is an auxiliary view; keep the editable capture alive.
             var source=imageTranslationSource;var page=imageTranslationPage;var translated=imageTranslationResult;string target=imageTranslationTarget,provider=imageTranslationProvider;
-            Guard(()=>{var viewer=new TextWindow(source,target,page,translated,provider);Close();viewer.Show();});
+            Guard(()=>OpenCaptureTextViewer(new TextWindow(source,target,page,translated,provider,allowTranslation:captureFeatures.Translation,allowPin:captureFeatures.Pin)));
         }
         async void TranslateInPlace(){
-            if(translationCancel!=null)return;
+            if(!CanEditCapture||!captureFeatures.Translation||translationCancel!=null)return;
             if(surface.TranslationImage!=null){surface.ShowTranslation=!surface.ShowTranslation;Ui.SetActive(translateButton,surface.ShowTranslation);surface.InvalidateVisual();ImageTranslationStatus();return;}
             var cancel=new CancellationTokenSource();string target=translationTarget,provider=Translation.Provider;translationCancel=cancel;translateButton.IsEnabled=false;
             try{
                 CommitText();var selected=surface.Selection;var crop=surface.Export(false,false);TranslationStatus("正在本机识别文字…");
-                var page=await OcrService.Read(crop,cancel.Token);cancel.Token.ThrowIfCancellationRequested();var regions=ImageTranslation.Regions(page);
+                var page=await ReadCaptureOcr(crop,cancel.Token);cancel.Token.ThrowIfCancellationRequested();var regions=ImageTranslation.Regions(page);
                 if(regions.Count==0){TranslationStatus("没有识别到文字，原图保留。");return;}
                 TranslationStatus(Translation.ProgressText);
                 var texts=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),cancel.Token,target,provider);cancel.Token.ThrowIfCancellationRequested();

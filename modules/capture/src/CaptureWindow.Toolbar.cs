@@ -69,40 +69,45 @@ namespace QingJie {
         internal static Placement Place(Size viewport,Rect selection,Size toolbar,Size properties,Size status) {
             double width=Math.Max(1,Length(viewport.Width)),height=Math.Max(1,Length(viewport.Height));
             double margin=Math.Min(8,Math.Min(width,height)/4),availableWidth=width-margin*2,availableHeight=height-margin*2;
-            var natural=new[]{status,toolbar,properties};var measured=new Size[3];int visible=0;double totalHeight=0,blockWidth=0;
-            for(int i=0;i<natural.Length;i++){
-                double w=Math.Min(availableWidth,Length(natural[i].Width)),h=Length(natural[i].Height);
-                if(w<=0||h<=0)continue;
-                measured[i]=new Size(w,h);visible++;totalHeight+=h;blockWidth=Math.Max(blockWidth,w);
-            }
-            var result=new Placement {Toolbar=Rect.Empty,Properties=Rect.Empty,Status=Rect.Empty};if(visible==0)return result;
-            double gap=Math.Min(5,availableHeight/(visible*2)),gaps=gap*(visible-1),budget=Math.Max(0,availableHeight-gaps);
-            var heights=new double[3];double minimumTotal=0;
-            for(int i=0;i<measured.Length;i++){heights[i]=Math.Min(measured[i].Height,i==0?18:32);minimumTotal+=heights[i];}
-            if(totalHeight<=budget){for(int i=0;i<measured.Length;i++)heights[i]=measured[i].Height;}
-            else if(minimumTotal<=budget){
-                // Reserve one reachable scrolling row per action card before
-                // sharing remaining height. Pure proportional scaling could
-                // leave a short properties card with only 8 px of clickable UI.
-                double extra=budget-minimumTotal,remaining=totalHeight-minimumTotal;
-                for(int i=0;i<measured.Length;i++)heights[i]+=(measured[i].Height-heights[i])*(remaining>0?extra/remaining:0);
-            }else {double scale=totalHeight>0?budget/totalHeight:0;for(int i=0;i<measured.Length;i++)heights[i]=measured[i].Height*scale;}
-            double blockHeight=gaps;foreach(double allocated in heights)blockHeight+=allocated;
+            var result=new Placement {Toolbar=Rect.Empty,Properties=Rect.Empty,Status=Rect.Empty};
+            double toolWidth=Math.Min(availableWidth,Length(toolbar.Width)),toolHeight=Math.Min(Math.Max(availableHeight*.25,availableHeight-60),Length(toolbar.Height));
+            if(toolWidth<=0||toolHeight<=0)return result;
             double right=selection.IsEmpty?width-margin:selection.Right,top=selection.IsEmpty?margin:selection.Top,bottom=selection.IsEmpty?margin:selection.Bottom;
             if(double.IsNaN(right)||double.IsInfinity(right))right=width-margin;
             if(double.IsNaN(top)||double.IsInfinity(top))top=margin;
             if(double.IsNaN(bottom)||double.IsInfinity(bottom))bottom=margin;
-            double x=Limit(right-blockWidth,margin,width-margin-blockWidth),y=bottom+9;
-            if(y+blockHeight>height-margin){
-                double above=top-9-blockHeight;
+            // Main actions depend only on the selection, viewport and their own
+            // dimensions. Showing properties/progress must never move Copy.
+            double x=Limit(right-toolWidth,margin,width-margin-toolWidth),y=bottom+9;
+            if(y+toolHeight>height-margin){
+                double above=top-9-toolHeight;
                 if(above>=margin)y=above;
                 else y=top-margin>height-margin-bottom?above:bottom+9;
             }
-            y=Limit(y,margin,height-margin-blockHeight);
-            for(int i=0;i<measured.Length;i++){
-                var size=measured[i];if(size.Width<=0||size.Height<=0)continue;
-                var rect=new Rect(x,y,size.Width,heights[i]);y+=rect.Height+gap;
-                if(i==0)result.Status=rect;else if(i==1)result.Toolbar=rect;else result.Properties=rect;
+            // A very short viewport docks the main row once at the top, leaving
+            // a scrollable property row and a status line rather than splitting
+            // the only usable space into two unclickable slivers.
+            y=availableHeight<128?margin:Limit(y,margin,height-margin-toolHeight);result.Toolbar=new Rect(x,y,toolWidth,toolHeight);
+            var natural=new[]{properties,status};var sizes=new Size[2];int count=0;double total=0;
+            for(int i=0;i<2;i++){sizes[i]=new Size(Math.Min(availableWidth,Length(natural[i].Width)),Length(natural[i].Height));if(sizes[i].Width>0&&sizes[i].Height>0){count++;total+=sizes[i].Height;}}
+            if(count==0)return result;
+            double gap=Math.Min(5,availableHeight/8),aboveSpace=Math.Max(0,y-margin-gap),belowSpace=Math.Max(0,height-margin-result.Toolbar.Bottom-gap);
+            bool below=result.Toolbar.Top>=bottom;
+            double needed=total+gap*(count-1);
+            if((below?belowSpace:aboveSpace)<needed&&(below?aboveSpace:belowSpace)>(below?belowSpace:aboveSpace))below=!below;
+            double budget=Math.Max(0,(below?belowSpace:aboveSpace)-gap*(count-1));
+            var allocated=new double[2];double minimum=0;
+            for(int i=0;i<2;i++){allocated[i]=Math.Min(sizes[i].Height,i==0?32:18);minimum+=allocated[i];}
+            if(total<=budget){for(int i=0;i<2;i++)allocated[i]=sizes[i].Height;}
+            else if(minimum<=budget){for(int i=0;i<2;i++)allocated[i]+=(sizes[i].Height-allocated[i])*(budget-minimum)/Math.Max(1,total-minimum);}
+            else {for(int i=0;i<2;i++)allocated[i]=total>0?sizes[i].Height*budget/total:0;}
+            double next=below?result.Toolbar.Bottom+gap:result.Toolbar.Top-gap;
+            for(int i=0;i<2;i++){
+                var size=sizes[i];if(size.Width<=0||size.Height<=0||allocated[i]<=0)continue;
+                double cardY=below?next:next-allocated[i];
+                var rect=new Rect(Limit(x,margin,width-margin-size.Width),cardY,size.Width,allocated[i]);
+                if(i==0)result.Properties=rect;else result.Status=rect;
+                next=below?rect.Bottom+gap:rect.Top-gap;
             }
             return result;
         }
@@ -115,10 +120,51 @@ namespace QingJie {
         CaptureToolFlow toolbarFlow,propertyFlow;
         bool toolbarLayoutReady;
         Button captureUndoButton,captureRedoButton;
+        Button captureSizeDecrease,captureSizeIncrease;
         TextBlock capturePropertyHint;
         readonly List<Button> captureColorButtons=new List<Button>();
+        bool scrollingPreparationUi,scrollingPreparationPropertiesEnabled;
+        Cursor scrollingPreparationCursor;
+        readonly Dictionary<Button,bool> scrollingPreparationButtons=new Dictionary<Button,bool>();
+        readonly Dictionary<ContextMenu,bool> scrollingPreparationMenus=new Dictionary<ContextMenu,bool>();
+
+        // Keep the original crop visible until the helper's readiness handshake.
+        // Cancel stays usable; command guards also reject already queued input.
+        internal void SetScrollingPreparationUi(bool preparing){
+            if(closed||scrollingPreparationUi==preparing)return;
+            InitializeCaptureToolbarLayout();
+            scrollingPreparationUi=preparing;
+            if(preparing){
+                scrollingPreparationPropertiesEnabled=properties.IsEnabled;properties.IsEnabled=false;
+                foreach(var button in CaptureToolbarButtons(toolbar)){
+                    scrollingPreparationButtons[button]=button.IsEnabled;
+                    if(button.ContextMenu!=null){var menu=button.ContextMenu;scrollingPreparationMenus[menu]=menu.IsEnabled;menu.IsOpen=false;menu.IsEnabled=false;}
+                    if(button.Name!="CaptureCancel")button.IsEnabled=false;
+                }
+                scrollingPreparationCursor=surface.Cursor;surface.BrushPoint=null;surface.ShowBrushSize=false;cursorLabelTimer.Stop();surface.Cursor=Cursors.Arrow;surface.InvalidateVisual();
+            }else{
+                foreach(var entry in scrollingPreparationButtons)entry.Key.IsEnabled=entry.Value;
+                foreach(var entry in scrollingPreparationMenus)entry.Key.IsEnabled=entry.Value;
+                scrollingPreparationButtons.Clear();scrollingPreparationMenus.Clear();properties.IsEnabled=scrollingPreparationPropertiesEnabled;
+                // Availability derives from the retained scene, not a blanket
+                // enable: empty Redo and minimum/maximum font sizes stay disabled.
+                UpdateCapturePropertyPresentation();RefreshCaptureToolbarHistory();
+                surface.Cursor=scrollingPreparationCursor;scrollingPreparationCursor=null;
+            }
+            PositionTools();
+        }
+        static IEnumerable<Button> CaptureToolbarButtons(DependencyObject parent){
+            var button=parent as Button;if(button!=null)yield return button;
+            foreach(object child in LogicalTreeHelper.GetChildren(parent)){
+                var node=child as DependencyObject;if(node!=null)foreach(var nested in CaptureToolbarButtons(node))yield return nested;
+            }
+        }
 
         static Button CaptureAction(string name,Button button){button.Name="Capture"+name;return button;}
+        Button CaptureSizeButton(bool increase){
+            var button=Ui.TextButton(increase?"+":"−",()=>ChangeStroke(increase?1:-1));button.Name=increase?"CaptureSizeIncrease":"CaptureSizeDecrease";button.Width=26;button.Height=26;button.MinWidth=0;button.Padding=new Thickness(0);button.Margin=new Thickness(2,0,2,0);button.ToolTip=increase?"增大粗细 / 字号":"减小粗细 / 字号";AutomationProperties.SetName(button,button.ToolTip.ToString());
+            if(increase)captureSizeIncrease=button;else captureSizeDecrease=button;return button;
+        }
 
         void InitializeCaptureToolbarLayout() {
             if(toolbarLayoutReady)return;toolbarLayoutReady=true;
@@ -137,7 +183,7 @@ namespace QingJie {
                 var button=child as Button;int group;
                 if(propertyBar){
                     if(child==lineModes)group=0;
-                    else if(button!=null){
+                    else if(button!=null&&button!=captureSizeDecrease&&button!=captureSizeIncrease){
                         group=1;int index=captureColorButtons.Count;captureColorButtons.Add(button);
                         string title="标注颜色："+(index<colorNames.Length?colorNames[index]:"自定义");
                         button.ToolTip=title;AutomationProperties.SetName(button,title);
@@ -170,22 +216,31 @@ namespace QingJie {
         string CapturePropertyKind {
             get{return textEditor!=null||surface.SelectedText!=null?"text":surface.SelectedAnnotation!=null?surface.SelectedAnnotation.Kind:tool;}
         }
-        bool HasCaptureProperties {get{string kind=CapturePropertyKind;return kind!="select"&&kind!="mosaic";}}
+        bool HasCaptureProperties {get{string kind=CapturePropertyKind;return captureFeatures.HasAnnotations&&captureFeatures.AllowsTool(kind)&&kind!="select"&&kind!="mosaic";}}
+        void SetCaptureLineMode(string kind){
+            if(!CanEditCapture||!captureFeatures.Lines||(kind!="arrow"&&kind!="line"))return;
+            var selected=surface.SelectedAnnotation;
+            if(selected==null||!CaptureAnnotationGeometry.Linear(selected)){SetTool(kind);return;}
+            var before=CopyAnnotation(selected);selected.Kind=kind;RecordAnnotationEdit(selected,before);UpdateWidth();PositionTools();surface.InvalidateVisual();
+        }
         void UpdateCapturePropertyPresentation(){
             string kind=CapturePropertyKind;bool text=kind=="text",visible=HasCaptureProperties;
+            lineModes.Visibility=captureFeatures.Lines&&(kind=="arrow"||kind=="line")?Visibility.Visible:Visibility.Collapsed;
+            foreach(var entry in lineModeButtons)Ui.SetActive(entry.Value,entry.Key==kind);
             // Text Width stores one fifth of its rendered font size. Show the
             // actual text size even before the first label is created. These
             // are logical sizes; physical export pixels vary by monitor scale.
-            double value=textEditor!=null?textEditor.FontSize:surface.SelectedText!=null?surface.SelectedText.TextFontSize:surface.SelectedAnnotation!=null?surface.SelectedAnnotation.Width:text?Math.Max(16,AppState.Settings.Stroke*5):AppState.Settings.Stroke;
+            double value=textEditor!=null?textEditor.FontSize:surface.SelectedText!=null?surface.SelectedText.TextFontSize:surface.SelectedAnnotation!=null?surface.SelectedAnnotation.Width:text?AppState.Settings.TextSize:AppState.Settings.Stroke;
             widthLabel.Text=(text?"字号 ":"粗细 ")+value.ToString("0");
             AutomationProperties.SetName(widthLabel,widthLabel.Text);
             widthLabel.Visibility=visible?Visibility.Visible:Visibility.Collapsed;
             foreach(var color in captureColorButtons)color.Visibility=visible?Visibility.Visible:Visibility.Collapsed;
-            if(capturePropertyHint!=null){capturePropertyHint.Text=text?"滚轮调字号":"滚轮调粗细";capturePropertyHint.Visibility=visible?Visibility.Visible:Visibility.Collapsed;}
+            if(captureSizeDecrease!=null){captureSizeDecrease.Visibility=captureSizeIncrease.Visibility=visible?Visibility.Visible:Visibility.Collapsed;captureSizeDecrease.IsEnabled=CanEditCapture&&value>(text?16:1);captureSizeIncrease.IsEnabled=CanEditCapture&&value<(text?250:25);}
+            if(capturePropertyHint!=null){capturePropertyHint.Text=text?"Ctrl+滚轮调字号":"Ctrl+滚轮调粗细";capturePropertyHint.Visibility=visible?Visibility.Visible:Visibility.Collapsed;}
         }
         void RefreshCaptureToolbarHistory(){
-            SetCaptureHistoryAvailability(captureUndoButton,annotationUndo.Count>0);
-            SetCaptureHistoryAvailability(captureRedoButton,annotationRedo.Count>0);
+            SetCaptureHistoryAvailability(captureUndoButton,CanEditCapture&&annotationUndo.Count>0);
+            SetCaptureHistoryAvailability(captureRedoButton,CanEditCapture&&annotationRedo.Count>0);
         }
         static void SetCaptureHistoryAvailability(Button button,bool available){
             if(button==null)return;button.IsEnabled=available;button.Opacity=available?1:.35;ToolTipService.SetShowOnDisabled(button,true);
@@ -216,18 +271,18 @@ namespace QingJie {
             // In an unusually short viewport the controls remain available via
             // vertical scrolling, instead of drawing buttons outside the screen.
             toolbarCard.MaxHeight=placement.Toolbar.Height;
-            if(hasProperties)propertiesCard.MaxHeight=placement.Properties.Height;
-            if(hasStatus)translationStatus.MaxHeight=placement.Status.Height;
+            if(hasProperties)propertiesCard.MaxHeight=placement.Properties.IsEmpty?0:placement.Properties.Height;
+            if(hasStatus)translationStatus.MaxHeight=placement.Status.IsEmpty?0:placement.Status.Height;
             toolbarCard.Measure(new Size(maxWidth,placement.Toolbar.Height));
-            if(hasProperties)propertiesCard.Measure(new Size(maxWidth,placement.Properties.Height));
-            if(hasStatus)translationStatus.Measure(new Size(maxWidth,placement.Status.Height));
+            if(hasProperties)propertiesCard.Measure(new Size(maxWidth,placement.Properties.IsEmpty?0:placement.Properties.Height));
+            if(hasStatus)translationStatus.Measure(new Size(maxWidth,placement.Status.IsEmpty?0:placement.Status.Height));
             placement=CaptureToolbarLayout.Place(new Size(viewportWidth,viewportHeight),surface.Selection,toolbarCard.DesiredSize,hasProperties?propertiesCard.DesiredSize:new Size(),hasStatus?translationStatus.DesiredSize:new Size());
             PositionCaptureCard(toolbarCard,placement.Toolbar);
             if(hasProperties)PositionCaptureCard(propertiesCard,placement.Properties);
             if(hasStatus)PositionCaptureCard(translationStatus,placement.Status);
         }
         static void PositionCaptureCard(FrameworkElement element,Rect bounds){
-            if(bounds.IsEmpty)return;
+            if(bounds.IsEmpty){element.Width=element.Height=0;return;}
             // Canvas can arrange a TextBlock to its unclipped natural line
             // height even after a constrained Measure. Apply the final bounds
             // as dimensions so status text cannot overlap the next tool card.

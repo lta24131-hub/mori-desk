@@ -12,10 +12,13 @@ namespace QingJie {
         public string Color="#EF4444";
         public double Width=3;
         public string Text="";
+        // Zero preserves the metrics of legacy annotations. New captions carry
+        // their visible wrapping width through editing, history and export.
+        public double TextWrapWidth;
         public List<Point> Points=new List<Point>();
         public BitmapSource Mosaic;
         public double TextFontSize {get{return Math.Max(16,Width*5);}}
-        FormattedText CreateText(Brush brush){return new FormattedText(Text??"",CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),TextFontSize,brush);}
+        FormattedText CreateText(Brush brush){var text=new FormattedText(Text??"",CultureInfo.CurrentUICulture,FlowDirection.LeftToRight,new Typeface("Microsoft YaHei UI"),TextFontSize,brush);if(TextWrapWidth>0&&!double.IsNaN(TextWrapWidth)&&!double.IsInfinity(TextWrapWidth))text.MaxTextWidth=Math.Max(1,TextWrapWidth);return text;}
         // Hit testing and the selection frame use the very same metrics as export,
         // including explicit newlines and trailing whitespace.
         public Rect Bounds {get{if(Kind=="pen"&&Points.Count>0){var box=new Rect(Points[0],new Size(0,0));for(int i=1;i<Points.Count;i++)box.Union(Points[i]);return box;}if(Kind!="text")return Geometry.FromPoints(Start,End);var text=CreateText(Brushes.Black);return new Rect(Start,new Size(Math.Max(1,text.WidthIncludingTrailingWhitespace),Math.Max(1,text.Height)));}}

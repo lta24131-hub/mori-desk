@@ -1,0 +1,8 @@
+Fluent UI System Icons / Checkmark 24 Regular
+Retrieved 2026-10-19, unchanged SVG geometry and colors.
+https://github.com/microsoft/fluentui-system-icons
+https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Checkmark/SVG/ic_fluent_checkmark_24_regular.svg
+https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/LICENSE
+
+Used as an alpha mask for Nook's green Finish button. This is a library asset,
+not a hand-drawn approximation. Distribute the adjacent MIT license with it.

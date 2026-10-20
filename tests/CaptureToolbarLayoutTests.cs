@@ -36,9 +36,16 @@ namespace MoriDesk {
             var below=CaptureToolbarLayout.Place(new Size(1000,800),new Rect(100,100,300,200),new Size(650,48),new Size(340,42),new Size());
             check(below.Toolbar.Top>300&&below.Properties.Top>=below.Toolbar.Bottom+4.9,"capture attributes stay together below a selection when there is room");
             var above=CaptureToolbarLayout.Place(new Size(1000,800),new Rect(100,650,300,120),new Size(650,48),new Size(340,42),new Size());
-            check(above.Properties.Bottom<650&&above.Toolbar.Top<above.Properties.Top,"capture toolbar and attributes move above the selection together near the screen bottom");
+            check(above.Toolbar.Bottom<650&&above.Properties.Bottom<above.Toolbar.Top,"capture attributes open outward above the stable main row near the screen bottom");
             var noProperties=CaptureToolbarLayout.Place(new Size(800,600),new Rect(200,200,150,150),new Size(500,48),new Size(),new Size());
             check(noProperties.Properties.IsEmpty&&noProperties.Status.IsEmpty,"selection-only tools do not reserve an empty attributes row");
+            foreach(var crop in new[]{new Rect(100,500,500,210),new Rect(20,20,1160,760),new Rect(100,650,500,120)}){
+                var baseline=CaptureToolbarLayout.Place(new Size(1200,800),crop,new Size(650,48),new Size(),new Size());
+                foreach(var extra in new[]{new Size(340,42),new Size(500,80)}){
+                    var expanded=CaptureToolbarLayout.Place(new Size(1200,800),crop,new Size(650,48),extra,new Size(420,54));
+                    check(expanded.Toolbar==baseline.Toolbar,"showing properties and asynchronous status cannot move the primary screenshot actions");
+                }
+            }
             foreach(double width in new[]{64d,180d,320d,480d,640d,1024d,1920d})foreach(double height in new[]{40d,120d,300d,600d,1080d}){
                 var viewport=new Size(width,height);
                 var toolbar=CaptureToolbarLayout.Arrange(sizes.ToArray(),groups.ToArray(),Math.Max(1,width-28)).Size;toolbar=new Size(toolbar.Width+12,toolbar.Height+12);

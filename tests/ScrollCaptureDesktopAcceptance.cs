@@ -26,11 +26,17 @@ internal static class ScrollCaptureDesktopAcceptance {
     static readonly List<Window> hosts=new List<Window>();
     static readonly List<ScrollViewer> viewports=new List<ScrollViewer>();
     static readonly HashSet<Window> observed=new HashSet<Window>();
+    static readonly Dictionary<Window,InputEvidence> inputEvidence=new Dictionary<Window,InputEvidence>();
     static string root,lastState="";
     static Application app;
     static DispatcherTimer timer;
     static bool stopping;
-    static int collectionCount;
+    static bool automationTarget;
+    static int collectionCount,automationTargetCount;
+
+    sealed class InputEvidence {
+        public int KeyDown,TextInput,TextChanged,FocusEntered;
+    }
 
     [STAThread] static int Main(){
         root=Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
@@ -41,6 +47,7 @@ internal static class ScrollCaptureDesktopAcceptance {
         catch(Exception error){Log("fatal "+error);Cleanup();return 1;}
     }
     [MethodImpl(MethodImplOptions.NoInlining)] static int Run(){
+        automationTarget=Environment.GetEnvironmentVariable("NOOK_CAPTURE_AUTOMATION_TARGET")=="1"||AutomationTargetMarkerEnabled();
         Preferences.TestFilePath=Within("data","capture","settings.json");
         OcrLanguagePacks.TestFolder=Within("data","languages");
         OfflinePacks.TestFolder=Within("data","offline");
@@ -54,12 +61,19 @@ internal static class ScrollCaptureDesktopAcceptance {
         // Do not start DeskRuntime/Entry/Program: no tray, main hotkeys,
         // browser bridge, file registration or real library is initialized.
         Log("start pid="+System.Diagnostics.Process.GetCurrentProcess().Id+" version="+typeof(CaptureWindow).Assembly.GetName().Version+" isolated-data="+MoriDesk.Entry.DataRoot);
+        Log("automation-target="+automationTarget+"; opt-in only changes capture title/taskbar enumerability; it does not validate production hidden-taskbar activation; input contents are never logged");
         timer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(180)};
         timer.Tick+=(s,e)=>RecordState();
         app.DispatcherUnhandledException+=(s,e)=>{Log("dispatcher-error "+e.Exception);e.Handled=true;Stop(1);};
         app.Startup+=(s,e)=>{
             int number=0;
-            foreach(var monitor in Forms.Screen.AllScreens)CreateHost(monitor,++number);
+            // Keep ordinary acceptance checks on the primary screen. A second
+            // fixture is opt-in only, so testing does not occupy the user's
+            // other monitor without a specific multi-screen test request.
+            bool allMonitors=Environment.GetEnvironmentVariable("NOOK_CAPTURE_TEST_ALL_MONITORS")=="1";
+            foreach(var monitor in Forms.Screen.AllScreens){
+                ++number;if(allMonitors||monitor.Primary)CreateHost(monitor,number);
+            }
             RecordState();timer.Start();
         };
         app.Exit+=(s,e)=>{Cleanup();Log("exit code="+e.ApplicationExitCode);};
@@ -70,6 +84,14 @@ internal static class ScrollCaptureDesktopAcceptance {
         path=Path.GetFullPath(path);
         if(!path.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Test output must remain inside its sandbox.");
         return path;
+    }
+    static bool AutomationTargetMarkerEnabled(){
+        string marker=Within("nook-capture-automation-target.txt");
+        if(!File.Exists(marker))return false;
+        // A single literal line "1" is accepted, with or without its normal
+        // line terminator. Whitespace, other values and extra lines fail closed.
+        string[] lines=File.ReadAllLines(marker);
+        return lines.Length==1&&lines[0]=="1";
     }
     static void CreateHost(Forms.Screen screen,int number){
         Log("monitor "+number+" bounds="+screen.Bounds+" work="+screen.WorkingArea+" primary="+screen.Primary);
@@ -126,27 +148,52 @@ internal static class ScrollCaptureDesktopAcceptance {
     }
     static object Field(object owner,string name){if(owner==null)return null;var field=owner.GetType().GetField(name,Hidden);return field==null?null:field.GetValue(owner);}
     static string Number(double value){return value.ToString("0.##",CultureInfo.InvariantCulture);}
+    static void ObserveInput(Window window){
+        var evidence=new InputEvidence();inputEvidence.Add(window,evidence);
+        window.AddHandler(Keyboard.PreviewKeyDownEvent,new KeyEventHandler((s,e)=>evidence.KeyDown++),true);
+        window.AddHandler(TextCompositionManager.PreviewTextInputEvent,new TextCompositionEventHandler((s,e)=>evidence.TextInput++),true);
+        window.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,new TextChangedEventHandler((s,e)=>evidence.TextChanged++),true);
+        window.AddHandler(Keyboard.GotKeyboardFocusEvent,new KeyboardFocusChangedEventHandler((s,e)=>evidence.FocusEntered++),true);
+        window.Closed+=(s,e)=>inputEvidence.Remove(window);
+        if(automationTarget&&window is CaptureWindow){
+            // Test-only enumerability seam: never activate/focus the window here.
+            // Changing ShowInTaskbar may itself affect native window state, so
+            // this run cannot establish production hidden-taskbar activation.
+            window.Title="Nook · 截图键盘验收 · "+(++automationTargetCount);
+            window.ShowInTaskbar=true;
+            Log("automation-target-added title="+window.Title+" show-in-taskbar="+window.ShowInTaskbar);
+        }
+    }
     static void RecordState(){
         if(app==null||stopping)return;
         try{
             var rows=new List<string> {"utc="+DateTime.UtcNow.ToString("o"),"capture-count="+AppState.Captures.Count+" collection-count="+collectionCount+" selected="+(typeof(AppState).GetField("selectedCapture",BindingFlags.Static|BindingFlags.NonPublic).GetValue(null)!=null)};
             foreach(Window window in app.Windows.Cast<Window>().ToArray()){
                 if(observed.Add(window)){
+                    ObserveInput(window);
                     var current=window;Log("opened "+window.GetType().Name+" title="+window.Title);window.Closed+=(s,e)=>Log("closed "+current.GetType().Name+" title="+current.Title);
                     if(window is CaptureWindow){var shot=Field(window,"shot") as Snapshot;if(shot!=null)LogImage("capture-source bounds="+shot.Bounds,shot.Image);}
                     if(window.GetType().Name=="ScrollCapturePreviewWindow")LogImage("long-preview-source",Field(window,"image") as BitmapSource);
                 }
                 rows.Add(window.GetType().Name+" title="+window.Title+" visible="+window.IsVisible+" active="+window.IsActive+" dpi="+Number(VisualTreeHelper.GetDpi(window).DpiScaleX)+" left="+Number(window.Left)+" top="+Number(window.Top)+" width="+Number(window.ActualWidth)+" height="+Number(window.ActualHeight));
+                InputEvidence evidence;
+                if(inputEvidence.TryGetValue(window,out evidence))rows.Add(" input focus-within="+window.IsKeyboardFocusWithin+" key-down-events="+evidence.KeyDown+" text-input-events="+evidence.TextInput+" text-changed-events="+evidence.TextChanged+" focus-entered-events="+evidence.FocusEntered);
                 var capture=window as CaptureWindow;
                 if(capture!=null){
                     var surface=Field(capture,"surface") as ScreenshotSurface;var session=Field(capture,"scrollingCapture");
                     rows.Add(" capture bounds="+capture.CaptureScreenBounds+" crop="+surface.Selection+" marks="+surface.Marks.Count+" draft="+(surface.Draft!=null)+" tool="+capture.SelectedTool+" suspended="+capture.IsCaptureOverlaySuspended+" scrolling="+capture.IsScrollingCapture);
+                    var editor=Field(capture,"textEditor") as TextBox;
+                    rows.Add(" text-editor present="+(editor!=null)+" length="+(editor==null?0:editor.Text.Length)+" keyboard-focused="+(editor!=null&&editor.IsKeyboardFocused)+" focus-within="+(editor!=null&&editor.IsKeyboardFocusWithin));
                     if(session!=null){rows.Add(" external-session disposed="+Field(session,"disposed")+" started="+Field(session,"started")+" id="+Field(session,"SessionId")+" directory="+Field(session,"OutputDirectory"));}
                 }
                 if(window.GetType().Name=="ScrollCapturePreviewWindow"){
                     var image=Field(window,"image") as BitmapSource;var preview=Field(window,"preview") as Image;rows.Add(" preview pixels="+(image==null?"released":image.PixelWidth+"x"+image.PixelHeight)+" rendered="+(preview==null?"none":Number(preview.ActualWidth)+"x"+Number(preview.ActualHeight))+" status="+((Field(window,"status") as TextBlock)==null?"":((TextBlock)Field(window,"status")).Text));
                 }
             }
+            var focused=Keyboard.FocusedElement;
+            var focusedObject=focused as DependencyObject;
+            var focusWindow=focusedObject==null?null:Window.GetWindow(focusedObject);
+            rows.Add("keyboard-focus type="+(focused==null?"none":focused.GetType().Name)+" owner-type="+(focusWindow==null?"none":focusWindow.GetType().Name)+" owner-title="+(focusWindow==null?"none":focusWindow.Title));
             foreach(var viewport in viewports){
                 if(!viewport.IsVisible)continue;var point=viewport.PointToScreen(new Point(0,0));var end=viewport.PointToScreen(new Point(viewport.ViewportWidth,viewport.ViewportHeight));
                 rows.Add(" scroll-viewport screen="+point+".."+end+" logical="+Number(viewport.ViewportWidth)+"x"+Number(viewport.ViewportHeight)+" offset="+Number(viewport.VerticalOffset));

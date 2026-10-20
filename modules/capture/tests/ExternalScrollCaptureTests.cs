@@ -32,7 +32,30 @@ static class ExternalScrollCaptureTests {
         var bytes=new byte[24];new byte[]{137,80,78,71,13,10,26,10,0,0,0,13,73,72,68,82}.CopyTo(bytes,0);
         for(int i=0;i<4;i++){bytes[16+i]=(byte)(width>>(24-i*8));bytes[20+i]=(byte)(height>>(24-i*8));}return bytes;
     }
-    internal static void Run(Action<bool,string> check){Request(check);Results(check);Annotations(check);Headers(check);Readiness(check);Lifetime(check);Cleanup(check);}
+    internal static void Run(Action<bool,string> check){Request(check);FeaturePolicy(check);Results(check);Annotations(check);Headers(check);Readiness(check);DeferredStart(check);Lifetime(check);Transactions(check);Cleanup(check);}
+    static void FeaturePolicy(Action<bool,string> check){
+        var features=CaptureFeatures.Basic();features.Scrolling=true;
+        using(var session=new ExternalScrollCaptureSession(@"C:\Nook",Region,Monitor,1,null,features)){
+            features.Pin=true;features.Collect=true;features.Pen=true;
+            var policy=(Dictionary<string,object>)Json(session.SerializeRequest())["features"];
+            check(!(bool)policy["pin"]&&!(bool)policy["collect"]&&!(bool)policy["pen"]&&(bool)policy["scrolling"],"long capture owns an immutable feature snapshot rather than live settings");
+            check(session.RequiresFeaturePolicy&&!session.AllowsOutput("pin")&&!session.AllowsOutput("collect")&&session.AllowsOutput("copy")&&session.AllowsOutput("save"),"disabled long-capture destinations cannot bypass required copy and save");
+            check(Reject(()=>ExternalScrollCaptureSession.ValidateDeferredStartComponent("{\"schemaVersion\":1,\"deferredStart\":true}",session.RequiresFeaturePolicy)),"restricted screenshot features reject old helpers before starting a process");
+            ExternalScrollCaptureSession.ValidateDeferredStartComponent("{\"schemaVersion\":1,\"deferredStart\":true,\"captureFeaturePolicy\":true}",true);
+            check(true,"feature-aware helper capability is accepted");
+            foreach(string action in new[]{"pin","collect"}){
+                var output=new ExternalScrollResult{schemaVersion=1,sessionId=session.SessionId,status="export",exportId=action=="pin"?1:2,action=action,imagePath=Path.Combine(session.OutputDirectory,action=="pin"?"export-1.png":"export-2.png")};
+                int called=0;var reply=session.ProcessExport(output,r=>{called++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult();
+                check(reply.status=="error"&&called==0,"disabled long-capture "+action+" never invokes output destination");
+                check(Reject(()=>session.LoadImage(output)),"disabled long-capture "+action+" rejects before image filesystem/decode work");
+            }
+        }
+        using(var session=new ExternalScrollCaptureSession(@"C:\Nook",Region,Monitor,1,null,CaptureFeatures.Basic())){
+            bool blocked=false;int calls=0;
+            try{session.RunWithTransport(json=>{calls++;return Task.FromResult(Result(session.SessionId));}).GetAwaiter().GetResult();}catch(InvalidOperationException){blocked=true;}
+            check(blocked&&calls==0&&!session.IsStarted&&!Directory.Exists(session.OutputDirectory),"disabled scrolling never acquires transport, session files, or started state");
+        }
+    }
     static void Request(Action<bool,string> check){
         using(var first=Session())using(var next=Session()){
             var request=Json(first.SerializeRequest());var region=(Dictionary<string,object>)request["region"];var monitor=(Dictionary<string,object>)request["monitor"];var clip=(Dictionary<string,object>)request["annotationsClip"];
@@ -40,6 +63,7 @@ static class ExternalScrollCaptureTests {
             check(Guid.TryParseExact(first.SessionId,"N",out id)&&first.SessionId.Length==32&&first.SessionId!=next.SessionId,"every external request has a fresh 32-hex session identity");
             check(Convert.ToInt32(request["schemaVersion"])==1&&(string)request["sessionId"]==first.SessionId&&(string)request["outputDirectory"]==first.OutputDirectory&&Path.IsPathRooted(first.OutputDirectory),"request schema and absolute output directory belong to the current GUID");
             check(Convert.ToInt32(request["parentProcessId"])==System.Diagnostics.Process.GetCurrentProcess().Id,"helper receives exact parent identity to detect Nook exit without touching unrelated processes");
+            check((bool)request["deferredStart"],"real request requires helper readiness before hiding the existing screenshot overlay");
             check(Convert.ToInt32(region["x"])==-2410&&Convert.ToInt32(region["y"])==-250&&Convert.ToInt32(region["width"])==800&&Convert.ToInt32(region["height"])==600,"request preserves negative-origin physical region pixels without DIP conversion");
             check(Convert.ToInt32(monitor["x"])==-2560&&Convert.ToInt32(monitor["y"])==-400&&Convert.ToInt32(monitor["width"])==2560&&Convert.ToDouble(monitor["scaleFactor"])==1.5,"request preserves mixed-DPI monitor bounds and scale explicitly");
             check(Convert.ToInt32(clip["x"])==0&&Convert.ToInt32(clip["y"])==0&&Convert.ToInt32(clip["width"])==800&&Convert.ToInt32(clip["height"])==600,"annotations clip is relative to the first captured region");
@@ -89,7 +113,7 @@ static class ExternalScrollCaptureTests {
         check(line.Start==new Point(20,30)&&line.Width==4&&pen.Points[1]==new Point(35,30)&&ReferenceEquals(mosaic.Mosaic,pixels),"conversion does not mutate existing annotations, points or source mosaic");
         using(var session=new ExternalScrollCaptureSession(@"C:\Nook",Region,Monitor,1.5,result)){
             string json=session.SerializeRequest();check(json.Contains("\"initialAnnotations\"")&&json.Contains("mark-4.png")&&!json.Contains("PixelWidth")&&!json.Contains("\"Mosaic\""),"request includes editable annotations without serializing bitmap objects");
-            check(session.OwnedFileNames().SequenceEqual(new[]{"request.json","ready.json","cancel.request","result.json","result.png","mark-4.png"}),"cleanup names include only protocol files and this session's generated mosaic sidecar, never returned paths or wildcards");
+            check(session.OwnedFileNames().SequenceEqual(new[]{"request.json","prepared.json","start.request","start.request.tmp","ready.json","cancel.request","result.json","result.png","request.json.tmp","startup-timing.json","mark-4.png"}),"cleanup names include only protocol files and this session's generated mosaic sidecar, never returned paths or wildcards");
         }
         foreach(string kind in new[]{"rect","ellipse","arrow","line","pen","text","mosaic"}){
             var mark=new Annotation{Kind=kind,Start=new Point(20,20),End=new Point(50,50),Text="A",Mosaic=pixels,Points=new List<Point>{new Point(20,20),new Point(50,50)}};
@@ -114,6 +138,72 @@ static class ExternalScrollCaptureTests {
             check(!ExternalScrollCaptureSession.StartupExpired(false,true,20000),"early helper exit is handled as result/error instead of a spurious startup timeout");
             session.CleanupCompletedFiles();check(!Directory.Exists(session.OutputDirectory),"cleanup of an unstarted session cannot create a directory or touch unrelated temporary files");
         }
+    }
+    static string Prepared(ExternalScrollCaptureSession session){return new JavaScriptSerializer().Serialize(new{schemaVersion=1,sessionId=session.SessionId,prepared=true});}
+    static string Ready(ExternalScrollCaptureSession session){return new JavaScriptSerializer().Serialize(new{schemaVersion=1,sessionId=session.SessionId,ready=true});}
+    static void DeferredStart(Action<bool,string> check){
+        ExternalScrollCaptureSession.ValidateDeferredStartComponent("{\"schemaVersion\":1,\"deferredStart\":true}");
+        check(true,"matching helper capability is accepted without launching a process");
+        foreach(string manifest in new[]{"null","{",new string('x',65537),"{\"schemaVersion\":1}","{\"schemaVersion\":2,\"deferredStart\":true}","{\"schemaVersion\":1,\"deferredStart\":false}","{\"schemaVersion\":1,\"deferredStart\":\"true\"}"})
+            check(Reject(()=>ExternalScrollCaptureSession.ValidateDeferredStartComponent(manifest)),"old, corrupt or untyped helper capability is refused before process launch");
+        using(var session=Session())try{
+            CreateSandbox(session);int calls=0;var pending=new TaskCompletionSource<bool>();string start=Path.Combine(session.OutputDirectory,"start.request");
+            check(!File.Exists(start)&&Reject(()=>session.AcceptReady(Ready(session))),"ready cannot precede the WPF handoff or release the startup watchdog");
+            var release=session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;check(!File.Exists(start),"UI handoff begins before any capture-start file exists");return pending.Task;});
+            check(!release.IsCompleted&&calls==1&&!File.Exists(start),"slow UI handoff keeps helper blocked without a start request");
+            check(Reject(()=>session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;return Task.FromResult(true);}).GetAwaiter().GetResult())&&calls==1,"duplicate prepared while UI is pending cannot invoke a second hide");
+            pending.SetResult(true);release.GetAwaiter().GetResult();var data=Json(File.ReadAllText(start));
+            check((int)data["schemaVersion"]==1&&(string)data["sessionId"]==session.SessionId&&(bool)data["start"]&&!File.Exists(start+".tmp"),"successful UI handoff atomically publishes one session-bound start request");
+            session.AcceptReady(Ready(session));check(true,"full ready is accepted only after successful start publication");
+            check(Reject(()=>session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;return Task.FromResult(true);}).GetAwaiter().GetResult())&&calls==1,"repeated prepared after release cannot hide again or overwrite start");
+            session.Dispose();check(Cancelled(()=>session.AcceptReady(Ready(session))),"late ready cannot revive a disposed started capture");
+        }finally{RemoveSandbox(session);}
+        using(var session=Session())try{
+            CreateSandbox(session);int calls=0;
+            foreach(string bad in new[]{"null","{",new string('x',4097),Prepared(session).Replace(session.SessionId,Guid.NewGuid().ToString("N")),Prepared(session).Replace("\"schemaVersion\":1","\"schemaVersion\":2"),Prepared(session).Replace("true","false"),Prepared(session).Replace("true","\"true\""),Prepared(session).TrimEnd('}')+",\"unknown\":true}"})
+                check(Reject(()=>session.ReleasePreparedStartAsync(bad,()=>{calls++;return Task.FromResult(true);}).GetAwaiter().GetResult())&&calls==0&&!File.Exists(Path.Combine(session.OutputDirectory,"start.request")),"invalid prepared cannot hide source or create start request");
+            session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;return Task.FromResult(true);}).GetAwaiter().GetResult();
+            check(calls==1,"invalid messages do not consume the legitimate handoff");
+        }finally{RemoveSandbox(session);}
+        foreach(string mode in new[]{"cancel-before","cancel-pending","decline","throw","timeout"})using(var session=Session())try{
+            CreateSandbox(session);int calls=0;var pending=new TaskCompletionSource<bool>();string start=Path.Combine(session.OutputDirectory,"start.request");
+            if(mode=="cancel-before")session.Dispose();
+            var release=session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;if(mode=="decline")return Task.FromResult(false);if(mode=="throw")throw new IOException("generated handoff failure");return pending.Task;},mode=="timeout"?5:20000);
+            if(mode=="cancel-pending")session.Dispose();
+            bool failed=false;try{release.GetAwaiter().GetResult();}catch(OperationCanceledException){failed=mode.StartsWith("cancel")||mode=="decline";}catch(IOException){failed=mode=="throw";}catch(TimeoutException){failed=mode=="timeout";}
+            check(failed&&calls==(mode=="cancel-before"?0:1)&&!File.Exists(start)&&!session.CanReleaseStart,"cancelled, failed or timed out UI cannot start native sampling: "+mode);
+            pending.TrySetResult(true);
+            check(!File.Exists(start)&&!File.Exists(start+".tmp"),"late handoff completion cannot publish a stale start: "+mode);
+        }finally{RemoveSandbox(session);}
+        foreach(string name in new[]{"start.request","start.request.tmp"})using(var session=Session())try{
+            CreateSandbox(session);string path=Path.Combine(session.OutputDirectory,name);File.WriteAllText(path,"generated existing marker");int calls=0;
+            check(Reject(()=>session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;return Task.FromResult(true);}).GetAwaiter().GetResult())&&calls==0&&File.ReadAllText(path)=="generated existing marker","stale start marker is refused before hiding and never overwritten: "+name);
+        }finally{RemoveSandbox(session);}
+        foreach(string marker in new[]{"ready.json","result.json","cancel.request"})foreach(bool during in new[]{false,true})using(var session=Session())try{
+            CreateSandbox(session);string path=Path.Combine(session.OutputDirectory,marker);int calls=0;
+            if(!during)File.WriteAllText(path,"generated terminal marker");
+            bool refused=false;
+            try{session.ReleasePreparedStartAsync(Prepared(session),()=>{calls++;File.WriteAllText(path,"generated terminal marker");return Task.FromResult(true);}).GetAwaiter().GetResult();}
+            catch(InvalidDataException){refused=marker!="cancel.request";}catch(OperationCanceledException){refused=marker=="cancel.request";}
+            check(refused&&calls==(during?1:0)&&!File.Exists(Path.Combine(session.OutputDirectory,"start.request")),"ready, terminal or cancellation cannot race the UI handoff into native sampling: "+marker+" during="+during);
+        }finally{RemoveSandbox(session);}
+        using(var session=Session())try{
+            CreateSandbox(session);bool timedOut=false;
+            try{session.ReleasePreparedStartAsync(Prepared(session),()=>{System.Threading.Thread.Sleep(15);return Task.FromResult(true);},1).GetAwaiter().GetResult();}catch(TimeoutException){timedOut=true;}
+            check(timedOut&&!session.CanReleaseStart&&!File.Exists(Path.Combine(session.OutputDirectory,"start.request")),"already-completed but late UI callback cannot bypass the absolute startup deadline");
+        }finally{RemoveSandbox(session);}
+        using(var session=Session())try{
+            CreateSandbox(session);var pending=new TaskCompletionSource<string>();var run=session.RunWithTransport(request=>pending.Task);
+            check(session.ReadStartupCancellation()==null,"deadline recheck cannot invent cancellation from an absent result");
+            foreach(string json in new[]{"{",Result(Guid.NewGuid().ToString("N"),"cancelled"),Result(session.SessionId,"error"),Result(session.SessionId,"ok")}){
+                File.WriteAllText(Path.Combine(session.OutputDirectory,"result.json"),json);
+                check(session.ReadStartupCancellation()==null,"startup exception keeps its failure for malformed, stale or non-cancelled terminal data");
+            }
+            File.WriteAllText(Path.Combine(session.OutputDirectory,"result.json"),Result(session.SessionId,"cancelled"));
+            check(session.ReadStartupCancellation().status=="cancelled","a validated user cancellation racing the startup deadline wins before child teardown");
+            session.Dispose();check(session.ReadStartupCancellation()==null,"closed parent does not revive even a matching terminal cancellation");
+            pending.SetResult(Result(session.SessionId,"cancelled"));check(Cancelled(()=>run.GetAwaiter().GetResult()),"fake startup transport remains cancelled after local disposal");
+        }finally{RemoveSandbox(session);}
     }
     static void Lifetime(Action<bool,string> check){
         using(var current=Session()){
@@ -148,6 +238,111 @@ static class ExternalScrollCaptureTests {
         File.WriteAllText(Path.Combine(expected,"host-profile","Local State"),"generated test state");
         File.WriteAllText(Path.Combine(expected,"host-profile","Default","Cache","data_0"),"generated test cache");
         File.WriteAllText(Path.Combine(expected,"request.json"),"generated request");
+    }
+
+    static string TransactionJson(string session,int id,string status="export",string action="save",string path=null,int version=1){
+        return new JavaScriptSerializer().Serialize(new{schemaVersion=version,sessionId=session,exportId=id,status=status,action=action,imagePath=path??("export-"+id+".png")});
+    }
+    static ExternalScrollResult Export(ExternalScrollCaptureSession session,int id,string action="save"){
+        return ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,id,action:action),session.SessionId,session.OutputDirectory,id);
+    }
+    static bool Cancelled(Action action){try{action();return false;}catch(OperationCanceledException){return true;}}
+    static void Transactions(Action<bool,string> check){
+        using(var session=Session()){
+            int callbacks=0;var phases=new List<string>();
+            var run=session.RunWithTransport(async request=>{
+                check((bool)Json(request)["transactionalOutputs"],"request explicitly negotiates acknowledged output transactions");
+                var cancelled=await session.ProcessExport(Export(session,1),output=>{callbacks++;phases.Add(output.action);return Task.FromResult(ExternalScrollExportReply.Cancelled());});
+                check(cancelled.status=="cancelled"&&!session.IsDisposed,"cancelled Save is a nonterminal reply and keeps the capture session editable");
+                var error=await session.ProcessExport(Export(session,2,"collect"),output=>{callbacks++;phases.Add(output.action);return Task.FromResult(ExternalScrollExportReply.Failure("generated collection failure"));});
+                check(error.status=="error"&&error.message=="generated collection failure"&&!session.IsDisposed,"failed output is returned without completing or discarding the session");
+                var success=await session.ProcessExport(Export(session,3,"copy"),output=>{callbacks++;phases.Add(output.action);return Task.FromResult(ExternalScrollExportReply.Success());});
+                check(success.status=="ok"&&!session.IsDisposed,"successful retry acknowledges exactly the third output, not a failed earlier attempt");
+                return TransactionJson(session.SessionId,3,"ok","copy");
+            });
+            var result=run.GetAwaiter().GetResult();
+            check(callbacks==3&&phases.SequenceEqual(new[]{"save","collect","copy"})&&result.status=="ok"&&result.exportId==3&&result.action=="copy","cancel then failure then success reaches one matching terminal result in the same fake helper");
+            var expected=new List<string>{"request.json","prepared.json","start.request","start.request.tmp","ready.json","cancel.request","result.json","result.png","request.json.tmp","startup-timing.json"};
+            for(int id=1;id<=3;id++){expected.Add("export-"+id+".json");expected.Add("export-"+id+".png");expected.Add("export-"+id+".reply.json");}
+            check(session.OwnedFileNames().SequenceEqual(expected),"transaction cleanup allowlist contains only fixed protocol names for processed ids");
+            check(session.OwnedFileNames().All(name=>Path.GetFileName(name)==name&&!name.Contains("*")&&!name.Contains("..")),"owned transaction names contain no directories, traversal or wildcards");
+            check(!Directory.Exists(session.OutputDirectory),"all transaction retries and confirmation use transport only and create no session directory");
+        }
+        using(var session=Session()){
+            int calls=0;var pending=new TaskCompletionSource<ExternalScrollExportReply>();var first=Export(session,1);
+            var running=session.ProcessExport(first,output=>{calls++;return pending.Task;});
+            check(!running.IsCompleted&&calls==1,"first output can remain asynchronously pending without blocking test thread or opening a dialog");
+            check(Reject(()=>session.ProcessExport(first,output=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult())&&calls==1,"duplicate in-flight output id is rejected before another output callback");
+            pending.SetResult(ExternalScrollExportReply.Cancelled());running.GetAwaiter().GetResult();
+            check(Reject(()=>session.ProcessExport(first,output=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult())&&calls==1,"old cancelled output id cannot be replayed");
+            check(Reject(()=>session.ProcessExport(Export(session,3),output=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult())&&calls==1,"skipped output sequence cannot consume the current retry");
+            var next=session.ProcessExport(Export(session,2),output=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult();
+            check(next.status=="ok"&&calls==2,"rejected duplicate and skipped ids do not consume the next valid sequence");
+            check(Reject(()=>session.ProcessExport(Export(session,3),output=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult())&&calls==2,"no later output callback runs after a confirmed successful output");
+        }
+        using(var session=Session()){
+            foreach(int expected in new[]{0,-1,1001})check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,1),session.SessionId,session.OutputDirectory,expected)),"export parser rejects an unsafe expected sequence: "+expected);
+            foreach(int received in new[]{0,-1,2,1001})check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,received),session.SessionId,session.OutputDirectory,1)),"export parser rejects mismatched or unsafe received sequence: "+received);
+            foreach(string path in new[]{"../export-1.png","..\\export-1.png","folder/export-1.png",@"C:\export-1.png","file:///C:/export-1.png","export-1.png:stream","EXPORT-1.PNG","%2e%2e/export-1.png","export-2.png","result.png",""})
+                check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,1,path:path),session.SessionId,session.OutputDirectory,1)),"export parser resolves only its exact current image filename: "+path);
+            foreach(string status in new[]{"ok","cancelled","error","unknown"})check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,1,status),session.SessionId,session.OutputDirectory,1)),"terminal status cannot masquerade as an output request: "+status);
+            check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(Guid.NewGuid().ToString("N"),1),session.SessionId,session.OutputDirectory,1)),"another session's export is rejected before output");
+            check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,1,version:2),session.SessionId,session.OutputDirectory,1)),"unknown export schema is rejected before output");
+            check(Reject(()=>ExternalScrollCaptureSession.ParseExport(TransactionJson(session.SessionId,1,action:"open-program"),session.SessionId,session.OutputDirectory,1)),"export action cannot request arbitrary execution");
+        }
+        // The direct transport seam must enforce the same boundary as parsed
+        // messages. No malformed object may consume a valid sequence or reach
+        // a clipboard/file/collection callback even if a future caller forgets
+        // to call ParseExport first.
+        foreach(string bad in new[]{"schema","session","status","action","path","relative-path","zero","skip","too-large","null"})using(var session=Session()){
+            var output=Export(session,1);int calls=0;
+            switch(bad){case "schema":output.schemaVersion=2;break;case "session":output.sessionId=Guid.NewGuid().ToString("N");break;case "status":output.status="ok";break;case "action":output.action="open-program";break;case "path":output.imagePath=Path.Combine(Path.GetDirectoryName(session.OutputDirectory),"export-1.png");break;case "relative-path":output.imagePath="export-1.png";break;case "zero":output.exportId=0;break;case "skip":output.exportId=2;break;case "too-large":output.exportId=1001;break;case "null":output=null;break;}
+            check(Reject(()=>session.ProcessExport(output,item=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult())&&calls==0,"direct transaction boundary rejects malformed "+bad+" before output side effects");
+            var reply=session.ProcessExport(Export(session,1),item=>{calls++;return Task.FromResult(ExternalScrollExportReply.Cancelled());}).GetAwaiter().GetResult();
+            check(reply.status=="cancelled"&&calls==1,"rejected "+bad+" does not consume id 1");
+        }
+        foreach(string badReply in new[]{"null","unknown","sync-throw","async-failure","no-handler"})using(var session=Session()){
+            Func<ExternalScrollResult,Task<ExternalScrollExportReply>> handler=output=>{
+                if(badReply=="sync-throw")throw new IOException("generated output failure");
+                if(badReply=="async-failure"){var pending=new TaskCompletionSource<ExternalScrollExportReply>();pending.SetException(new IOException("generated async failure"));return pending.Task;}
+                return Task.FromResult(badReply=="null"?null:new ExternalScrollExportReply{status="unknown"});
+            };
+            if(badReply=="no-handler")handler=null;
+            var reply=session.ProcessExport(Export(session,1),handler).GetAwaiter().GetResult();
+            check(reply.status=="error"&&!string.IsNullOrWhiteSpace(reply.message)&&!session.IsDisposed,"invalid or failed output normalizes to a recoverable error: "+badReply);
+            var retry=session.ProcessExport(Export(session,2),output=>Task.FromResult(ExternalScrollExportReply.Success())).GetAwaiter().GetResult();
+            check(retry.status=="ok","failed callback permits the next valid retry: "+badReply);
+        }
+        foreach(string action in new[]{"copy","save","pin","collect"})using(var session=Session()){
+            var accepted=session.RunWithTransport(async request=>{await session.ProcessExport(Export(session,1,action),output=>Task.FromResult(ExternalScrollExportReply.Success()));return TransactionJson(session.SessionId,1,"ok",action);}).GetAwaiter().GetResult();
+            check(accepted.status=="ok"&&accepted.exportId==1&&accepted.action==action&&accepted.imagePath==Path.Combine(session.OutputDirectory,"export-1.png"),"terminal success matches the acknowledged transaction id and action: "+action);
+        }
+        foreach(string mismatch in new[]{"unconfirmed","cancelled","failed","wrong-id","wrong-action","legacy-after-success","legacy-after-cancel"})using(var session=Session()){
+            bool refused=Reject(()=>session.RunWithTransport(async request=>{
+                if(mismatch!="unconfirmed")await session.ProcessExport(Export(session,1,"copy"),output=>Task.FromResult(mismatch=="cancelled"||mismatch=="legacy-after-cancel"?ExternalScrollExportReply.Cancelled():mismatch=="failed"?ExternalScrollExportReply.Failure("generated failure"):ExternalScrollExportReply.Success()));
+                if(mismatch.StartsWith("legacy"))return Result(session.SessionId,"ok","save");
+                return TransactionJson(session.SessionId,mismatch=="wrong-id"?2:1,"ok",mismatch=="wrong-action"?"save":"copy");
+            }).GetAwaiter().GetResult());
+            check(refused,"terminal success requires an exact successful transaction acknowledgement: "+mismatch);
+        }
+        foreach(string replyStatus in new[]{"ok","cancelled","error"})using(var session=Session()){
+            var pending=new TaskCompletionSource<ExternalScrollExportReply>();
+            var output=session.ProcessExport(Export(session,1),item=>pending.Task);session.Dispose();
+            pending.SetResult(new ExternalScrollExportReply{status=replyStatus,message="generated late result"});
+            check(Cancelled(()=>output.GetAwaiter().GetResult())&&session.IsDisposed&&!Directory.Exists(session.OutputDirectory),"dispose rejects late output acknowledgement without files or terminal success: "+replyStatus);
+            int calls=0;check(Cancelled(()=>session.ProcessExport(Export(session,2),item=>{calls++;return Task.FromResult(ExternalScrollExportReply.Success());}).GetAwaiter().GetResult())&&calls==0,"disposed transaction cannot invoke another output callback after "+replyStatus);
+        }
+        using(var session=Session()){
+            var terminal=new TaskCompletionSource<string>();var running=session.RunWithTransport(request=>terminal.Task);
+            session.ProcessExport(Export(session,1),item=>Task.FromResult(ExternalScrollExportReply.Success())).GetAwaiter().GetResult();
+            session.Dispose();terminal.SetResult(TransactionJson(session.SessionId,1,"ok"));
+            check(Cancelled(()=>running.GetAwaiter().GetResult()),"late matching terminal response cannot revive a disposed acknowledged session");
+        }
+        foreach(string action in new[]{"copy","save","pin","collect"})using(var legacy=Session()){
+            var parsed=legacy.RunWithTransport(request=>Task.FromResult(Result(legacy.SessionId,"ok",action))).GetAwaiter().GetResult();
+            check(parsed.exportId==0&&parsed.action==action&&parsed.imagePath==Path.Combine(legacy.OutputDirectory,"result.png"),"legacy helper remains compatible before any transaction was attempted: "+action);
+            check(legacy.OwnedFileNames().SequenceEqual(new[]{"request.json","prepared.json","start.request","start.request.tmp","ready.json","cancel.request","result.json","result.png","request.json.tmp","startup-timing.json"}),"legacy cleanup allowlist has no fabricated transaction names: "+action);
+        }
     }
     static void RemoveSandbox(ExternalScrollCaptureSession session){
         // Test-only exact generated GUID root, validated again before removing

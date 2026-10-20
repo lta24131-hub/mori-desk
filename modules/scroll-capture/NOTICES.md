@@ -48,6 +48,11 @@ requires its notices even when it is not an external runtime package.
 | `node-screenshots` | 0.2.8 | Apache-2.0, including the selected Windows native package |
 | `uiohook-napi` | 1.5.4 | MIT wrapper; bundled `libuiohook` is LGPL-3.0 and retains its own copyright/source notices |
 | `node-gyp-build` | 4.8.1 | MIT; locked runtime native-loader dependency of `uiohook-napi` |
+| Fluent UI System Icons, Checkmark 24 Regular | Retrieved 2026-10-19 | MIT, Copyright (c) 2020 Microsoft Corporation; original geometry retained, rendered as an alpha mask |
+
+The Checkmark asset comes from https://github.com/microsoft/fluentui-system-icons.
+Its exact source URL and MIT license are in `licenses/MicrosoftFluentSystemIcons/`
+and in the corresponding source's `nook-adaptation/host/assets/fluent/`.
 
 Individual JavaScript license copies are in the packaged helper's `licenses/`
 directory. Native package licenses and source/build material are also retained

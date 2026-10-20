@@ -33,8 +33,9 @@ function harness(options = {}) {
     const calls = [];
     const errors = [];
     const context = vm.createContext({
-        console,
+        console, require,
         nookDisposed: false, nookFinishing: false, longRunning: true, longBusy: false,
+        longCapped: false, nookMatchUnresolved: false, nookPanelDrag: undefined, finalRect: options.rect ?? [0, 0, 4, 4],
         Date: { now: () => now },
         setTimeout: (callback, delay) => {
             const timer = ++id;
@@ -67,7 +68,8 @@ function harness(options = {}) {
         now = end;
         await flush();
     }
-    return { context, timers, calls, errors, advance, flush, get now() { return now; } };
+    return { context, timers, calls, errors, advance, flush,
+        read: expression => vm.runInContext(expression, context), get now() { return now; } };
 }
 
 test("accepted scrolling produces a prompt leading frame and a settled trailing frame", async () => {
@@ -193,4 +195,210 @@ test("rejected capture reports once but stale rejection after cleanup cannot fai
     assert.equal(stale.errors.length, 0);
     assert.deepEqual(stale.calls, [0]);
     assert.equal(stale.timers.size, 0);
+});
+
+function image(width = 4, height = 4, value = 0) {
+    return { width, height, data: new Uint8ClampedArray(width * height * 4).fill(value) };
+}
+
+test("fallback observes scrollbar or middle-button scrolling even without pointer-filtered native events", async () => {
+    const h = harness({ canCapture: () => false });
+    h.context.nookStartFallbackFrames();
+    h.context.nookStartFallbackFrames();
+    assert.equal(h.timers.size, 1, "repeated start must not multiply polling loops");
+    await h.advance(1600);
+    assert.deepEqual(h.calls, [500, 1000, 1500]);
+    assert.equal(h.timers.size, 1);
+    h.context.nookClearScheduledFrame();
+    await h.advance(1000);
+    assert.deepEqual(h.calls, [500, 1000, 1500]);
+    assert.equal(h.timers.size, 0);
+});
+
+test("fallback does not stack behind busy work, run during panel dragging, or compete with recent input", async () => {
+    const frame = deferred();
+    const h = harness({ capture: () => frame.promise });
+    h.context.nookStartFallbackFrames();
+    h.context.nookPanelDrag = {};
+    await h.advance(500);
+    assert.deepEqual(h.calls, []);
+    h.context.nookPanelDrag = undefined;
+    h.context.longBusy = true;
+    await h.advance(500);
+    assert.deepEqual(h.calls, []);
+    h.context.longBusy = false;
+    await h.advance(200);
+    h.context.nookScheduleFrame({ inside: true });
+    await h.advance(1800);
+    assert.deepEqual(h.calls, [1200]);
+    assert.equal(h.read("nookScheduledFramePending"), false, "fallback must not stack another pending frame while capture runs");
+    frame.resolve();
+    await h.flush();
+    await h.advance(0);
+    assert.deepEqual(h.calls, [1200, 3000], "only the genuine event tail survives busy work");
+    h.context.nookClearScheduledFrame();
+});
+
+test("fallback timer terminates on finish, disposal and inactive sessions", async () => {
+    for (const [flag, value] of [["nookFinishing", true], ["nookDisposed", true], ["longRunning", false]]) {
+        const h = harness();
+        h.context.nookStartFallbackFrames();
+        h.context[flag] = value;
+        await h.advance(1000);
+        assert.deepEqual(h.calls, [], flag);
+        assert.equal(h.timers.size, 0, flag);
+    }
+});
+
+test("fingerprints compare every selected pixel, ignoring pixels outside the crop without retaining an image", async () => {
+    const h = harness({ rect: [1, 1, 2, 2] });
+    const frame = image();
+    assert.equal(h.context.nookObserveFrame(frame), true);
+    await h.advance(100);
+    assert.equal(h.context.nookObserveFrame(image()), false);
+    assert.equal(h.read("nookObservedFrameAt"), 100);
+    assert.equal(h.read("nookChangedFrameAt"), 0);
+    frame.data[0] = 255;
+    assert.equal(h.context.nookObserveFrame(frame), false, "unrelated page/sidebar pixels must not prolong finishing");
+    frame.data[(2 * 4 + 2) * 4 + 3] = 1;
+    assert.equal(h.context.nookObserveFrame(frame), true, "even one tiny in-crop pixel or alpha change must count");
+    assert.equal(h.read("nookChangedFrameAt"), 100);
+    assert.match(h.read("nookObservedFrameHash"), /^[a-f0-9]{64}$/);
+    h.context.finalRect = [0, 0, 4, 4];
+    assert.equal(h.context.nookObserveFrame(frame), true, "crop identity participates in the fingerprint");
+    assert.equal(h.context.nookObserveFrame(frame), false, "contiguous full-width crop follows the same deduplication rule");
+});
+
+test("invalid or changed physical capture dimensions fail before matching", () => {
+    const h = harness();
+    for (const rect of [[-1, 0, 4, 4], [0, 0, 5, 4], [0, 0, 0, 4], [0.5, 0, 3, 4]]) {
+        h.context.finalRect = rect;
+        assert.throws(() => h.context.nookObserveFrame(image()), /尺寸改变/);
+    }
+    h.context.finalRect = [0, 0, 4, 4];
+    assert.throws(() => h.context.nookObserveFrame({ width: 4, height: 4, data: new Uint8ClampedArray(2) }), /尺寸改变/);
+});
+
+test("finish waits through delayed inertia and includes a truly stable final sampled screen", async () => {
+    const values = [];
+    const h = harness({ capture: (context, now) => {
+        const value = now < 450 ? 1 : now < 850 ? 2 : 3;
+        values.push(value);
+        context.nookObserveFrame(image(4, 4, value));
+        return Promise.resolve();
+    } });
+    h.context.nookFinishing = true;
+    let result;
+    const pending = h.context.nookFinishScrollFrames().then(value => { result = value; });
+    await h.advance(900);
+    assert.equal(result, undefined, "an inertia change at the end must postpone finish");
+    await h.advance(800);
+    await pending;
+    assert.equal(result, true);
+    assert.deepEqual([...new Set(values)], [1, 2, 3]);
+    assert.ok(h.read("nookObservedFrameAt - nookChangedFrameAt") >= 400);
+    assert.equal(h.timers.size, 0);
+});
+
+test("slow matching does not count as a second stable observation", async () => {
+    const first = deferred();
+    const h = harness({ capture: (context) => {
+        context.nookObserveFrame(image(4, 4, h.calls.length));
+        return h.calls.length === 1 ? first.promise : Promise.resolve();
+    } });
+    h.context.nookFinishing = true;
+    let result;
+    const pending = h.context.nookFinishScrollFrames().then(value => { result = value; });
+    await h.advance(1000);
+    assert.equal(result, undefined);
+    first.resolve();
+    await h.flush();
+    await h.advance(25);
+    assert.equal(result, undefined, "matcher latency cannot stand in for unchanged sampled pixels");
+    assert.deepEqual(h.calls, [0]);
+    await h.advance(200);
+    assert.ok(h.calls.length >= 2, "a fresh physical sample is mandatory after slow matching");
+    h.context.nookDisposed = true;
+    await h.advance(200);
+    await pending;
+    assert.equal(result, false);
+});
+
+test("finish is bounded for continuously changing pages and leaves no hidden timer", async () => {
+    const h = harness({ capture: context => {
+        context.nookObserveFrame(image(4, 4, h.calls.length));
+        return Promise.resolve();
+    } });
+    h.context.nookFinishing = true;
+    const pending = h.context.nookFinishScrollFrames();
+    await h.advance(6000);
+    assert.equal(await pending, false);
+    assert.ok(h.calls.length > 10 && h.calls.length < 40);
+    assert.equal(h.timers.size, 0);
+});
+
+test("unchanged rejected overlap cannot finish as a silently truncated image", async () => {
+    const h = harness({ capture: context => {
+        context.nookObserveFrame(image(4, 4, 7));
+        context.nookMatchUnresolved = true;
+        return Promise.resolve();
+    } });
+    h.context.nookFinishing = true;
+    const pending = h.context.nookFinishScrollFrames();
+    await h.advance(6000);
+    assert.equal(await pending, false);
+    assert.equal(h.timers.size, 0);
+    assert.equal(h.read("nookChangedFrameAt"), 0, "identical pixels alone are not proof of successful stitching");
+});
+
+test("a rejected overlap may recover and finish after a real stable accepted frame", async () => {
+    const h = harness({ capture: (context, now) => {
+        context.nookObserveFrame(image(4, 4, now < 800 ? 7 : 8));
+        context.nookMatchUnresolved = now < 800;
+        return Promise.resolve();
+    } });
+    h.context.nookFinishing = true;
+    let result;
+    const pending = h.context.nookFinishScrollFrames().then(value => { result = value; });
+    await h.advance(800);
+    assert.equal(result, undefined);
+    await h.advance(800);
+    await pending;
+    assert.equal(result, true);
+    assert.equal(h.timers.size, 0);
+});
+
+test("finish remains cancellable and bounded while a native request is stuck", async () => {
+    for (const cancel of [false, true]) {
+        const frame = deferred();
+        const h = harness({ capture: () => frame.promise });
+        h.context.nookFinishing = true;
+        const pending = h.context.nookFinishScrollFrames();
+        await h.advance(cancel ? 200 : 6000);
+        if (cancel) { h.context.nookDisposed = true; await h.advance(25); }
+        assert.equal(await pending, false);
+        assert.deepEqual(h.calls, [0], "stuck native work must never be retried concurrently");
+        assert.equal(h.timers.size, 0);
+        frame.reject(new Error("late disposed frame"));
+        await h.flush();
+        assert.equal(h.errors.length, 0, "late rejected completion stays consumed");
+    }
+});
+
+test("finish waits for prior busy work and capped partial images require no new frame", async () => {
+    const h = harness({ capture: context => {
+        context.nookObserveFrame(image());
+        return Promise.resolve();
+    } });
+    h.context.nookFinishing = true;
+    h.context.longBusy = true;
+    const pending = h.context.nookFinishScrollFrames();
+    await h.advance(300);
+    assert.deepEqual(h.calls, []);
+    h.context.longBusy = false;
+    h.context.longCapped = true;
+    await h.advance(25);
+    assert.equal(await pending, true);
+    assert.deepEqual(h.calls, []);
+    assert.equal(h.timers.size, 0);
 });

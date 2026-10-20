@@ -15,13 +15,13 @@ namespace QingJie {
         }
         Cursor ShapePointerCursor(Point point){
             if(shapeDrag!=null)return shapeHandle<0?Cursors.SizeAll:CaptureAnnotationGeometry.Linear(shapeDrag)?Cursors.Cross:ResizeCursor(shapeHandle);
-            if(tool!="select"||HitSelectionHandle(point)>=0)return null;
+            if(HitSelectionHandle(point)>=0)return null;
             var selected=surface.SelectedAnnotation;int handle=CaptureAnnotationGeometry.HandleAt(selected,point);
             if(handle>=0)return CaptureAnnotationGeometry.Linear(selected)?Cursors.Cross:ResizeCursor(handle);
             var hit=TopAnnotation(point);return hit!=null&&hit.Kind!="text"?Cursors.SizeAll:null;
         }
         bool BeginShapePointer(Point point){
-            if(tool!="select"||HitSelectionHandle(point)>=0)return false;
+            if(HitSelectionHandle(point)>=0)return false;
             int handle=CaptureAnnotationGeometry.HandleAt(surface.SelectedAnnotation,point);
             var mark=handle>=0?surface.SelectedAnnotation:TopAnnotation(point);if(mark==null||mark.Kind=="text")return false;
             SelectShape(mark);shapeDrag=mark;shapeBefore=CopyAnnotation(mark);shapeHandle=handle;dragging=true;
@@ -45,11 +45,14 @@ namespace QingJie {
             RememberAnnotation(mark,CopyAnnotation(mark),null,surface.Marks.IndexOf(mark));surface.Marks.Remove(mark);SelectShape(null);last=null;
         }
         void ChangeStroke(double difference){
+            if(!CanEditCapture)return;
             if(textEditor!=null){textEditor.FontSize=Geometry.Clamp(textEditor.FontSize+difference*5,16,250);UpdateWidth();return;}
             if(surface.SelectedText!=null){ChangeSelectedTextSize(difference*5);return;}
-            var mark=surface.SelectedAnnotation??last;
+            var mark=surface.SelectedAnnotation;
+            if(mark!=null&&mark.Kind=="mosaic"||mark==null&&tool=="mosaic")return;
+            if(mark==null&&tool=="text"){AppState.Settings.TextSize=Geometry.Clamp(AppState.Settings.TextSize+difference*5,16,250);AppState.Settings.Save();UpdateWidth();return;}
             double value=Geometry.Clamp((mark!=null?mark.Width:AppState.Settings.Stroke)+difference,1,25);
-            AppState.Settings.Stroke=value;AppState.Settings.Save();
+            if(mark==null){AppState.Settings.Stroke=value;AppState.Settings.Save();}
             if(surface.Draft!=null)surface.Draft.Width=value;
             else if(mark!=null){var before=CopyAnnotation(mark);mark.Width=value;RecordAnnotationEdit(mark,before);}
             UpdateWidth();surface.InvalidateVisual();

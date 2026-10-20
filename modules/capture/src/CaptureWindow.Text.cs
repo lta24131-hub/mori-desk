@@ -21,9 +21,9 @@ namespace QingJie {
         int textResize=-1;
         Rect oldTextBounds,oldTextFrame;
 
-        static Annotation CopyAnnotation(Annotation a){return new Annotation {Kind=a.Kind,Start=a.Start,End=a.End,Color=a.Color,Width=a.Width,Text=a.Text,Points=new List<Point>(a.Points),Mosaic=a.Mosaic};}
-        static void RestoreAnnotation(Annotation a,Annotation value){a.Kind=value.Kind;a.Start=value.Start;a.End=value.End;a.Color=value.Color;a.Width=value.Width;a.Text=value.Text;a.Points=new List<Point>(value.Points);a.Mosaic=value.Mosaic;}
-        static bool SameAnnotation(Annotation a,Annotation b){return a.Kind==b.Kind&&a.Start==b.Start&&a.End==b.End&&a.Color==b.Color&&a.Width==b.Width&&a.Text==b.Text&&a.Points.SequenceEqual(b.Points);}
+        static Annotation CopyAnnotation(Annotation a){return new Annotation {Kind=a.Kind,Start=a.Start,End=a.End,Color=a.Color,Width=a.Width,Text=a.Text,TextWrapWidth=a.TextWrapWidth,Points=new List<Point>(a.Points),Mosaic=a.Mosaic};}
+        static void RestoreAnnotation(Annotation a,Annotation value){a.Kind=value.Kind;a.Start=value.Start;a.End=value.End;a.Color=value.Color;a.Width=value.Width;a.Text=value.Text;a.TextWrapWidth=value.TextWrapWidth;a.Points=new List<Point>(value.Points);a.Mosaic=value.Mosaic;}
+        static bool SameAnnotation(Annotation a,Annotation b){return a.Kind==b.Kind&&a.Start==b.Start&&a.End==b.End&&a.Color==b.Color&&a.Width==b.Width&&a.Text==b.Text&&a.TextWrapWidth==b.TextWrapWidth&&a.Points.SequenceEqual(b.Points);}
         void RememberAnnotation(Annotation mark,Annotation before,Annotation after,int index){
             RememberChange(new AnnotationChange {Mark=mark,Before=before,After=after,Index=index});
         }
@@ -82,17 +82,15 @@ namespace QingJie {
         }
         Cursor TextPointerCursor(Point point){
             if(textDrag!=null)return textResize>=0?ResizeCursor(textResize):Cursors.SizeAll;
-            if(tool!="select"&&tool!="text")return null;
             // The screenshot's existing resize targets keep precedence at its edges.
             if(HitSelectionHandle(point)>=0)return null;
-            var top=tool=="select"?TopAnnotation(point):null;if(top!=null&&top.Kind!="text")return null;
+            var top=TopAnnotation(point);if(top!=null&&top.Kind!="text")return null;
             int handle=HitTextHandle(point);if(handle>=0)return ResizeCursor(handle);
             return HitText(point)!=null?Cursors.SizeAll:null;
         }
         bool BeginTextPointer(Point point,int clickCount){
-            if(tool!="select"&&tool!="text")return false;
             if(HitSelectionHandle(point)>=0)return false;
-            var top=tool=="select"?TopAnnotation(point):null;if(top!=null&&top.Kind!="text")return false;
+            var top=TopAnnotation(point);if(top!=null&&top.Kind!="text")return false;
             var body=HitText(point);int handle=clickCount>=2&&body!=null?-1:HitTextHandle(point);var mark=handle>=0?surface.SelectedText:body;if(mark==null)return false;
             SelectText(mark);
             if(clickCount>=2&&handle<0){StartText(mark.Start,mark);return true;}
@@ -109,21 +107,49 @@ namespace QingJie {
             // at an earlier position instead of following the actual pointer.
             if(textDrag==null)return;
             if(textResize<0){textDrag.Start=ClampTextOrigin(textDragBefore.Start+(point-down),oldTextBounds);return;}
+            if(point==down){RestoreAnnotation(textDrag,textDragBefore);UpdateWidth();return;}
             bool left=textResize==0||textResize==6||textResize==7,right=textResize==2||textResize==3||textResize==4;
             bool top=textResize==0||textResize==1||textResize==2,bottom=textResize==4||textResize==5||textResize==6;
-            // Use pointer displacement, not the padded frame's absolute coordinate:
-            // merely pressing a tiny label's handle must never jump its font size.
-            double horizontal=1+(left?down.X-point.X:point.X-down.X)/oldTextFrame.Width;
-            double vertical=1+(top?down.Y-point.Y:point.Y-down.Y)/oldTextFrame.Height;
-            double ratio=left||right?horizontal:vertical;if((left||right)&&(top||bottom))ratio=Math.Max(horizontal,vertical);
+            // Project a corner gesture onto its original diagonal instead of
+            // taking the larger axis ratio. A long one-line caption must not
+            // double in size because the pointer moved one line-height down.
+            // Edge handles use one axis and keep the perpendicular center fixed.
+            var axis=new Vector(left?-oldTextFrame.Width:right?oldTextFrame.Width:0,top?-oldTextFrame.Height:bottom?oldTextFrame.Height:0);
+            double ratio=1+Vector.Multiply(point-down,axis)/axis.LengthSquared;
+            if(Math.Abs(ratio-1)<.000000000001){RestoreAnnotation(textDrag,textDragBefore);UpdateWidth();return;}
             double size=textDragBefore.TextFontSize;
-            double largest=Math.Min(250/size,Math.Min(surface.Selection.Width/oldTextBounds.Width,surface.Selection.Height/oldTextBounds.Height));
-            ratio=Geometry.Clamp(ratio,16/size,Math.Max(16/size,largest));textDrag.Width=size*ratio/5;
+            var area=surface.Selection;double centerX=oldTextBounds.Left+oldTextBounds.Width/2,centerY=oldTextBounds.Top+oldTextBounds.Height/2;
+            double roomX=left?oldTextBounds.Right-area.Left:right?area.Right-oldTextBounds.Left:2*Math.Min(centerX-area.Left,area.Right-centerX);
+            double roomY=top?oldTextBounds.Bottom-area.Top:bottom?area.Bottom-oldTextBounds.Top:2*Math.Min(centerY-area.Top,area.Bottom-centerY);
+            double smallest=16/size,largest=Math.Min(250/size,Math.Min(roomX/oldTextBounds.Width,roomY/oldTextBounds.Height));
+            // Never slide the whole caption away from the fixed opposite corner
+            // to make it fit. Stop scaling at the remaining space instead.
+            if(largest<smallest){RestoreAnnotation(textDrag,textDragBefore);UpdateWidth();return;}
+            ratio=Geometry.Clamp(ratio,smallest,largest);
+            var resized=ApplyTextResize(ratio,left,right,top,bottom);
+            if(!TextResizeFits(resized,area)){
+                // FormattedText rounds glyph metrics and wrapped line breaks.
+                // Check measured geometry, not only an ideal proportional size.
+                // The original anchor stays fixed throughout this correction.
+                double low=smallest,high=ratio;
+                if(!TextResizeFits(ApplyTextResize(low,left,right,top,bottom),area)){RestoreAnnotation(textDrag,textDragBefore);UpdateWidth();return;}
+                for(int i=0;i<20;i++){double middle=(low+high)/2;if(TextResizeFits(ApplyTextResize(middle,left,right,top,bottom),area))low=middle;else high=middle;}
+                ApplyTextResize(low,left,right,top,bottom);
+            }
+            UpdateWidth();
+        }
+        Rect ApplyTextResize(double ratio,bool left,bool right,bool top,bool bottom){
+            textDrag.Width=textDragBefore.TextFontSize*ratio/5;
+            // Scale font and wrap width together. Clamping the wrap independently
+            // would unexpectedly add lines and break the pointer's aspect ratio.
+            textDrag.TextWrapWidth=textDragBefore.TextWrapWidth>0?textDragBefore.TextWrapWidth*ratio:textDragBefore.TextWrapWidth;
             var measured=textDrag.Bounds;
             double x=left?oldTextBounds.Right-measured.Width:right?oldTextBounds.Left:oldTextBounds.Left+(oldTextBounds.Width-measured.Width)/2;
             double y=top?oldTextBounds.Bottom-measured.Height:bottom?oldTextBounds.Top:oldTextBounds.Top+(oldTextBounds.Height-measured.Height)/2;
-            textDrag.Start=ClampTextOrigin(new Point(x,y),measured);UpdateWidth();
+            textDrag.Start=new Point(x,y);
+            return new Rect(textDrag.Start,measured.Size);
         }
+        static bool TextResizeFits(Rect bounds,Rect area){return bounds.Left>=area.Left-.001&&bounds.Top>=area.Top-.001&&bounds.Right<=area.Right+.001&&bounds.Bottom<=area.Bottom+.001;}
         void FinishTextGesture(){
             if(textDrag==null)return;
             var mark=textDrag;var before=textDragBefore;textDrag=null;textDragBefore=null;textResize=-1;dragging=false;surface.ReleaseMouseCapture();
@@ -133,10 +159,26 @@ namespace QingJie {
         void StartText(Point point,Annotation mark){
             editingText=mark;textPosition=point;textEditorColor=mark!=null?mark.Color:AppState.Settings.Color;
             surface.EditingText=mark;SelectText(mark);
-            double available=Math.Max(1,surface.Selection.Right-point.X);
-            textEditor=new TextBox {Name="CaptureTextEditor",Text=mark!=null?mark.Text:"",MinWidth=Math.Min(140,available),MaxWidth=available,FontFamily=new System.Windows.Media.FontFamily("Microsoft YaHei UI"),FontSize=mark!=null?mark.TextFontSize:Math.Max(16,AppState.Settings.Stroke*5),Foreground=Ui.Brush(textEditorColor),Padding=new Thickness(0),BorderThickness=new Thickness(1),AcceptsReturn=true,TextWrapping=TextWrapping.NoWrap};
+            double available=Math.Max(1,surface.Selection.Right-point.X),wrap=mark!=null&&mark.TextWrapWidth>0?Math.Min(mark.TextWrapWidth,available):available;
+            textEditor=new TextBox {Name="CaptureTextEditor",Text=mark!=null?mark.Text:"",Width=wrap+6,MaxHeight=Math.Max(28,surface.Selection.Height),FontFamily=new System.Windows.Media.FontFamily("Microsoft YaHei UI"),FontSize=mark!=null?mark.TextFontSize:AppState.Settings.TextSize,Foreground=Ui.Brush(textEditorColor),Padding=new Thickness(0),BorderThickness=new Thickness(1),AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,VerticalScrollBarVisibility=ScrollBarVisibility.Hidden};
+            // A scrollbar must not steal wrapping width from the editor while
+            // its committed/exported caption retains the full width.
+            textEditor.Language=System.Windows.Markup.XmlLanguage.GetLanguage(System.Globalization.CultureInfo.CurrentUICulture.IetfLanguageTag);
+            textEditor.Tag=wrap;
+            textEditor.TextChanged+=(s,e)=>UpdateTextEditorPlacement();textEditor.SizeChanged+=(s,e)=>UpdateTextEditorPlacement();
             Ui.Theme(textEditor,Control.BorderBrushProperty,"Primary");RefreshTextEditorBackground();Mori.Theme.Changed+=RefreshTextEditorBackground;
-            Canvas.SetLeft(textEditor,point.X-1);Canvas.SetTop(textEditor,point.Y-1);overlay.Children.Add(textEditor);textEditor.Focus();textEditor.CaretIndex=textEditor.Text.Length;UpdateWidth();surface.InvalidateVisual();
+            // TextBoxView adds a two-DIP horizontal caret gutter inside its
+            // border even with Padding=0. Include it so typed and rendered text
+            // share both their actual origin and their wrapping width.
+            Canvas.SetLeft(textEditor,point.X-3);Canvas.SetTop(textEditor,point.Y-1);overlay.Children.Add(textEditor);textEditor.Focus();textEditor.CaretIndex=textEditor.Text.Length;UpdateWidth();surface.InvalidateVisual();
+        }
+        void UpdateTextEditorPlacement(){
+            if(textEditor==null||surface.Selection.IsEmpty)return;
+            // The live editor may grow upward near the bottom edge. Its final
+            // annotation uses this same visible origin and exact wrap width.
+            double height=Math.Max(textEditor.FontSize*1.3,textEditor.ActualHeight);
+            textPosition=new Point(textPosition.X,Geometry.Clamp(textPosition.Y,surface.Selection.Top,Math.Max(surface.Selection.Top,surface.Selection.Bottom-height+2)));
+            Canvas.SetTop(textEditor,textPosition.Y-1);
         }
         static double TextEditorLuminance(Color color){Func<byte,double> channel=value=>{double v=value/255.0;return v<=.04045?v/12.92:Math.Pow((v+.055)/1.055,2.4);};return .2126*channel(color.R)+.7152*channel(color.G)+.0722*channel(color.B);}
         static double TextEditorContrast(Color ink,Color background){double a=TextEditorLuminance(ink),b=TextEditorLuminance(background);return (Math.Max(a,b)+.05)/(Math.Min(a,b)+.05);}
@@ -158,17 +200,26 @@ namespace QingJie {
             if(!string.IsNullOrWhiteSpace(textEditor.Text)){
                 var before=mark!=null?CopyAnnotation(mark):null;
                 if(mark==null)mark=new Annotation {Kind="text"};
-                mark.Text=textEditor.Text;mark.Start=textPosition;mark.Width=textEditor.FontSize/5;mark.Color=textEditorColor;
+                mark.Text=textEditor.Text;mark.Start=textPosition;mark.Width=textEditor.FontSize/5;mark.Color=textEditorColor;mark.TextWrapWidth=(double)textEditor.Tag;
+                mark.Start=ClampTextOrigin(mark.Start,mark.Bounds);
                 if(before==null){surface.Marks.Add(mark);RecordAnnotationAdded(mark);}else RecordAnnotationEdit(mark,before);
             }else if(mark!=null){RememberAnnotation(mark,CopyAnnotation(mark),null,surface.Marks.IndexOf(mark));surface.Marks.Remove(mark);mark=null;}
             RemoveTextEditor();SelectText(mark);PositionTools();surface.InvalidateVisual();
+            ValidateCaptureTextBounds();
+        }
+        internal bool ValidateCaptureTextBounds(){
+            if(surface.Selection.IsEmpty)return true;
+            foreach(var mark in surface.Marks){if(mark.Kind!="text")continue;var bounds=mark.Bounds;var area=surface.Selection;area.Inflate(.5,.5);if(!area.Contains(bounds)){TranslationStatus("文字超出选区，请扩大选区或缩小字号后再完成。");return false;}}
+            if(translationStatus.Text=="文字超出选区，请扩大选区或缩小字号后再完成。"){translationStatus.Text="";translationStatus.Visibility=Visibility.Collapsed;PositionTools();}
+            return true;
         }
         void CancelText(){if(textEditor==null)return;var mark=editingText;RemoveTextEditor();SelectText(mark);PositionTools();surface.InvalidateVisual();}
         void DeleteSelectedText(){var mark=surface.SelectedText;if(mark==null)return;RememberAnnotation(mark,CopyAnnotation(mark),null,surface.Marks.IndexOf(mark));surface.Marks.Remove(mark);SelectText(null);PositionTools();surface.InvalidateVisual();}
         void ApplyAnnotationColor(string color){
-            AppState.Settings.Color=color;AppState.Settings.Save();
+            if(!CanEditCapture)return;
             if(textEditor!=null){textEditorColor=color;textEditor.Foreground=Ui.Brush(color);RefreshTextEditorBackground();}
-            else if(SelectedAnnotation!=null||last!=null){var mark=SelectedAnnotation??last;var before=CopyAnnotation(mark);mark.Color=color;RecordAnnotationEdit(mark,before);}
+            else if(SelectedAnnotation!=null){var mark=SelectedAnnotation;var before=CopyAnnotation(mark);mark.Color=color;RecordAnnotationEdit(mark,before);}
+            else {AppState.Settings.Color=color;AppState.Settings.Save();}
             surface.InvalidateVisual();
         }
         void ChangeSelectedTextSize(double difference){

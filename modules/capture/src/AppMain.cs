@@ -45,6 +45,14 @@ namespace QingJie {
         static CaptureWindow selectedCapture;
         static bool endingCapture;
         static EventHandler captureDisplayChanged;
+        static readonly ScrollCaptureWarmCoordinator scrollWarm=new ScrollCaptureWarmCoordinator(ticket=>new ScrollCaptureWarmLease(AppDomain.CurrentDomain.BaseDirectory,ticket));
+        static bool scrollWarmExitHooked;
+        internal static ScrollCaptureWarmLease ClaimScrollWarm(CaptureWindow window){return !Quitting&&window!=null&&Captures.Contains(window)?scrollWarm.Claim(window.CaptureGeneration):null;}
+        internal static void DisposeScrollWarm(){scrollWarm.Cancel();}
+        static void PrepareScrollWarmLifecycle(){
+            if(scrollWarmExitHooked||Application.Current==null)return;scrollWarmExitHooked=true;
+            Application.Current.Exit+=(sender,args)=>DisposeScrollWarm();
+        }
         public static void ShowTranslator(){if(Captures.Count>0){Notify("请先完成或取消当前截图，再打开输入翻译。");return;}if(writeTranslation==null){writeTranslation=new WriteTranslationWindow();writeTranslation.Closed+=(s,e)=>writeTranslation=null;}writeTranslation.Show();if(writeTranslation.WindowState==WindowState.Minimized)writeTranslation.WindowState=WindowState.Normal;writeTranslation.Activate();}
         public static void ShowSettings(){if(MoriDesk.DeskRuntime.OpenSettings!=null){MoriDesk.DeskRuntime.OpenSettings();return;}if(settingsWindow==null){settingsWindow=new SettingsWindow();settingsWindow.Closed+=(s,e)=>settingsWindow=null;}settingsWindow.Show();settingsWindow.Activate();}
         public static void Notify(string message){if(MoriDesk.DeskRuntime.Notify!=null)MoriDesk.DeskRuntime.Notify(message);if(Tray!=null){Tray.BalloonTipTitle="Nook";Tray.BalloonTipText=message;Tray.ShowBalloonTip(3000);}}
@@ -83,6 +91,7 @@ namespace QingJie {
         }
         static void EndCaptureWindows(){
             if(endingCapture)return;endingCapture=true;
+            DisposeScrollWarm();
             try{foreach(var w in Captures.ToList())w.Close();}
             finally{selectedCapture=null;endingCapture=false;StopCaptureDisplayWatch();}
         }
@@ -96,11 +105,19 @@ namespace QingJie {
         }
         static void StopCaptureDisplayWatch(){if(captureDisplayChanged==null)return;Microsoft.Win32.SystemEvents.DisplaySettingsChanged-=captureDisplayChanged;captureDisplayChanged=null;}
         public static void CancelCapture(){captureStart.Cancel();if(captureDelay!=null){captureDelay.Stop();captureDelay=null;}EndCaptureWindows();}
+        // Keep the optional native enumeration behind the same gate used by
+        // the visual detector. The provider seam tests this without inspecting
+        // the user's desktop or constructing a native screenshot window.
+        internal static CaptureTargets ReadCaptureTargets(CaptureFeatures features,bool synthetic,Func<CaptureTargets> read){
+            if(synthetic||features==null||!features.SmartSelection||read==null)return null;
+            try{return read();}catch{return null; /* Manual selection remains available. */}
+        }
         public static void BeginCapture(string testImage=null,bool directHotkey=false){
             long timingOrigin=System.Diagnostics.Stopwatch.GetTimestamp();
             if(Quitting)return;
             if(Captures.Count>0){FocusCurrentCapture();return;}
             long ticket;if(!captureStart.TryQueue(out ticket))return;
+            var features=(Settings.CaptureFeatures??new CaptureFeatures()).Copy();
             var timing=CaptureStartupTiming.Start(timingOrigin,directHotkey,testImage!=null);
             CaptureStartupTiming.Mark(timing,CaptureStartupStage.Queued);
             try{
@@ -117,19 +134,21 @@ namespace QingJie {
                         else foreach(var screen in Forms.Screen.AllScreens)shots.Add(Snapshot.Screen(screen));
                         CaptureStartupTiming.Mark(timing,CaptureStartupStage.Screens,-1,shots.Count);
                         // Geometry must be captured before showing ANY monitor's overlay.
-                        CaptureTargets targets=null;if(testImage==null)try{targets=CaptureTargets.Read();}catch{ /* Manual capture remains available. */ }
+                        var targets=ReadCaptureTargets(features,testImage!=null,CaptureTargets.Read);
                         CaptureStartupTiming.Mark(timing,CaptureStartupStage.Targets);
+                        PrepareScrollWarmLifecycle();scrollWarm.Begin(ticket,features,testImage!=null);
                         WatchCaptureDisplayChanges();
                         foreach(var shot in shots){
                             if(Quitting||!captureStart.IsCurrent(ticket))break;
                             int windowIndex=opened.Count;
-                            var w=new CaptureWindow(shot,targets);opened.Add(w);Captures.Add(w);
+                            var w=new CaptureWindow(shot,targets,features:features);opened.Add(w);Captures.Add(w);
+                            w.CaptureGeneration=ticket;
                             CaptureStartupTiming.Mark(timing,CaptureStartupStage.Constructed,windowIndex);
-                            EventHandler rendered=null;rendered=(sender,args)=>{w.ContentRendered-=rendered;CaptureStartupTiming.Mark(timing,CaptureStartupStage.ContentRendered,windowIndex);};w.ContentRendered+=rendered;
+                            EventHandler rendered=null;rendered=(sender,args)=>{w.ContentRendered-=rendered;CaptureStartupTiming.Mark(timing,CaptureStartupStage.ContentRendered,windowIndex);if(!Quitting&&Captures.Contains(w))scrollWarm.Rendered(ticket);};w.ContentRendered+=rendered;
                             w.Show();CaptureStartupTiming.Mark(timing,CaptureStartupStage.Shown,windowIndex);
                         }
                         FocusCurrentCapture();
-                    }catch(Exception ex){CaptureStartupTiming.Mark(timing,CaptureStartupStage.Failed);foreach(var w in opened.ToList())try{w.Close();}catch{}StopCaptureDisplayWatch();MessageBox.Show("无法截屏："+ex.Message,"Nook");}
+                    }catch(Exception ex){CaptureStartupTiming.Mark(timing,CaptureStartupStage.Failed);DisposeScrollWarm();foreach(var w in opened.ToList())try{w.Close();}catch{}StopCaptureDisplayWatch();MessageBox.Show("无法截屏："+ex.Message,"Nook");}
                 });};delay.Start();
             }catch{CaptureStartupTiming.Mark(timing,CaptureStartupStage.Failed);if(captureDelay!=null){captureDelay.Stop();captureDelay=null;}captureStart.Complete(ticket);throw;}
         }

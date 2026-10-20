@@ -17,7 +17,8 @@ static class CaptureTextEditingTests {
     static int History(CaptureWindow window){var value=typeof(CaptureWindow).GetField("annotationUndo",Private).GetValue(window);return (int)value.GetType().GetProperty("Count").GetValue(value,null);}
     static Point Body(Annotation mark){var bounds=mark.Bounds;return new Point(bounds.Left+bounds.Width*.3,bounds.Top+bounds.Height*.5);}
     static void Select(CaptureWindow window,Annotation mark){var point=Body(mark);window.BeginPointer(point);window.EndPointer(point);}
-    static KeyEventArgs Key(CaptureWindow window,System.Windows.Input.Key key){var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,key){RoutedEvent=Keyboard.PreviewKeyDownEvent};Call(window,"KeyDownHandler",window,e);return e;}
+    // The user's own modifier keys cannot alter an inert editor regression.
+    static KeyEventArgs Key(CaptureWindow window,System.Windows.Input.Key key){var e=new KeyEventArgs(Keyboard.PrimaryDevice,new TestSource(),Environment.TickCount,key){RoutedEvent=Keyboard.PreviewKeyDownEvent};e.Handled=window.HandleCaptureKey(key,ModifierKeys.None);return e;}
     static bool Pixels(BitmapSource a,BitmapSource b){if(a.PixelWidth!=b.PixelWidth||a.PixelHeight!=b.PixelHeight)return false;var x=new byte[a.PixelWidth*a.PixelHeight*4];var y=new byte[x.Length];a.CopyPixels(x,a.PixelWidth*4,0);b.CopyPixels(y,b.PixelWidth*4,0);return x.SequenceEqual(y);}
     internal static void Run(Action<bool,string> check){
         var preferences=AppState.Settings;AppState.Settings=new Preferences {Stroke=4,Color="#EF4444"};
@@ -54,19 +55,19 @@ static class CaptureTextEditingTests {
             check(mark.Bounds.Left>=crop.Left&&mark.Bounds.Top>=crop.Top&&surface.Selection==crop,"text movement clamps at crop bounds without resizing the screenshot");Call(window,"Undo");
             Select(window,mark);int beforeClick=History(window);point=Body(mark);window.BeginPointer(point);window.EndPointer(point);
             check(History(window)==beforeClick,"plain selection without movement adds no phantom undo operation");
-            Call(window,"SetTool","rect");var savedText=mark.Text;var savedStart=mark.Start;var drawPoint=Body(mark);window.BeginPointer(drawPoint);window.EndPointer(drawPoint+new Vector(35,30));
-            check(surface.Marks.Count==2&&surface.Marks[1].Kind=="rect"&&mark.Start==savedStart&&mark.Text==savedText,"shape tools keep drawing over text instead of stealing it as a text-selection gesture");
+            Call(window,"SetTool","rect");var savedText=mark.Text;var savedStart=mark.Start;var drawPoint=Body(mark);window.BeginPointer(drawPoint,1,ModifierKeys.Alt);window.EndPointer(drawPoint+new Vector(35,30));
+            check(surface.Marks.Count==2&&surface.Marks[1].Kind=="rect"&&mark.Start==savedStart&&mark.Text==savedText,"Alt explicitly draws over text without changing its existing annotation");
             Call(window,"Undo");check(surface.Marks.Single()==mark,"undo ordering removes the later drawing before any older text edits");
             Call(window,"SetTool","select");Select(window,mark);check(surface.SelectedText==mark,"text can be reselected naturally after switching to another drawing tool and back");
             Call(window,"SetTool","text");Select(window,mark);check(surface.SelectedText==mark&&Editor(window)==null&&surface.Marks.Count==1,"text-tool single click selects an existing text instead of creating a second editor");
             var baseline=surface.Export();surface.SelectedText=null;check(Pixels(baseline,surface.Export()),"text selection frame and handles never appear in exported screenshot pixels");Select(window,mark);
             point=Body(mark);window.BeginPointer(point,2);editor=Editor(window);var originalWidth=mark.Width;int beforeEditor=History(window);
             check(editor!=null&&editor.Text==savedText&&surface.EditingText==mark&&surface.Marks.Count==1,"double click reopens the same text in place rather than finishing the screenshot");
-            editor.Text="未提交的新字";var wheel=new MouseWheelEventArgs(Mouse.PrimaryDevice,Environment.TickCount,120){RoutedEvent=Mouse.MouseWheelEvent};Call(window,"Wheel",surface,wheel);
-            check(wheel.Handled&&editor.FontSize==mark.TextFontSize+5&&mark.Width==originalWidth&&History(window)==beforeEditor,"editing font-size wheel changes only the live editor and creates no hidden-mark or ghost undo change");
+            editor.Text="未提交的新字";bool adjusted=window.HandleCaptureWheel(120,ModifierKeys.Control,new Point(250,200));
+            check(adjusted&&editor.FontSize==mark.TextFontSize+5&&mark.Width==originalWidth&&History(window)==beforeEditor,"editing Control-wheel changes only the live editor and creates no hidden-mark or ghost undo change");
             var editKey=Key(window,System.Windows.Input.Key.Z);check(!editKey.Handled&&Editor(window)==editor&&History(window)==beforeEditor,"window leaves text-editor undo keystrokes unhandled instead of applying annotation undo");
             window.CancelFromPointer();check(mark.Text==savedText&&mark.Width==originalWidth&&Editor(window)==null&&History(window)==beforeEditor&&Pixels(baseline,surface.Export()),"right click cancels reopened text while preserving original content, size, pixels and history");
-            window.BeginPointer(Body(mark),2);editor=Editor(window);editor.Text="已修改\n第二行 / Edited";Call(window,"Wheel",surface,new MouseWheelEventArgs(Mouse.PrimaryDevice,Environment.TickCount,120){RoutedEvent=Mouse.MouseWheelEvent});Call(window,"CommitText");
+            window.BeginPointer(Body(mark),2);editor=Editor(window);editor.Text="已修改\n第二行 / Edited";window.HandleCaptureWheel(120,ModifierKeys.Control,new Point(250,200));Call(window,"CommitText");
             check(surface.Marks.Count==1&&surface.Marks[0]==mark&&mark.Text=="已修改\n第二行 / Edited"&&mark.Width==originalWidth+1&&surface.Selection==crop,"committing edited multiline text updates the existing item once without changing the crop");
             Call(window,"Undo");check(mark.Text==savedText&&mark.Width==originalWidth,"text content and font-size editing undo together as one operation");Call(window,"Redo");check(mark.Text.Contains("Edited")&&mark.Width==originalWidth+1,"redo restores the complete committed text edit");Call(window,"Undo");
             Select(window,mark);window.BeginPointer(Body(mark),2);Editor(window).Text="";Call(window,"CommitText");check(surface.Marks.Count==0,"committing an empty reopened text removes only that annotation");Call(window,"Undo");check(surface.Marks.Single()==mark&&mark.Text==savedText,"undo restores an emptied text with its original content");
@@ -94,10 +95,68 @@ static class CaptureTextEditingTests {
             Call(window,"Undo");check(surface.Marks.Single()==mark&&mark.TextFontSize==boundedSize+1,"extra undo at the retained-history boundary is a no-op, not an accidental text deletion");
             for(int i=0;i<100;i++)Call(window,"Redo");check(surface.Marks.Single()==mark&&mark.TextFontSize==boundedSize+1&&History(window)==100,"bounded edit history redoes in order without mixing an older annotation-removal stack");
             HighDpi(image,check);
+            ResizeGeometry(check);
             ThemeEditor(image,check);
             WritePreview(image);
         }finally{window.Close();AppState.Settings=preferences;}
         check(surface.SelectedText==null&&surface.EditingText==null&&Editor(window)==null&&History(window)==0&&surface.Image==null,"closing capture releases text editor, selection, gesture history and screenshot references");
+    }
+    static bool Near(Point a,Point b){return (a-b).Length<.002;}
+    static Vector ResizeAxis(Rect frame,int handle){return new Vector(handle==0||handle==6||handle==7?-frame.Width:handle==2||handle==3||handle==4?frame.Width:0,handle==0||handle==1||handle==2?-frame.Height:handle==4||handle==5||handle==6?frame.Height:0);}
+    static bool Fits(Rect bounds,Rect crop){var relaxed=crop;relaxed.Inflate(.002,.002);return relaxed.Contains(bounds);}
+    static void ResizeGeometry(Action<bool,string> check){
+        var pixels=new byte[1800*1000*4];var image=BitmapSource.Create(1800,1000,96,96,PixelFormats.Bgra32,null,pixels,7200);image.Freeze();
+        var window=new CaptureWindow(new Snapshot {Image=image,Bounds=new System.Drawing.Rectangle(0,0,1800,1000)});
+        var surface=((Grid)window.Content).Children.OfType<ScreenshotSurface>().Single();surface.Measure(new Size(1800,1000));surface.Arrange(new Rect(0,0,1800,1000));
+        var crop=new Rect(20,20,1760,960);surface.Selection=crop;
+        try{
+            Call(window,"SetTool","select");
+            foreach(string style in new[]{"long-line","wrapped","explicit-newlines"})foreach(int handleIndex in Enumerable.Range(0,8)){
+                surface.Marks.Clear();Call(window,"ClearAnnotationHistory");
+                var mark=new Annotation {Kind="text",Start=new Point(650,350),Width=4,Text=style=="explicit-newlines"?"第一行 / First line\n第二行 / Second line\n第三行 / Third line":new string('W',24),TextWrapWidth=style=="wrapped"?180:0};surface.Marks.Add(mark);Select(window,mark);
+                var original=mark.Bounds;var originalStart=mark.Start;double originalWidth=mark.Width,wrap=mark.TextWrapWidth;
+                var frame=ScreenshotSurface.TextFrame(mark);var handle=ScreenshotSurface.Handles(frame)[handleIndex];var axis=ResizeAxis(frame,handleIndex);var anchor=ScreenshotSurface.Handles(original)[(handleIndex+4)%8];
+                window.BeginPointer(handle);window.ContinuePointer(handle+axis*.16);
+                check(Math.Abs(mark.TextFontSize-23.2)<.0001&&Fits(mark.Bounds,crop),style+" handle "+handleIndex+" scales proportionally to its original diagonal/axis, not the shorter side");
+                check(Near(ScreenshotSurface.Handles(mark.Bounds)[(handleIndex+4)%8],anchor),style+" handle "+handleIndex+" keeps its opposite corner or opposite-edge center fixed");
+                check(Math.Abs(mark.TextWrapWidth-wrap*1.16)<.0001&&Math.Abs(mark.Bounds.Width/original.Width-mark.Bounds.Height/original.Height)<.015,style+" handle "+handleIndex+" scales font and wrap width together without adding a spurious line");
+                window.ContinuePointer(handle);
+                check(mark.Start==originalStart&&mark.Width==originalWidth&&mark.TextWrapWidth==wrap,style+" handle "+handleIndex+" returns exactly to its original geometry within the same gesture");
+                window.ContinuePointer(handle+axis*.1);window.EndPointer(handle);
+                check(History(window)==0&&mark.Start==originalStart&&mark.Width==originalWidth&&mark.TextWrapWidth==wrap,style+" handle "+handleIndex+" release back at origin leaves no phantom undo entry");
+                window.BeginPointer(handle);window.EndPointer(handle+axis*.12);double resized=mark.Width;
+                check(History(window)==1&&resized>originalWidth,style+" handle "+handleIndex+" committed resize is one operation");
+                Call(window,"Undo");check(mark.Start==originalStart&&mark.Width==originalWidth&&mark.TextWrapWidth==wrap,style+" handle "+handleIndex+" undo restores origin, size and wrapping");
+                Call(window,"Redo");check(mark.Width==resized&&Near(ScreenshotSurface.Handles(mark.Bounds)[(handleIndex+4)%8],anchor),style+" handle "+handleIndex+" redo restores the same anchored geometry");
+            }
+            surface.Marks.Clear();Call(window,"ClearAnnotationHistory");
+            var single=new Annotation {Kind="text",Start=new Point(1079,400),Width=4,Text=new string('W',24)};surface.Marks.Add(single);Select(window,single);
+            var singleOrigin=single.Start;var singleFrame=ScreenshotSurface.TextFrame(single);var corner=ScreenshotSurface.Handles(singleFrame)[4];
+            check(single.Bounds.Width>350&&single.Bounds.Width<600&&single.Bounds.Height<30,"realistic long one-line fixture has the observed wide, shallow aspect ratio");
+            window.BeginPointer(corner);window.ContinuePointer(corner+new Vector(117,44));
+            check(single.TextFontSize>23&&single.TextFontSize<28&&single.Start==singleOrigin,"117-by-44 corner drag grows long caption moderately and never jumps its left origin as the old max-axis ratio did");
+            window.ContinuePointer(corner);var diagonal=ResizeAxis(singleFrame,4);var perpendicular=new Vector(-diagonal.Y,diagonal.X);perpendicular.Normalize();
+            window.EndPointer(corner+perpendicular*44);
+            check(single.Width==4&&single.Start==singleOrigin&&History(window)==0,"perpendicular corner motion has no projected scale and creates no hidden movement or history");
+            foreach(string style in new[]{"long-line","wrapped"})foreach(int handleIndex in Enumerable.Range(0,8)){
+                surface.Marks.Clear();Call(window,"ClearAnnotationHistory");
+                var mark=new Annotation {Kind="text",Start=new Point(650,350),Width=4,Text=new string('W',24),TextWrapWidth=style=="wrapped"?180:0};
+                var size=mark.Bounds.Size;bool left=handleIndex==0||handleIndex==6||handleIndex==7,right=handleIndex==2||handleIndex==3||handleIndex==4,top=handleIndex==0||handleIndex==1||handleIndex==2,bottom=handleIndex==4||handleIndex==5||handleIndex==6;
+                mark.Start=new Point(left?crop.Left+12:right?crop.Right-size.Width-12:650,top?crop.Top+12:bottom?crop.Bottom-size.Height-12:350);
+                surface.Marks.Add(mark);Select(window,mark);var original=mark.Bounds;var anchor=ScreenshotSurface.Handles(original)[(handleIndex+4)%8];
+                var frame=ScreenshotSurface.TextFrame(mark);var handle=ScreenshotSurface.Handles(frame)[handleIndex];var axis=ResizeAxis(frame,handleIndex);
+                window.BeginPointer(handle);window.ContinuePointer(handle+axis*4);
+                check(Fits(mark.Bounds,crop)&&mark.TextFontSize>=20,style+" boundary "+handleIndex+" caps enlargement to measured available space instead of cropping text");
+                check(Near(ScreenshotSurface.Handles(mark.Bounds)[(handleIndex+4)%8],anchor),style+" boundary "+handleIndex+" never shifts the fixed anchor to fit an oversized result");
+                var limited=mark.Bounds;double limitedWidth=mark.Width;
+                window.ContinuePointer(handle+axis*8);
+                check(mark.Bounds==limited&&mark.Width==limitedWidth,style+" boundary "+handleIndex+" further outward motion stays at a stable maximum");
+                window.EndPointer(handle);
+                check(mark.Bounds==original&&mark.Width==4&&History(window)==0,style+" boundary "+handleIndex+" returns from the limit exactly to the initial annotation");
+                Select(window,mark);window.BeginPointer(handle);window.EndPointer(handle-axis*4);
+                check(mark.TextFontSize==16&&Fits(mark.Bounds,crop)&&Near(ScreenshotSurface.Handles(mark.Bounds)[(handleIndex+4)%8],anchor),style+" boundary "+handleIndex+" inward crossing stops at minimum readable size without flipping or shifting the anchor");
+            }
+        }finally{window.Close();}
     }
     static void HighDpi(BitmapSource image,Action<bool,string> check){
         var doubled=new TransformedBitmap(image,new ScaleTransform(2,2));doubled.Freeze();
