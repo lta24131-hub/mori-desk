@@ -56,10 +56,23 @@ static class ScrollCapturePreviewTests {
         int windows = Application.Current.Windows.Count, captures = AppState.Captures.Count;
         AppState.Pins = null; DeskRuntime.CollectImage = null;
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-        try { Collection(check); LateResults(check); Layout(check); }
+        try { Collection(check); LateResults(check); Pinning(check); Layout(check); }
         finally { DeskRuntime.CollectImage = collect; AppState.Pins = pins; SynchronizationContext.SetSynchronizationContext(context); }
         check(Application.Current.Windows.Count == windows && AppState.Captures.Count == captures,
             "long screenshot preview fixtures leave all application windows and capture membership counts unchanged");
+    }
+    static void Pinning(Action<bool,string> check){
+        var pending=new TaskCompletionSource<bool>();var source=Image(40,900);var window=new ScrollCapturePreviewWindow(source);int calls=0;CancellationToken lifetime=CancellationToken.None;
+        window.PinImageAsync=(image,cancel)=>{calls++;lifetime=cancel;check(ReferenceEquals(image,source),"recovered long screenshot pin receives complete source pixels");return pending.Task;};
+        try{
+            var task=window.Pin();check(!task.IsCompleted&&calls==1&&!Field<StackPanel>(window,"actions").IsEnabled&&Inert(window),"recovered long screenshot pin yields without showing a native window or acknowledging unfinished encoding");
+            Await(window.Pin());check(calls==1,"pending recovered screenshot pin refuses duplicate submission");
+            pending.SetException(new InvalidOperationException("Synthetic pin save failed"));Await(task);
+            check(!Closed(window)&&Field<StackPanel>(window,"actions").IsEnabled&&ReferenceEquals(Field<BitmapSource>(window,"image"),source)&&Field<TextBlock>(window,"status").Text.Contains("Synthetic pin save failed"),"asynchronous recovered pin failure keeps the original preview ready to retry");
+            pending=new TaskCompletionSource<bool>();task=window.Pin();var escaped=Escape(window);
+            check(escaped.Handled&&Closed(window)&&lifetime.IsCancellationRequested&&Field<BitmapSource>(window,"image")==null,"one Escape cancels recovered pin encoding and releases its preview source");
+            pending.SetCanceled();Await(task);check(Closed(window)&&!Field<bool>(window,"collecting"),"late cancelled pin cannot reopen its old recovered preview");
+        }finally{pending.TrySetCanceled();if(!Closed(window))window.Close();}
     }
     static void Layout(Action<bool, string> check) {
         DeskRuntime.CollectImage = null;

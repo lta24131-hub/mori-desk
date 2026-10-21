@@ -15,7 +15,7 @@ namespace QingJie {
     // Same EXE/model, short-lived process: no OCR engines retained by the tray app.
     // Local user-only pipe, lossless pixels, no screenshot files or network traffic.
     public static class OcrWorker {
-        const int Magic=0x514A4F31,MaxPixels=64000000;
+        const int Magic=0x514A4F32,MaxPixels=64000000;
         static readonly SemaphoreSlim queue=new SemaphoreSlim(1,1);
         static readonly OcrResultCache cache=new OcrResultCache();
         static void Kill(Process process){try{if(process!=null&&!process.HasExited)process.Kill();}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}}
@@ -47,10 +47,7 @@ namespace QingJie {
                             // Stream small strips rather than duplicate the entire screenshot.
                             var strip=new byte[checked(stride*Math.Min(32,source.PixelHeight))];
                             for(int y=0;y<source.PixelHeight;y+=32){timeout.Token.ThrowIfCancellationRequested();int rows=Math.Min(32,source.PixelHeight-y);bgra.CopyPixels(new Int32Rect(0,y,source.PixelWidth,rows),strip,stride,0);writer.Write(strip,0,stride*rows);}writer.Flush();
-                            if(reader.ReadInt32()!=Magic)throw new InvalidDataException("识别进程返回数据异常。");
-                            string error=reader.ReadString();if(error.Length>0)throw new InvalidOperationException(error);
-                            int count=reader.ReadInt32();if(count<0||count>1000000)throw new InvalidDataException("识别文字数量异常。");
-                            var page=new OcrPage();for(int i=0;i<count;i++){var word=new WordBox {Text=reader.ReadString(),Line=reader.ReadInt32()};word.Box=new Rect(reader.ReadDouble(),reader.ReadDouble(),reader.ReadDouble(),reader.ReadDouble());page.Words.Add(word);}OcrService.IndexText(page);
+                            var page=ReadResult(reader);
                             if(!process.WaitForExit(3000))Kill(process);cancel.ThrowIfCancellationRequested();return page;
                         }
                     }}catch(Exception ex){cancel.ThrowIfCancellationRequested();if(timeout.IsCancellationRequested)throw new TimeoutException("文字识别超时，原图已保留，请缩小区域重试。",ex);throw;}
@@ -70,11 +67,21 @@ namespace QingJie {
                         string language=reader.ReadString(),testFolder=reader.ReadString();if(testFolder.Length>0)OcrLanguagePacks.TestFolder=testFolder;
                         var bitmap=ReadBitmap(reader,width,height);
                         var task=OcrService.ReadLocal(bitmap,language);var frame=new System.Windows.Threading.DispatcherFrame();task.ContinueWith(t=>frame.Continue=false);System.Windows.Threading.Dispatcher.PushFrame(frame);
-                        var page=task.GetAwaiter().GetResult();writer.Write(Magic);writer.Write("");writer.Write(page.Words.Count);
-                        foreach(var word in page.Words){writer.Write(word.Text);writer.Write(word.Line);writer.Write(word.Box.X);writer.Write(word.Box.Y);writer.Write(word.Box.Width);writer.Write(word.Box.Height);}writer.Flush();return 0;
+                        var page=task.GetAwaiter().GetResult();WriteResult(writer,page);writer.Flush();return 0;
                     }catch(Exception ex){writer.Write(Magic);writer.Write(ex.Message);writer.Flush();return 1;}
                 }}catch{return 1;}
             }
+        }
+        internal static void WriteResult(BinaryWriter writer,OcrPage page){
+            writer.Write(Magic);writer.Write("");writer.Write(page.Notice??"");writer.Write(page.Words.Count);
+            foreach(var word in page.Words){writer.Write(word.Text);writer.Write(word.Line);writer.Write(word.Box.X);writer.Write(word.Box.Y);writer.Write(word.Box.Width);writer.Write(word.Box.Height);}
+        }
+        internal static OcrPage ReadResult(BinaryReader reader){
+            if(reader.ReadInt32()!=Magic)throw new InvalidDataException("识别进程返回数据异常。");
+            string error=reader.ReadString();if(error.Length>0)throw new InvalidOperationException(error);
+            string notice=reader.ReadString();int count=reader.ReadInt32();if(count<0||count>1000000)throw new InvalidDataException("识别文字数量异常。");
+            var page=new OcrPage{Notice=notice.Length==0?null:notice};
+            for(int i=0;i<count;i++){var word=new WordBox {Text=reader.ReadString(),Line=reader.ReadInt32()};word.Box=new Rect(reader.ReadDouble(),reader.ReadDouble(),reader.ReadDouble(),reader.ReadDouble());page.Words.Add(word);}OcrService.IndexText(page);return page;
         }
         internal static BitmapSource ReadBitmap(BinaryReader reader,int width,int height){
             if(width<=0||height<=0||(long)width*height>MaxPixels)throw new InvalidDataException("Invalid image dimensions");

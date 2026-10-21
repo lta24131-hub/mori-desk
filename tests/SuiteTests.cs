@@ -21,6 +21,10 @@ namespace MoriDesk {
    Check(Settings.ConfigDir.EndsWith("MoriDesk"),"independent settings");Check(new Settings().LibraryPath.StartsWith(Settings.ConfigDir),"independent library");Check(QingJie.OcrLanguagePacks.Folder.StartsWith(Settings.ConfigDir),"independent languages");Check(QingJie.OfflinePacks.Folder.StartsWith(Settings.ConfigDir),"independent offline packs");Check(StartupRegistration.ValueName=="MoriDesk","independent startup");foreach(string ext in FileRouter.Models)Check(FileRouter.Kind("test"+ext)=="model","route "+ext);foreach(string ext in FileRouter.Pictures)Check(FileRouter.Kind("test"+ext)=="image","route "+ext);Check(FileRouter.Kind("document.pdf")=="preview","built-in PDF route");
    var testApp=System.Windows.Application.Current??new System.Windows.Application();testApp.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
    IterationTests.Run(root,Check);BrowserLocalBridgeTests.Run(root,Check);BrowserExtensionManagerTests.Run(root,Check);ScreenshotCollectionTests.Run(root,Check);LaunchTests.Run(root,Check);ReferenceTests.Run(root,Check);LibraryConsistencyTests.Run(root,Check);ReferenceThumbnailFreshnessTests.Run(root,Check);MetadataRefreshCacheTests.Run(root,Check);InspectorDraftTests.Run(root,Check);BoardTests.Run(root,Check);ClassicTests.Run(root,Check);LocalCollectionTests.Run(root,Check);OverviewVisibilityTests.Run(root,Check);DesktopDropTests.Run(root,Check);DeskSettingsTests.Run(root,Check);
+   LibraryRestoreTests.Run(root,Check);
+   InitialWindowPlacementTests.Run(Check);
+   InspectorConcurrentMetadataTests.Run(Path.Combine(root,"inspector-concurrent"),Check);
+   ImageWorkRegressionTests.Run(Path.Combine(root,"image-work-regressions"),Check);
    BrandingTests.Run(Path.Combine(root,"branding"),Check);
    AppUpdateServiceTests.Run(Path.Combine(root,"app-update-service"),Check);
    AppUpdatePanelTests.Run(Path.Combine(root,"app-update-panel"),Check);

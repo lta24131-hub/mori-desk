@@ -22,9 +22,13 @@ namespace QingJie {
                 using(var engine=new TesseractEngine(data,"eng",EngineMode.LstmOnly)){
                     lines=ReadLines(engine,pix,ratio,PageSegMode.SparseText);
                     Merge(oldLines,lines,"");
+                    // Only surviving, accepted Sparse lines may claim an area.
+                    // Rejected fragments are not evidence against a complete
+                    // Auto correction, even when their raw confidence is high.
+                    var accepted=lines.Where(line=>oldLines.Contains(line.Words)).ToList();
                     engine.SetVariable("thresholding_method",2);engine.SetVariable("thresholding_kfactor",0.04);
                     var faint=ReadLines(engine,pix,ratio,PageSegMode.Auto);
-                    Merge(oldLines,faint.Where(l=>!lines.Any(prior=>prior.Confidence>=70&&Overlaps(prior.Bounds,l.Bounds)&&!CompleteEnglishExtension(l,prior))).ToList(),"");
+                    Merge(oldLines,faint.Where(l=>!accepted.Any(prior=>prior.Confidence>=70&&Overlaps(prior.Bounds,l.Bounds)&&!CompleteEnglishExtension(l,prior))).ToList(),"");
                 }
                 // Load enabled models sequentially after releasing English; no
                 // resident engines and no loading of merely installed languages.

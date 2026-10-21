@@ -48,16 +48,33 @@ namespace MoriDesk {
     var first=DesktopImagePins.InitialBounds(size.Width,size.Height,work,0);var next=DesktopImagePins.InitialBounds(size.Width,size.Height,work,1);check(work.Contains(new Drawing.Rectangle(first.X,first.Y,first.Width,first.Height))&&first.Width<=720&&first.Height<=work.Height-48,"new desktop pin fits the selected monitor working area / "+work.Width+" / "+size);check(first.X!=next.X||first.Y!=next.Y,"consecutive desktop pins are offset rather than fully covering one another / "+work.Width+" / "+size);
    }
    var pins=new PinStore(Path.Combine(root,"pins"));var one=pins.Add(snapshot);var two=pins.Add(detached);check(one.Id!=two.Id&&pins.Records.Count==2&&File.Exists(pins.ImagePath(one))&&File.Exists(pins.ImagePath(two)),"two pin requests persist independent snapshots without a picture-count cap");
+   one.Width=20;pins.Save();check(new PinStore(pins.Folder).Records.Single(record=>record.Id==one.Id).Width==20,"restoring a narrow aspect-fitted long pin does not silently expand it to an eighty-pixel minimum");
    var oldPins=AppState.Pins;var oldSettings=AppState.Settings;PinWindow a=null,b=null;
-   try{AppState.Pins=pins;AppState.Settings=new Preferences();a=new PinWindow(pins,one,snapshot);b=new PinWindow(pins,two,detached);check(a.WindowStyle==WindowStyle.None&&a.AllowsTransparency&&a.Topmost&&!a.ShowInTaskbar&&a.Owner==null,"library pin reuses screenshot borderless topmost window without preview ownership");check(b!=a&&b.Topmost&&b.Owner==null,"multiple independent pin windows do not share ownership or closing state");a.Close();check(File.Exists(pins.ImagePath(two))&&b.Content!=null,"closing one pin retains another independent pin and its saved pixels");}finally{if(a!=null)a.Close();if(b!=null)b.Close();AppState.Pins=oldPins;AppState.Settings=oldSettings;}
+   try{AppState.Pins=pins;AppState.Settings=new Preferences();a=new PinWindow(pins,one,snapshot);b=new PinWindow(pins,two,detached);check(a.WindowStyle==WindowStyle.None&&a.AllowsTransparency&&a.Topmost&&!a.ShowInTaskbar&&a.Owner==null,"library pin reuses screenshot borderless topmost window without preview ownership");var picture=(System.Windows.Controls.Image)typeof(PinWindow).GetField("picture",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(a);check(a.Width-2*PinFrame.Inset==20&&picture.Stretch==System.Windows.Media.Stretch.Uniform,"narrow restored pin keeps its saved scale and never stretches image axes independently");check(b!=a&&b.Topmost&&b.Owner==null,"multiple independent pin windows do not share ownership or closing state");a.Close();check(File.Exists(pins.ImagePath(two))&&b.Content!=null,"closing one pin retains another independent pin and its saved pixels");}finally{if(a!=null)a.Close();if(b!=null)b.Close();AppState.Pins=oldPins;AppState.Settings=oldSettings;}
    var security=ImagePinBridge.Security();var rules=security.GetAccessRules(true,false,typeof(SecurityIdentifier)).Cast<PipeAccessRule>().ToArray();var sid=WindowsIdentity.GetCurrent().User;check(security.AreAccessRulesProtected&&rules.Length==1&&rules[0].IdentityReference.Equals(sid)&&rules[0].AccessControlType==AccessControlType.Allow,"image pin pipe disables inherited access and grants only current Windows user");
    check(ImagePinBridge.PipeName(root)==ImagePinBridge.PipeName(root.ToUpperInvariant()+"\\")&&ImagePinBridge.PipeName(root)!=ImagePinBridge.PipeName(Path.Combine(root,"other")),"image pin service name follows normalized data root and never crosses fixture roots");
    Bridge(root,snapshot,detached,check);
+   AsyncBridge(root,snapshot,check);
    ViewerPending(root,snapshot,check);
+  }
+  static void AsyncBridge(string root,BitmapSource image,Action<bool,string> check){
+   var commit=new TaskCompletionSource<bool>();var started=new TaskCompletionSource<bool>();int completed=0;bool responsive=false;
+   using(var service=new ImagePinBridge(Path.Combine(root,"async-bridge"),Dispatcher.CurrentDispatcher,async value=>{started.TrySetResult(true);await commit.Task;completed++;})){
+    var pending=ImagePinBridge.SendAsync(Path.Combine(root,"async-bridge"),image);Await(started.Task);
+    Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,new Action(()=>responsive=true));
+    var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);
+    check(responsive&&!pending.IsCompleted&&completed==0,"resident pin bridge releases the dispatcher and does not acknowledge an uncommitted asynchronous save");
+    commit.SetResult(true);Await(pending);check(completed==1,"resident pin bridge acknowledges exactly one completed asynchronous save");
+   }
+   var failed=new TaskCompletionSource<bool>();started=new TaskCompletionSource<bool>();
+   using(var service=new ImagePinBridge(Path.Combine(root,"async-failure"),Dispatcher.CurrentDispatcher,value=>{started.TrySetResult(true);return failed.Task;})){
+    var pending=ImagePinBridge.SendAsync(Path.Combine(root,"async-failure"),image);Await(started.Task);failed.SetException(new IOException("fixture asynchronous save failed"));
+    bool rejected=false;try{Await(pending);}catch(InvalidOperationException error){rejected=error.Message=="fixture asynchronous save failed";}check(rejected,"a later asynchronous persistence failure reaches the independent viewer instead of a false success");
+   }
   }
   static void Bridge(string root,BitmapSource first,BitmapSource second,Action<bool,string> check){
    string endpoint=Path.Combine(root,"bridge"),unavailable=Path.Combine(root,"not-running");int calls=0;var store=new PinStore(Path.Combine(root,"bridge-pins"));
-   using(var service=new ImagePinBridge(endpoint,Dispatcher.CurrentDispatcher,image=>{calls++;store.Add(image);})){
+   using(var service=new ImagePinBridge(endpoint,Dispatcher.CurrentDispatcher,image=>{calls++;store.Add(image);return Task.FromResult(true);})){
     var one=ImagePinBridge.SendAsync(endpoint,first);var two=ImagePinBridge.SendAsync(endpoint,second);Await(Task.WhenAll(one,two));check(calls==2&&store.Records.Count==2&&store.Records.Select(x=>x.Id).Distinct().Count()==2,"two independent viewer requests are acknowledged only after one resident sink persists each snapshot");
     // Block this fixture's dispatcher only. Expired queued work must not create
     // a surprise pin after the caller received a busy response.

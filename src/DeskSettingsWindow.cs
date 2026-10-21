@@ -11,7 +11,7 @@ namespace MoriDesk {
   readonly Dictionary<string,FrameworkElement> pages=new Dictionary<string,FrameworkElement>();
   readonly Dictionary<string,Button> navigation=new Dictionary<string,Button>();
   readonly ContentControl body=new ContentControl{HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch};
-  readonly bool preview;QingJie.CaptureSettingsPanel capture;AppearanceSettingsPanel appearance;AppUpdatePanel updates;
+  readonly bool preview;QingJie.CaptureSettingsPanel capture;AppearanceSettingsPanel appearance;AppUpdatePanel updates;ConversionComponentsPanel conversion;
   internal StorageChangeRequest StorageRequest;
   internal string Section {get;private set;}
   internal DeskSettingsWindow(Window owner,bool preview,Library library,Action<Settings> applyBrowse=null){
@@ -21,14 +21,14 @@ namespace MoriDesk {
    header.Children.Add(new TextBlock{Text="设置",FontSize=23,FontWeight=FontWeights.SemiBold});
    var divider=new Border{Height=1};divider.SetResourceReference(Border.BackgroundProperty,"Divider");DockPanel.SetDock(divider,Dock.Top);root.Children.Add(divider);
    var menu=new StackPanel{Width=146,Margin=new Thickness(10,16,10,12)};var menuScroll=new ScrollViewer{Content=menu,Width=166,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};DockPanel.SetDock(menuScroll,Dock.Left);root.Children.Add(menuScroll);
-   foreach(var item in new[]{new[]{"general","通用与存储"},new[]{"appearance","外观"},new[]{"library","素材浏览"},new[]{"preview","文件预览"},new[]{"capture","截图与翻译"},new[]{"canvas","自由画布"},new[]{"browser","浏览器收藏"},new[]{"about","关于与更新"}}){
+   foreach(var item in new[]{new[]{"general","通用与存储"},new[]{"appearance","外观"},new[]{"library","素材浏览"},new[]{"preview","文件预览"},new[]{"capture","截图与翻译"},new[]{"canvas","自由画布"},new[]{"browser","浏览器收藏"},new[]{"conversion","转换组件"},new[]{"about","关于与更新"}}){
     string key=item[0];var button=new Button{Content=item[1],Padding=new Thickness(12,10,12,10),Margin=new Thickness(0,0,0,4),HorizontalContentAlignment=HorizontalAlignment.Left,MinHeight=40};System.Windows.Automation.AutomationProperties.SetName(button,item[1]);button.Click+=(s,e)=>Select(key);menu.Children.Add(button);navigation.Add(key,button);
    }
    var contentBorder=new Border{BorderThickness=new Thickness(1,0,0,0),Child=body};contentBorder.SetResourceReference(Border.BorderBrushProperty,"Divider");root.Children.Add(contentBorder);
    pages.Add("general",Mori.SettingsWindow.CreateContent(this,preview,library,request=>{if(request!=null){StorageRequest=request;Close();}},true));
    pages.Add("library",new BrowseSettingsPanel(this,preview,applyBrowse));
    pages.Add("preview",new PreviewSettingsPanel(this,preview));pages.Add("canvas",new CanvasSettingsPanel(this,preview));
-   Closed+=(s,e)=>{if(capture!=null)capture.Dispose();if(appearance!=null)appearance.Dispose();if(updates!=null)updates.Dispose();};
+   Closed+=(s,e)=>{if(capture!=null)capture.Dispose();if(appearance!=null)appearance.Dispose();if(updates!=null)updates.Dispose();if(conversion!=null)conversion.Dispose();};
    // Bubble after child controls: Esc first cancels a shortcut recording or
    // closes an expanded selector; a subsequent Esc dismisses settings.
    KeyDown+=(s,e)=>DismissOnEscape(e);Select("general");
@@ -47,6 +47,7 @@ namespace MoriDesk {
     if(section=="browser")page=BrowserConnection.CreateContent(this,preview);
     else if(section=="appearance"){appearance=new AppearanceSettingsPanel(this,preview);page=appearance;}
     else if(section=="about"){updates=new AppUpdatePanel(this,preview);page=updates;}
+    else if(section=="conversion"){conversion=new ConversionComponentsPanel(preview);page=conversion;conversion.Loaded+=async(s,e)=>{if(!conversion.IsBusy)await conversion.RefreshAsync();};}
     else if(DeskRuntime.Started){capture=new QingJie.CaptureSettingsPanel(true);page=capture;ThemeCapture(page);}
     else {page=new TextBlock{Text="截图工具正在由另一个 Nook 窗口使用。该窗口退出后，请重新打开设置。",Margin=new Thickness(28),TextWrapping=TextWrapping.Wrap};}
     pages[section]=page;

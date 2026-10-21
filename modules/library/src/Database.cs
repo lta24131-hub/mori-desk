@@ -18,7 +18,8 @@ namespace Mori {
         public static string Q(string s) { return "'"+(s??"").Replace("\0", "").Replace("'", "''")+"'"; }
         public Database(string path) {
             if (sqlite3_open16(path, out db)!=0) { if (db!=IntPtr.Zero) sqlite3_close(db); throw new Exception("无法打开图库索引："+path); }
-            Exec("PRAGMA busy_timeout=10000; PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;");
+            try{Exec("PRAGMA busy_timeout=10000; PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=FULL;");}
+            catch{Dispose();throw;}
         }
         public List<Dictionary<string,string>> Query(string sql) {
             lock(gate) {

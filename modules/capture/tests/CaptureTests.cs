@@ -17,6 +17,7 @@ static class CaptureTests {
     static bool Pixels(BitmapSource a,BitmapSource b){var x=new byte[a.PixelWidth*a.PixelHeight*4];var y=new byte[b.PixelWidth*b.PixelHeight*4];a.CopyPixels(x,a.PixelWidth*4,0);b.CopyPixels(y,b.PixelWidth*4,0);return a.PixelWidth==b.PixelWidth&&a.PixelHeight==b.PixelHeight&&x.SequenceEqual(y);}
     static RenderTargetBitmap Render(ScreenshotSurface surface){surface.UpdateLayout();var image=new RenderTargetBitmap(600,400,96,96,PixelFormats.Pbgra32);image.Render(surface);return image;}
     internal static void Run(Action<bool,string> check){
+        CaptureVisualPixelTests.Run(check);
         CaptureVisualRegionTests.Run(check);
         CaptureHoverTests.Run(check);
         CaptureTextEditingTests.Run(check);

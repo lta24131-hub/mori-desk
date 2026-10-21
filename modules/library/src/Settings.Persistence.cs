@@ -9,7 +9,7 @@ namespace Mori {
  public partial class Settings {
   string loadedPath;
   Dictionary<string,object> loadedValues;
-  Dictionary<string,object> Values(){var values=new Dictionary<string,object>{{"LibraryPath",LibraryPath},{"Theme",Theme},{"ThumbnailSize",ThumbnailSize},{"LeftSidebarWidth",LeftSidebarWidth},{"RightSidebarWidth",RightSidebarWidth},{"WaterfallLayout",WaterfallLayout},{"ShowAssetNames",ShowAssetNames},{"ShowAssetDetails",ShowAssetDetails},{"LeftSidebarVisible",LeftSidebarVisible},{"RightSidebarVisible",RightSidebarVisible},{"StartupSection",StartupSection},{"DefaultSort",DefaultSort}};AddCustomization(values);return values;}
+  Dictionary<string,object> Values(){var values=new Dictionary<string,object>{{"LibraryPath",LibraryPath},{"FileConversionOutputPath",FileConversionOutputPath},{"Theme",Theme},{"ThumbnailSize",ThumbnailSize},{"LeftSidebarWidth",LeftSidebarWidth},{"RightSidebarWidth",RightSidebarWidth},{"WaterfallLayout",WaterfallLayout},{"ShowAssetNames",ShowAssetNames},{"ShowAssetDetails",ShowAssetDetails},{"LeftSidebarVisible",LeftSidebarVisible},{"RightSidebarVisible",RightSidebarVisible},{"StartupSection",StartupSection},{"DefaultSort",DefaultSort}};AddCustomization(values);return values;}
   void RememberLoaded(string path){loadedPath=path;loadedValues=Values();}
   Dictionary<string,object> ValuesToSave(string path){
    var values=Values();
@@ -23,7 +23,7 @@ namespace Mori {
    return values;
   }
   void ApplySaved(Dictionary<string,object> values){
-   LibraryPath=(string)values["LibraryPath"];Theme=(string)values["Theme"];ThumbnailSize=(int)values["ThumbnailSize"];
+   LibraryPath=(string)values["LibraryPath"];FileConversionOutputPath=(string)values["FileConversionOutputPath"];Theme=(string)values["Theme"];ThumbnailSize=(int)values["ThumbnailSize"];
    LeftSidebarWidth=(int)values["LeftSidebarWidth"];RightSidebarWidth=(int)values["RightSidebarWidth"];WaterfallLayout=(bool)values["WaterfallLayout"];
    ShowAssetNames=(bool)values["ShowAssetNames"];ShowAssetDetails=(bool)values["ShowAssetDetails"];LeftSidebarVisible=(bool)values["LeftSidebarVisible"];RightSidebarVisible=(bool)values["RightSidebarVisible"];
    StartupSection=(string)values["StartupSection"];DefaultSort=(int)values["DefaultSort"];ReadCustomization(values);

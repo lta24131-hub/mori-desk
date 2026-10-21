@@ -57,6 +57,7 @@ namespace MoriDesk {
   internal string SessionForTests {get{return session;}}
   internal MatureCanvasDocument DocumentForTests {get{return document;}}
   internal Action<string> PostForTests {get;set;}
+  internal Func<Task> LoadNoticeDelayForTests {get;set;}
   public static bool IsAvailable {get{return File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"web","canvas","index.html"));}}
   static JavaScriptSerializer Json(){return new JavaScriptSerializer{MaxJsonLength=128*1024*1024,RecursionLimit=64};}
   static Dictionary<string,object> Map(object value){var map=value as Dictionary<string,object>;if(map==null)throw new InvalidDataException("画布消息格式无效。");return map;}
@@ -66,13 +67,13 @@ namespace MoriDesk {
 
   public MatureCanvasWindow(string dataRoot,string id=null,string[] paths=null,Action changed=null,Func<Settings> preferencesProvider=null,Action openSettings=null,bool isNewProject=false){
    if(!IsAvailable)throw new FileNotFoundException("成熟画布组件未打包，请使用完整的 Nook 安装包。");
-   this.dataRoot=dataRoot;this.changed=changed;this.preferencesProvider=preferencesProvider??(()=>new Settings());this.openSettings=openSettings;startingPaths=paths??new string[0];
+   this.dataRoot=dataRoot;this.changed=changed;this.preferencesProvider=preferencesProvider??(()=>new Settings());this.openSettings=openSettings;startingPaths=paths==null?new string[0]:paths.ToArray();
    store=new MatureCanvasStore(dataRoot);legacy=new FreeCanvasStore(dataRoot);
    if(id==null)id=legacy.LastOpenedId;
    document=id==null?CreateDocument():(store.Exists(id)?store.Load(id):store.CreateFromLegacy(legacy.Load(id)));
    defaultsPending=defaultsPending||isNewProject;
    Title="Nook · "+document.Name;Width=1220;Height=820;MinWidth=820;MinHeight=480;
-   WindowStartupLocation=WindowStartupLocation.CenterScreen;Theme.Attach(this,null);Topmost=document.Pinned;UseLayoutRounding=true;
+   WindowStartupLocation=WindowStartupLocation.CenterScreen;InitialWindowPlacement.Attach(this);Theme.Attach(this,null);Topmost=document.Pinned;UseLayoutRounding=true;
    WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.CanResize;
    WindowChrome.SetWindowChrome(this,new WindowChrome{CaptionHeight=36,ResizeBorderThickness=new Thickness(5),GlassFrameThickness=new Thickness(0),CornerRadius=new CornerRadius(0),UseAeroCaptionButtons=false});
    var root=new Grid();root.RowDefinitions.Add(new RowDefinition{Height=new GridLength(36)});root.RowDefinitions.Add(new RowDefinition{Height=new GridLength(1,GridUnitType.Star)});root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
@@ -97,7 +98,7 @@ namespace MoriDesk {
    feedback.Visibility=Visibility.Collapsed;feedback.Margin=new Thickness(12,5,12,6);feedback.FontSize=11;feedback.TextWrapping=TextWrapping.Wrap;feedback.SetResourceReference(TextBlock.ForegroundProperty,"Muted");Grid.SetRow(feedback,2);root.Children.Add(feedback);
    var frame=new Border{Child=root,BorderThickness=new Thickness(1)};frame.SetResourceReference(Border.BorderBrushProperty,"Divider");Content=frame;
    StateChanged+=(s,e)=>{maximizeButton.Content=CanvasIcons.Create(WindowState==WindowState.Maximized?"restore":"maximize",maximizeButton,14);System.Windows.Automation.AutomationProperties.SetName(maximizeButton,WindowState==WindowState.Maximized?"还原窗口":"最大化");frame.Margin=WindowState==WindowState.Maximized?new Thickness(7):new Thickness(0);};
-   RefreshControls();
+   RefreshControls();Status("正在启动画布… 可点击右上角 × 取消，稍后重新打开重试。");
    Loaded+=async(s,e)=>{await Initialize();};Closing+=ClosingCanvas;Closed+=(s,e)=>DisposeCanvas();Theme.Changed+=ThemeChanged;
   }
   Button AddButton(Panel panel,string icon,string title,Action action,string hint,bool project=true,double width=34){
@@ -215,11 +216,16 @@ namespace MoriDesk {
     string type=Text(message,"type");requestId=Text(message,"requestId");if(requestId!=null&&!ValidRequestId(requestId))return;
     if(type=="ready"){
      // A reload must not silently replace edits in the browser with older data.
-     if(ready){Status("画布请求重复加载，当前画布不会被覆盖。");return;}ready=true;LoadIntoBrowser();legacy.RememberOpened(document.Id);return;
+     if(ready){Status("画布请求重复加载，当前画布不会被覆盖。");return;}ready=true;try{LoadIntoBrowser();legacy.RememberOpened(document.Id);}catch{EngineFailed("画布加载连接未完成，原项目保留；可关闭后重新打开重试。");throw;}return;
     }
     messageSession=Text(message,"session");if(messageSession!=session)return;
     object value;var payload=message.TryGetValue("payload",out value)&&value!=null?Map(value):new Dictionary<string,object>();
-    if(type=="loaded"){loaded=true;defaultsPending=false;firstLoad.TrySetResult(true);RefreshControls();Post("interaction",null,new{enabled=!transitioning});if(loadCompletion!=null)loadCompletion.TrySetResult(true);if(!startingImagesApplied){startingImagesApplied=true;if(startingPaths.Length>0)await ImportImagesAsync(startingPaths);}return;}
+    if(type=="loaded"){
+     if(loaded)return;try{loaded=true;defaultsPending=false;RefreshControls();Post("interaction",null,new{enabled=!transitioning});if(loadCompletion!=null)loadCompletion.TrySetResult(true);Status("已保存");}catch{EngineFailed("画布加载确认未完成，原项目保留；可关闭后重新打开重试。");throw;}
+     // Startup images belong to this window's first operation. Do not release
+     // readiness before their durable import, or apply them twice on late ACKs.
+     if(!startingImagesApplied){startingImagesApplied=true;try{if(startingPaths.Length>0)await ImportImagesAsync(startingPaths);firstLoad.TrySetResult(true);}catch{firstLoad.TrySetResult(false);throw;}}return;
+    }
     if(type=="toolVisibilityChanged"){if(payload.TryGetValue("visible",out value)&&value is bool){toolsVisible=(bool)value;RefreshControls();}return;}
     if(type=="imagesAdded"){TaskCompletionSource<int> imported;if(requestId!=null&&imageImports.TryGetValue(requestId,out imported)&&payload.TryGetValue("count",out value)&&value is int)imported.TrySetResult((int)value);return;}
     if(type=="thumbnail"){
@@ -256,38 +262,46 @@ namespace MoriDesk {
    TaskCompletionSource<bool> waiter;if(flushes.TryGetValue(requestId,out waiter))waiter.TrySetResult(true);
    NotifyChanged();
   }
-  void LoadIntoBrowser(){loaded=false;loadCompletion=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);heading.Text="Nook · "+document.Name;Title="Nook · "+document.Name;Topmost=document.Pinned;RefreshControls();var preferences=preferencesProvider();Post("load",null,new{scene=Json().DeserializeObject(store.BrowserScene(document)),name=document.Name,pinned=document.Pinned,revision=revision,isNewProject=defaultsPending,canvasPreferences=new{gridDefault=preferences.CanvasGrid,toolsVisibleDefault=preferences.CanvasShowTools,snapMode=preferences.CanvasSnap,zoomSpeed=preferences.CanvasZoomSpeed,defaultDash=preferences.CanvasDash,defaultSize=preferences.CanvasSize,saveDelay=preferences.CanvasSaveDelay},theme=Theme.Current=="light"?"light":"dark"});Status("自动保存 · 中键 / 空格拖动画布 · Alt＋滚轮缩放");}
-  async Task ConfirmLoaded(){var pending=loadCompletion;if(pending==null||await Task.WhenAny(pending.Task,Task.Delay(15000))!=pending.Task||!await pending.Task)throw new IOException("项目尚未载入，未添加新图片；请稍后重试。");}
+  void LoadIntoBrowser(){loaded=false;loadCompletion=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);heading.Text="Nook · "+document.Name;Title="Nook · "+document.Name;Topmost=document.Pinned;RefreshControls();Status("正在载入画布… 可点击右上角 × 取消，稍后重新打开重试。");var preferences=preferencesProvider();Post("load",null,new{scene=Json().DeserializeObject(store.BrowserScene(document)),name=document.Name,pinned=document.Pinned,revision=revision,isNewProject=defaultsPending,canvasPreferences=new{gridDefault=preferences.CanvasGrid,toolsVisibleDefault=preferences.CanvasShowTools,snapMode=preferences.CanvasSnap,zoomSpeed=preferences.CanvasZoomSpeed,defaultDash=preferences.CanvasDash,defaultSize=preferences.CanvasSize,saveDelay=preferences.CanvasSaveDelay},theme=Theme.Current=="light"?"light":"dark"});}
+  async Task WaitForLoad(Task<bool> pending,string progress){
+   if(pending==null)throw new IOException("画布尚未开始载入，原素材保留。");
+   if(!pending.IsCompleted){var notice=LoadNoticeDelayForTests==null?Task.Delay(15000):LoadNoticeDelayForTests();if(await Task.WhenAny(pending,notice)==notice&&!pending.IsCompleted&&!disposed)Status(progress+" 可继续等待，或点击右上角 × 取消后重新打开重试；不会自动重复添加。");}
+   // A slow renderer is not a failed import. Its original request stays owned
+   // here until an ACK, EngineFailed or DisposeCanvas completes this promise.
+   if(!await pending||disposed)throw new IOException("画布已关闭或未能载入，本次添加已停止；原素材保留。");
+  }
+  void EnsureCanvasContext(MatureCanvasDocument target,string expectedSession){if(disposed||!ready||!loaded||session!=expectedSession||!Object.ReferenceEquals(target,document))throw new IOException("画布已关闭、切换或连接失效；没有向其他项目添加图片。");}
+  async Task ConfirmLoaded(){var target=document;string expectedSession=session;var pending=loadCompletion;await WaitForLoad(pending==null?null:pending.Task,"画布载入比平时慢，图片仍在等待添加。");EnsureCanvasContext(target,expectedSession);}
   async Task<bool> Flush(){
    if(!ready||!loaded||disposed)return false;string id="flush_"+Guid.NewGuid().ToString("N");var waiter=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);flushes.Add(id,waiter);
    try{Post("flush",id,new{});if(await Task.WhenAny(waiter.Task,Task.Delay(15000))!=waiter.Task){Status("保存没有完成，窗口保持打开。请稍后重试，原项目不会被覆盖。");return false;}return await waiter.Task;}finally{flushes.Remove(id);}
   }
   async Task ReplaceProject(Func<MatureCanvasDocument> create){
-   await operations.WaitAsync();try{var next=await Task.Run(()=>{lock(resourceGate){return create();}});document=next;revision=0;session=Guid.NewGuid().ToString("N");LoadIntoBrowser();}finally{operations.Release();}
+   var previous=document;string previousSession=session;await operations.WaitAsync();try{EnsureCanvasContext(previous,previousSession);var next=await Task.Run(()=>{lock(resourceGate){return create();}});EnsureCanvasContext(previous,previousSession);document=next;revision=0;session=Guid.NewGuid().ToString("N");LoadIntoBrowser();}finally{operations.Release();}
    await ConfirmLoaded();legacy.RememberOpened(document.Id);
   }
   public async Task<bool> OpenProjectAsync(string id,string[] paths=null,bool isNewProject=false){
    if(!CanImportImages)return false;Transition(true);try{if((document.Id!=id||(paths!=null&&paths.Length>0))&&!await Flush())return false;if(document.Id!=id){defaultsPending=isNewProject;await ReplaceProject(()=>store.Exists(id)?store.Load(id):store.CreateFromLegacy(legacy.Load(id)));}if(paths!=null&&paths.Length>0)await ImportCore(paths);return true;}
    catch(Exception error){Status("项目未切换 / 未能添加："+error.Message);return false;}finally{Transition(false);}
   }
-  public async Task WaitUntilReadyAsync(){if(await Task.WhenAny(firstLoad.Task,Task.Delay(15000))!=firstLoad.Task||!await firstLoad.Task)throw new IOException("画布未能启动，原素材保留；请关闭后重试。");}
+  public async Task WaitUntilReadyAsync(){if(CanImportImages)return;var target=document;string expectedSession=session;await WaitForLoad(firstLoad.Task,"画布启动比平时慢，图片仍在等待添加。");EnsureCanvasContext(target,expectedSession);}
   public async Task<bool> PrepareProjectChangeAsync(){if(!CanImportImages)return false;Transition(true);try{return await Flush();}finally{Transition(false);}}
   public async Task ImportImagesAsync(string[] paths){if(!CanImportImages)throw new IOException("请等待画布启动 / 保存完成。");Transition(true);try{if(!await Flush())throw new IOException("当前画布尚未保存，图片没有加入。");await ImportCore(paths);}finally{Transition(false);}}
   async Task ImportCore(string[] paths){
    var files=CanvasProjectsPage.ImageFiles(paths);if(files.Length==0)throw new InvalidDataException("请添加图片文件；文件夹不会展开导入。");if(files.Length>200)throw new InvalidDataException("每次请添加不超过 200 张图片。");
-   string request="images_"+Guid.NewGuid().ToString("N");var imported=new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);int count=0;imageImports.Add(request,imported);
+   var target=document;string expectedSession=session;string request="images_"+Guid.NewGuid().ToString("N");var imported=new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);int count=0;imageImports.Add(request,imported);
    try{await operations.WaitAsync();try{
-    var target=document;var images=new List<object>();foreach(string path in files){
+    EnsureCanvasContext(target,expectedSession);var images=new List<object>();foreach(string path in files){
      // Import and bounded preview decoding stay sequential on the worker;
      // only immutable dimensions and resource identity return to the UI.
-     var image=await Task.Run(()=>{lock(resourceGate){var resource=store.RegisterImage(target,path);var bitmap=store.Preview(target,resource.FileId);return new{id=resource.FileId,src=MatureCanvasStore.ResourceUrl(target.Id,resource.FileId),width=bitmap.PixelWidth,height=bitmap.PixelHeight,mimeType="image/png",name=Path.GetFileName(path)};}});images.Add(image);
+     var image=await Task.Run(()=>{lock(resourceGate){var resource=store.RegisterImage(target,path);var bitmap=store.Preview(target,resource.FileId);return new{id=resource.FileId,src=MatureCanvasStore.ResourceUrl(target.Id,resource.FileId),width=bitmap.PixelWidth,height=bitmap.PixelHeight,mimeType="image/png",name=Path.GetFileName(path)};}});EnsureCanvasContext(target,expectedSession);images.Add(image);
     }
     // Resources are durable before the browser adds shapes. A failed canvas
     // edit can leave an unreferenced resource, never a dangling saved image.
-    await Task.Run(()=>{lock(resourceGate){store.Save(target);}});count=images.Count;Post("addImages",request,new{images=images});Status("正在加入 "+images.Count+" 张图片…");
+    EnsureCanvasContext(target,expectedSession);await Task.Run(()=>{lock(resourceGate){store.Save(target);}});EnsureCanvasContext(target,expectedSession);count=images.Count;Post("addImages",request,new{images=images});Status("正在加入 "+images.Count+" 张图片…");
    }finally{operations.Release();}
    if(await Task.WhenAny(imported.Task,Task.Delay(15000))!=imported.Task||await imported.Task!=count)throw new IOException("图片添加未确认，请检查当前画布后再重试，避免重复添加。");
-   if(!await Flush())throw new IOException("图片已在当前窗口中，但尚未保存；请保留窗口并重试保存。");Status("已保存");
+   EnsureCanvasContext(target,expectedSession);if(!await Flush())throw new IOException("图片已在当前窗口中，但尚未保存；请保留窗口并重试保存。");EnsureCanvasContext(target,expectedSession);Status("已保存");
    }finally{imageImports.Remove(request);}
   }
   async void PickImages(){if(!CanImportImages)return;var dialog=new Microsoft.Win32.OpenFileDialog{Title="添加图片到画布",Multiselect=true,Filter="图片|*.png;*.jpg;*.jpeg;*.gif;*.webp;*.bmp;*.tif;*.tiff;*.svg;*.avif;*.psd;*.ai|所有文件|*.*"};if(dialog.ShowDialog(this)!=true)return;try{await ImportImagesAsync(dialog.FileNames);}catch(Exception error){Status("图片未添加："+error.Message);}}
@@ -304,7 +318,7 @@ namespace MoriDesk {
   async void DropIntoCanvas(object sender,DragEventArgs e){if(!CanImportImages){e.Handled=true;e.Effects=DragDropEffects.None;return;}string[] paths=null;DesktopImageDrop captured=null;string staged=null;try{if(DesktopImageDrop.CanRead(e.Data))captured=DesktopImageDrop.Capture(e.Data);else paths=CanvasProjectsPage.ImageFiles(e.Data.GetData(DataFormats.FileDrop) as string[]);e.Handled=true;e.Effects=DragDropEffects.Copy;if(captured!=null){staged=await captured.Stage();paths=new[]{staged};}await ImportImagesAsync(paths);}catch(Exception error){Status("图片未能添加："+error.Message);}finally{DesktopImageDrop.Cleanup(staged);}}
   void ThemeChanged(){if(ready)Post("theme",null,new{theme=Theme.Current=="light"?"light":"dark"});}
   public async void SaveAndRun(Action action){if(transitioning||disposed)return;Transition(true);try{if(!ready||!loaded){PreparedForExit=true;action();return;}if(await Flush()){PreparedForExit=true;action();}}catch(Exception error){Status("退出前保存未完成："+error.Message+" 窗口保持打开。");}finally{if(!disposed)PreparedForExit=false;Transition(false);}}
-  void ClosingCanvas(object sender,CancelEventArgs e){if(PreparedForExit||!ready||!loaded)return;e.Cancel=true;if(transitioning){Status("画布正在切换 / 保存，请稍后关闭。");return;}SaveAndRun(Close);}
+  void ClosingCanvas(object sender,CancelEventArgs e){if(PreparedForExit||!ready||!loaded||(!firstLoad.Task.IsCompleted&&startingPaths.Length>0))return;e.Cancel=true;if(transitioning){Status("画布正在切换 / 保存，请稍后关闭。");return;}SaveAndRun(Close);}
   void DisposeCanvas(){disposed=true;ready=false;loaded=false;firstLoad.TrySetResult(false);if(loadCompletion!=null)loadCompletion.TrySetResult(false);Theme.Changed-=ThemeChanged;foreach(var waiter in flushes.Values)waiter.TrySetResult(false);foreach(var waiter in imageImports.Values)waiter.TrySetResult(-1);if(web!=null){web.Dispose();web=null;}}
  }
 }

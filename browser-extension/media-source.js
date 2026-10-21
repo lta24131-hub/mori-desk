@@ -187,13 +187,14 @@
     return targets.length === 1 && targets[0] === video ? current.url : '';
   }
   async function readBytes(response, max) {
-    if (Number(response.headers.get('content-length')) > max) throw new Error('资源太大，未继续读取');
+    const tooLarge = () => Object.assign(new Error(max === MAX_VIDEO ? '素材超过 20 MB，请保存原文件后拖入 Nook' : '资源太大，未继续读取'), {code:max === MAX_VIDEO ? 'MEDIA_TOO_LARGE' : 'PAGE_TOO_LARGE'});
+    if (Number(response.headers.get('content-length')) > max) throw tooLarge();
     const reader = response.body.getReader(), parts = []; let length = 0;
     try {
       while (true) {
         const {value,done} = await reader.read(); if (done) break;
         length += value.length;
-        if (length > max) throw new Error('资源太大，未继续读取');
+        if (length > max) throw tooLarge();
         parts.push(value);
       }
     } finally {try {await reader.cancel();} catch {}}
@@ -238,7 +239,7 @@
           for (let i=0;i<bytes.length;i+=16384) binary += String.fromCharCode(...bytes.subarray(i,i+16384));
           return {...item,url:`data:${type};base64,${btoa(binary)}`,source:target.url};
         }
-      } catch (error) {if (controller.signal.aborted) throw error;}
+      } catch (error) {if (controller.signal.aborted || error.code === 'MEDIA_TOO_LARGE') throw error;}
       // A matching but incomplete live-page record is the IG12-URL case.
       // Prefer its small public embed before requesting the full page again.
       if (initial.matched) {

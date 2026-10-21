@@ -257,6 +257,13 @@ internal static class CaptureOutputLifecycleTests {
             check(!Closed(f.Capture.Window)&&f.Capture.Window.IsCaptureOverlaySuspended&&!f.Session.IsDisposed,"confirmed scrolling output awaits its terminal message without premature teardown: "+outcome);
         }
         using(var f=new ScrollingFixture()){
+            var reply=Await(f.Export("pin"));var bounds=f.Capture.Outputs.Bounds;var image=f.Capture.Outputs.Image;
+            check(reply.status=="ok"&&f.Capture.Outputs.Kind=="pin"&&image.PixelWidth==40&&image.PixelHeight==600,"scrolling Pin uses the verified stitched image");
+            check(Math.Abs(bounds.Width-image.PixelWidth*(bounds.Height/(double)image.PixelHeight))<=1,"scrolling Pin placement preserves final image aspect instead of reusing the short selection bounds");
+            var work=System.Windows.Forms.Screen.FromRectangle(new System.Drawing.Rectangle(-570,-80,300,220)).WorkingArea;
+            check(work.Contains(new System.Drawing.Rectangle(bounds.X,bounds.Y,bounds.Width,bounds.Height)),"scrolling Pin fits the source monitor working area");
+        }
+        using(var f=new ScrollingFixture()){
             f.Capture.Window.Close();
             // A dispatch already queued by an old helper must not read its
             // missing image or invoke a destination after its source closed.
@@ -436,6 +443,12 @@ internal static class CaptureOutputLifecycleTests {
         foreach(var work in new[]{new System.Drawing.Rectangle(-1920,-120,1920,1080),new System.Drawing.Rectangle(0,0,800,600),new System.Drawing.Rectangle(2560,0,3840,2160)})foreach(double dpi in new[]{1.0,1.5,2.0}){
             var bounds=CaptureWindow.TextViewerBounds(work,dpi,dpi);
             check(work.Contains(new System.Drawing.Rectangle(bounds.X,bounds.Y,bounds.Width,bounds.Height))&&bounds.Width<work.Width&&bounds.Height<work.Height,"reader placement stays non-fullscreen inside source monitor at "+work.X+" scale "+dpi);
+            foreach(var size in new[]{new System.Drawing.Size(1200,12000),new System.Drawing.Size(2400,900),new System.Drawing.Size(40,600)}){
+                var crop=new System.Drawing.Rectangle(work.Right-320,work.Bottom-240,300,220);
+                var pin=CaptureWindow.ScrollingPinBounds(size.Width,size.Height,crop,work,dpi,dpi);
+                check(work.Contains(new System.Drawing.Rectangle(pin.X,pin.Y,pin.Width,pin.Height))&&pin.Width<=size.Width&&pin.Height<=size.Height,"long pin fits negative-origin and high-DPI work areas without upscaling / "+size+" / "+dpi);
+                check(Math.Abs(pin.Width-size.Width*(pin.Height/(double)size.Height))<=Math.Max(1,size.Width/(double)size.Height),"long pin preserves final aspect within integer-pixel rounding / "+size+" / "+dpi);
+            }
         }
     }
 }

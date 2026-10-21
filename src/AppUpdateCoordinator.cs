@@ -179,7 +179,7 @@ namespace MoriDesk {
  // browser profile, credential file, source media or canvas images are copied.
  internal static class AppUpdateMetadataBackup {
   internal const long MaximumBytes=128L*1024*1024,MaximumFileBytes=64L*1024*1024;
-  static readonly string[] LibraryKeys=("LibraryPath Theme ThumbnailSize LeftSidebarWidth RightSidebarWidth WaterfallLayout ShowAssetNames ShowAssetDetails LeftSidebarVisible RightSidebarVisible StartupSection DefaultSort ThemeAccent CloseToTray ConfirmTrash BookmarkOpenInApp AnimateImages PreviewBackdrop MediaVolume MediaMuted MediaAutoPlay MediaLoop CanvasDefaultTopmost CanvasSaveDelay CanvasCacheMB CanvasGrid CanvasShowTools CanvasSnap CanvasZoomSpeed CanvasDash CanvasSize").Split(' ');
+  static readonly string[] LibraryKeys=("LibraryPath FileConversionOutputPath Theme ThumbnailSize LeftSidebarWidth RightSidebarWidth WaterfallLayout ShowAssetNames ShowAssetDetails LeftSidebarVisible RightSidebarVisible StartupSection DefaultSort ThemeAccent CloseToTray ConfirmTrash BookmarkOpenInApp AnimateImages PreviewBackdrop MediaVolume MediaMuted MediaAutoPlay MediaLoop CanvasDefaultTopmost CanvasSaveDelay CanvasCacheMB CanvasGrid CanvasShowTools CanvasSnap CanvasZoomSpeed CanvasDash CanvasSize").Split(' ');
   static readonly string[] CaptureKeys=("Stroke Color OcrLanguage TranslationProvider SaveFolder").Split(' ');
   internal static string SanitizeSettings(string text,bool capture){
    var json=new JavaScriptSerializer{MaxJsonLength=4*1024*1024,RecursionLimit=16};var source=json.Deserialize<Dictionary<string,object>>(text);if(source==null)throw new InvalidDataException("设置备份内容为空。");

@@ -14,8 +14,8 @@ using System.Web.Script.Serialization;
 using Microsoft.Win32;
 [assembly: AssemblyTitle("Nook Installer")]
 [assembly: AssemblyProduct("Nook Installer")]
-[assembly: AssemblyVersion("0.1.25.0")]
-[assembly: AssemblyFileVersion("0.1.25.0")]
+[assembly: AssemblyVersion("0.1.26.0")]
+[assembly: AssemblyFileVersion("0.1.26.0")]
 namespace MoriDeskInstaller {
  internal sealed class UpdateRequest {
   internal string RequestPath,SessionDirectory,ParentExecutable,ExpectedVersion;
@@ -26,7 +26,7 @@ namespace MoriDeskInstaller {
   internal UpdateCancelledException(string message,Exception inner):base(message,inner){}
  }
  static class Program {
-  const string Version="0.1.25";
+  const string Version="0.1.26";
   internal static string InstallerVersion {get{return Version;}}
   static string ProgramRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk");}}
   static string UpdatesRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MoriDesk","updates");}}

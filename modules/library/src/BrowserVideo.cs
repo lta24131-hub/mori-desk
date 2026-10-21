@@ -44,10 +44,7 @@ namespace Mori {
   internal event Action<double,int,int> Opened;internal event Action<double> PositionChanged;internal event Action Ended,Failed,CloseRequested;internal event Action<string> Key;
   internal event Action<byte[],int,int> Thumbnail;
   internal BrowserVideo(string path){file=Path.GetFullPath(path);audio=MediaTypes.Audio.Contains(Path.GetExtension(file));}
-  internal static string MimeType(string path){switch(Path.GetExtension(path).ToLowerInvariant()){
-   case ".webm":return "video/webm";case ".mov":return "video/quicktime";case ".avi":return "video/x-msvideo";case ".mkv":return "video/x-matroska";case ".wmv":return "video/x-ms-wmv";case ".mpeg":case ".mpg":return "video/mpeg";case ".mts":case ".m2ts":case ".ts":return "video/mp2t";case ".3gp":return "video/3gpp";case ".ogv":return "video/ogg";
-   case ".mp3":return "audio/mpeg";case ".wav":return "audio/wav";case ".m4a":return "audio/mp4";case ".aac":return "audio/aac";case ".flac":return "audio/flac";case ".ogg":case ".opus":return "audio/ogg";case ".wma":return "audio/x-ms-wma";case ".aif":case ".aiff":return "audio/aiff";default:return "video/mp4";
-  }}
+  internal static string MimeType(string path){return MoriDesk.FileFormats.MediaMimeType(path);}
   internal static bool Available {get{try{return !string.IsNullOrEmpty(CoreWebView2Environment.GetAvailableBrowserVersionString());}catch{return false;}}}
   internal async Task Start(){
    try{

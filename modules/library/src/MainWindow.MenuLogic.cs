@@ -44,10 +44,10 @@ namespace Mori {
    var item=new MenuItem{Header=title,InputGestureText=shortcut,IsEnabled=enabled};item.Click+=delegate{action();};return item;
   }
   internal ContextMenu CreateMoreMenu(){
-   if(canvasProjectsMode){var projects=Theme.Menu(Window);projects.Items.Add(ActionItem("新建画布",canvasProjectsPage.CreateProject,"Ctrl+N",!busy&&(freeCanvas==null||freeCanvas.CanImportImages)));projects.Items.Add(ActionItem("刷新项目",canvasProjectsPage.Refresh,"F5",!busy));projects.Items.Add(ActionItem("设置",ShowDeskSettings));projects.Items.Add(new Separator());projects.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return projects;}
-   if(browserMode){var browsing=Theme.Menu(Window);browsing.Items.Add(ActionItem("返回收藏",HideBrowser));browsing.Items.Add(ActionItem("设置",ShowDeskSettings));browsing.Items.Add(new Separator());browsing.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return browsing;}
-   if(boardMode){var desktop=Theme.Menu(Window);desktop.Items.Add(ActionItem("设置",ShowDeskSettings));desktop.Items.Add(ActionItem("图库高级管理",()=>{HideBoard();Navigate("all");}));desktop.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));desktop.Items.Add(new Separator());desktop.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return desktop;}
-   if(referenceMode){var local=Theme.Menu(Window);local.Items.Add(ActionItem("返回素材库",HideReferences));local.Items.Add(ActionItem("设置",ShowDeskSettings));local.Items.Add(new Separator());local.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return local;}
+   if(canvasProjectsMode){var projects=Theme.Menu(Window);projects.Items.Add(ActionItem("新建画布",canvasProjectsPage.CreateProject,"Ctrl+N",!busy&&(freeCanvas==null||freeCanvas.CanImportImages)));projects.Items.Add(ActionItem("刷新项目",canvasProjectsPage.Refresh,"F5",!busy));projects.Items.Add(ActionItem("设置",ShowDeskSettings));projects.Items.Add(new Separator());projects.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(projects);}
+   if(browserMode){var browsing=Theme.Menu(Window);browsing.Items.Add(ActionItem("返回收藏",HideBrowser));browsing.Items.Add(ActionItem("设置",ShowDeskSettings));browsing.Items.Add(new Separator());browsing.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(browsing);}
+   if(boardMode){var desktop=Theme.Menu(Window);desktop.Items.Add(ActionItem("设置",ShowDeskSettings));desktop.Items.Add(ActionItem("图库高级管理",()=>{HideBoard();Navigate("all");}));desktop.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));desktop.Items.Add(new Separator());desktop.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(desktop);}
+   if(referenceMode){var local=Theme.Menu(Window);local.Items.Add(ActionItem("返回素材库",HideReferences));local.Items.Add(ActionItem("设置",ShowDeskSettings));local.Items.Add(new Separator());local.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(local);}
    var menu=Theme.Menu(Window);AddUndoMenu(menu);menu.Items.Add(ActionItem("收藏网址…",()=>AddBookmark(""),"",!busy));
    var import=new MenuItem{Header="导入",IsEnabled=!busy};
    import.Items.Add(ActionItem("素材文件…",ChooseMediaFiles));
@@ -63,7 +63,11 @@ namespace Mori {
    while(viewMenu.Items.Count>0){var entry=viewMenu.Items[0];viewMenu.Items.RemoveAt(0);display.Items.Add(entry);}menu.Items.Add(display);
    menu.Items.Add(new Separator());menu.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));
    menu.Items.Add(ActionItem("操作说明",delegate{MessageBox.Show(Window,"全部素材汇总图片（含动图 / SVG / PSD / PDF 兼容 AI）、视频和音频；也可分别浏览。\n网址、文档单独显示，不混入全部素材。\n现有素材分类、星标和回收站仍包含所有本地类型，可筛选；网址文件夹独立管理。\n音视频双击播放，可调节音量和拖动进度；视频 F11 全屏，Esc 先退出全屏。\nPDF 可翻页，Office 文件仅预览文字内容，不保留原版式。\n\nCtrl+F：搜索当前页面    Ctrl+O：导入\nCtrl+C：复制素材 / 网址    Ctrl+V：粘贴收藏\nSpace：预览 / 打开    Esc：取消选择\nCtrl+Z：撤销可恢复操作    F5：刷新\n\n删除分类保留内容；移到回收站可以恢复；永久删除会确认。\n搜索支持名称、标签、备注；相似图片不是 AI 语义搜索。","Nook · 操作说明");}));
-   menu.Items.Add(new Separator());menu.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return menu;
+   menu.Items.Add(new Separator());menu.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(menu);
+  }
+  ContextMenu WithQuickConversionCancel(ContextMenu menu){
+   if(QuickConversionRunning){menu.Items.Insert(0,ActionItem("取消本次转换",CancelQuickConversion));menu.Items.Insert(1,new Separator());}
+   return menu;
   }
   void ShowBrowserExtension(){
    OpenDeskSettings("browser");
@@ -83,6 +87,7 @@ namespace Mori {
    menu.Items.Add(ActionItem(web?(multi?"复制选中网址":"复制网址"):"复制选中文件",CopySelection,"Ctrl+C",!busy));
    menu.Items.Add(ActionItem(web?"导出网址快捷方式…":"导出选中素材…",Export,"",!busy&&!selected.Any(x=>x.IsDirectory)));
    if(view!="trash"&&selected.Count>0&&selected.All(x=>SectionContains(x,"pictures")))menu.Items.Add(ActionItem("加入自由画布…",AddSelectionToFreeCanvas,"",!busy));
+   var conversion=CreateQuickConversionMenu();if(conversion!=null)menu.Items.Add(conversion);
    menu.Items.Add(new Separator());
    if(view=="trash")menu.Items.Add(ActionItem("恢复素材",RestoreTrash,"",!busy));
    else{

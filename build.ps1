@@ -1,4 +1,4 @@
-param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory)
+param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory,[string]$FileConversionDirectory)
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
@@ -64,6 +64,26 @@ if($ScrollCaptureDirectory){
  New-Item -ItemType Directory -Path $scrollTarget | Out-Null
  Get-ChildItem -LiteralPath $scrollRoot | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination $scrollTarget -Recurse}
 }else{Write-Warning 'Capture helper omitted from this development build. Release packaging requires -ScrollCaptureDirectory.'}
+if($FileConversionDirectory){
+ $conversionRoot=[IO.Path]::GetFullPath($FileConversionDirectory)
+ foreach($required in @('Nook.FileConversion.exe','Nook.FileConversion.dll','Nook.FileConversion.runtimeconfig.json','component.json','upstream.json','licenses\LICENSE-Filee.txt','licenses\THIRD-PARTY-NOTICES.md')){
+  if(!(Test-Path -LiteralPath (Join-Path $conversionRoot $required) -PathType Leaf)){throw ('Incomplete conversion component: '+$required)}
+ }
+ $conversionManifest=Get-Content -LiteralPath (Join-Path $conversionRoot 'component.json') -Raw | ConvertFrom-Json
+ if($conversionManifest.schemaVersion -ne 1 -or $conversionManifest.component -ne 'file-conversion' -or $conversionManifest.upstreamCommit -ne '49911afab6eef81f144543710f1aa8021c617ff1'){throw 'Unexpected conversion component revision'}
+ . (Join-Path $suiteRoot 'modules\file-conversion\Validate-Component.ps1')
+ Assert-ConversionEngineInventory $conversionRoot $conversionManifest
+ foreach($item in @(@('Nook.FileConversion.exe','applicationSha256'),@('Nook.FileConversion.dll','applicationAssemblySha256'))){
+  if((Get-FileHash -LiteralPath (Join-Path $conversionRoot $item[0]) -Algorithm SHA256).Hash -ne $conversionManifest.($item[1])){throw ('Conversion component integrity check failed: '+$item[0])}
+ }
+ $conversionTarget=Join-Path $output 'file-conversion'
+ if(Test-Path -LiteralPath $conversionTarget){throw 'Use a fresh build directory when including file conversion; do not merge runtime versions.'}
+ New-Item -ItemType Directory -Path $conversionTarget | Out-Null
+ Get-ChildItem -LiteralPath $conversionRoot | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination $conversionTarget -Recurse}
+}else{
+ if(Test-Path -LiteralPath (Join-Path $output 'file-conversion')){throw 'An old conversion component is present. Use a fresh output directory or explicitly supply -FileConversionDirectory.'}
+ Write-Warning 'Experimental file conversion component omitted. Tools will explain its unavailability without downloading or starting an engine.'
+}
 if($Test){$testProcess=Start-Process "$output\Mori.exe" -ArgumentList '--suite-test' -Wait -PassThru -WindowStyle Hidden;if($testProcess.ExitCode -ne 0){throw 'Suite tests failed'}}
 if($CaptureTests){
  $captureTestSources=Get-ChildItem "$suiteRoot\modules\capture\tests\*.cs" | ForEach-Object FullName

@@ -39,7 +39,7 @@ namespace QingJie {
         public void SaveTranslation(PinRecord pin,BitmapSource image,string provider=null){var path=TranslationPath(pin);ImageFiles.Write(image,path+".tmp");if(File.Exists(path))File.Replace(path+".tmp",path,null);else File.Move(path+".tmp",path);pin.ShowTranslation=true;pin.TranslationPolicy=ImageTranslation.LayoutPolicy;pin.TranslationProvider=provider;Save();}
         void Load(){
             foreach(var path in new[]{Manifest,Manifest+".bak"}){try{if(!File.Exists(path))continue;var rows=new JavaScriptSerializer().Deserialize<List<PinRecord>>(File.ReadAllText(path));if(rows==null)continue;
-                foreach(var p in rows){try{if(p!=null&&File.Exists(ImagePath(p))&&!Records.Any(r=>r.Id==p.Id)){p.Left=Geometry.Clamp(p.Left,-100000,100000);p.Top=Geometry.Clamp(p.Top,-100000,100000);p.Width=Geometry.Clamp(p.Width,80,2500);p.Opacity=Geometry.Clamp(p.Opacity,.15,1);Records.Add(p);}}catch(InvalidDataException){}}
+                foreach(var p in rows){try{if(p!=null&&File.Exists(ImagePath(p))&&!Records.Any(r=>r.Id==p.Id)){p.Left=Geometry.Clamp(p.Left,-100000,100000);p.Top=Geometry.Clamp(p.Top,-100000,100000);p.Width=Geometry.Clamp(p.Width,1,2500);p.Opacity=Geometry.Clamp(p.Opacity,.15,1);Records.Add(p);}}catch(InvalidDataException){}}
                 loadedBackup=path!=Manifest;break;
             }catch{}}
             // If a power loss interrupted the index update, keep its PNG recoverable with F3.
@@ -125,9 +125,9 @@ namespace QingJie {
         BitmapSource translated,displayed;
         OcrPage translatedPage;
         ImageTranslationResult translationResult;
-        string translatedProvider,cacheWarning;
+        string translatedProvider,cacheWarning,ocrNotice;
         System.Threading.CancellationTokenSource translationRequest;
-        readonly Image picture=new Image {Name="PinPicture",Stretch=Stretch.Fill};
+        readonly Image picture=new Image {Name="PinPicture",Stretch=Stretch.Uniform};
         readonly TextBlock translationStatus=new TextBlock {Foreground=Brushes.White,FontSize=12,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(8)};
         Border statusCard;
         Button translationButton;
@@ -142,7 +142,7 @@ namespace QingJie {
             bool oldTranslation=pin.IsTranslation&&File.Exists(store.TranslationPath(pin))&&(pin.TranslationPolicy!=ImageTranslation.LayoutPolicy||pin.TranslationProvider!=Translation.Provider);
             if(pin.IsTranslation&&!oldTranslation&&File.Exists(store.TranslationPath(pin))){try{translated=Snapshot.Load(store.TranslationPath(pin));if(pin.ShowTranslation)displayed=translated;}catch{}}
             displayed=PinTransforms.Apply(displayed,pin.QuarterTurns,pin.FlipHorizontal,pin.FlipVertical);
-            double contentWidth=Geometry.Clamp(pin.Width,80,2500);Width=contentWidth+2*PinFrame.Inset;Height=contentWidth*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;Opacity=Geometry.Clamp(pin.Opacity,.15,1);
+            double contentWidth=Geometry.Clamp(pin.Width,1,2500);Width=contentWidth+2*PinFrame.Inset;Height=contentWidth*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;Opacity=Geometry.Clamp(pin.Opacity,.15,1);
             Left=pin.Left-PinFrame.Inset;Top=pin.Top-PinFrame.Inset;
             bool visible=System.Windows.Forms.Screen.AllScreens.Any(s=>s.WorkingArea.IntersectsWith(new System.Drawing.Rectangle((int)Left,(int)Top,(int)Width,(int)Height)));
             if(!visible){Left=100-PinFrame.Inset;Top=100-PinFrame.Inset;}
@@ -162,7 +162,7 @@ namespace QingJie {
             if(oldTranslation)Status("翻译规则已更新，原图保留。点击翻译可重新生成。");
             root.MouseLeftButtonDown+=(s,e)=>{Activate();toolbar.Hide();try{DragMove();}catch{}if(root.IsMouseOver)toolbar.Show();};
             PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape){e.Handled=true;Close();}};
-            MouseWheel+=(s,e)=>{if((Keyboard.Modifiers&ModifierKeys.Control)!=0)Opacity=Geometry.Clamp(Opacity+(e.Delta>0?.05:-.05),.15,1);else{double width=Geometry.Clamp((Width-2*PinFrame.Inset)*(e.Delta>0?1.1:1/1.1),80,2500);Width=width+2*PinFrame.Inset;Height=width*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;}Changed();e.Handled=true;};
+            MouseWheel+=(s,e)=>{if((Keyboard.Modifiers&ModifierKeys.Control)!=0)Opacity=Geometry.Clamp(Opacity+(e.Delta>0?.05:-.05),.15,1);else{double width=Geometry.Clamp((Width-2*PinFrame.Inset)*(e.Delta>0?1.1:1/1.1),1,2500);Width=width+2*PinFrame.Inset;Height=width*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;}Changed();e.Handled=true;};
             LocationChanged+=(s,e)=>{Changed();toolbar.Reposition();};SizeChanged+=(s,e)=>{Changed();toolbar.Reposition();};
             Loaded+=(s,e)=>{if(bounds.HasValue){var b=bounds.Value;var dpi=VisualTreeHelper.GetDpi(this);int px=(int)Math.Round(PinFrame.Inset*dpi.DpiScaleX),py=(int)Math.Round(PinFrame.Inset*dpi.DpiScaleY);Native.SetWindowPos(new System.Windows.Interop.WindowInteropHelper(this).Handle,Native.Topmost,b.X-px,b.Y-py,b.Width+2*px,b.Height+2*py,0x0040);}initialized=true;Changed();if(ShowActivated){Activate();Focus();}};
             IsVisibleChanged+=(s,e)=>{if(!IsVisible){toolbar.MenuOpen=false;transforms.IsOpen=false;toolbar.Hide();}};
@@ -171,7 +171,7 @@ namespace QingJie {
             AppState.TranslationProviderChanged+=RefreshTranslationProvider;
             Closed+=(s,e)=>{closed=true;AppState.TranslationProviderChanged-=RefreshTranslationProvider;toolbar.Dispose();transforms.IsOpen=false;cancel.Cancel();translatedPage=null;translationResult=null;store.Removed(pin.Id);};
         }
-        void Status(string text){translationStatus.Text=text;statusCard.Visibility=Visibility.Visible;}
+        void Status(string text){translationStatus.Text=OcrService.WithNotice(text,ocrNotice);statusCard.Visibility=string.IsNullOrEmpty(translationStatus.Text)?Visibility.Collapsed:Visibility.Visible;}
         void OpenText(){
             Try(()=>{
                 if(translationResult!=null&&translatedPage!=null&&translatedProvider==Translation.Provider)new TextWindow(image,"zh",translatedPage,translationResult,translatedProvider).Show();
@@ -179,18 +179,18 @@ namespace QingJie {
             });
         }
         void TranslationResultStatus(){
-            if(translationResult==null||translationResult.UnplacedCount==0){if(!string.IsNullOrEmpty(cacheWarning))Status(cacheWarning);else statusCard.Visibility=Visibility.Collapsed;return;}
+            if(translationResult==null||translationResult.UnplacedCount==0){Status(cacheWarning);return;}
             Status("有 "+translationResult.UnplacedCount+" 处保留原文，未缓存不完整译图。 ");
             var link=new Hyperlink(new Run("查看完整译文"));link.Click+=(s,e)=>{e.Handled=true;OpenText();};translationStatus.Inlines.Add(link);
         }
         void RefreshTranslationProvider(){
             if(closed||!pin.IsTranslation)return;if(translationRequest!=null){translationRequest.Cancel();translationRequest=null;}
-            translating=false;translationResult=null;translatedPage=null;translated=null;translatedProvider=null;cacheWarning=null;pin.ShowTranslation=false;
+            translating=false;translationResult=null;translatedPage=null;translated=null;translatedProvider=null;cacheWarning=null;ocrNotice=null;pin.ShowTranslation=false;
             if(translationButton!=null)translationButton.IsEnabled=true;RefreshImage(false);Status("翻译服务已改变，点击翻译重新生成。");
         }
         public async void StartTranslation(){
-            if(translating||closed)return;var request=System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);translationRequest=request;string provider=Translation.Provider;translating=true;cacheWarning=null;if(translationButton!=null)translationButton.IsEnabled=false;Status("正在本机识别图片文字…");
-            try{var page=await OcrService.Read(image,request.Token);request.Token.ThrowIfCancellationRequested();if(closed||translationRequest!=request)return;var regions=ImageTranslation.Regions(page);if(regions.Count==0){Status("未识别到文字，原图已保留。");return;}
+            if(translating||closed)return;var request=System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);translationRequest=request;string provider=Translation.Provider;translating=true;cacheWarning=null;ocrNotice=null;if(translationButton!=null)translationButton.IsEnabled=false;Status("正在本机识别图片文字…");
+            try{var page=await OcrService.Read(image,request.Token);request.Token.ThrowIfCancellationRequested();if(closed||translationRequest!=request)return;ocrNotice=page.Notice;var regions=ImageTranslation.Regions(page);if(regions.Count==0){Status("未识别到文字，原图已保留。");return;}
                 Status("正在翻译 · 只发送文字，不上传截图…");var texts=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),request.Token,"zh",provider);request.Token.ThrowIfCancellationRequested();if(closed||translationRequest!=request||provider!=Translation.Provider)return;
                 translationResult=ImageTranslation.RenderWithStatus(image,regions,texts);translatedPage=page;translatedProvider=provider;translated=translationResult.Image;
                 // A partial preview is useful in this session, but must not become
@@ -202,7 +202,7 @@ namespace QingJie {
             finally{if(translationRequest==request){translationRequest=null;translating=false;if(!closed&&translationButton!=null)translationButton.IsEnabled=true;}request.Dispose();}
         }
         void Try(Action action){try{action();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Nook");}}
-        void RefreshImage(bool maintainScale){double scale=(Width-2*PinFrame.Inset)/displayed.PixelWidth;displayed=PinTransforms.Apply(pin.ShowTranslation&&translated!=null?translated:image,pin.QuarterTurns,pin.FlipHorizontal,pin.FlipVertical);picture.Source=displayed;if(maintainScale)Width=Geometry.Clamp(displayed.PixelWidth*scale,80,2500)+2*PinFrame.Inset;Height=(Width-2*PinFrame.Inset)*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;Changed();}
+        void RefreshImage(bool maintainScale){double scale=(Width-2*PinFrame.Inset)/displayed.PixelWidth;displayed=PinTransforms.Apply(pin.ShowTranslation&&translated!=null?translated:image,pin.QuarterTurns,pin.FlipHorizontal,pin.FlipVertical);picture.Source=displayed;if(maintainScale)Width=Geometry.Clamp(displayed.PixelWidth*scale,1,2500)+2*PinFrame.Inset;Height=(Width-2*PinFrame.Inset)*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;Changed();}
         void Changed(){if(!initialized)return;saveTimer.Stop();saveTimer.Start();}
         public void UpdateRecord(){pin.Left=Left+PinFrame.Inset;pin.Top=Top+PinFrame.Inset;pin.Width=Width-2*PinFrame.Inset;pin.Opacity=Opacity;}
         internal void Discard(){discarded=true;saveTimer.Stop();try{Close();}catch{}}

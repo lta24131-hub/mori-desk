@@ -16,7 +16,7 @@ namespace MoriDesk {
   internal static System.Windows.Int32Rect InitialBounds(int width,int height,System.Drawing.Rectangle work,int cascade){
    ImagePinBridge.ValidateDimensions(width,height);double scale=Math.Min(1,Math.Min(Math.Min(720,Math.Max(80,work.Width-48))/(double)width,Math.Max(80,work.Height-72)/(double)height));int w=Math.Max(1,(int)Math.Round(width*scale)),h=Math.Max(1,(int)Math.Round(height*scale));int offset=24+(Math.Abs(cascade%8)*24);return new System.Windows.Int32Rect(work.Left+Math.Max(12,Math.Min(offset,work.Width-w-12)),work.Top+Math.Max(12,Math.Min(offset,work.Height-h-12)),w,h);
   }
-  internal static void ShowOnDesktop(BitmapSource image){var screen=System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position);QingJie.AppState.Pins.NewAt(image,InitialBounds(image.PixelWidth,image.PixelHeight,screen.WorkingArea,placement++));}
+  internal static Task ShowOnDesktopAsync(BitmapSource image){var screen=System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position);return QingJie.AppState.Pins.NewAtAsync(image,InitialBounds(image.PixelWidth,image.PixelHeight,screen.WorkingArea,placement++),DeskRuntime.PinCancellation);}
   internal static BitmapSource Snapshot(Drawing.Image image){
    if(image==null)throw new InvalidOperationException("请先等待图片加载完成。");
    ImagePinBridge.ValidateDimensions(image.Width,image.Height);
@@ -30,7 +30,7 @@ namespace MoriDesk {
   internal static Task PinAsync(BitmapSource image){
    ImagePinBridge.ValidateDimensions(image.PixelWidth,image.PixelHeight);
    if(SinkForTests!=null)return SinkForTests(image);
-   if(DeskRuntime.Started&&QingJie.AppState.Pins!=null){if(QingJie.AppState.Quitting)throw new InvalidOperationException("Nook 正在退出，请稍后重试。");ShowOnDesktop(image);return Task.FromResult(true);}
+   if(DeskRuntime.Started&&QingJie.AppState.Pins!=null){if(QingJie.AppState.Quitting)throw new InvalidOperationException("Nook 正在退出，请稍后重试。");return ShowOnDesktopAsync(image);}
    return ImagePinBridge.SendAsync(Entry.DataRoot,image);
   }
   internal static async Task ShowAsync(Window owner,Drawing.Image image){

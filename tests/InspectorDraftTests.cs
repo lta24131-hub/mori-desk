@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Mori;
 
 namespace MoriDesk {
@@ -15,6 +16,7 @@ namespace MoriDesk {
   static TextBox Text(MainWindow main,string name){return (TextBox)main.Window.FindName(name);}
   static void Select(MainWindow main,params string[] ids){var selected=(HashSet<string>)Field(main,"selection");selected.Clear();foreach(string id in ids)selected.Add(id);Call(main,"UpdateInspector");}
   static List<Asset> Visible(MainWindow main){return (List<Asset>)Field(main,"visible");}
+  sealed class CloseTray:ITrayHost {public int Hidden;public bool Disposed;public void NotifyHidden(){Hidden++;}public void NotifyMessage(string message){}public void Dispose(){Disposed=true;}}
   public static void Run(string root,Action<bool,string> check){
    using(var lib=new Library(Path.Combine(root,"draft-library"))){
     string id=lib.Import(Path.Combine(root,"reference-photo.png"),"","draft fixture","","original","old note").Item.Id;
@@ -44,6 +46,45 @@ namespace MoriDesk {
      check(Visible(main).Count==0&&Text(main,"Notes").Text==""&&lib.All().Single(a=>a.Id==id).Notes=="new draft"&&!(bool)Field(main,"refreshDeferred"),"discard and deselect resumes pending filter without draft loss");
     }finally{main.Window.Close();ThumbnailImage.CurrentLibrary=null;}
    }
+   DirectClose(root,check);
+  }
+  static void DirectClose(string root,Action<bool,string> check){
+   string originalData=Environment.GetEnvironmentVariable("MORI_DESK_DATA"),oldTheme=Theme.Current;
+   var application=Application.Current??new Application();var shutdown=application.ShutdownMode;application.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+   Environment.SetEnvironmentVariable("MORI_DESK_DATA",Path.Combine(root,"draft-close-config"));
+   try{
+    var settings=new Settings{CloseToTray=false};settings.SaveTo(Path.Combine(Settings.ConfigDir,"settings.json"));
+    using(var library=new Library(Path.Combine(root,"draft-close-library"))){
+     string id=library.Import(Path.Combine(root,"reference-photo.png"),"","close fixture","","","saved note").Item.Id;
+     var main=new MainWindow(library){PreviewMode=true};main.DeferDeskServices();var tray=new CloseTray();main.AttachTray(tray);int closed=0,prompts=0;main.Window.Closed+=delegate{closed++;};
+     try{
+      Select(main,id);Text(main,"Notes").Text="keep this draft";main.PendingInformationChoice=()=>{prompts++;return MessageBoxResult.Cancel;};
+      // Exercise WPF's actual close path shared by the title-bar X and Alt+F4,
+      // not ExitApplication (which already had its own draft guard).
+      main.Window.Close();
+      check(closed==0&&prompts==1&&!tray.Disposed&&tray.Hidden==0&&Text(main,"Notes").Text=="keep this draft","direct close with close-to-tray disabled honors Cancel and retains the draft");
+      check(library.All().Single().Notes=="saved note"&&((DispatcherTimer)Field(main,"externalTimer")).IsEnabled,"canceling direct close leaves saved data and synchronization unchanged");
+      main.PendingInformationChoice=()=>{prompts++;return MessageBoxResult.Yes;};main.Window.Close();
+      check(closed==1&&prompts==2&&tray.Disposed&&library.All().Single().Notes=="keep this draft","saving during direct close commits notes before closing the window and tray");
+      check(!((DispatcherTimer)Field(main,"externalTimer")).IsEnabled,"accepted direct close stops synchronization only after the window closes");
+     }finally{if(closed==0){main.PendingInformationChoice=()=>MessageBoxResult.No;main.CloseForReplacement();}}
+
+     main=new MainWindow(library){PreviewMode=true};main.DeferDeskServices();closed=0;main.Window.Closed+=delegate{closed++;};
+     try{
+      Select(main,id);Text(main,"Name").Text=" ";Text(main,"Notes").Text="do not save";main.PendingInformationChoice=()=>MessageBoxResult.Yes;main.Window.Close();
+      check(closed==0&&Text(main,"Notes").Text=="do not save"&&library.All().Single().Name=="close fixture","direct close cannot claim to save an invalid blank name or discard its draft");
+      main.PendingInformationChoice=()=>MessageBoxResult.No;main.Window.Close();
+      check(closed==1&&library.All().Single().Notes=="keep this draft","direct close without a tray allows an explicit discard without overwriting saved notes");
+     }finally{if(closed==0){main.PendingInformationChoice=()=>MessageBoxResult.No;main.CloseForReplacement();}}
+
+     settings.CloseToTray=true;settings.SaveTo(Path.Combine(Settings.ConfigDir,"settings.json"));
+     main=new MainWindow(library){PreviewMode=true};main.DeferDeskServices();tray=new CloseTray();main.AttachTray(tray);closed=0;main.Window.Closed+=delegate{closed++;};
+     try{
+      Select(main,id);Text(main,"Notes").Text="tray draft";main.PendingInformationChoice=()=>{throw new Exception("hiding to tray must not prompt for metadata");};main.Window.Close();
+      check(closed==0&&!tray.Disposed&&tray.Hidden==1&&Text(main,"Notes").Text=="tray draft"&&library.All().Single().Notes=="keep this draft","close-to-tray still preserves pending edits without prompting or saving");
+     }finally{main.PendingInformationChoice=()=>MessageBoxResult.No;if(!tray.Disposed)main.CloseForReplacement();}
+    }
+   }finally{Environment.SetEnvironmentVariable("MORI_DESK_DATA",originalData);Theme.Set(oldTheme);ThumbnailImage.CurrentLibrary=null;application.ShutdownMode=shutdown;}
   }
  }
 }

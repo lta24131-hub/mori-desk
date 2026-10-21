@@ -20,7 +20,7 @@ namespace MoriDesk {
      BrowserStatus(main.Window,check);
      check(settings.Section=="general"&&All(settings).OfType<TextBox>().Any(t=>t.Text==library.Root),"settings open directly with actual save-location control");
      check(All(settings).OfType<CheckBox>().Count()==3&&All(settings).OfType<CheckBox>().Count(c=>!c.IsEnabled)==1,"general offers close/trash preferences while startup cannot mutate preview machine");
-     foreach(string appearance in new[]{"light","dark"})foreach(string section in new[]{"general","appearance","library","preview","capture","canvas","browser","about"}){
+     foreach(string appearance in new[]{"light","dark"})foreach(string section in new[]{"general","appearance","library","preview","capture","canvas","browser","conversion","about"}){
       Theme.Set(appearance);settings.Select(section);check(Application.Current.Windows.Count==windows,"settings navigation creates no additional window");
       var body=(FrameworkElement)settings.Content;body.Width=674;body.Height=640;body.Measure(new Size(674,640));body.Arrange(new Rect(0,0,674,640));body.UpdateLayout();
       var render=new RenderTargetBitmap(674,640,96,96,PixelFormats.Pbgra32);render.Render(body);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(render));using(var output=File.Create(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"settings-"+section+"-"+appearance+".png")))encoder.Save(output);
@@ -41,8 +41,8 @@ namespace MoriDesk {
       if(section=="about")check(All(settings).OfType<AppUpdatePanel>().Count()==1&&All(settings).OfType<Button>().Any(b=>b.Name=="CheckAppUpdate"&&!b.IsEnabled),"about embeds application updates but preview cannot contact GitHub or install");
      }
      settings.Select("library");var compact=(FrameworkElement)settings.Content;compact.Width=644;compact.Height=402;compact.Measure(new Size(644,402));compact.Arrange(new Rect(0,0,644,402));compact.UpdateLayout();
-     var tabTitles=new[]{"通用与存储","外观","素材浏览","文件预览","截图与翻译","自由画布","浏览器收藏","关于与更新"};var tabs=All(settings).OfType<Button>().Where(b=>tabTitles.Contains(Convert.ToString(b.Content))).ToArray();
-     check(tabs.Length==8&&tabs.All(b=>b.TranslatePoint(new Point(b.ActualWidth,0),compact).X<=644),"all eight settings sections remain inside a compact vertical navigation");
+     var tabTitles=new[]{"通用与存储","外观","素材浏览","文件预览","截图与翻译","自由画布","浏览器收藏","转换组件","关于与更新"};var tabs=All(settings).OfType<Button>().Where(b=>tabTitles.Contains(Convert.ToString(b.Content))).ToArray();
+     check(tabs.Length==9&&tabs.All(b=>b.TranslatePoint(new Point(b.ActualWidth,0),compact).X<=644),"all nine settings sections remain inside a compact vertical navigation");
      var browse=All(settings).OfType<BrowseSettingsPanel>().Single();check(browse.ScrollableWidth<.1&&browse.ScrollableHeight>0,"browse options remain accessible through vertical scroll at minimum window height");
      settings.Select("appearance");var panel=All(settings).OfType<AppearanceSettingsPanel>().Single();panel.Mode.SelectedIndex=theme=="light"?1:0;
      var source=System.Windows.Interop.HwndSource.FromHwnd(new System.Windows.Interop.WindowInteropHelper(main.Window).Handle);

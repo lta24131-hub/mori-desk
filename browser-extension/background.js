@@ -1,6 +1,7 @@
 importScripts('preferences.js');
 importScripts('local-bridge.js');
 importScripts('updater.js');
+const collectorGeneration = /^[0-9a-f]{32}$/.test(globalThis.MoriInstalledGeneration || '') ? globalThis.MoriInstalledGeneration : '';
 const HOST = 'app.mori.desk';
 const MAX = 20 * 1024 * 1024;
 // Pending duplicate choices live only in this worker's memory. Never persist
@@ -36,7 +37,11 @@ async function ensureCollector(tabId, frameId = null) {
   const repair = (async () => {
     try {
       const pong = await chrome.tabs.sendMessage(tabId, {action:'mori-collector-ping'}, {frameId:frameId ?? 0});
-      if (pong?.ready && pong.version === chrome.runtime.getManifest().version) return true;
+      if (pong?.ready && pong.version === chrome.runtime.getManifest().version &&
+          (!collectorGeneration || pong.generation === collectorGeneration)) return true;
+      // A worker can wake while its old page is still choosing a category. Do
+      // not discard that gesture; collector-idle will retry after it finishes.
+      if (pong?.busy) return false;
     } catch {}
     try {
       const files = chrome.runtime.getManifest().content_scripts[0].js;
@@ -158,6 +163,17 @@ async function saveImage(message, owner, iconUrl = '') {
     if (!['https:','http:'].includes(address.protocol) || address.username || address.password || /[\r\n]/.test(message.source) || message.source.length > 8000) return {ok:false,error:'只支持不含账号密码的 HTTP / HTTPS 网址'};
     return submitImage({action:'bookmark',source:address.href,name:message.name || address.hostname,folder:message.folder || '',iconUrl,duplicateAction:'ask'}, owner);
   }
+  // The source is saved as user-visible metadata, not used for downloading.
+  // Never persist credentials from a page URL or echo them in an error.
+  const source = message.source || '';
+  if (source) {
+    let address;
+    try {address = new URL(source);} catch {}
+    if (typeof source !== 'string' || source.length > 8000 || /[\x00-\x1f\x7f]/.test(source) || !address ||
+        !['https:', 'http:'].includes(address.protocol) || address.username || address.password) {
+      return {ok:false,error:'来源网址须为不含账号密码的 HTTP / HTTPS 地址，本次没有收藏。'};
+    }
+  }
   let url;
   try { url = new URL(message.url); } catch { return {ok: false, error: '图片地址无效'}; }
   if (!['https:', 'http:', 'data:'].includes(url.protocol) || url.username || url.password || (url.protocol === 'data:' && !/^data:(?:image|video)\//i.test(url.href))) return {ok: false, error: message.kind === 'video' ? '尚未获得可直接保存的完整视频地址，本次未收藏。' : '此素材没有可直接下载的图片或视频地址；流媒体和 blob 暂不支持。截图收藏只会保留静态画面。'};
@@ -172,7 +188,10 @@ async function saveImage(message, owner, iconUrl = '') {
     while (true) { const {value, done} = await reader.read(); if (done) break; size += value.length; if (size > MAX) { await reader.cancel(); throw new Error('素材超过 20 MB，请保存原文件后拖入 Nook'); } chunks.push(value); }
     const bytes = new Uint8Array(size); let at = 0; for (const chunk of chunks) { bytes.set(chunk, at); at += chunk.length; }
     let binary = ''; for (let i = 0; i < bytes.length; i += 16384) binary += String.fromCharCode(...bytes.subarray(i, i + 16384));
-    return await submitImage({action: 'save', data: btoa(binary), folder: message.folder || '', name: message.name || '网页收藏', source: message.source || '', duplicateAction: 'ask'}, owner);
+    // Preserve the user's media intent through both native and local transports
+    // (including duplicate choices). A video endpoint may return a cover image;
+    // only the receiver's byte validation may decide that this is a valid save.
+    return await submitImage({action: 'save', kind: message.kind === 'video' ? 'video' : 'image', data: btoa(binary), folder: message.folder || '', name: message.name || '网页收藏', source, duplicateAction: 'ask'}, owner);
   } catch (error) { return {ok: false, error: (error.name === 'AbortError' ? '下载超时' : error.message) + (message.kind === 'video' ? '。视频未收藏，也没有改存为网址或封面。' : '。可保存原文件后拖入 Nook；截图仅保留静态画面。')}; }
   finally { clearTimeout(timeout); }
 }
@@ -184,7 +203,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return true;
   }
   if(message?.action==='bridgeStatus') {if(!fromPopup(sender)){reply({ok:false});return;}native({action:'bridgeStatus'}).then(reply).catch(()=>reply({ok:false}));return true;}
-  if(message?.action==='collector-idle') {updater.schedule();reply({ok:true});return;}
+  if(message?.action==='collector-idle') {updater.schedule();reply({ok:true});if(collectorGeneration&&sender.tab)void ensureCollector(sender.tab.id,sender.frameId??0);return;}
   if(message?.action==='importBookmarks') {
     // Only the extension popup, never website content scripts, may bulk import.
     if(sender.tab || !String(sender.url || '').startsWith(`chrome-extension://${chrome.runtime.id}/popup.html`)){reply({ok:false,error:'只能从 Nook 插件窗口导入书签'});return true;}
@@ -248,6 +267,9 @@ chrome.runtime.onInstalled.addListener(() => Promise.all([ensureContextMenu(), r
 chrome.runtime.onStartup.addListener(() => Promise.all([ensureContextMenu(), repairOpenCollectors()]));
 chrome.tabs.onActivated?.addListener(({tabId}) => {void ensureCollector(tabId);});
 ensureContextMenu();
+// A natural MV3 worker restart does not fire onInstalled/onStartup. Reconcile
+// open pages once per activation as well, including same-version repairs.
+if(collectorGeneration)void repairOpenCollectors();
 async function updateMenuLanguage() {
   try {
     const prefs = await MoriPreferences.read();

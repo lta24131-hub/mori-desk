@@ -26,8 +26,10 @@ namespace Mori {
   readonly DispatcherTimer searchTimer=new DispatcherTimer(),externalTimer=new DispatcherTimer();
   string view="all",anchor="",similarId="",colorId="",dataVersion="",mediaSection="assets";
   bool busy,cancel,dragged,bookmarkMode,refreshDeferred;Point dragOrigin;Asset pressed;
+  CancellationTokenSource libraryWorkCancellation;
   int thumbnailSize=GalleryLayout.DefaultSize;bool sizeDirty;
   List<AssetRow> galleryRows=new List<AssetRow>();
+  long galleryNavigationGeneration;
   readonly DispatcherTimer layoutTimer=new DispatcherTimer(),sizeSaveTimer=new DispatcherTimer();
   readonly DispatcherTimer sidebarSaveTimer=new DispatcherTimer();SidebarLayout sidebars;bool sidebarDirty;
   T Find<T>(string name)where T:class{return Window.FindName(name)as T;}
@@ -35,11 +37,12 @@ namespace Mori {
   void Status(string text){L("Status").Text=text;}
   public MainWindow(Library lib) {
    library=lib;if(MoriDesk.Entry.ClassicEnabled)lib.EnableReferenceAssets();history=lib.IncludeReferences?new UndoHistory(lib.Db,"board"):new UndoHistory(lib.Db);ThumbnailImage.CurrentLibrary=lib;var settings=Settings.Load();thumbnailSize=settings.ThumbnailSize;Theme.Apply(settings);using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("Mori.Main.xaml"))Window=(Window)XamlReader.Load(stream);Theme.Attach(Window,null);
+   MoriDesk.InitialWindowPlacement.Attach(Window);
    B("Settings").Click+=delegate{ShowSettings();};B("OpenSource").Click+=delegate{OpenSource(T("Source").Text);};T("Source").TextChanged+=delegate{Uri uri;B("OpenSource").IsEnabled=Selected().Count==1&&SourceLink.TryParse(T("Source").Text,out uri);};
    B("Import").Click+=delegate{ChooseFiles();};B("CreateFirstFolder").Click+=delegate{NewFolder("");};B("ImportBookmarks").Click+=delegate{ShowBookmarkImport();};B("NewBookmarkFolder").Click+=delegate{NewBookmarkFolder(CurrentFolder());};B("Videos").Click+=delegate{SetSection("videos");};B("Documents").Click+=delegate{SetSection("documents");};B("EmptyImport").Click+=delegate{if(bookmarkMode)AddBookmark("");else ChooseFiles();};B("Paste").Click+=delegate{Paste();};B("AddBookmark").Click+=delegate{AddBookmark("");};B("Export").Click+=delegate{Export();};B("More").Click+=delegate{More();};
    B("All").Click+=delegate{SetBookmarkMode(false);};B("Bookmarks").Click+=delegate{SetBookmarkMode(true);};B("Unfiled").Click+=delegate{RequestNavigate("unfiled");};B("Favorites").Click+=delegate{RequestNavigate("favorites");};B("Trash").Click+=delegate{RequestNavigate("trash");};
    B("Pictures").Click+=delegate{SetSection("pictures");};B("Audio").Click+=delegate{SetSection("audio");};
-   B("NewFolder").Click+=delegate{NewFolder();};B("SaveMeta").Click+=delegate{SaveMetadata();};B("Categorize").Click+=delegate{Categorize();};B("Delete").Click+=delegate{Trash();};B("Star").Click+=delegate{Star();};B("Similar").Click+=delegate{SearchByImage(false);};B("ColorSearch").Click+=delegate{SearchByImage(true);};B("SelectionCanvas").Click+=delegate{AddSelectionToFreeCanvas();};B("Cancel").Click+=delegate{cancel=true;Status("正在完成当前文件，随后停止。已导入的素材会保留。");};B("ClearFilter").Click+=delegate{ClearGalleryFilters();};B("EmptyClearFilter").Click+=delegate{ClearGalleryFilters();};
+   B("NewFolder").Click+=delegate{NewFolder();};B("SaveMeta").Click+=delegate{SaveMetadata();};B("Categorize").Click+=delegate{Categorize();};B("Delete").Click+=delegate{Trash();};B("Star").Click+=delegate{Star();};B("Similar").Click+=delegate{SearchByImage(false);};B("ColorSearch").Click+=delegate{SearchByImage(true);};B("SelectionCanvas").Click+=delegate{AddSelectionToFreeCanvas();};B("Cancel").Click+=delegate{CancelLibraryWork();Status("正在完成当前文件，随后停止。已保存的内容会保留。");};B("ClearFilter").Click+=delegate{ClearGalleryFilters();};B("EmptyClearFilter").Click+=delegate{ClearGalleryFilters();};
    Find<TreeView>("Folders").SelectedItemChanged+=delegate(object s,RoutedPropertyChangedEventArgs<object> e){var node=e.NewValue as TreeViewItem;if(!reloadingFolders&&!folderManaging&&node!=null&&node.Tag is string)RequestNavigate((string)node.Tag);};
    Find<TreeView>("Folders").PreviewMouseRightButtonDown+=FolderRight;
    searchTimer.Interval=TimeSpan.FromMilliseconds(200);searchTimer.Tick+=delegate{searchTimer.Stop();RefreshView();};T("Search").TextChanged+=delegate{searchTimer.Stop();searchTimer.Start();};
@@ -60,17 +63,17 @@ namespace Mori {
    sidebarSaveTimer.Interval=TimeSpan.FromMilliseconds(600);sidebarSaveTimer.Tick+=delegate{SaveSidebarWidths();};
    sidebars.Changed+=delegate{sidebarDirty=true;sidebarSaveTimer.Stop();sidebarSaveTimer.Start();};
    Window.PreviewDragOver+=CanvasProjectsDragOver;Window.PreviewDragEnter+=CanvasProjectsDragOver;Window.PreviewDrop+=CanvasProjectsDrop;
-   Window.PreviewDragOver+=delegate(object s,DragEventArgs e){if(!e.Handled&&!canvasProjectsMode&&!MoriDesk.Entry.BoardEnabled&&!MoriDesk.Entry.ClassicEnabled&&IsLocalFileDrop(e.Data)&&!referenceMode){e.Effects=busy?DragDropEffects.None:DragDropEffects.Link;e.Handled=true;}};
+   Window.PreviewDragOver+=delegate(object s,DragEventArgs e){if(!e.Handled&&!InFileConversion(e.OriginalSource)&&!canvasProjectsMode&&!MoriDesk.Entry.BoardEnabled&&!MoriDesk.Entry.ClassicEnabled&&IsLocalFileDrop(e.Data)&&!referenceMode){e.Effects=busy?DragDropEffects.None:DragDropEffects.Link;e.Handled=true;}};
    Window.PreviewDragOver+=DesktopImageOver;
    Window.PreviewDragEnter+=DesktopImageOver;
    Window.PreviewDragLeave+=(s,e)=>{desktopImageHover=false;HideDragHint();if(canvasProjectsPage!=null)canvasProjectsPage.ClearDropTarget();};
    Window.PreviewDrop+=DesktopImageDropped;
    Window.PreviewDrop+=DeskDrop;
    Window.PreviewDragOver+=BoardDragOver;
-   Window.Drop+=delegate(object s,DragEventArgs e){if(!e.Handled&&!canvasProjectsMode&&IsLocalFileDrop(e.Data)){e.Handled=true;CollectLocalPaths((string[])e.Data.GetData(DataFormats.FileDrop));}};
+   Window.Drop+=delegate(object s,DragEventArgs e){if(!e.Handled&&!InFileConversion(e.OriginalSource)&&!canvasProjectsMode&&IsLocalFileDrop(e.Data)){e.Handled=true;CollectLocalPaths((string[])e.Data.GetData(DataFormats.FileDrop));}};
    Window.PreviewKeyDown+=OnKey;
    gallery.SizeChanged+=delegate(object sender,SizeChangedEventArgs e){if(e.WidthChanged)QueueLayout();};
-   Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(busy&&!exitRequested){cancel=true;e.Cancel=true;Status("正在完成当前操作，请完成后再关闭。");}else if(ShouldCloseToTray(tray!=null,exitRequested,Settings.Load,settings.CloseToTray)){e.Cancel=true;HideToTray();}else{SaveThumbnailSize();SaveSidebarWidths();}};
+   Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(busy&&(!exitRequested||libraryWorkCancellation!=null)){CancelLibraryWork();e.Cancel=true;Status("正在完成当前操作，请完成后再关闭。");}else if(ShouldCloseToTray(tray!=null,exitRequested,Settings.Load,settings.CloseToTray)){e.Cancel=true;HideToTray();}else if(!PrepareLibraryChange())e.Cancel=true;else{SaveThumbnailSize();SaveSidebarWidths();}};
    // Later handlers may cancel exit (capture confirmation / canvas save).
    // Keep synchronization alive until the window has actually closed.
    Window.Closed+=delegate{externalTimer.Stop();searchTimer.Stop();layoutTimer.Stop();sizeSaveTimer.Stop();sidebarSaveTimer.Stop();};
@@ -83,6 +86,7 @@ namespace Mori {
   void Navigate(string target){HideCanvasProjects();HideBrowser();HideBoard();HideReferences();EndFolderManaging();view=target;similarId=colorId="";selection.Clear();anchor="";pressed=null;if(!bookmarkMode&&target!="all")mediaSection="media";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;Refresh(true);ReloadFolders();}
   void FolderDrop(object sender,DragEventArgs e){var node=sender as TreeViewItem;if(e.Handled||canvasProjectsMode||node==null||busy)return;string folder=(string)node.Tag;if(e.Data.GetDataPresent("Mori.AssetIds")){Edit("添加到分类："+node.Header,()=>library.AddToFolder((string[])e.Data.GetData("Mori.AssetIds"),folder));Refresh(false);RefreshCategoryLabel();e.Handled=true;}else if(IsLocalFileDrop(e.Data)){CollectLocalPaths((string[])e.Data.GetData(DataFormats.FileDrop));e.Handled=true;}}
   void RefreshCore(bool inspector) {
+   galleryNavigationGeneration++;
    if(canvasProjectsMode){RefreshCanvasProjects();ApplyCanvasProjectsPresentation();return;}
    if(browserMode){browserRefreshPending=true;browserInspectorRefreshPending|=inspector;ApplyBrowserPresentation();return;}
    if(boardMode){boardPage.Refresh();return;}if(referenceMode){referencePage.Refresh();return;}
@@ -103,8 +107,8 @@ namespace Mori {
    if(search.Length>0)query=query.Where(a=>(a.Name+"\n"+a.Tags+"\n"+a.Notes+"\n"+a.Source+(LocalCollectionsActive?"\n"+a.ReferencePath:"")).IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0);
    int kind=Find<ComboBox>("MediaFilter").SelectedIndex;if(kind==1)query=query.Where(a=>SectionContains(a,"pictures"));else if(kind==2)query=query.Where(IsVideo);else if(kind==3)query=query.Where(a=>SectionContains(a,"documents"));else if(kind==4)query=query.Where(a=>a.IsAudio);
    int sort=Find<ComboBox>("Sort").SelectedIndex;if(sort==1)query=query.OrderBy(a=>a.Added);else if(sort==2)query=query.OrderBy(a=>a.Name,StringComparer.CurrentCultureIgnoreCase);else if(sort==3)query=query.OrderByDescending(a=>a.Bytes);
-   if(similarId!=""){var target=all.FirstOrDefault(a=>a.Id==similarId);if(target!=null)query=query.Where(a=>!string.IsNullOrEmpty(a.Perceptual)).OrderBy(a=>Library.Similarity(target.Perceptual,a.Perceptual));}
-   if(colorId!=""){var target=all.FirstOrDefault(a=>a.Id==colorId);if(target!=null)query=query.Where(a=>!string.IsNullOrEmpty(a.Color)).OrderBy(a=>ColorDistance(target.Color,a.Color));}
+   if(similarId!=""){var target=all.FirstOrDefault(a=>a.Id==similarId);query=ImageSimilarityIndex.HasIndex(target,false)?query.Where(a=>ImageSimilarityIndex.HasIndex(a,false)).OrderBy(a=>Library.Similarity(target.Perceptual,a.Perceptual)):Enumerable.Empty<Asset>();}
+   if(colorId!=""){var target=all.FirstOrDefault(a=>a.Id==colorId);query=ImageSimilarityIndex.HasIndex(target,true)?query.Where(a=>ImageSimilarityIndex.HasIndex(a,true)).OrderBy(a=>ColorDistance(target.Color,a.Color)):Enumerable.Empty<Asset>();}
    visible=query.ToList();if(mediaSection=="shortcuts")visible=visible.OrderByDescending(a=>a.IsDirectory).ToList();var visibleIds=new HashSet<string>(visible.Select(a=>a.Id));bool selectionChanged=selection.RemoveWhere(id=>!visibleIds.Contains(id))>0;foreach(var a in visible){a.Selected=selection.Contains(a.Id);a.Selecting=batchSelecting;}
    string title=bookmarkMode&&(view=="home"||view=="all")?"网址收藏":view=="all"?(mediaSection=="pictures"?"图片 · 含动图":mediaSection=="videos"?"视频":mediaSection=="audio"?"音频":mediaSection=="documents"?"文档":mediaSection=="shortcuts"?"本地收藏":"全部素材"):view=="unfiled"?"未分类":view=="favorites"?"星标收藏":view=="trash"?"回收站":library.Folders().Where(f=>f.Id==view).Select(f=>f.Name).FirstOrDefault()??"分类";
    L("ViewTitle").Text=similarId!=""?"相似图片":colorId!=""?"相近颜色":title;L("ViewCount").Text=visible.Count+" 个素材 · "+Asset.Size(visible.Sum(a=>a.Bytes));
@@ -131,7 +135,7 @@ namespace Mori {
    var items=Selected();Find<StackPanel>("Inspector").IsEnabled=items.Count>0;L("SelectionInfo").Text=items.Count==0?"选中素材查看详情":items.Count==1?items[0].TypeLabel+" · "+items[0].Detail:"已选择 "+items.Count+" 个素材";
    bool single=items.Count==1;T("Source").IsReadOnly=single&&items[0].IsBookmark;T("Source").ToolTip=single&&items[0].IsBookmark?"收藏的网址；修改地址请新建网址收藏":"素材的来源网页";T("Name").IsEnabled=single;T("Notes").IsEnabled=single;T("Source").IsEnabled=single;T("Name").Text=single?items[0].Name:"";T("Tags").Text=single?items[0].Tags:"";T("Notes").Text=single?items[0].Notes:"";T("Source").Text=single?items[0].Source:"";
    L("Resolution").Text=single&&items[0].Width>0?items[0].Width+" × "+items[0].Height:"—";L("FileSize").Text=items.Count>0?Asset.Size(items.Sum(a=>a.Bytes)):"—";L("FileType").Text=single?items[0].TypeLabel:"—";L("CreatedTime").Text=single?FormatTime(items[0].Created):"—";L("AddedTime").Text=single?FormatTime(items[0].Added):"—";
-   B("SaveMeta").Content=single?"保存信息":"追加标签";B("Similar").IsEnabled=single&&SectionContains(items[0],"pictures")&&view!="trash";B("ColorSearch").IsEnabled=B("Similar").IsEnabled;B("SelectionCanvas").IsEnabled=!busy&&view!="trash"&&items.Count>=2&&items.All(a=>SectionContains(a,"pictures"));B("Delete").Content=view=="trash"?"永久删除…":"移到回收站";B("RestoreTrash").Visibility=view=="trash"?Visibility.Visible:Visibility.Collapsed;B("Star").Content=items.Count>0&&items.All(a=>a.Favorite)?"取消星标":"星标收藏";B("Categorize").IsEnabled=B("Star").IsEnabled=view!="trash";
+   B("SaveMeta").Content=single?"保存信息":"追加标签";B("Similar").IsEnabled=!busy&&single&&ImageSimilarityIndex.CanCompare(items[0])&&view!="trash";B("ColorSearch").IsEnabled=B("Similar").IsEnabled;B("SelectionCanvas").IsEnabled=!busy&&view!="trash"&&items.Count>=2&&items.All(a=>SectionContains(a,"pictures"));B("Delete").Content=view=="trash"?"永久删除…":"移到回收站";B("RestoreTrash").Visibility=view=="trash"?Visibility.Visible:Visibility.Collapsed;B("Star").Content=items.Count>0&&items.All(a=>a.Favorite)?"取消星标":"星标收藏";B("Categorize").IsEnabled=B("Star").IsEnabled=view!="trash";
    L("CategoryInfo").Text=single?"分类："+string.Join(" / ",library.AssetFolders(items[0].Id).Select(f=>f.Name)):items.Count>1?"批量操作不会改变原文件。":"";
    B("Export").IsEnabled=items.Count>0&&!items.Any(a=>a.IsDirectory);UpdateInspectorPreview();UpdateBatchActions();UpdateLocalAddress(items);UpdateInspectorPresentation();
   }
@@ -158,6 +162,7 @@ namespace Mori {
   void ClearGallerySelection(){if(canvasProjectsMode||!PrepareLibraryChange())return;selection.Clear();anchor="";pressed=null;dragged=false;Find<ListBox>("Gallery").UnselectAll();SyncSelection();}
   void GalleryRight(object sender,MouseButtonEventArgs e){if(canvasProjectsMode)return;var tile=Tile(e.OriginalSource);if(tile==null)return;var a=(Asset)tile.Tag;if(!selection.Contains(a.Id)){if(!PrepareLibraryChange()){e.Handled=true;return;}selection.Clear();selection.Add(a.Id);SyncSelection();}var menu=CreateAssetMenu(a);menu.IsOpen=true;e.Handled=true;}
   void OnKey(object sender,KeyEventArgs e){
+   if(HandleFileConversionKey(e))return;
    if(canvasProjectsMode){canvasProjectsPage.HandleKey(e);return;}
    if(HandleBrowserKey(e))return;
    if(boardMode){boardPage.HandleKey(e);return;}
@@ -186,7 +191,47 @@ namespace Mori {
    catch(Exception ex){MessageBox.Show(Window,ex.Message,"导入未完成");}
    finally{busy=false;B("Cancel").Visibility=Visibility.Collapsed;B("Import").IsEnabled=true;B("Paste").IsEnabled=true;}
   }
-  async void Paste(){if(canvasProjectsMode||busy||!PrepareLibraryChange())return;if((MoriDesk.Entry.BoardEnabled||MoriDesk.Entry.ClassicEnabled)&&Clipboard.ContainsFileDropList()){CollectLocalPaths(Clipboard.GetFileDropList().Cast<string>().ToArray());return;}history.Clear();try{if(Clipboard.ContainsFileDropList()){ImportPaths(Clipboard.GetFileDropList().Cast<string>().ToArray(),null);return;}if(Clipboard.ContainsImage()){var bitmap=Clipboard.GetImage();string dir=Path.Combine(Path.GetTempPath(),"Mori-paste");Directory.CreateDirectory(dir);string file=Path.Combine(dir,Guid.NewGuid().ToString("N")+".png");try{var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var stream=File.Create(file))encoder.Save(stream);busy=true;string folder=boardMode?boardPage.Group:CurrentFolder();var item=await Task.Run(()=>library.Import(file,folder,"截图 "+DateTime.Now.ToString("yyyy-MM-dd HHmmss"),"","","","","ask"));if(item.ChoiceRequired){bool apply;string choice=DuplicateWindow.Ask(Window,library,item.Item,file,false,out apply);if(choice=="skip"){Status("已取消收藏");return;}item=await Task.Run(()=>library.Import(file,folder,"截图 "+DateTime.Now.ToString("yyyy-MM-dd HHmmss"),"","","","",choice));}bookmarkMode=false;mediaSection="pictures";view="all";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;Refresh(false);selection.Clear();selection.Add(item.Item.Id);Refresh(true);Status(item.KeptCopy?"已另存一份截图":item.Duplicate?"已使用图库中已有的截图":"截图已收藏到图库");}finally{if(File.Exists(file))File.Delete(file);busy=false;}}else if(Clipboard.ContainsText()){Uri address;if(SourceLink.TryParse(Clipboard.GetText(),out address))AddBookmark(address.AbsoluteUri);else Status("剪贴板不是有效的 HTTP / HTTPS 网址，也没有图片或文件。");}else Status("剪贴板没有图片、文件或网址。");}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法粘贴");}}
+  async void Paste(){if(canvasProjectsMode||busy||!PrepareLibraryChange())return;if((MoriDesk.Entry.BoardEnabled||MoriDesk.Entry.ClassicEnabled)&&Clipboard.ContainsFileDropList()){CollectLocalPaths(Clipboard.GetFileDropList().Cast<string>().ToArray());return;}history.Clear();try{if(Clipboard.ContainsFileDropList()){ImportPaths(Clipboard.GetFileDropList().Cast<string>().ToArray(),null);return;}if(Clipboard.ContainsImage())await PasteBitmap(Clipboard.GetImage());else if(Clipboard.ContainsText()){Uri address;if(SourceLink.TryParse(Clipboard.GetText(),out address))AddBookmark(address.AbsoluteUri);else Status("剪贴板不是有效的 HTTP / HTTPS 网址，也没有图片或文件。");}else Status("剪贴板没有图片、文件或网址。");}catch(OperationCanceledException){Status("已取消收藏，原文件未改动。");}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法粘贴");}}
+  CancellationTokenSource BeginLibraryWork(string status,string cancelLabel){
+   var source=new CancellationTokenSource();libraryWorkCancellation=source;busy=true;cancel=false;
+   B("Cancel").Content=cancelLabel;B("Cancel").IsEnabled=true;B("Cancel").Visibility=Visibility.Visible;
+   B("Import").IsEnabled=false;B("Paste").IsEnabled=false;B("Similar").IsEnabled=false;B("ColorSearch").IsEnabled=false;UpdateBatchActions();Status(status);return source;
+  }
+  void CancelLibraryWork(){cancel=true;if(libraryWorkCancellation!=null){libraryWorkCancellation.Cancel();B("Cancel").IsEnabled=false;}}
+  void EndLibraryWork(CancellationTokenSource source){
+   try{if(object.ReferenceEquals(libraryWorkCancellation,source)){
+    libraryWorkCancellation=null;busy=false;B("Cancel").Visibility=Visibility.Collapsed;B("Cancel").Content="停止导入";B("Cancel").IsEnabled=true;B("Import").IsEnabled=true;B("Paste").IsEnabled=true;
+    // Do not repopulate editable inspector fields here: the user may have
+    // typed a draft during indexing, and a storage error may still be active.
+    var items=Selected();B("Similar").IsEnabled=items.Count==1&&ImageSimilarityIndex.CanCompare(items[0])&&view!="trash";B("ColorSearch").IsEnabled=B("Similar").IsEnabled;
+    B("SelectionCanvas").IsEnabled=view!="trash"&&items.Count>=2&&items.All(a=>SectionContains(a,"pictures"));UpdateBatchActions();
+   }}finally{source.Dispose();}
+  }
+  async Task PasteBitmap(BitmapSource bitmap){
+   // Busy/cancel affordances are installed before the first await. Snapshot on
+   // the dispatcher; PNG compression and all temporary writes run off-thread.
+   var source=BeginLibraryWork("正在收藏剪贴板图片…","停止收藏");var token=source.Token;
+   try{
+    var snapshot=ClipboardImageFile.Snapshot(bitmap);string folder=boardMode?boardPage.Group:CurrentFolder();string name="截图 "+DateTime.Now.ToString("yyyy-MM-dd HHmmss");
+    await Dispatcher.Yield(DispatcherPriority.Background);token.ThrowIfCancellationRequested();
+    using(var temporary=await ClipboardImageFile.CreateAsync(snapshot,Path.Combine(Path.GetTempPath(),"Mori-paste"),token)){
+     var item=await Task.Run(delegate{token.ThrowIfCancellationRequested();return library.Import(temporary.Path,folder,name,"","","","","ask");});
+     if(item.ChoiceRequired){
+      token.ThrowIfCancellationRequested();bool apply;string choice=DuplicateWindow.Ask(Window,library,item.Item,temporary.Path,false,out apply);
+      if(choice=="skip"){Status("已取消收藏");return;}
+      item=await Task.Run(delegate{token.ThrowIfCancellationRequested();return library.Import(temporary.Path,folder,name,"","","","",choice);});
+     }
+     // Import is an atomic commit, not an abortable copy. If stop arrived during
+     // that commit, reveal the saved item rather than claiming it was discarded.
+     if(HasUnsavedMetadata()){
+      metadataReloadRequired=true;refreshDeferred=true;
+      Status("截图已收藏到“图片”。右侧正在编辑的信息已保留，保存后可继续查看。");return;
+     }
+     bookmarkMode=false;mediaSection="pictures";view="all";similarId=colorId="";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;
+     Refresh(false);selection.Clear();selection.Add(item.Item.Id);Refresh(true);Status(item.KeptCopy?"已另存一份截图":item.Duplicate?"已使用图库中已有的截图":"截图已收藏到图库");
+    }
+   }finally{EndLibraryWork(source);}
+  }
   void Categorize(){ChooseCategory(false);}
   string FolderLabel(Category f,List<Category> allFolders){string label=f.Name;var seen=new HashSet<string>{f.Id};while(!string.IsNullOrEmpty(f.Parent)){f=allFolders.FirstOrDefault(x=>x.Id==f.Parent);if(f==null||!seen.Add(f.Id))break;label=f.Name+" / "+label;}return label;}
   void SaveMetadata(){if(canvasProjectsMode||busy)return;var items=Selected();if(items.Count==0)return;if(items.Count==1&&string.IsNullOrWhiteSpace(T("Name").Text)){Status("名称不能为空");return;}Edit("保存信息",delegate{foreach(var a in items){if(items.Count==1){if(string.IsNullOrWhiteSpace(T("Name").Text)){Status("名称不能为空");return;}a.Name=T("Name").Text.Trim();a.Notes=T("Notes").Text;a.Source=T("Source").Text;a.Tags=T("Tags").Text;}else a.Tags=string.Join(", ",(a.Tags+","+T("Tags").Text).Split(new[]{',','，',';'},StringSplitOptions.RemoveEmptyEntries).Select(t=>t.Trim()).Distinct(StringComparer.OrdinalIgnoreCase));library.Update(a);}});Refresh(true);Find<ListBox>("Gallery").Focus();}
@@ -223,10 +268,26 @@ namespace Mori {
    finally{busy=false;Window.IsEnabled=true;if(started)BuildRows();}
   }
   void Star(){if(canvasProjectsMode||busy||view=="trash"||!PrepareLibraryChange())return;var items=Selected();bool value=!items.All(a=>a.Favorite);Edit(value?"添加星标":"取消星标",delegate{foreach(var a in items){a.Favorite=value;library.Update(a);}});Refresh(true);}
-  async void SearchByImage(bool color){var a=Selected().FirstOrDefault();if(canvasProjectsMode||a==null||busy)return;cancel=false;busy=true;Status("正在建立本地缩略图索引，只分析本机图片…");try{await Task.Run(delegate{foreach(var item in all.Where(x=>!x.Deleted)){if(cancel)break;library.BuildThumbnail(item);}});if(string.IsNullOrEmpty(color?a.Color:a.Perceptual)){Status("此格式暂不支持图像相似度索引");return;}if(color){colorId=a.Id;similarId="";}else{similarId=a.Id;colorId="";}view="all";Refresh(false);Status(color?"按平均颜色接近程度排序":"按视觉指纹接近程度排序；这不是 AI 语义搜索");}catch(Exception ex){Status("图像索引未完成："+ex.Message+" · 可稍后重试");}finally{busy=false;}}
+  async void SearchByImage(bool color){
+   var a=Selected().FirstOrDefault();if(canvasProjectsMode||a==null||busy)return;
+   if(!ImageSimilarityIndex.CanCompare(a)){Status("此格式暂不支持图像相似度索引，只能比较图片。");return;}
+   if(!PrepareLibraryChange())return;
+   var source=BeginLibraryWork("正在建立图片索引，不处理视频和文档…","停止索引");var token=source.Token;
+   try{
+    var snapshot=all.Where(ImageSimilarityIndex.CanCompare).ToArray();
+    await Dispatcher.Yield(DispatcherPriority.Background);token.ThrowIfCancellationRequested();
+    await Task.Run(()=>ImageSimilarityIndex.Build(snapshot,library.BuildThumbnail,token),token);token.ThrowIfCancellationRequested();
+    if(!ImageSimilarityIndex.HasIndex(a,color)){Status("此格式暂不支持图像相似度索引");return;}
+    if(HasUnsavedMetadata()){Status("图片索引已完成。请先保存右侧正在编辑的信息，再查看检索结果。");return;}
+    if(color){colorId=a.Id;similarId="";}else{similarId=a.Id;colorId="";}view="all";bookmarkMode=false;mediaSection="pictures";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;
+    Refresh(false);Status(color?"按平均颜色接近程度排序":"按视觉指纹接近程度排序；这不是 AI 语义搜索");
+   }catch(OperationCanceledException){Status("已停止图片索引，现有收藏和上次搜索不变。");}
+   catch(Exception ex){Status("图像索引未完成："+ex.Message+" · 可稍后重试");}
+   finally{EndLibraryWork(source);}
+  }
   static double ColorDistance(string one,string two){try{var a=(Color)ColorConverter.ConvertFromString(one);var b=(Color)ColorConverter.ConvertFromString(two);return Math.Pow(a.R-b.R,2)+Math.Pow(a.G-b.G,2)+Math.Pow(a.B-b.B,2);}catch{return double.MaxValue;}}
   public static bool IsVideo(Asset a){return MediaTypes.Contains(a,"videos");}
-  void Preview(Asset a){a=ResolveReferenceForOpen(a);if(a==null)return;if(a.IsBookmark){if(Settings.Load().BookmarkOpenInApp)BrowseBookmark(a.Source);else OpenSource(a.Source);return;}if(a.IsDirectory||(a.IsReference&&!MediaTypes.Pictures.Contains(a.Ext)&&!MediaTypes.Videos.Contains(a.Ext)&&!MediaTypes.Audio.Contains(a.Ext)&&!MediaTypes.Documents.Contains(a.Ext))){OpenReference(a);return;}try{FilePreview.Show(Window,library.FullPath(a),a.Name);}catch(Exception error){MessageBox.Show(Window,error.Message,"无法打开预览",MessageBoxButton.OK,MessageBoxImage.Warning);}}
+  void Preview(Asset a){a=ResolveReferenceForOpen(a);if(a==null)return;if(a.IsBookmark){if(Settings.Load().BookmarkOpenInApp)BrowseBookmark(a.Source);else OpenSource(a.Source);return;}if(a.IsDirectory||(!MediaTypes.Pictures.Contains(a.Ext)&&!MediaTypes.Videos.Contains(a.Ext)&&!MediaTypes.Audio.Contains(a.Ext)&&!MediaTypes.Documents.Contains(a.Ext))){OpenReference(a);return;}try{FilePreview.Show(Window,library.FullPath(a),a.Name);}catch(Exception error){MessageBox.Show(Window,error.Message,"无法打开预览",MessageBoxButton.OK,MessageBoxImage.Warning);}}
   void OpenFile(Asset a){a=ResolveReferenceForOpen(a);if(a==null)return;if(a.IsBookmark){OpenSource(a.Source);return;}try{MoriDesk.FileRouter.OpenDefault(Window,library.FullPath(a));}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法打开原文件");}}
   async void Export(){var items=Selected();if(canvasProjectsMode||items.Count==0||busy)return;if(items.Any(a=>a.IsDirectory)){Status("文件夹快捷方式不打包复制，请用“打开位置”查看原文件夹。");return;}var mode=MessageBox.Show(Window,"保留分类层级吗？\n\n是：按分类建立文件夹；多分类素材会导出到各个分类。\n否：全部放入同一个文件夹。\n\n原图不压缩，同名文件自动加序号。","导出 "+items.Count+" 个素材",MessageBoxButton.YesNoCancel);if(mode==MessageBoxResult.Cancel)return;string dir=FolderPicker("选择导出目标文件夹");if(dir==null)return;string prefix=Prompt("导出命名","保持原名请留空；填写前缀则批量编号","");if(prefix==null)return;busy=true;Status("正在导出原图…");try{int count=await Task.Run(()=>library.Export(items,dir,mode==MessageBoxResult.Yes,prefix));Status("已导出 "+count+" 个文件 · "+dir);Process.Start("explorer.exe",dir);}catch(Exception ex){Status("导出未全部完成："+ex.Message);MessageBox.Show(Window,ex.Message,"导出未全部完成");}finally{busy=false;}}
   async void Backup(){if(busy||!PrepareLibraryChange())return;var dlg=new Microsoft.Win32.SaveFileDialog{Title="备份整个图库（含回收站）",Filter="Nook 备份|*.mori.zip",FileName="Nook-"+DateTime.Now.ToString("yyyyMMdd-HHmm")+".mori.zip",OverwritePrompt=true};if(dlg.ShowDialog(Window)!=true)return;if(File.Exists(dlg.FileName)){MessageBox.Show(Window,"请使用新的备份名称，已有备份不会覆盖。","备份");return;}busy=true;Status("正在备份原图及分类索引…");try{await Task.Run(()=>library.Backup(dlg.FileName));Status("备份完成："+dlg.FileName);}catch(Exception ex){MessageBox.Show(Window,ex.Message,"备份失败");}finally{busy=false;}}
@@ -246,6 +307,7 @@ namespace Mori {
    return true;
   }
   void ChangeStorage(StorageChangeRequest request){
+   if(!PrepareFileConversionLibraryChange())return;
    if(busy||request==null||LibraryTransfer.SameRoot(request.Path,library.Root)||!PrepareLibraryChange())return;
    busy=true;searchTimer.Stop();bool success=false;
    try {
@@ -261,7 +323,7 @@ namespace Mori {
    if(success)CloseForReplacement();else{BuildRows();Status("仍使用原图库："+library.Root);}
   }
   void OpenSource(string value){Uri uri;if(!SourceLink.TryParse(value,out uri)){Status("请填写有效的 http 或 https 来源网址");return;}try{Process.Start(new ProcessStartInfo(uri.AbsoluteUri){UseShellExecute=true});}catch(Exception ex){Status("无法打开链接："+ex.Message);}}
-  async void SwitchLibrary(){if(busy||!PrepareLibraryChange())return;var dir=FolderPicker("选择已有图库，或空文件夹创建新图库（不会迁移当前素材）");if(dir==null||LibraryTransfer.SameRoot(dir,library.Root))return;if(!File.Exists(Path.Combine(dir,".mori","library.db"))&&Directory.EnumerateFileSystemEntries(dir).Any()){MessageBox.Show(Window,"创建图库请选择空文件夹，以免和已有文件混在一起。","选择图库");return;}busy=true;Window.IsEnabled=false;bool success=false;try{await Task.Run(()=>LibraryActivation.Open(dir,PreviewMode));success=true;}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法切换图库");}finally{busy=false;Window.IsEnabled=true;}if(success)CloseForReplacement();}
+  async void SwitchLibrary(){if(busy||!PrepareFileConversionLibraryChange()||!PrepareLibraryChange())return;var dir=FolderPicker("选择已有图库，或空文件夹创建新图库（不会迁移当前素材）");if(dir==null||LibraryTransfer.SameRoot(dir,library.Root))return;if(!File.Exists(Path.Combine(dir,".mori","library.db"))&&Directory.EnumerateFileSystemEntries(dir).Any()){MessageBox.Show(Window,"创建图库请选择空文件夹，以免和已有文件混在一起。","选择图库");return;}busy=true;Window.IsEnabled=false;bool success=false;try{await Task.Run(()=>LibraryActivation.Open(dir,PreviewMode));success=true;}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法切换图库");}finally{busy=false;Window.IsEnabled=true;}if(success)CloseForReplacement();}
   static void Menu(ContextMenu menu,string label,Action action){var item=new MenuItem{Header=label};item.Click+=delegate{action();};menu.Items.Add(item);}
   string FolderPicker(string title){using(var dlg=new Forms.FolderBrowserDialog{Description=title,ShowNewFolderButton=true})return dlg.ShowDialog(new WindowHandle(Window))==Forms.DialogResult.OK?dlg.SelectedPath:null;}
   string Prompt(string title,string hint,string value){var dialog=new Window{Owner=Window,Title=title,Width=410,Height=200,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner,Background=Window.Background,Foreground=Window.Foreground};var box=new TextBox{Text=value,Margin=new Thickness(0,14,0,18),Padding=new Thickness(8)};var ok=new Button{Content="确认",Width=84,Padding=new Thickness(8),IsDefault=true,HorizontalAlignment=HorizontalAlignment.Right};ok.Click+=delegate{dialog.DialogResult=true;};var stack=new StackPanel{Margin=new Thickness(22)};stack.Children.Add(new TextBlock{Text=hint,TextWrapping=TextWrapping.Wrap});stack.Children.Add(box);stack.Children.Add(ok);Theme.Attach(dialog,Window);dialog.Content=stack;dialog.Loaded+=delegate{box.Focus();box.SelectAll();};dialog.PreviewKeyDown+=delegate(object s,KeyEventArgs e){if(e.Key==Key.Escape)dialog.Close();};return dialog.ShowDialog()==true?box.Text:null;}

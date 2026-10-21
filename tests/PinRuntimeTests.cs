@@ -27,6 +27,7 @@ namespace MoriDesk {
     // Detach, but never dispose, any pre-existing runtime resources. Stop below
     // can therefore release only this preview fixture's own empty service set.
     foreach(string name in new[]{"source","imagePins","lease","retry","failure","CollectImage","Notify","OpenSettings"})Set(typeof(DeskRuntime),name,null);
+    Set(typeof(DeskRuntime),"pinLifetime",new System.Threading.CancellationTokenSource());
     foreach(string name in new[]{"Started","ownsPins","awaitingHandoff","<SessionEnding>k__BackingField"})Set(typeof(DeskRuntime),name,false);
     AppState.Hotkeys=null;AppState.Captures.Clear();AppState.Quitting=false;
     string library=Path.Combine(root,"owned-library");DeskRuntime.Start(true,library);
@@ -36,6 +37,7 @@ namespace MoriDesk {
     var store=AppState.Pins;var pin=store.Add(Picture());byte[] pixels=File.ReadAllBytes(store.ImagePath(pin));pin.Left=387;pin.Top=219;pin.Width=192;pin.Opacity=.75;
     DeskRuntime.Started=false; // An optional service failed after store ownership.
     check(DeskRuntime.PrepareExit(null)&&AppState.Quitting&&!DeskRuntime.Started,"normal exit still protects pin close handlers after a partially started service fails");
+    check(DeskRuntime.PinCancellation.IsCancellationRequested,"normal exit cancels in-flight preview pin encoding before a late presentation");
     var saved=new PinStore(store.Folder).Records.Single();
     check(saved.Active&&saved.ClosedAt==0&&saved.Left==387&&saved.Top==219&&saved.Width==192&&saved.Opacity==.75,"normal exit persists active pins and unsaved geometry even with Started false");
     AppState.Quitting=false;pin.Left=418;pin.Width=208;DeskRuntime.PrepareSessionEnd();
@@ -53,9 +55,10 @@ namespace MoriDesk {
     check(saved.Active&&saved.ClosedAt==0&&saved.Left!=699,"another owner's persisted active pin metadata survives stale lifecycle callbacks");
     DeskRuntime.Start(true,Path.Combine(root,"next-library"));
     check(DeskRuntime.Started&&!DeskRuntime.SessionEnding&&!AppState.Quitting&&!ReferenceEquals(AppState.Pins,foreign),"a later preview startup reacquires only its new store with clean shutdown flags");
+    check(!DeskRuntime.PinCancellation.IsCancellationRequested,"later startup creates a fresh pin lifetime instead of inheriting cancelled saves");
     check((Application.Current==null?0:Application.Current.Windows.Count)==windows,"pin runtime lifecycle tests never create or show a window");
    }finally{
-    DeskRuntime.Stop();AppState.Pins=previousPins;AppState.Settings=previousSettings;AppState.Quitting=previousQuitting;AppState.Hotkeys=previousHotkeys;AppState.Captures.Clear();AppState.Captures.AddRange(previousCaptures);
+    DeskRuntime.Stop();((System.Threading.CancellationTokenSource)Get(typeof(DeskRuntime),"pinLifetime")).Dispose();AppState.Pins=previousPins;AppState.Settings=previousSettings;AppState.Quitting=previousQuitting;AppState.Hotkeys=previousHotkeys;AppState.Captures.Clear();AppState.Captures.AddRange(previousCaptures);
     Set(typeof(Preferences),"TestFilePath",previousPreferences);Set(typeof(OcrLanguagePacks),"TestFolder",previousOcr);Set(typeof(OfflinePacks),"TestFolder",previousOffline);
     foreach(var pair in runtime)pair.Key.SetValue(null,pair.Value);
    }

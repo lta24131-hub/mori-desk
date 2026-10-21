@@ -30,6 +30,7 @@ namespace Mori {
   internal DocumentPreviewWindow(Window owner,string path,string name,bool captureMiddleMouse=true){
    file=Path.GetFullPath(path);pdf=FormatPreviewInfo.UsesPagedPreview(file);
    Owner=owner;Title=name+" · 预览";Width=1060;Height=790;MinWidth=540;MinHeight=380;WindowStartupLocation=owner==null?WindowStartupLocation.CenterScreen:WindowStartupLocation.CenterOwner;Theme.Attach(this,owner);Content=root;
+   MoriDesk.InitialWindowPlacement.Attach(this);
    // A direct-open viewer has no main-window style dictionary to inherit.
    // Keep the same quiet controls and contrast in both entry points.
    Resources[typeof(Button)]=ToolbarStyle();root.SetResourceReference(Panel.BackgroundProperty,"Canvas");

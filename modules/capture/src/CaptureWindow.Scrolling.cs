@@ -17,6 +17,20 @@ namespace QingJie {
             var crop=Geometry.PixelCrop(selection,scaleX,scaleY,snapshot.Image.PixelWidth,snapshot.Image.PixelHeight);
             return new System.Drawing.Rectangle(snapshot.Bounds.X+crop.X,snapshot.Bounds.Y+crop.Y,crop.Width,crop.Height);
         }
+        internal static Int32Rect ScrollingPinBounds(int width,int height,System.Drawing.Rectangle region,System.Drawing.Rectangle work,double scaleX,double scaleY){
+            if(width<1||height<1||region.Width<1||region.Height<1||work.Width<1||work.Height<1)throw new ArgumentException("贴图尺寸或显示区域无效。");
+            if(double.IsNaN(scaleX)||double.IsInfinity(scaleX)||scaleX<=0)scaleX=1;
+            if(double.IsNaN(scaleY)||double.IsInfinity(scaleY)||scaleY<=0)scaleY=1;
+            int marginX=(int)Math.Min((work.Width-1)/2,Math.Ceiling((PinFrame.Inset+12)*scaleX));
+            int marginY=(int)Math.Min((work.Height-1)/2,Math.Ceiling((PinFrame.Inset+12)*scaleY));
+            // A stitched image is not the original viewport. Keep its aspect
+            // ratio and source anchor, but fit the whole result on that monitor.
+            double scale=Math.Min(1,Math.Min(region.Width/(double)width,Math.Min((work.Width-2*marginX)/(double)width,(work.Height-2*marginY)/(double)height)));
+            int w=Math.Max(1,(int)Math.Round(width*scale)),h=Math.Max(1,(int)Math.Round(height*scale));
+            int x=Math.Max(work.Left+marginX,Math.Min(region.Left,work.Right-marginX-w));
+            int y=Math.Max(work.Top+marginY,Math.Min(region.Top,work.Bottom-marginY-h));
+            return new Int32Rect(x,y,w,h);
+        }
         async void BeginScrollingCapture(){
             if(!captureFeatures.Scrolling||closed||collecting||captureOverlaySuspended||dragging||scrollingCapture!=null||!HasCaptureRegion)return;
             ExternalScrollCaptureSession session=null;
@@ -60,7 +74,7 @@ namespace QingJie {
                     else if(result.action=="save")completed=ImageFiles.Save(image,this);
                     else if(result.action=="pin"&&captureFeatures.Pin){
                         if(AppState.Pins==null)throw new InvalidOperationException("贴图服务暂不可用。");
-                        AppState.Pins.New(image);completed=true;
+                        await AppState.Pins.NewAsync(image,outputLifetime.Token);completed=true;
                     }else if(result.action=="collect"&&captureFeatures.Collect){
                         var collect=MoriDesk.DeskRuntime.CollectImage;if(collect==null)throw new InvalidOperationException("素材库暂不可用。");
                         collecting=true;try{completed=await collect(image);}finally{collecting=false;}
@@ -129,7 +143,8 @@ namespace QingJie {
                     else if(output.action=="save")completed=await OutputActions.Save(image,this,outputLifetime.Token);
                     else if(output.action=="pin"){
                         var region=ScrollRegion(shot,surface.Selection,surface.ScaleX,surface.ScaleY);
-                        completed=await OutputActions.Pin(image,new Int32Rect(region.X,region.Y,region.Width,region.Height),outputLifetime.Token);
+                        var work=System.Windows.Forms.Screen.FromRectangle(region).WorkingArea;
+                        completed=await OutputActions.Pin(image,ScrollingPinBounds(image.PixelWidth,image.PixelHeight,region,work,surface.ScaleX,surface.ScaleY),outputLifetime.Token);
                     }else if(output.action=="collect"){
                         var collect=MoriDesk.DeskRuntime.CollectImage;
                         if(collect==null)throw new InvalidOperationException("素材库暂不可用。");

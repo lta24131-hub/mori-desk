@@ -55,6 +55,7 @@ namespace MoriDesk {
      check(Convert.ToString(nav.Content)=="项目"&&navigationButtons.Count(b=>Convert.ToString(b.Content)=="项目")==1&&!navigationButtons.Any(b=>Convert.ToString(b.Content)=="画布")&&!navigation.Children.OfType<TextBlock>().Any(t=>t.Text=="项目"||t.Text=="收藏"),"sidebar has one actionable Projects label, not redundant Projects/Canvas or collection headings");
      check(navigationButtons.IndexOf(nav)==navigationButtons.IndexOf((Button)main.Window.FindName("Audio"))+1&&navigationButtons.IndexOf((Button)main.Window.FindName("Bookmarks"))==navigationButtons.IndexOf(nav)+1&&navigationButtons.IndexOf((Button)main.Window.FindName("Documents"))==navigationButtons.IndexOf(nav)+2,"Projects sits directly after Audio and before the unchanged Websites/Documents entries");
      Click(nav);var page=main.CanvasProjects;check(main.CanvasProjectsMode&&page!=null&&page.ProjectsForTests.Count==0&&page.Visibility==Visibility.Visible,"Projects opens its persistent thumbnail gallery directly, without an intermediate Canvas page");
+     check(new[]{"Unfiled","Favorites","SidebarFooter","SidebarScopeDivider"}.All(name=>((UIElement)main.Window.FindName(name)).Visibility==Visibility.Collapsed),"project gallery hides material/website-specific filters and trash instead of inheriting the previous scope");
      check(((StackPanel)((Grid)page.Children[0]).Children[0]).Children.OfType<TextBlock>().First().Text=="项目","project gallery title agrees with its direct navigation label");
      Click(page.NewCanvasButton);var canvas=Canvas(main);string first=canvas.DocumentForTests.Id;
      check(store.List().Count==1&&canvas.DocumentForTests.Name=="画布 1"&&canvas.DocumentForTests.Pinned&&canvas.DocumentForTests.Items.Count==0,"one new-project click creates exactly one empty canvas and respects default pinning");
@@ -103,16 +104,18 @@ namespace MoriDesk {
      check(main.BrowseBookmark("https://example.invalid/canvas")&&!main.CanvasProjectsMode&&page.Visibility==Visibility.Collapsed&&!main.BrowserPane.InitializationStarted,"opening an offscreen browser hides projects without starting a web engine");var browser=main.BrowserPane;main.ShowCanvasProjects();check(main.CanvasProjectsMode&&!main.BrowserMode&&browser.IsDisposed,"returning to projects disposes the browser instead of layering pages");
      Call(main,"ShowBoard","all");check(!main.CanvasProjectsMode&&(bool)Field(main,"boardMode")&&page.Visibility==Visibility.Collapsed,"board navigation hides the project page");main.ShowCanvasProjects();check(!(bool)Field(main,"boardMode")&&main.CanvasProjectsMode,"projects hide the board before becoming visible");
      Entry.ClassicEnabled=false;Call(main,"ShowReferences");check(!main.CanvasProjectsMode&&(bool)Field(main,"referenceMode"),"reference-page navigation hides projects");main.ShowCanvasProjects();check(!(bool)Field(main,"referenceMode")&&main.CanvasProjectsMode,"projects hide the reference page before becoming visible");Entry.ClassicEnabled=true;
-     check(main.Window.MinWidth==1040,"project-page narrow visual evidence uses the actual supported main-window minimum width");
+     int narrowWidth=(int)Math.Floor(main.Window.MinWidth);
+     check(narrowWidth>0&&narrowWidth<=1040&&main.Window.MinWidth<=main.Window.Width,"project-page narrow visual evidence uses the screen-fitted supported main-window minimum width");
      foreach(string appearance in new[]{"light","dark"}){
       Theme.Set(appearance);main.ApplyBrowsePreferences(Settings.Load());Call(main,"UpdateNavigationPresentation");Call(main,"UpdateInspectorPresentation");
       Render(main,Path.Combine(root,"canvas-projects-"+appearance+".png"),1280);CheckLayout(main,page,1280,appearance,check);
-      Render(main,Path.Combine(root,"canvas-projects-"+appearance+"-1040.png"),1040);CheckLayout(main,page,1040,appearance,check);
+      Render(main,Path.Combine(root,"canvas-projects-"+appearance+"-narrow.png"),narrowWidth);CheckLayout(main,page,narrowWidth,appearance,check);
       check(page.Visibility==Visibility.Visible&&((Grid)main.Window.FindName("Center")).Visibility==Visibility.Collapsed&&((GridSplitter)main.Window.FindName("RightSidebarHandle")).Visibility==Visibility.Collapsed&&!main.Window.IsVisible&&!canvas.IsVisible,"theme, preferences and supported-minimum resize preserve project presentation and never show fixture windows ("+appearance+")");
      }
      int savedProjectCount=store.List().Count;
      foreach(var section in new[]{"audio","bookmarks","documents","assets","pictures"}){
       main.SetSection(section);check(!main.CanvasProjectsMode&&page.Visibility==Visibility.Collapsed&&((Grid)main.Window.FindName("Center")).Visibility==Visibility.Visible,"leaving Projects for "+section+" restores its own library presentation");
+      check(new[]{"Unfiled","Favorites","SidebarFooter","SidebarScopeDivider"}.All(name=>((UIElement)main.Window.FindName(name)).Visibility==Visibility.Visible),"leaving Projects restores the scoped filters and trash for "+section);
       check(((SolidColorBrush)nav.Background).Color!=((SolidColorBrush)Theme.Brush("AccentSoft")).Color,"Projects is not left highlighted after navigating to "+section);
       Click(nav);check(main.CanvasProjectsMode&&page.Visibility==Visibility.Visible&&store.List().Count==savedProjectCount&&((SolidColorBrush)nav.Background).Color==((SolidColorBrush)Theme.Brush("AccentSoft")).Color,"returning from "+section+" opens the existing project gallery without creating or entering a project");
      }

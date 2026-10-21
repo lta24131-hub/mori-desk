@@ -24,7 +24,7 @@ function fixture(settings={}) {
     }},
     alarms:{onAlarm:{addListener(fn){alarm=fn;}},create(name,value){calls.push({kind:'alarm',name,value});if(settings.alarmFails)return Promise.reject(Error('alarm unavailable'));}}
   };
-  const context=vm.createContext({setTimeout,clearTimeout});vm.runInContext(source,context);
+  const context=vm.createContext({setTimeout,clearTimeout,MoriInstalledGeneration:settings.generation});vm.runInContext(source,context);
   const updater=vm.runInContext('MoriUpdater',context).create({chrome:browser,
     uuid:()=>`00000000-0000-4000-8000-${String(++sequence).padStart(12,'0')}`,
     now:()=>time,setTimeout:(callback,ms)=>{const id=++sequence;timers.set(id,{callback,ms});return id;},clearTimeout:id=>timers.delete(id),
@@ -33,7 +33,7 @@ function fixture(settings={}) {
     extraBusy:()=>!!settings.extraBusy,
     request:async message=>{calls.push(message);if(settings.request)return settings.request(message,api);return message.op==='poll'?{ok:true,update:{version:'0.3.2',token:'private-apply-token'}}:{ok:true,reload:true};}
   });
-  const api={updater,calls,messages,timers,stored,browser,settings,get reloads(){return reloads;},advance(ms){time+=ms;},alarm:()=>alarm({name:'mori-extension-update'})};
+  const api={updater,calls,messages,timers,stored,browser,settings,context,get reloads(){return reloads;},advance(ms){time+=ms;},alarm:()=>alarm({name:'mori-extension-update'})};
   return api;
 }
 function popup(f) {
@@ -174,6 +174,18 @@ test('stable profile client ID is reused and legacy UUID IDs are safely replaced
     const id=f.calls.find(x=>x.op==='poll').clientId;assert.match(id,/^[a-f0-9]{32}$/);
     assert.equal(id===saved,saved.length===32);assert.equal(id,f.stored.moriUpdateClientId);
   }
+});
+
+test('update control reports only the generation captured by this loaded worker',async()=>{
+  const generation='a'.repeat(32),f=fixture({generation});
+  // Loading new disk files is not simulated by a mutable global after startup.
+  f.context.MoriInstalledGeneration='b'.repeat(32);
+  await f.updater.poll();
+  assert.equal(f.calls.find(x=>x.op==='poll').generation,generation);
+  assert.equal(f.calls.find(x=>x.op==='apply').generation,generation);
+  const legacy=fixture();await legacy.updater.poll();
+  assert.equal(legacy.calls.find(x=>x.op==='poll').generation,'');
+  assert.equal(legacy.reloads,1,'legacy source without a generation can still apply and reload');
 });
 
 test('alarm polling uses local request only and alarm API rejection is contained',async()=>{

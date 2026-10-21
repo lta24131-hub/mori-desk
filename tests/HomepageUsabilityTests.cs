@@ -70,12 +70,51 @@ namespace MoriDesk {
       check(sidebars.RightVisible&&sidebars.Right==252&&Field<HashSet<string>>(main,"selection").Count==(selected?1:0)&&Hit(content,toggle),label+"restoring details retains selection and the preferred sidebar width");
       if(width==1040&&((mode=="category-search-type"&&!selected)||(mode=="websites"&&selected)))Render(content,Path.Combine(output,theme+"-"+mode+"-1040.png"),width);
      }
+     main.PublishQuickConversionResults(library,new[]{image});Measure(main,content,1040);
+     var resultAction=Find<Button>(main,"QuickConversionResults");var thumbnail=Find<Slider>(main,"ThumbnailSize");
+     check(resultAction.Visibility==Visibility.Visible&&resultAction.ActualHeight==26&&Hit(content,resultAction)&&Bounds(resultAction,content).Right<Bounds(thumbnail,content).Left&&Find<TextBlock>(main,"Status").ActualWidth>=140,"minimum-width result receipt is a compact hit-testable footer action, separate from thumbnail controls and status");
+     main.ClearQuickConversionResults();
      main.SetSection("assets");main.RequestNavigate(folder);Find<TextBox>(main,"Search").Text="unmatched-layout-query";Find<ComboBox>(main,"MediaFilter").SelectedIndex=1;main.RefreshView();Measure(main,content,1040);
      var recovery=Find<Button>(main,"EmptyClearFilter");check(recovery.Visibility==Visibility.Visible&&recovery.ActualWidth>=80&&recovery.ActualHeight>=30&&Hit(content,recovery),"minimum-width empty-filter recovery is fully visible and actually hit-testable");
      Click(main,"EmptyClearFilter");Measure(main,content,1040);
      check(Visible(main).Single().Id==image&&Field<string>(main,"view")==folder&&recovery.Visibility==Visibility.Collapsed,"visible empty-filter action restores the matching category without moving or deleting an asset");
      check(!main.Window.IsVisible,"actual MainWindow layout and hit testing never display or control a desktop window");
     }finally{StopTimers(main);main.Window.Close();}
+   }
+  }
+  static void ConversionResults(string root,string picture,Action<bool,string> check){
+   using(var library=new Library(Path.Combine(root,"conversion-results-library")))using(var elsewhere=new Library(Path.Combine(root,"foreign-results-library"))){
+    string folder=library.CreateFolder("Original project","");
+    var source=library.Import(picture,folder,"Original picture","","original tags","").Item;
+    var result=library.ImportConvertedFile(picture,"Converted result","","","",null,"keep").Item;
+    var deleted=library.ImportConvertedFile(picture,"Deleted result","","","",null,"keep").Item;
+    library.SetHiddenFromAll(new[]{result.Id},true);library.Trash(new[]{deleted.Id},true);
+    byte[] original=File.ReadAllBytes(library.FullPath(source));
+    var main=new MainWindow(library){PreviewMode=true};StopTimers(main);
+    try{
+     var button=Find<Button>(main,"QuickConversionResults");check(button.Visibility==Visibility.Collapsed,"conversion result action is absent before any completed task");
+     main.SetSection("pictures");main.RequestNavigate(folder);Find<TextBox>(main,"Search").Text="Original";main.RefreshView();Select(main,source.Id);
+     Find<TextBox>(main,"Name").Text="Edited original draft";main.PendingInformationChoice=()=>MessageBoxResult.Cancel;
+     var ids=new[]{result.Id,result.Id};main.PublishQuickConversionResults(library,ids);ids[0]=source.Id;ids[1]=deleted.Id;
+     Call(main,"Status","An unrelated status update");main.RefreshAfterQuickConversion();
+     check(button.Visibility==Visibility.Visible&&Convert.ToString(button.Content)=="查看结果（1）"&&Field<string>(main,"view")==folder&&Find<TextBox>(main,"Search").Text=="Original"&&Field<HashSet<string>>(main,"selection").SetEquals(new[]{source.Id})&&Find<TextBox>(main,"Name").Text=="Edited original draft"&&Field<bool>(main,"refreshDeferred"),"task completion snapshots and deduplicates result IDs while preserving current search, category, selection and draft through unrelated status refreshes");
+     check(!main.ViewQuickConversionResults()&&button.Visibility==Visibility.Visible&&Field<string>(main,"view")==folder&&Find<TextBox>(main,"Name").Text=="Edited original draft","canceling draft protection leaves the result receipt and current work intact");
+     main.PendingInformationChoice=()=>MessageBoxResult.Yes;
+     check(main.ViewQuickConversionResults()&&Field<HashSet<string>>(main,"selection").SetEquals(new[]{result.Id})&&Find<TextBox>(main,"Search").Text==""&&Field<string>(main,"mediaSection")=="pictures"&&library.All().Single(a=>a.Id==source.Id).Name=="Edited original draft","explicit view-results saves the original draft before navigating to the frozen result IDs, not later source selection");
+     long navigation=Field<long>(main,"galleryNavigationGeneration");
+     check(main.CompleteQuickConversionResultNavigation(navigation,new[]{result.Id})&&library.All().Single(a=>a.Id==result.Id).HiddenFromAll,"explicit result navigation can locate hidden-from-All items through their type page without changing the visibility preference");
+     Find<TextBox>(main,"Search").Text="Changed before debounce";
+     check(!main.CompleteQuickConversionResultNavigation(navigation,new[]{result.Id}),"a changed search invalidates deferred result scrolling before its debounce refresh can run");
+     Find<TextBox>(main,"Search").Text="";main.RefreshView();main.ViewQuickConversionResults();navigation=Field<long>(main,"galleryNavigationGeneration");main.RequestNavigate(folder);
+     check(!main.CompleteQuickConversionResultNavigation(navigation,new[]{result.Id})&&Field<string>(main,"view")==folder,"later user navigation cancels delayed conversion-result scrolling instead of pulling the gallery back");
+     main.PublishQuickConversionResults(library,new[]{result.Id,deleted.Id});
+     check(main.ViewQuickConversionResults()&&Field<HashSet<string>>(main,"selection").SetEquals(new[]{result.Id})&&Convert.ToString(button.Content)=="查看结果（1）"&&library.All().Single(a=>a.Id==deleted.Id).Deleted,"partly removed task results reveal only surviving copies and never resurrect recycled records");
+     Set(main,"busy",true);check(!main.ViewQuickConversionResults()&&button.Visibility==Visibility.Visible,"busy library retains the receipt for retry instead of discarding successful conversion results");Set(main,"busy",false);
+     main.ClearQuickConversionResults();main.PublishQuickConversionResults(elsewhere,new[]{result.Id});check(button.Visibility==Visibility.Collapsed,"a foreign-library result receipt cannot be published into the current gallery");
+     main.PublishQuickConversionResults(library,new[]{deleted.Id});check(!main.ViewQuickConversionResults()&&button.Visibility==Visibility.Collapsed&&library.All().Single(a=>a.Id==deleted.Id).Deleted,"all-removed result action explains the missing copies and closes without changing the recycle bin");
+     main.PublishQuickConversionResults(library,new[]{result.Id});main.PublishQuickConversionResults(library,new string[0]);check(button.Visibility==Visibility.Collapsed,"a task with no collected results exposes no dead view-results button");
+     check(library.All().Count==3&&File.ReadAllBytes(library.FullPath(source)).SequenceEqual(original)&&library.AssetFolders(source.Id).Single().Id==folder&&!main.Window.IsVisible,"result receipts preserve original file bytes, source categories and every library record without showing a desktop window");
+    }finally{StopTimers(main);main.PendingInformationChoice=()=>MessageBoxResult.No;main.Window.Close();}
    }
   }
   public static void Run(string root,Action<bool,string> check){
@@ -87,6 +126,7 @@ namespace MoriDesk {
    try{
     string picture=Path.Combine(root,"picture.png");using(var image=new System.Drawing.Bitmap(48,32)){using(var paint=System.Drawing.Graphics.FromImage(image))paint.Clear(System.Drawing.Color.MediumPurple);image.Save(picture,System.Drawing.Imaging.ImageFormat.Png);}
     Layout(root,picture,check);
+    ConversionResults(root,picture,check);
     using(var library=new Library(Path.Combine(root,"library"))){
      string id=library.Import(picture,"","Original name","https://example.org/old","old tags","old notes").Item.Id;
      string web=library.ImportBookmark("https://example.org/saved","Example website","").Item.Id;

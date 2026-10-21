@@ -33,7 +33,33 @@ namespace Mori {
    check(SettingsWindow.CreateStorageRequest(source,destination,true)==null&&SettingsWindow.CreateStorageRequest(source,"",true)==null,"preview mode cannot submit a storage change");
    check(settingsBefore.SequenceEqual(File.ReadAllBytes(settingsPath))&&Settings.LoadFrom(settingsPath).LibraryPath==source,"storage requests never persist a new library path before verified migration");
    check(File.ReadAllText(sourceFile)=="original library stays here"&&!Directory.Exists(destination),"validating storage changes never moves or deletes original files");
+   ConversionOutputPreferences(output,check,rejects);
    return log;
+  }
+  static void ConversionOutputPreferences(string output,Action<bool,string> check,Action<Action,string> rejects){
+   string area=Path.Combine(output,"conversion-preferences");Directory.CreateDirectory(area);
+   string legacy=Path.Combine(area,"legacy.json"),library=Path.Combine(area,"library");
+   File.WriteAllText(legacy,new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new Dictionary<string,object>{{"LibraryPath",library},{"Theme","light"}}));
+   string originalDefault=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Nook 转换");
+   check(new Settings().FileConversionOutputPath==originalDefault&&Settings.LoadFrom(legacy).FileConversionOutputPath==originalDefault,"old and new settings retain the existing Documents conversion default until explicitly changed");
+   string target=Path.Combine(area,"new-results","nested");
+   check(Settings.ValidateConversionOutputPath(target+Path.DirectorySeparatorChar)==Path.GetFullPath(target)&&!Directory.Exists(Path.Combine(area,"new-results")),"conversion destination validation normalizes without creating any directory");
+   foreach(string invalid in new[]{"", "relative-results", @"C:results", @"\\server\share\results", @"\\?\C:\results", @"\\.\C:\results", Path.GetPathRoot(area), Path.Combine(area,"NUL"), "https://example.test/results"})
+    rejects(delegate{Settings.ValidateConversionOutputPath(invalid);},"conversion preferences reject nonordinary destination: "+invalid);
+   string file=Path.Combine(area,"keep.txt");File.WriteAllText(file,"previous output");
+   rejects(delegate{Settings.ValidateConversionOutputPath(file);},"conversion preferences reject an existing file as a folder");
+   rejects(delegate{Settings.ValidateConversionOutputPath(Path.Combine(file,"child"));},"conversion preferences reject a file-valued ancestor");
+   var changed=Settings.LoadFrom(legacy);var stale=Settings.LoadFrom(legacy);
+   changed.FileConversionOutputPath=target;changed.SaveTo(legacy);
+   check(Settings.LoadFrom(legacy).FileConversionOutputPath==target&&!Directory.Exists(target),"conversion output preference persists without moving files or eagerly creating destination");
+   stale.Theme="dark";stale.SaveTo(legacy);
+   check(Settings.LoadFrom(legacy).FileConversionOutputPath==target&&stale.FileConversionOutputPath==target&&stale.Theme=="dark","a stale unrelated preferences editor preserves the newer output path and refreshes ApplySaved");
+   var outputEditor=Settings.LoadFrom(legacy);var libraryEditor=Settings.LoadFrom(legacy);
+   string newerLibrary=Path.Combine(area,"different-library");libraryEditor.LibraryPath=newerLibrary;libraryEditor.SaveTo(legacy);
+   string secondTarget=Path.Combine(area,"second-results");outputEditor.FileConversionOutputPath=secondTarget;outputEditor.SaveTo(legacy);
+   var loaded=Settings.LoadFrom(legacy);
+   check(loaded.LibraryPath==newerLibrary&&outputEditor.LibraryPath==newerLibrary&&loaded.FileConversionOutputPath==secondTarget,"changing conversion output does not overwrite a concurrent library-path edit");
+   check(File.ReadAllText(file)=="previous output"&&!Directory.Exists(secondTarget)&&!Directory.Exists(newerLibrary),"output preference changes leave existing files, library and future destinations untouched");
   }
  }
 }

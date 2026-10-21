@@ -7,6 +7,9 @@ const MoriUpdater = (() => {
   function create(options) {
     const browser = options.chrome, delay = options.setTimeout || setTimeout, cancel = options.clearTimeout || clearTimeout;
     const now = options.now || Date.now;
+    // Installed by the desktop next to these exact script bytes. Capture once:
+    // an apply acknowledgement is not proof this worker has loaded new files.
+    const installedGeneration = /^[0-9a-f]{32}$/.test(globalThis.MoriInstalledGeneration || '') ? globalThis.MoriInstalledGeneration : '';
     let active = 0, writers = 0, uncertaintyRevision = 0, frozen = false, uncertain = false, initialized = false;
     let clientId = '', flight = null, scheduled, offered = null, reason = '', listeners = new Set();
     const popups = new Set();
@@ -119,7 +122,7 @@ const MoriUpdater = (() => {
         const identity=options.identity();
         if(!identity.installationId || !clientId) {reason='unpaired';publish();return status();}
         let reply;
-        try {reply=await bounded(options.request({action:'extensionControl',op:'poll',...identity,clientId}),5000);}catch {reason='unavailable';publish();return status();}
+        try {reply=await bounded(options.request({action:'extensionControl',op:'poll',...identity,clientId,generation:installedGeneration}),5000);}catch {reason='unavailable';publish();return status();}
         if(!reply?.ok) {reason='unavailable';publish();return status();}
         const update=reply.update;
         if(!update) {offered=null;reason=uncertain?'uncertain':'current';publish();return status();}
@@ -139,7 +142,7 @@ const MoriUpdater = (() => {
           if(frameKey(current)!==frameKey(voters))throw Error('Collector frames changed');
           if(!(await Promise.all(voters.map(voter=>message(voter,'mori-update-verify',lock)))).every(validVote))throw Error('Collector lock expired');
           if(!idle() || now()-start>9000)throw Error('Busy before apply');
-          const applied=await bounded(options.request({action:'extensionControl',op:'apply',...identity,clientId,token:offered.token}),4000);
+          const applied=await bounded(options.request({action:'extensionControl',op:'apply',...identity,clientId,generation:installedGeneration,token:offered.token}),4000);
           if(!applied?.ok || applied.reload!==true)throw Error('Desktop did not acknowledge apply');
           // A late ACK must not reload after a content lock expires or a popup
           // opens. A later poll may safely retry the update, never a collection.

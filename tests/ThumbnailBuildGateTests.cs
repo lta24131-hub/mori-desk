@@ -42,6 +42,15 @@ namespace MoriDesk {
    string failurePrefix=Path.GetFullPath(Path.Combine(root,"negative-"));for(int i=0;i<=ThumbnailBuildGate.MaximumFailures;i++)ThumbnailBuildGate.RememberDecodeFailure(failurePrefix+i,now.AddMilliseconds(i));
    check(ThumbnailBuildGate.FailureCount<=ThumbnailBuildGate.MaximumFailures&&!ThumbnailBuildGate.HasDecodeFailure(failurePrefix+"0",now.AddSeconds(1))&&ThumbnailBuildGate.HasDecodeFailure(failurePrefix+ThumbnailBuildGate.MaximumFailures,now.AddSeconds(1)),"negative cache is bounded and retains its newest source failures");
    for(int i=0;i<=ThumbnailBuildGate.MaximumFailures;i++)ThumbnailBuildGate.HasDecodeFailure(failurePrefix+i,now.AddMinutes(1));
+   long beforeRefresh=ThumbnailBuildGate.FailureVersion;ThumbnailBuildGate.RememberDecodeFailure(oldVersion,now);VideoThumbnail.FailureCache.Remember(oldVersion,now);long videoAttempt=VideoThumbnail.FailureCache.Version;
+   ThumbnailImage.RetryFailedThumbnails();
+   check(!ThumbnailBuildGate.HasDecodeFailure(oldVersion,now)&&!VideoThumbnail.FailureCache.Has(oldVersion,now)&&ThumbnailBuildGate.FailureCount==0&&VideoThumbnail.FailureCache.Count==0,"explicit retry clears picture and video failure caches without waiting for expiry");
+   ThumbnailBuildGate.RememberDecodeFailure(oldVersion,beforeRefresh);VideoThumbnail.FailureCache.Remember(oldVersion,now,videoAttempt);
+   check(!ThumbnailBuildGate.HasDecodeFailure(oldVersion,now)&&!VideoThumbnail.FailureCache.Has(oldVersion,now),"decode attempts started before refresh cannot repopulate stale failures after refresh");
+   ThumbnailBuildGate.RememberDecodeFailure(oldVersion,ThumbnailBuildGate.FailureVersion);VideoThumbnail.FailureCache.Remember(oldVersion,now,VideoThumbnail.FailureCache.Version);
+   check(ThumbnailBuildGate.HasDecodeFailure(oldVersion,now)&&VideoThumbnail.FailureCache.Has(oldVersion,now.AddMinutes(9)),"failed explicit retry is cached again instead of creating an automatic retry loop");
+   check(!VideoThumbnail.FailureCache.Has(oldVersion,now.AddMinutes(10)),"video failure expires after its bounded ten-minute backoff");
+   ThumbnailImage.RetryFailedThumbnails();
    LibraryIntegration(root,check);
   }
   static void LibraryIntegration(string root,Action<bool,string> check){
@@ -58,6 +67,12 @@ namespace MoriDesk {
     check(!File.Exists(first.ThumbnailPath(broken))&&ThumbnailBuildGate.HasDecodeFailure(failureStamp),"Library caches decoder failures only after failed thumbnail decode");
     Image(invalid,39,23,Color.DarkOliveGreen);first.BuildThumbnail(broken);
     check(File.Exists(first.ThumbnailPath(broken))&&broken.Width==39&&broken.Height==23,"corrected source retries immediately instead of waiting for negative cache expiry");
+    string retrySource=Path.Combine(root,"explicit-retry.png");Image(retrySource,31,19,Color.DarkSeaGreen);byte[] retryOriginal=File.ReadAllBytes(retrySource);File.WriteAllBytes(retrySource,new byte[retryOriginal.Length]);var retryTime=new DateTime(2026,1,2,0,0,0,DateTimeKind.Utc);File.SetLastWriteTimeUtc(retrySource,retryTime);string retryId=first.AddReferenceAssets(new[]{retrySource},"").Single();var retry=first.All().Single(a=>a.Id==retryId);first.BuildThumbnail(retry);string retryStamp=ThumbnailBuildGate.SourceStamp(retrySource);
+    File.WriteAllBytes(retrySource,retryOriginal);File.SetLastWriteTimeUtc(retrySource,retryTime);first.BuildThumbnail(retry);
+    check(ThumbnailBuildGate.SourceStamp(retrySource)==retryStamp&&!File.Exists(first.ThumbnailPath(retry)),"unchanged source version does not automatically loop failed decoding even if its bytes recover");
+    ThumbnailImage.RetryFailedThumbnails();first.BuildThumbnail(retry);
+    check(File.Exists(first.ThumbnailPath(retry))&&retry.Width==31&&retry.Height==19,"explicit refresh retries a previously failed identical source version through the real image decoder");
+    check(File.ReadAllBytes(retrySource).SequenceEqual(retryOriginal)&&File.GetLastWriteTimeUtc(retrySource)==retryTime,"explicit retry never rewrites the source bytes or source timestamp");
     string saveSource=Path.Combine(root,"save-retry.png");Image(saveSource,41,27,Color.DarkCyan);string saveId=first.AddReferenceAssets(new[]{saveSource},"").Single();var save=first.All().Single(a=>a.Id==saveId);string savePath=first.ThumbnailPath(save);Directory.CreateDirectory(savePath);first.BuildThumbnail(save);
     check(!ThumbnailBuildGate.HasDecodeFailure(ThumbnailBuildGate.SourceStamp(saveSource)),"thumbnail output/save failure does not poison source decoding cache");
     Directory.Delete(savePath);first.BuildThumbnail(save);

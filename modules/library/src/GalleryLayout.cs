@@ -13,6 +13,9 @@ namespace Mori {
   public double Y {get;set;}
   public bool ShowName {get;set;}
   public bool ShowDetails {get;set;}
+  // Keep source identity separate from the format badge and multi-select mark.
+  // Extremely narrow/short tiles retain the same explanation in their tooltip.
+  public bool ShowSourceBadge {get{return Asset!=null&&Asset.IsReference&&Width>=56&&ImageHeight>=52;}}
   public double LabelHeight {get{return (ShowName?21:0)+(ShowDetails?19:0);}}
  }
  public sealed class AssetRow {

@@ -3,11 +3,29 @@ const {test} = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const context = vm.createContext({URL});
+const context = vm.createContext({URL,AbortController,setTimeout,clearTimeout,Uint8Array,TextDecoder,btoa:value=>Buffer.from(value,'binary').toString('base64')});
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../browser-extension/media-source.js'),'utf8'),context);
 const media = context.MoriMediaSource;
 const code = 'SyntheticClip1';
 const video = 'https://video.cdninstagram.com/fixture.mp4?signature=test';
+
+test('oversized Blob video reports the 20 MB limit without falling back to another page, cover or bookmark',async()=>{
+  const item={kind:'video',url:'blob:https://www.instagram.com/fixture',mediaPage:`https://www.instagram.com/reel/${code}/`};
+  const doc={querySelectorAll:()=>[],querySelector:()=>null};
+  for(const declared of [true,false]){
+    let calls=0,canceled=0;
+    const fetcher=async()=>{
+      calls++;
+      return {ok:true,
+        headers:{get:key=>key==='content-type'?'video/mp4':declared?String(20*1024*1024+1):null},
+        body:{getReader:()=>({read:async()=>({done:false,value:{length:20*1024*1024+1}}),cancel:async()=>{canceled++;}})}
+      };
+    };
+    await assert.rejects(()=>media.resolve(item,doc,'https://www.instagram.com/',fetcher),error=>error.code==='MEDIA_TOO_LARGE'&&/超过 20 MB.*保存原文件/.test(error.message));
+    assert.equal(calls,1,'oversized original is not replaced with another request');
+    assert.equal(canceled,declared?0:1,'streaming overflow releases its reader');
+  }
+});
 test('Reel identities are exact, query-free and scoped to Instagram', () => {
   for (const kind of ['reel','reels','p']) assert.equal(media.reel(`https://www.instagram.com/${kind}/${code}/?igsh=discarded`).code,code);
   for (const url of ['https://www.instagram.com/accounts/login/','https://instagram.com.evil.test/reel/abc123/','https://user:password@www.instagram.com/reel/abc123/','http://www.instagram.com/reel/abc123/','https://www.instagram.com/reels/']) assert.equal(media.reel(url),null);

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -13,13 +14,19 @@ namespace MoriDesk {
   static byte[] Psd(){var bytes=new byte[43];Buffer.BlockCopy(Encoding.ASCII.GetBytes("8BPS"),0,bytes,0,4);bytes[5]=1;bytes[13]=3;bytes[17]=1;bytes[21]=1;bytes[23]=8;bytes[25]=3;bytes[40]=200;bytes[41]=100;bytes[42]=50;return bytes;}
   static void Pump(int milliseconds){var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(milliseconds)};timer.Tick+=delegate{timer.Stop();frame.Continue=false;};timer.Start();Dispatcher.PushFrame(frame);}
   static void SingleAiRoute(string ai,Action<bool,string> check){
+   // Normal application startup initializes theme resources before opening a
+   // native window. This group must establish the same prerequisite when run
+   // on its own instead of inheriting it from a preceding theme test.
+   if(Theme.Current==null)Theme.Set("dark");
    var app=Application.Current;var shutdown=app.ShutdownMode;var previousMain=app.MainWindow;var context=SynchronizationContext.Current;Window opened=null;Exception unhandled=null;
    app.ShutdownMode=ShutdownMode.OnExplicitShutdown;SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(app.Dispatcher));
    DispatcherUnhandledExceptionEventHandler onError=delegate(object sender,DispatcherUnhandledExceptionEventArgs e){unhandled=e.Exception;e.Handled=true;};app.DispatcherUnhandledException+=onError;
    try{
     PreviewWindow.Images(null,new[]{ai},new[]{"Synthetic all-page AI"},delegate(Window window){opened=window;window.WindowStartupLocation=WindowStartupLocation.Manual;window.Left=-20000;window.Top=-20000;window.ShowInTaskbar=false;window.ShowActivated=false;});
     check(opened is DocumentPreviewWindow,"single AI full preview routes to the multipage document window, not the raster first page");
-    opened.Close();Pump(100);check(unhandled==null&&!opened.IsVisible&&!app.Windows.Cast<Window>().Contains(opened),"closing routed AI preview never leaves an orphan window or asynchronous dispatcher error");
+    opened.Close();Pump(100);
+    check(!opened.IsVisible&&!app.Windows.Cast<Window>().Contains(opened),"closing routed AI preview removes the window immediately");
+    check(unhandled==null,"closing routed AI preview has no asynchronous dispatcher error"+(unhandled==null?"":": "+unhandled));
    }finally{if(opened!=null&&opened.IsVisible)opened.Close();Pump(20);app.DispatcherUnhandledException-=onError;app.MainWindow=previousMain;app.ShutdownMode=shutdown;SynchronizationContext.SetSynchronizationContext(context);}
   }
   internal static void Run(string root,Action<bool,string> check){
@@ -30,6 +37,19 @@ namespace MoriDesk {
    check(!MediaTypes.Pictures.Overlaps(MediaTypes.Documents)&&!MediaTypes.Videos.Overlaps(MediaTypes.Audio),"document/media sections have unambiguous type registry");
    check(FileRouter.PictureFilter.Contains("*.psd")&&FileRouter.PictureFilter.Contains("*.ai"),"standalone picker includes Photoshop and Illustrator formats");
    check(BrowserVideo.MimeType("f.mkv")=="video/x-matroska"&&BrowserVideo.MimeType("f.MP3")=="audio/mpeg"&&BrowserVideo.MimeType("f.OGG")=="audio/ogg","media stream content types distinguish audio and video containers");
+   var mediaTypes=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase){
+    {".mp4","video/mp4"},{".mov","video/quicktime"},{".m4v","video/mp4"},{".webm","video/webm"},{".avi","video/x-msvideo"},{".mkv","video/x-matroska"},{".wmv","video/x-ms-wmv"},{".mpg","video/mpeg"},{".mpeg","video/mpeg"},{".m2ts","video/mp2t"},{".mts","video/mp2t"},{".ts","video/mp2t"},{".3gp","video/3gpp"},{".ogv","video/ogg"},
+    {".flv","video/x-flv"},{".f4v","video/x-f4v"},{".3g2","video/3gpp2"},{".vob","video/x-ms-vob"},{".dv","video/dv"},{".mxf","application/mxf"},
+    {".mp3","audio/mpeg"},{".wav","audio/wav"},{".m4a","audio/mp4"},{".aac","audio/aac"},{".flac","audio/flac"},{".ogg","audio/ogg"},{".opus","audio/ogg"},{".wma","audio/x-ms-wma"},{".aiff","audio/x-aiff"},{".aif","audio/x-aiff"},
+    {".m4b","audio/mp4"},{".ac3","audio/ac3"},{".amr","audio/amr"},{".au","audio/basic"},{".caf","audio/x-caf"},{".weba","audio/webm"},{".mka","audio/x-matroska"},{".mp2","audio/mpeg"},{".voc","audio/x-voc"},{".wv","audio/x-wavpack"},{".tta","audio/x-tta"},{".w64","audio/x-w64"},{".eac3","audio/eac3"}
+   };
+   check(new HashSet<string>(MediaTypes.Videos.Concat(MediaTypes.Audio),StringComparer.OrdinalIgnoreCase).SetEquals(mediaTypes.Keys),"strict MIME regression table covers every classified audio/video extension, including newly added formats");
+   foreach(var mediaType in mediaTypes){
+    string filename=Path.Combine(originals,"media name.final"+mediaType.Key.ToUpperInvariant());
+    check(BrowserVideo.MimeType(filename)==mediaType.Value&&FileFormats.MediaMimeType(mediaType.Key)==mediaType.Value,"browser response uses the correct shared case-insensitive container MIME: "+mediaType.Key);
+   }
+   check(MediaTypes.Audio.All(ext=>BrowserVideo.MimeType("file"+ext).StartsWith("audio/",StringComparison.Ordinal)),"no audio format is mislabeled as video/mp4 or generic data");
+   foreach(string unknown in new[]{null,"","no-extension","file.bin","file.png","file.mp4.backup","file.exe"})check(BrowserVideo.MimeType(unknown)=="application/octet-stream","unknown/non-media data is never falsely identified as MP4: "+unknown);
    check(FormatPreviewInfo.Notice("x.psd").Contains("近似")&&FormatPreviewInfo.Notice("x.ai").Contains("并排比较仅显示首页")&&FormatPreviewInfo.Notice("x.nef").Contains("编码组件"),"design/image raster limitations distinguish comparison first page from the full AI preview");
    check(FormatPreviewInfo.UsesPagedPreview("x.AI")&&FormatPreviewInfo.UsesPagedPreview("x.PDF")&&!FormatPreviewInfo.UsesPagedPreview("x.psd")&&!FormatPreviewInfo.UsesPagedPreview("x.png"),"PDF and AI share case-insensitive all-page viewer routing without changing other picture formats");
    string psd=Path.Combine(originals,"画面.psd"),pdf=Path.Combine(originals,"页面.pdf"),ai=Path.Combine(originals,"画板.ai"),word=Path.Combine(originals,"说明.docx");

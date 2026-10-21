@@ -8,6 +8,21 @@ import { patchRenderer } from "../host/prepare.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const upstream = process.env.NOOK_ESEARCH_SOURCE || path.resolve(here, "../../../outputs/esearch-15.6.0-source");
+// Reviewed VM packages retain the real pinned engine as a small test dependency,
+// while development checkouts may use eSearch's installed package. Production
+// Electron bundles the same engine into its renderer; neither path is a mock.
+async function phaseEngine() {
+    const candidates = [
+        path.resolve(here, "../../../scroll-capture/node_modules/picture_match/dist/index.js"),
+        path.join(upstream, "node_modules/picture_match/dist/index.js"),
+    ];
+    const entry = candidates.find(filename => fs.existsSync(filename));
+    assert.ok(entry, `The real picture_match 0.1.4 engine is required. Checked: ${candidates.join(", ")}`);
+    const manifest = JSON.parse(fs.readFileSync(path.resolve(path.dirname(entry), "../package.json"), "utf8"));
+    assert.equal(manifest.name, "picture_match");
+    assert.equal(manifest.version, "0.1.4", "phase-aliasing regression requires the pinned real engine");
+    return import(pathToFileURL(entry).href);
+}
 const require = createRequire(import.meta.url);
 let ts;
 try { ts = require("typescript"); }
@@ -248,7 +263,7 @@ test("unmatched frame cannot mutate last accepted image, origin, or accumulated 
 });
 
 test("ordinary repeated card layout catches phase aliasing without optional binary fixtures", async () => {
-    const { findOffset } = await import(pathToFileURL(path.join(upstream, "node_modules/picture_match/dist/index.js")).href);
+    const { findOffset } = await phaseEngine();
     const first = listFrame(96), next = listFrame(435);
     const phase = await findOffset(first, next);
     assert.ok(Math.abs(phase.dy + 339) > 100, `old engine must reproduce repeated-row aliasing, got ${phase.dy}`);
@@ -270,7 +285,7 @@ test("ordinary repeated card layout catches phase aliasing without optional bina
 // factory offscreen. The tests above are always-on and need no binary fixtures.
 const fixtures = process.env.NOOK_SCROLL_FIXTURES || path.resolve(here, "../../../outputs/scroll-match-fixtures19");
 test("actual WPF subpixel sequence rejects the installed phase engine's wrong repeated rows", { skip: !fs.existsSync(path.join(fixtures, "frame-0.rgba")) }, async () => {
-    const { findOffset } = await import(pathToFileURL(path.join(upstream, "node_modules/picture_match/dist/index.js")).href);
+    const { findOffset } = await phaseEngine();
     const frames = [0, 48, 96, 435.44, 774.89].map(offset => ({ width: 971, height: 525, data: new Uint8ClampedArray(fs.readFileSync(path.join(fixtures, `frame-${offset}.rgba`))) }));
     const phase = await findOffset(frames[2], frames[3]);
     assert.ok(Math.abs(phase.dy + 339) > 100, "fixture must reproduce the old large-scroll failure");

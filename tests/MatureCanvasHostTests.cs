@@ -25,7 +25,7 @@ namespace MoriDesk {
   static void Wait(Func<bool> complete){DateTime end=DateTime.UtcNow.AddSeconds(20);while(!complete()&&DateTime.UtcNow<end){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);Thread.Sleep(1);}if(!complete())throw new Exception("Mature canvas host fixture timed out");}
   static void Wait(Task task){Wait(()=>task.IsCompleted);task.GetAwaiter().GetResult();}
   static FieldInfo Field(string name){return typeof(MatureCanvasWindow).GetField(name,BindingFlags.Instance|BindingFlags.NonPublic);}
-  static void Dispose(MatureCanvasWindow host){host.PostForTests=null;Field("ready").SetValue(host,false);host.Close();}
+  static void Dispose(MatureCanvasWindow host){if((bool)Field("disposed").GetValue(host))return;host.PostForTests=null;Field("ready").SetValue(host,false);host.Close();}
   static void Load(MatureCanvasWindow host){Wait(Send(host,"ready","ready"));Wait(Send(host,"loaded","loaded",Map("revision",host.RevisionForTests)));}
   static string Manifest(string root,string id){return Path.Combine(new MatureCanvasStore(root).Root,id,MatureCanvasStore.ManifestName);}
   static byte[] Raster(){using(var bitmap=new Bitmap(4,3)){using(var graphics=Graphics.FromImage(bitmap))graphics.Clear(Color.MediumPurple);using(var output=new MemoryStream()){bitmap.Save(output,ImageFormat.Png);return output.ToArray();}}}
@@ -49,12 +49,91 @@ namespace MoriDesk {
    public void Dispose(){resume.Set();entered.Dispose();resume.Dispose();}
   }
   static Task SaveStage(MatureCanvasWindow host,Dictionary<string,object> scene,string request){return (Task)typeof(MatureCanvasWindow).GetMethod("SaveMessage",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(host,new object[]{Map("scene",scene,"revision",host.RevisionForTests),request,host.DocumentForTests,host.SessionForTests});}
+  sealed class ImportEcho {
+   readonly MatureCanvasWindow host;
+   internal readonly List<Task> Replies=new List<Task>();
+   internal bool HoldLoad,HoldAdded;
+   internal int Loads,Adds;
+   Dictionary<string,object> browserScene;
+   string addedRequest;int addedCount;
+   internal ImportEcho(MatureCanvasWindow host){this.host=host;host.PostForTests=Post;}
+   void Post(string json){
+    var output=Obj(Json().DeserializeObject(json));string type=output["type"].ToString();var payload=Obj(output["payload"]);
+    if(type=="load"){Loads++;browserScene=Obj(payload["scene"]);if(!HoldLoad)Replies.Add(Loaded());}
+    else if(type=="flush")Replies.Add(Send(host,"save",output["requestId"].ToString(),Map("scene",browserScene,"revision",host.RevisionForTests)));
+    else if(type=="addImages"){Adds++;var images=(object[])payload["images"];foreach(var item in images)AddImported(browserScene,Obj(item));addedRequest=output["requestId"].ToString();addedCount=images.Length;if(!HoldAdded)Replies.Add(Added());}
+   }
+   internal Task Loaded(){return Send(host,"loaded","load_"+Guid.NewGuid().ToString("N"));}
+   internal Task Added(){return Send(host,"imagesAdded",addedRequest,Map("count",addedCount));}
+  }
+  static async Task<bool> WaitAndImport(MatureCanvasWindow host,string target,string[] paths){await host.WaitUntilReadyAsync();return await host.OpenProjectAsync(target,paths);}
+  static bool Rejected(Task task){try{Wait(task);return false;}catch(IOException){return true;}}
+  static bool LoadWarning(MatureCanvasWindow host){var text=(System.Windows.Controls.TextBlock)Field("feedback").GetValue(host);return text.Visibility==System.Windows.Visibility.Visible&&text.Text.Contains("可继续等待")&&text.Text.Contains("取消");}
+  static void ReadinessLifecycle(string root,Action<bool,string> check){
+   Directory.CreateDirectory(root);string source=Path.Combine(root,"source.png");byte[] original=Raster();File.WriteAllBytes(source,original);
+   string slowData=Path.Combine(root,"slow-start");var slow=new MatureCanvasWindow(slowData);var slowEcho=new ImportEcho(slow){HoldLoad=true};var notice=new TaskCompletionSource<bool>();slow.LoadNoticeDelayForTests=()=>notice.Task;
+   try{
+    var pending=WaitAndImport(slow,slow.ProjectId,new[]{source});notice.SetResult(true);Wait(()=>LoadWarning(slow));
+    check(!pending.IsCompleted&&!slow.CanImportImages,"slow first startup keeps the original image request pending and shows wait/cancel guidance instead of abandoning it");
+    Wait(Send(slow,"ready","ready"));Wait(slowEcho.Loaded());Wait(pending);foreach(var reply in slowEcho.Replies.ToArray())Wait(reply);
+    check(pending.Result&&slowEcho.Adds==1&&new MatureCanvasStore(slowData).Load(slow.ProjectId).ImageCount==1,"a late first loaded ACK continues the same request through one image insertion and a durable save without user retry");
+   }finally{Dispose(slow);}
+   string switchData=Path.Combine(root,"slow-switch");var switching=new MatureCanvasWindow(switchData);var switchEcho=new ImportEcho(switching);
+   try{
+    Wait(Send(switching,"ready","ready"));string oldId=switching.ProjectId;var store=new MatureCanvasStore(switchData);string next=store.Create("slow destination").Id;
+    switchEcho.HoldLoad=true;var switchNotice=new TaskCompletionSource<bool>();switching.LoadNoticeDelayForTests=()=>switchNotice.Task;
+    var pending=switching.OpenProjectAsync(next,new[]{source});Wait(()=>switchEcho.Loads==2);switchNotice.SetResult(true);Wait(()=>LoadWarning(switching));
+    check(!pending.IsCompleted&&!switching.CanImportImages,"a slow project switch retains its image request and visible cancellation guidance without releasing the transition early");
+    Wait(switchEcho.Loaded());Wait(pending);foreach(var reply in switchEcho.Replies.ToArray())Wait(reply);
+    check(pending.Result&&switchEcho.Adds==1&&switching.ProjectId==next&&store.Load(next).ImageCount==1&&store.Load(oldId).ImageCount==0,"late destination load imports exactly once into the selected project and never into the previous project");
+   }finally{Dispose(switching);}
+   var closing=new MatureCanvasWindow(Path.Combine(root,"cancel-start"));var closeEcho=new ImportEcho(closing){HoldLoad=true};var closeNotice=new TaskCompletionSource<bool>();closing.LoadNoticeDelayForTests=()=>closeNotice.Task;
+   try{
+    var pending=WaitAndImport(closing,closing.ProjectId,new[]{source});closeNotice.SetResult(true);Wait(()=>LoadWarning(closing));
+    var args=new CancelEventArgs();typeof(MatureCanvasWindow).GetMethod("ClosingCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(closing,new object[]{closing,args});check(!args.Cancel,"the actual titlebar close can cancel a still-starting canvas without an impossible save prompt");
+    Dispose(closing);check(Rejected(pending),"closing a slow-start window ends the pending readiness/import task rather than leaving it hung");Wait(Send(closing,"ready","lateReady"));Wait(closeEcho.Loaded());check(closeEcho.Adds==0,"late messages after cancelled startup never resurrect its image request");
+   }finally{Dispose(closing);}
+   var failed=new MatureCanvasWindow(Path.Combine(root,"engine-fails"));var failedEcho=new ImportEcho(failed){HoldLoad=true};
+   try{
+    var pending=WaitAndImport(failed,failed.ProjectId,new[]{source});Wait(Send(failed,"ready","ready"));Wait(Send(failed,"error","loadFailed",Map("message","fixture engine startup failed")));
+    check(Rejected(pending)&&!failed.CanImportImages&&failedEcho.Adds==0,"an explicit engine load failure promptly ends the pending request and never sends its images");
+   }finally{Dispose(failed);}
+   foreach(string brokenType in new[]{"load","interaction"}){
+    var broken=new MatureCanvasWindow(Path.Combine(root,"broken-"+brokenType));
+    try{
+     broken.PostForTests=json=>{if(Obj(Json().DeserializeObject(json))["type"].ToString()==brokenType)throw new IOException("fixture disconnected load channel");};var pending=broken.WaitUntilReadyAsync();Wait(Send(broken,"ready","ready"));if(brokenType=="interaction")Wait(Send(broken,"loaded","loaded"));
+     check(Rejected(pending)&&!broken.CanImportImages,"a synchronous "+brokenType+" bridge failure ends readiness instead of leaving a visible but permanently waiting canvas");
+    }finally{Dispose(broken);}
+   }
+   string initialData=Path.Combine(root,"initial-import");var inputs=new[]{source};var initial=new MatureCanvasWindow(initialData,null,inputs);inputs[0]=Path.Combine(root,"mutated-after-construction.png");var initialEcho=new ImportEcho(initial){HoldAdded=true};
+   try{
+    var pending=initial.WaitUntilReadyAsync();Wait(Send(initial,"ready","ready"));Wait(()=>initialEcho.Adds==1);
+    check(!pending.IsCompleted,"readiness does not finish while constructor images are still awaiting the browser import ACK");Wait(initialEcho.Loaded());check(initialEcho.Adds==1&&!pending.IsCompleted,"a repeated loaded ACK cannot duplicate constructor images or prematurely complete readiness");
+    Wait(initialEcho.Added());Wait(pending);foreach(var reply in initialEcho.Replies.ToArray())Wait(reply);
+    check(initialEcho.Adds==1&&new MatureCanvasStore(initialData).Load(initial.ProjectId).ImageCount==1,"constructor image paths are frozen and their single import is durably saved before readiness completes");
+   }finally{Dispose(initial);}
+   string cancelImportData=Path.Combine(root,"cancel-initial-import");var cancelImport=new MatureCanvasWindow(cancelImportData,null,new[]{source});var cancelEcho=new ImportEcho(cancelImport){HoldAdded=true};
+   try{
+    var pending=cancelImport.WaitUntilReadyAsync();Wait(Send(cancelImport,"ready","ready"));Wait(()=>cancelEcho.Adds==1);var args=new CancelEventArgs();typeof(MatureCanvasWindow).GetMethod("ClosingCanvas",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(cancelImport,new object[]{cancelImport,args});
+    check(!args.Cancel,"titlebar close can also cancel the pending constructor-image import before readiness completes");string target=cancelImport.ProjectId;Dispose(cancelImport);check(Rejected(pending),"closing during the initial browser image ACK ends the whole startup operation");Wait(cancelEcho.Added());foreach(var reply in cancelEcho.Replies.ToArray())Wait(reply);
+    check(cancelEcho.Adds==1&&new MatureCanvasStore(cancelImportData).Load(target).ImageCount==0,"a late image ACK after startup cancellation is ignored without re-importing or falsely saving an image shape");
+   }finally{Dispose(cancelImport);}
+   string staleData=Path.Combine(root,"stale-import");var stale=new MatureCanvasWindow(staleData);var staleEcho=new ImportEcho(stale);
+   try{
+    Wait(Send(stale,"ready","ready"));var store=new MatureCanvasStore(staleData);string oldId=stale.ProjectId;byte[] before=File.ReadAllBytes(Manifest(staleData,oldId));var replacement=store.Create("replacement");byte[] replacementBytes=File.ReadAllBytes(Manifest(staleData,replacement.Id));var gate=(SemaphoreSlim)Field("operations").GetValue(stale);Task pending;
+    check(gate.Wait(0),"stale image-import fixture holds the actual production serialization gate");
+    try{pending=(Task)typeof(MatureCanvasWindow).GetMethod("ImportCore",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(stale,new object[]{new[]{source}});check(!pending.IsCompleted,"image import waits on the real resource serialization gate");Field("document").SetValue(stale,replacement);Field("session").SetValue(stale,Guid.NewGuid().ToString("N"));}finally{gate.Release();}
+    check(Rejected(pending)&&staleEcho.Adds==0&&File.ReadAllBytes(Manifest(staleData,oldId)).SequenceEqual(before)&&File.ReadAllBytes(Manifest(staleData,replacement.Id)).SequenceEqual(replacementBytes),"a queued import rechecks its captured project/session after the gate and cannot write or post into a replacement canvas");
+   }finally{Dispose(stale);}
+   check(File.ReadAllBytes(source).SequenceEqual(original),"slow startup, delayed project load, cancelled readiness and stale import leave the original image unchanged");
+  }
   internal static void Run(string root,Action<bool,string> check){
    var previous=SynchronizationContext.Current;SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
    try{RunCore(root,check);}finally{SynchronizationContext.SetSynchronizationContext(previous);}
   }
   static void RunCore(string root,Action<bool,string> check){
    Directory.CreateDirectory(root);check(MatureCanvasWindow.IsAvailable,"mature host fixture requires the actual bundled canvas entry point");
+   ReadinessLifecycle(Path.Combine(root,"readiness-lifecycle"),check);
    var messages=new List<Dictionary<string,object>>();string data=Path.Combine(root,"protocol");var host=new MatureCanvasWindow(data);host.PostForTests=json=>messages.Add(Obj(Json().DeserializeObject(json)));
    try{
     string project=host.ProjectId,file=Manifest(data,project);byte[] initial=File.ReadAllBytes(file);

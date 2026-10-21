@@ -12,6 +12,38 @@ using System.Windows.Threading;
 using Mori;
 
 namespace MoriDesk {
+ // Deterministic guard/metadata checks, also independently selectable by the
+ // VM ScenarioRunner. No product process, document decoder, or window is used.
+ internal static class WorkerDiagnosticsTests {
+  const long MemoryLimit=256L*1024*1024;
+  const string Prefix="Nook.Worker.";
+  internal static void Run(Action<bool,string> check){
+   foreach(var worker in new[]{new{Kind="svg",Timeout=8000L},new{Kind="pdf-text",Timeout=15000L}}){
+    var boundary=new WorkerFailureDiagnostic(worker.Kind);
+    check(!boundary.LimitReached(worker.Timeout,MemoryLimit,worker.Timeout,MemoryLimit),worker.Kind+" retains inclusive existing time and 256 MiB guard boundaries");
+    var timeout=new WorkerFailureDiagnostic(worker.Kind);bool timedOut=timeout.LimitReached(worker.Timeout+1,MemoryLimit,worker.Timeout,MemoryLimit);
+    check(timedOut&&timeout.Reason=="timeout"&&timeout.TimeoutExceeded&&!timeout.MemoryExceeded,worker.Kind+" distinguishes elapsed-limit stop from memory stop without extending its timeout");
+    var memory=new WorkerFailureDiagnostic(worker.Kind);bool exceeded=memory.LimitReached(worker.Timeout,MemoryLimit+1,worker.Timeout,MemoryLimit);
+    check(exceeded&&memory.Reason=="memory"&&!memory.TimeoutExceeded&&memory.MemoryExceeded,worker.Kind+" distinguishes the first private byte above the unchanged memory cap");
+    var both=new WorkerFailureDiagnostic(worker.Kind);both.LimitReached(worker.Timeout+1,MemoryLimit+1,worker.Timeout,MemoryLimit);
+    check(both.TimeoutExceeded&&both.MemoryExceeded,worker.Kind+" retains both limit flags when one poll observes simultaneous excesses");
+    both.Observe(worker.Timeout+2,8);var error=new NotSupportedException("original user message");both.ParentKillRequested=true;both.Attach(error);
+    check((long)error.Data[Prefix+"SampledPeakPrivateBytes"]==MemoryLimit+1&&(long)error.Data[Prefix+"ElapsedMs"]==worker.Timeout+2,worker.Kind+" diagnostics preserve the sampled private-byte peak and elapsed observation without treating it as lifetime RAM");
+    check(error.Data[Prefix+"ExitCodeSigned"]==null&&error.Data[Prefix+"ExitCodeHex"]==null&&(bool)error.Data[Prefix+"ParentKillRequested"],worker.Kind+" parent termination records no fabricated child exit code");
+   }
+   var child=new WorkerFailureDiagnostic("svg"){Reason="child-exit",ExitCode=unchecked((int)0xC000000D)};var childError=new NotSupportedException("unchanged message");child.Attach(childError);
+   check((int)childError.Data[Prefix+"ExitCodeSigned"]==-1073741811&&(string)childError.Data[Prefix+"ExitCodeHex"]=="0xC000000D"&&!(bool)childError.Data[Prefix+"ParentKillRequested"],"native/nonzero child exit preserves signed and hexadecimal code separately from parent-enforced termination");
+   var source=new TaskCompletionSource<byte[]>();var rootCause=new InvalidDataException("synthetic stdout cap failure");source.SetException(rootCause);
+   var output=new WorkerFailureDiagnostic("svg"){ExitCode=2};output.LimitReached(8001,MemoryLimit+1,8000,MemoryLimit);Exception caught=null;
+   try{output.ThrowIfOutputFailed(source.Task);}catch(Exception error){caught=error;output.Attach(error);}
+   check(ReferenceEquals(caught,rootCause)&&output.Reason=="stdout-failure"&&output.StdoutFaulted&&output.TimeoutExceeded&&output.MemoryExceeded,"already-faulted stdout wins over simultaneous guard limits and keeps its exact original exception");
+   check((string)caught.Data[Prefix+"ExitCodeHex"]=="0x00000002"&&!(bool)caught.Data[Prefix+"ParentKillRequested"],"stdout failure also retains an already-observed nonzero child exit rather than losing either fact");
+   string[] keys={"Kind","Reason","ElapsedMs","SampledPeakPrivateBytes","TimeoutExceeded","MemoryExceeded","ParentKillRequested","StdoutFaulted","ExitCodeSigned","ExitCodeHex"};
+   check(caught.Data.Count==keys.Length&&keys.All(key=>caught.Data.Contains(Prefix+key))&&caught.Data.Values.Cast<object>().All(value=>!(value is string)||!((string)value).Contains("\\")&&!((string)value).Contains("/")&&!((string)value).Contains("synthetic")),"worker metadata contains only the ten fixed content-free fields, never source paths or exception contents");
+   var pending=new TaskCompletionSource<byte[]>();var healthy=new WorkerFailureDiagnostic("pdf-text");healthy.ThrowIfOutputFailed(pending.Task);pending.SetResult(new byte[0]);healthy.ThrowIfOutputFailed(pending.Task);
+   check(!healthy.StdoutFaulted&&healthy.Reason=="unknown","pending or completed stdout is never synchronously blocked or mislabeled as failed by the guard check");
+  }
+ }
  internal static class PdfTextTests {
   internal static byte[] Fixture(int rotation=0,bool cropped=false,bool text=true,int pages=2,int denseWords=0){
    var objects=new List<string>{"<< /Type /Catalog /Pages 2 0 R >>"};var children=new StringBuilder();for(int i=0;i<pages;i++)children.Append((4+i*2)+" 0 R ");
@@ -44,7 +76,7 @@ namespace MoriDesk {
    int ink=0;for(int y=top;y<bottom;y++)for(int x=left;x<right;x++){int at=(y*width+x)*4;if(bytes[at]<160&&bytes[at+1]<160&&bytes[at+2]<160)ink++;}return ink>10;
   }
   internal static void Run(string root,Action<bool,string> check){
-   Directory.CreateDirectory(root);GeometryAndExtraction(root,check);Selection(check);Cache(check);Lifecycle(root,check);View(root,check);DenseView(root,check);
+   WorkerDiagnosticsTests.Run(check);Directory.CreateDirectory(root);GeometryAndExtraction(root,check);Selection(check);Cache(check);Lifecycle(root,check);View(root,check);DenseView(root,check);
    check(!AppDomain.CurrentDomain.GetAssemblies().Any(a=>a.GetName().Name.StartsWith("UglyToad.PdfPig",StringComparison.Ordinal)),"PDF text extraction keeps PdfPig assemblies outside the gallery process");
   }
   static void GeometryAndExtraction(string root,Action<bool,string> check){

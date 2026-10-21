@@ -277,14 +277,15 @@ namespace QingJie {
             if(HandleCaptureKey(e.Key,Keyboard.Modifiers))e.Handled=true;
         }
         void Guard(Action f){if(!CanEditCapture)return;try{CommitText();f();}catch(Exception ex){if(!closed)TranslationStatus("未完成，截图已保留："+ex.Message);}}
-        void ResetTranslation(){if(translationCancel!=null){translationCancel.Cancel();translationCancel=null;}imageTranslationResult=null;imageTranslationPage=null;imageTranslationSource=null;imageTranslationProvider=null;imageTranslationTarget=null;surface.ClearTranslation();translationStatus.Text="";translationStatus.Visibility=Visibility.Collapsed;if(translateButton!=null){translateButton.IsEnabled=true;Ui.SetActive(translateButton,false);}}
+        string imageTranslationNotice;
+        void ResetTranslation(){if(translationCancel!=null){translationCancel.Cancel();translationCancel=null;}imageTranslationResult=null;imageTranslationPage=null;imageTranslationSource=null;imageTranslationProvider=null;imageTranslationTarget=null;imageTranslationNotice=null;surface.ClearTranslation();translationStatus.Text="";translationStatus.Visibility=Visibility.Collapsed;if(translateButton!=null){translateButton.IsEnabled=true;Ui.SetActive(translateButton,false);}}
         void RefreshProvider(){if(!CanEditCapture)return;ResetTranslation();surface.InvalidateVisual();}
-        void TranslationStatus(string text){translationStatus.Text=text;translationStatus.Visibility=Visibility.Visible;PositionTools();}
+        void TranslationStatus(string text){translationStatus.Text=OcrService.WithNotice(text,imageTranslationNotice);translationStatus.Visibility=string.IsNullOrEmpty(translationStatus.Text)?Visibility.Collapsed:Visibility.Visible;PositionTools();}
         void ImageTranslationStatus(){
-            if(imageTranslationResult==null||imageTranslationResult.UnplacedCount==0){translationStatus.Visibility=Visibility.Collapsed;PositionTools();return;}
+            if(imageTranslationResult==null||imageTranslationResult.UnplacedCount==0){TranslationStatus(null);return;}
             translationStatus.Inlines.Clear();translationStatus.Inlines.Add(new Run("有 "+imageTranslationResult.UnplacedCount+" 处保留原文 · "));
             var full=new Hyperlink(new Run("查看完整译文")) {Cursor=Cursors.Hand,Foreground=Ui.Tone("Accent")};if(Application.Current!=null&&Application.Current.TryFindResource("Accent")!=null)full.SetResourceReference(TextElement.ForegroundProperty,"Accent");
-            full.Click+=(s,e)=>{e.Handled=true;ViewFullTranslation();};translationStatus.Inlines.Add(full);translationStatus.Visibility=Visibility.Visible;PositionTools();
+            full.Click+=(s,e)=>{e.Handled=true;ViewFullTranslation();};translationStatus.Inlines.Add(full);if(!string.IsNullOrEmpty(imageTranslationNotice))translationStatus.Inlines.Add(new Run(Environment.NewLine+imageTranslationNotice));translationStatus.Visibility=Visibility.Visible;PositionTools();
         }
         void ViewFullTranslation(){
             if(!CanEditCapture||!captureFeatures.Translation)return;
@@ -298,8 +299,8 @@ namespace QingJie {
             if(surface.TranslationImage!=null){surface.ShowTranslation=!surface.ShowTranslation;Ui.SetActive(translateButton,surface.ShowTranslation);surface.InvalidateVisual();ImageTranslationStatus();return;}
             var cancel=new CancellationTokenSource();string target=translationTarget,provider=Translation.Provider;translationCancel=cancel;translateButton.IsEnabled=false;
             try{
-                CommitText();var selected=surface.Selection;var crop=surface.Export(false,false);TranslationStatus("正在本机识别文字…");
-                var page=await ReadCaptureOcr(crop,cancel.Token);cancel.Token.ThrowIfCancellationRequested();var regions=ImageTranslation.Regions(page);
+                CommitText();var selected=surface.Selection;var crop=surface.Export(false,false);imageTranslationNotice=null;TranslationStatus("正在本机识别文字…");
+                var page=await ReadCaptureOcr(crop,cancel.Token);cancel.Token.ThrowIfCancellationRequested();imageTranslationNotice=page.Notice;var regions=ImageTranslation.Regions(page);
                 if(regions.Count==0){TranslationStatus("没有识别到文字，原图保留。");return;}
                 TranslationStatus(Translation.ProgressText);
                 var texts=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),cancel.Token,target,provider);cancel.Token.ThrowIfCancellationRequested();

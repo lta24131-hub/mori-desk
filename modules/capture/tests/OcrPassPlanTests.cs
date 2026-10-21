@@ -120,6 +120,24 @@ internal static class OcrPassPlanTests {
             ExpectedText(Improve(Original()), expectedEnglishPasses == 2 ? "Auto recovery 2026" : "fallback words",
                 "explicit pass plan controls recovery from weak Sparse output");
         });
+        Run("Rejected Sparse fragment cannot suppress unrelated complete Auto correction", () => {
+            Plan("eng", PageSegMode.SparseText, Line("wrong", 99, 0, 0, 40));
+            Plan("eng", PageSegMode.Auto, Line("correct recovered phrase", 94));
+            ExpectedText(Improve(Original("bad original transcript")), expectedEnglishPasses == 2 ? "correct recovered phrase" : "bad original transcript",
+                "a high-confidence fragment rejected by merge cannot suppress a complete non-prefix Auto correction");
+        });
+        Run("Rejected single-letter Sparse cannot suppress complete Auto", () => {
+            Plan("eng", PageSegMode.SparseText, Line("X", 99));
+            Plan("eng", PageSegMode.Auto, Line("recovered English phrase", 94));
+            ExpectedText(Improve(Original()), expectedEnglishPasses == 2 ? "recovered English phrase" : "fallback words",
+                "a rejected single-letter candidate never claims geometry for Auto suppression");
+        });
+        Run("Rejected unmatched Sparse cannot suppress confident Auto supplement", () => {
+            Plan("eng", PageSegMode.SparseText, Line("uncertain extra words", 84, 0, 50));
+            Plan("eng", PageSegMode.Auto, Line("confident new sentence", 95, 0, 50));
+            ExpectedText(Improve(Original()), expectedEnglishPasses == 2 ? "fallback words" + Environment.NewLine + "confident new sentence" : "fallback words",
+                "an unmatched Sparse candidate below supplement threshold does not hide a valid Auto addition");
+        });
         Run("Real Independent heading fragment preserves complete fallback", () => {
             // Exact 3x pixel coordinates/confidence from the authorized robot
             // card: Sparse returned only Independ, despite a full Windows line.

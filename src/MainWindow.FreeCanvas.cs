@@ -90,6 +90,10 @@ namespace Mori {
    foreach(string name in new[]{"Import","Paste","AddBookmark","Export"})CoverForCanvasProjects(B(name));
    CoverForCanvasProjects((UIElement)T("Search").Parent);CoverForCanvasProjects((UIElement)Find<Slider>("ThumbnailSize").Parent);CoverForCanvasProjects(Find<TreeView>("Folders"));CoverForCanvasProjects(Find<Grid>("MediaFolderHeading"));CoverForCanvasProjects(Find<StackPanel>("SidebarGuide"));
    foreach(string name in new[]{"All","Pictures","Videos","Audio","Bookmarks","Documents","Unfiled","Favorites","Trash"})B(name).SetResourceReference(Button.BackgroundProperty,"Panel");
+   // These act on the last material/website scope, never on canvas projects.
+   // Hide them here, then restore their exact visibility when leaving Projects.
+   foreach(string name in new[]{"Unfiled","Favorites"})CoverForCanvasProjects(B(name));
+   CoverForCanvasProjects(Find<Border>("SidebarFooter"));CoverForCanvasProjects(Find<Border>("SidebarScopeDivider"));
    if(referenceNav!=null)referenceNav.SetResourceReference(Button.BackgroundProperty,"Panel");if(canvasNav!=null)canvasNav.SetResourceReference(Button.BackgroundProperty,"AccentSoft");
   }
   internal bool ShowCanvasProjects(bool dragging=false){
@@ -162,7 +166,7 @@ namespace Mori {
     bool mature=MatureCanvasWindow.IsAvailable&&!FreeCanvasPresentationSuppressedForTests;
     if(mature){
      if(matureCanvas==null&&!OpenMatureCanvas(target,null,choice.IsNew))return;
-     var active=matureCanvas;await active.WaitUntilReadyAsync();if(!await active.OpenProjectAsync(target,paths,choice.IsNew))throw new IOException("画布未完成保存或添加，请在画布窗口检查；原素材保留。");
+     var active=matureCanvas;await active.WaitUntilReadyAsync();if(!Object.ReferenceEquals(active,matureCanvas))throw new IOException("画布窗口已变化，本次添加已停止；请重新选择。");if(!await active.OpenProjectAsync(target,paths,choice.IsNew))throw new IOException("画布未完成保存或添加，请在画布窗口检查；原素材保留。");if(!Object.ReferenceEquals(active,matureCanvas)||active.ProjectId!=target)throw new IOException("目标画布已变化，本次添加没有转入其他项目。");
      if(active.WindowState==WindowState.Minimized)active.WindowState=WindowState.Normal;active.Show();active.Activate();
     }else{if(!OpenFreeCanvasToProject(target,null))return;var active=freeCanvas;if(active==null||!active.CanImportImages)throw new IOException("请等待画布完成当前操作。");if(!await ImportCanvasSelection(active,paths))throw new IOException("图片未全部保存，请在当前画布检查后重试。");}
     RefreshCanvasProjects();Status("已加入画布 · 原素材保留在素材库");

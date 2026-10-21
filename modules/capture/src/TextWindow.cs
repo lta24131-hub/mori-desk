@@ -49,7 +49,7 @@ namespace QingJie {
         // A capture's partial image result already owns OCR and complete text.
         // Reusing them must not start another recognition or translation request.
         internal TextWindow(BitmapSource source,string targetLanguage,OcrPage knownPage,ImageTranslationResult knownTranslation,string provider,bool allowTranslation=true,bool allowPin=true):this(source,targetLanguage,OcrService.Read,allowTranslation,allowPin){
-            if(knownPage!=null){page=knownPage;ocrTask=Task.FromResult(knownPage);original.Text=knownPage.Text;}
+            if(knownPage!=null){page=knownPage;ocrTask=Task.FromResult(knownPage);original.Text=knownPage.Text;ClearStatus();}
             if(allowTranslation&&knownTranslation!=null&&provider==Translation.Provider)ApplyImageTranslation(knownTranslation,true);
         }
         internal TextWindow(BitmapSource source,string targetLanguage,Func<BitmapSource,CancellationToken,Task<OcrPage>> recognize,bool allowTranslation=true,bool allowPin=true) {
@@ -134,8 +134,8 @@ namespace QingJie {
         static Button ActionButton(string name,Action action,bool primary=false){var b=Ui.TextButton(name,action,primary);b.Focusable=false;return b;}
         static void Separator(Panel p){p.Children.Add(Ui.Theme(new Border {Width=1,Height=20,Margin=new Thickness(6,0,6,0),VerticalAlignment=VerticalAlignment.Center},Border.BackgroundProperty,"Divider"));}
         static void Mark(Button b,bool active){Ui.SetActive(b,active);}
-        void Status(string message){status.Text=message;statusCard.Visibility=Visibility.Visible;}
-        void ClearStatus(){statusCard.Visibility=Visibility.Collapsed;}
+        void Status(string message){status.Text=OcrService.WithNotice(message,page==null?null:page.Notice);statusCard.Visibility=string.IsNullOrEmpty(status.Text)?Visibility.Collapsed:Visibility.Visible;}
+        void ClearStatus(){Status(null);}
         void Try(Action action){try{action();}catch(Exception ex){Status(ex.Message);}}
         void CopyText(string text){if(!string.IsNullOrEmpty(text))Try(()=>Clipboard.SetText(text));}
         void Fit(){Fit(VisualTreeHelper.GetDpi(this));}

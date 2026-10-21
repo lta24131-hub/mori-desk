@@ -15,6 +15,13 @@ Required for host/renderer checks: TypeScript and the clean pinned eSearch
 checkout (15.6.0, commit 6f3f56241cccc8ada2c503df642566322dc67a3e).
 The default checkout is outputs/esearch-15.6.0-source. To use another checkout,
 set NOOK_ESEARCH_SOURCE to its absolute directory before running the tests.
+The real picture_match 0.1.4 phase-aliasing comparison resolves first from
+scroll-capture/node_modules/picture_match in a reviewed VM test package, then
+from the upstream checkout's node_modules. The VM copy contains the unchanged
+package manifest, license and dist files, including its actual WASM engine;
+no phase matcher is mocked or skipped when that dependency is unavailable.
+The production helper does not need this extra test copy: Vite already bundles
+the engine into resources/app/out/renderer/assets/pic_match-*.js.
 The protocol-only test does not require TypeScript or an upstream checkout:
   node --test modules/scroll-capture/tests/protocol.test.mjs
 

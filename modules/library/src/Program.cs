@@ -41,6 +41,7 @@ namespace Mori {
     var settings=new Settings();object value;
     if(!values.TryGetValue("LibraryPath",out value)||!(value is string)||string.IsNullOrWhiteSpace((string)value))throw new InvalidDataException("设置中的图库路径缺失或无效。为避免打开错误图库，已停止启动；请恢复原设置文件。");
     settings.LibraryPath=(string)value;
+    if(values.TryGetValue("FileConversionOutputPath",out value))settings.FileConversionOutputPath=value as string;
     if(values.TryGetValue("Theme",out value))settings.Theme=value as string;
     int size;if(values.TryGetValue("ThumbnailSize",out value)&&value!=null&&int.TryParse(Convert.ToString(value,System.Globalization.CultureInfo.InvariantCulture),out size))settings.ThumbnailSize=size;
     if(values.TryGetValue("LeftSidebarWidth",out value)&&value!=null&&int.TryParse(Convert.ToString(value,System.Globalization.CultureInfo.InvariantCulture),out size))settings.LeftSidebarWidth=size;

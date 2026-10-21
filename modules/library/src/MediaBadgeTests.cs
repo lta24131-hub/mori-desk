@@ -19,6 +19,10 @@ namespace Mori {
   static ContentPresenter Presenter(Window window,DataTemplate template,GalleryTile tile){var result=new ContentPresenter{ContentTemplate=template,Content=tile};result.Resources.MergedDictionaries.Add(window.Resources);return result;}
   static void CheckTile(ContentPresenter presenter,GalleryTile tile,string label,Action<bool,string> check){
    var badge=Named<Border>(presenter,"MediaBadge");var text=Named<TextBlock>(presenter,"MediaBadgeText");var play=Named<System.Windows.Shapes.Path>(presenter,"VideoBadgePlay");var asset=tile.Asset;
+   var source=Named<Border>(presenter,"SourceBadge");var border=Named<Border>(presenter,"TileBorder");
+   check(source!=null&&source.Visibility==(tile.ShowSourceBadge?Visibility.Visible:Visibility.Collapsed)&&Convert.ToString(border.ToolTip)==asset.HoverInfo,label+"source identity follows the current recycled tile, independently of the format badge");
+   check(!source.IsHitTestVisible&&!source.Focusable,label+"source identity never intercepts drag, selection or double-click");
+   if(tile.ShowSourceBadge){var imageRoot=(Grid)Named<ThumbnailImage>(presenter,"TileImage").Parent;var sourcePoint=source.TranslatePoint(new Point(),imageRoot);var sourceRect=new Rect(sourcePoint,source.RenderSize);var formatRect=new Rect(badge.TranslatePoint(new Point(),imageRoot),badge.RenderSize);var selectionMark=Named<Border>(presenter,"SelectionMark");check(!sourceRect.IntersectsWith(formatRect)&&(selectionMark.Visibility!=Visibility.Visible||!sourceRect.IntersectsWith(new Rect(selectionMark.TranslatePoint(new Point(),imageRoot),selectionMark.RenderSize))),label+"source, format and selection overlays remain separate");}
    check(badge!=null&&badge.Visibility==(asset.ShowFormatBadge?Visibility.Visible:Visibility.Collapsed),label+"format is visible for files only, including recycled tiles");
    if(!asset.ShowFormatBadge)return;
    check(text.Text==asset.TypeLabel&&play.Visibility==(asset.IsVideo?Visibility.Visible:Visibility.Collapsed),label+"actual extension and video glyph are correct");
@@ -36,6 +40,9 @@ namespace Mori {
     var template=(DataTemplate)window.Resources["Tile"];
     foreach(var pair in new[]{new[]{".pdf","PDF"},new[]{".ai","AI"},new[]{".PSD","PSD"},new[]{".MP4","MP4"},new[]{".step","STEP"},new[]{".png","PNG"}}){var file=new Asset{Ext=pair[0]};check(file.TypeLabel==pair[1]&&file.ShowFormatBadge,"file badge policy uses actual "+pair[1]+" extension rather than generic media type");}
     check(!new Asset{Ext=".pdf",IsDirectory=true}.ShowFormatBadge&&!new Asset{Ext=".url",Source="https://example.org/"}.ShowFormatBadge,"folders and website cards are independently excluded from format badges");
+    check(new Asset{Name="原图",Ext=".png",ReferencePath="C:\\fixture\\image.png"}.HoverInfo.Contains("只保存位置")&&new Asset{Name="副本",Ext=".png"}.HoverInfo.Contains("当前图库")&&new Asset{Name="网站",Ext=".url"}.HoverInfo.Contains("网址收藏"),"hover explanations distinguish shortcut, managed copy and website without exposing a path on the card");
+    foreach(double width in new[]{24.0,40.0,55.0})check(!new GalleryTile{Asset=new Asset{ReferencePath="C:\\fixture\\x.png"},Width=width,ImageHeight=66}.ShowSourceBadge,"very narrow shortcut card uses tooltip instead of overlapping icons / "+width);
+    check(!new GalleryTile{Asset=new Asset{ReferencePath="C:\\fixture\\x.png"},Width=100,ImageHeight=30}.ShowSourceBadge,"very short shortcut card does not overlap its source and format badges");
     var localUrl=new Asset{Ext=".url",ReferencePath="C:\\fixture\\website.url"};check(localUrl.ShowFormatBadge&&localUrl.TypeLabel=="URL","local shortcut URL files remain file formats, not website cards");
     foreach(string appearance in new[]{"dark","light"}){
      Theme.Set(appearance);

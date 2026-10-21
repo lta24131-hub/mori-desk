@@ -14,9 +14,7 @@ namespace MoriDesk {
  // branding. Keep this stable identity, but never choose a default application.
  public static class OpenWithRegistration {
   internal const string ApplicationKey="Software\\Classes\\Applications\\Mori.exe";
-  internal static readonly string[] SupportedExtensions=(".jpg .jpeg .png .gif .bmp .tif .tiff .webp .avif .ico .svg .psd .psb .ai .heic .heif .dng .cr2 .cr3 .nef .arw .orf .rw2 .raf "+
-   ".stp .step .stl .obj .glb .3mf .mp4 .mov .m4v .webm .avi .mkv .wmv .mpg .mpeg .m2ts .mts .ts .3gp .ogv "+
-   ".mp3 .wav .m4a .aac .flac .ogg .opus .wma .aiff .aif .txt .md .markdown .log .json .xml .yaml .yml .ini .csv .tsv .docx .xlsx .pptx .odt .ods .odp .pdf").Split(' ');
+  internal static readonly string[] SupportedExtensions=FileFormats.PreviewExtensions();
   static string ManagedRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk");}}
   [DllImport("shell32.dll")] static extern void SHChangeNotify(uint eventId,uint flags,IntPtr item1,IntPtr item2);
   static void NotifyShell(){SHChangeNotify(0x08000000,0,IntPtr.Zero,IntPtr.Zero);}

@@ -18,6 +18,26 @@ namespace QingJie {
         const int MaximumRegions=256,MaximumLines=1800;
         struct EdgeRun {internal int Left,Right,Y;}
         internal int Count {get{return regions.Count;}}
+        // Per-result geometry-only diagnostics. No pixels, process state or log
+        // files are retained; the overlay does not change its UI based on them.
+        internal long PrepareMilliseconds {get;private set;}
+        internal long ScanMilliseconds {get;private set;}
+        internal int ProcessedRows {get;private set;} // Rows entered; last may be partial.
+        internal bool TimedOut {get;private set;}
+        internal bool PixelFormatConverted {get;private set;}
+        internal bool PreparationCompleted {get;private set;}
+        internal bool ReadFailed {get;private set;}
+        internal static BitmapSource SamplingSource(BitmapSource image,double scale,out bool converted){
+            BitmapSource source=image;
+            if(scale<1)source=new TransformedBitmap(source,new ScaleTransform(scale,scale));
+            // Bgr32 has the same B/G/R byte positions and stride as Bgra32; its
+            // unused fourth byte is never read by Edge/QuietRow/Side. Preserve
+            // the original conversion for Pbgra32 and every other format, where
+            // premultiplied alpha or a different layout changes channel values.
+            converted=source.Format!=PixelFormats.Bgra32&&source.Format!=PixelFormats.Bgr32;
+            if(converted)source=new FormatConvertedBitmap(source,PixelFormats.Bgra32,null,0);
+            return source;
+        }
         internal IEnumerable<Rect> At(Point point,Rect visible){
             foreach(var region in regions){var rect=region.Bounds;if(CaptureTargets.Contains(rect,point)&&visible.Contains(rect))yield return rect;}
         }
@@ -33,18 +53,18 @@ namespace QingJie {
                 // At most about 1.3 million pixels even on a 4K/8K desktop. Sampling
                 // cost is per capture, not per cursor move, and keeps no bitmap copy.
                 double scale=Math.Min(1,Math.Min(1440.0/image.PixelWidth,900.0/image.PixelHeight));
-                BitmapSource source=image;
-                if(scale<1)source=new TransformedBitmap(source,new ScaleTransform(scale,scale));
-                if(source.Format!=PixelFormats.Bgra32)source=new FormatConvertedBitmap(source,PixelFormats.Bgra32,null,0);
+                bool converted;BitmapSource source=SamplingSource(image,scale,out converted);result.PixelFormatConverted=converted;
                 int width=source.PixelWidth,height=source.PixelHeight,stride=width*4;
                 result.toleranceX=Math.Max(4,2.0*screen.Width/width+1);
                 result.toleranceY=Math.Max(4,2.0*screen.Height/height+1);
                 var pixels=new byte[stride*height];source.CopyPixels(pixels,stride,0);
+                result.PrepareMilliseconds=watch.ElapsedMilliseconds;result.PreparationCompleted=true;
                 int minWidth=Math.Max(14,(int)Math.Ceiling(24*scale)),minHeight=Math.Max(10,(int)Math.Ceiling(18*scale));
                 var lines=new List<EdgeRun>();
                 var buckets=new Dictionary<int,List<EdgeRun>>();
                 for(int y=1;y<height&&lines.Count<MaximumLines&&result.regions.Count<MaximumRegions;y++){
-                    cancel.ThrowIfCancellationRequested();if(watch.ElapsedMilliseconds>55)break;
+                    cancel.ThrowIfCancellationRequested();if(watch.ElapsedMilliseconds>55){result.TimedOut=true;break;}
+                    result.ProcessedRows++;
                     for(int x=1;x<width-1;){
                         if(!Edge(pixels,y*stride+x*4,(y-1)*stride+x*4)){x++;continue;}
                         int left=x,last=x,gaps=0;x++;
@@ -55,7 +75,7 @@ namespace QingJie {
                         // A border has a quiet strip on at least one side. Dense photo/
                         // video texture creates long gradients too, but not a flat edge.
                         if(last-left+1<minWidth||(!QuietRow(pixels,stride,y,left,last)&&!QuietRow(pixels,stride,y-1,left,last)))continue;
-                        if(watch.ElapsedMilliseconds>55)return result;
+                        if(watch.ElapsedMilliseconds>55){result.TimedOut=true;return result;}
                         var run=new EdgeRun {Left=left,Right=last,Y=y};lines.Add(run);
                         int key=left/4;Rect nearest=Rect.Empty,outer=Rect.Empty;
                         for(int k=key-1;k<=key+1;k++){
@@ -64,14 +84,14 @@ namespace QingJie {
                             // combination of table/list separator lines (O(n^2)).
                             for(int i=previous.Count-1,attempts=0;i>=0&&attempts<40;i--){
                                 if(!Matches(run,previous[i],minHeight))continue;
-                                if((attempts&7)==0&&watch.ElapsedMilliseconds>55)return result;
+                                if((attempts&7)==0&&watch.ElapsedMilliseconds>55){result.TimedOut=true;return result;}
                                 var candidate=Rectangle(pixels,width,stride,run,previous[i],minHeight,screen,height);attempts++;
                                 if(candidate.IsEmpty)continue;
                                 if(nearest.IsEmpty||candidate.Height<nearest.Height)nearest=candidate;break;
                             }
                             for(int i=0,attempts=0;i<previous.Count&&attempts<40;i++){
                                 if(!Matches(run,previous[i],minHeight))continue;
-                                if((attempts&7)==0&&watch.ElapsedMilliseconds>55)return result;
+                                if((attempts&7)==0&&watch.ElapsedMilliseconds>55){result.TimedOut=true;return result;}
                                 var candidate=Rectangle(pixels,width,stride,run,previous[i],minHeight,screen,height);attempts++;
                                 if(candidate.IsEmpty)continue;
                                 if(outer.IsEmpty||candidate.Height>outer.Height)outer=candidate;break;
@@ -86,7 +106,12 @@ namespace QingJie {
                     }
                 }
             }catch(OperationCanceledException){throw;}
-            catch{ /* The native window chain and manual drag always remain usable. */ }
+            catch{result.ReadFailed=true; /* The native window chain and manual drag always remain usable. */ }
+            finally{
+                long elapsed=watch.ElapsedMilliseconds;
+                if(!result.PreparationCompleted)result.PrepareMilliseconds=elapsed;
+                else result.ScanMilliseconds=Math.Max(0,elapsed-result.PrepareMilliseconds);
+            }
             return result;
         }
         static bool Edge(byte[] pixels,int a,int b){

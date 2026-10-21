@@ -34,7 +34,7 @@ namespace MoriDesk {
    internal BrowserExtensionStore Store(){return new BrowserExtensionStore(Data,Bundle,Legacy,BrowserExtensionManager.PublicKey,id=>Registered.Add(id),()=>Registered.ToArray(),null,()=>new DateTime(2026,10,14,12,0,0,DateTimeKind.Utc));}
    internal BrowserExtensionInstall Install(){return Json.Deserialize<BrowserExtensionCatalog>(File.ReadAllText(Path.Combine(Data,"browser","extension-installs.json"))).installs.Single();}
    internal Dictionary<string,object> Send(BrowserExtensionStore store,BrowserExtensionInstall item,string op,string token=null){
-    var request=new Dictionary<string,object>{{"action","extensionControl"},{"op",op},{"_extensionId",item.extensionId},{"extensionId",item.extensionId},{"installationId",item.installationId},{"clientId",new string('a',32)},{"version",item.version}};
+    var request=new Dictionary<string,object>{{"action","extensionControl"},{"op",op},{"_extensionId",item.extensionId},{"extensionId",item.extensionId},{"installationId",item.installationId},{"clientId",new string('a',32)},{"version",item.version},{"generation",item.generation}};
     if(token!=null)request["token"]=token;
     return Json.Deserialize<Dictionary<string,object>>(Json.Serialize(store.Handle(request)));
    }
@@ -60,9 +60,9 @@ namespace MoriDesk {
    var title=(AssemblyTitleAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyTitleAttribute));
    var fileVersion=(AssemblyFileVersionAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyFileVersionAttribute));
    check(product!=null&&product.Product=="Nook"&&title!=null&&title.Title=="Nook","executable metadata exposes the chosen Nook product and title");
-   check(assembly.GetName().Version.Equals(new Version(0,1,25,0))&&fileVersion!=null&&fileVersion.Version=="0.1.25.0","Nook assembly and file versions are exactly 0.1.25.0");
+   check(assembly.GetName().Version.Equals(new Version(0,1,26,0))&&fileVersion!=null&&fileVersion.Version=="0.1.26.0","Nook assembly and file versions are exactly 0.1.26.0");
    check(assembly.GetName().Name=="Mori"&&Path.GetFileName(assembly.Location)=="Mori.exe"&&File.Exists(assembly.Location+".config"),"branding preserves the Mori executable/assembly/config identity");
-   var info=FileVersionInfo.GetVersionInfo(assembly.Location);check(info.ProductName=="Nook"&&info.FileVersion=="0.1.25.0","Windows executable details report Nook and the exact release version");
+   var info=FileVersionInfo.GetVersionInfo(assembly.Location);check(info.ProductName=="Nook"&&info.FileVersion=="0.1.26.0","Windows executable details report Nook and the exact release version");
    check(assembly.GetManifestResourceNames().Count(n=>n=="QingJie.Icon.png")==1&&!assembly.GetManifestResourceNames().Contains("Nook.Icon.png"),"capture keeps its single established QingJie.Icon.png resource identity");
    byte[] embedded;using(var resource=assembly.GetManifestResourceStream("QingJie.Icon.png")){using(var copy=new MemoryStream()){resource.CopyTo(copy);embedded=copy.ToArray();}}
    byte[] shipped=File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(assembly.Location),"qingjie-icon.png"));

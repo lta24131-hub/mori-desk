@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -14,11 +13,14 @@ namespace Mori {
  internal static class VideoThumbnail {
   static readonly SemaphoreSlim Workers=new SemaphoreSlim(1);
   internal static string LastFailure;
-  static readonly object failureLock=new object();static readonly Dictionary<string,DateTime> failures=new Dictionary<string,DateTime>();
+  internal static readonly ThumbnailFailureCache FailureCache=new ThumbnailFailureCache(TimeSpan.FromMinutes(10),128);
+  internal static void ClearFailures(){FailureCache.Clear();}
   internal static BitmapSource Render(string path,out int width,out int height){
-   width=height=0;string key=Path.GetFullPath(path)+"|"+File.GetLastWriteTimeUtc(path).Ticks;DateTime failed;
-   lock(failureLock)if(failures.TryGetValue(key,out failed)&&failed>DateTime.UtcNow.AddMinutes(-10))return null;
-   Workers.Wait();try{
+   width=height=0;string key=ThumbnailBuildGate.SourceStamp(path);
+   if(FailureCache.Has(key,DateTime.UtcNow))return null;
+   Workers.Wait();long attemptVersion=FailureCache.Version;try{
+    // Another caller may have failed while this one waited for the decoder.
+    if(FailureCache.Has(key,DateTime.UtcNow))return null;
     var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--video-thumbnail \""+Path.GetFullPath(path)+"\""){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true,RedirectStandardError=true};
     using(var process=Process.Start(start)){
      var diagnostic=process.StandardError.ReadToEndAsync();
@@ -30,7 +32,7 @@ namespace Mori {
       using(var input=new MemoryStream(data))using(var reader=new BinaryReader(input)){width=reader.ReadInt32();height=reader.ReadInt32();if(width<0||height<0||width>100000||height>100000)throw new InvalidDataException();using(var png=new MemoryStream(data,8,data.Length-8)){var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=png;bitmap.EndInit();bitmap.Freeze();if(bitmap.PixelWidth>512||bitmap.PixelHeight>512)throw new InvalidDataException();return bitmap;}}
      }finally{if(!process.HasExited){process.Kill();process.WaitForExit(2000);}try{bytes.Wait(2000);}catch(AggregateException){}}
     }
-   }catch(Exception ex){LastFailure=ex.Message;lock(failureLock){if(failures.Count>=128)failures.Clear();failures[key]=DateTime.UtcNow;}return null;}finally{Workers.Release();}
+   }catch(Exception ex){LastFailure=ex.Message;FailureCache.Remember(key,DateTime.UtcNow,attemptVersion);return null;}finally{Workers.Release();}
   }
   [StructLayout(LayoutKind.Sequential)]struct SIZE {public int X,Y;}
   [ComImport,Guid("BCC18B79-BA16-442F-80C4-8A59C30C463B"),InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IShellItemImageFactory {[PreserveSig]int GetImage(SIZE size,int flags,out IntPtr bitmap);}

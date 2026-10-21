@@ -35,9 +35,10 @@ namespace Mori {
    if(canvasProjectsMode){RefreshCanvasProjects();ApplyCanvasProjectsPresentation();return;}
    if(busy){Status("正在处理素材，请完成后再刷新。");return;}
    if(!PrepareLibraryChange())return;
+   ThumbnailImage.RetryFailedThumbnails();
    var scroll=VisualChild<ScrollViewer>(Find<ListBox>("Gallery"));double offset=scroll==null?0:scroll.VerticalOffset;
    string next=library.Db.Query("PRAGMA data_version")[0]["data_version"];if(dataVersion!=""&&next!=dataVersion)history.Clear();dataVersion=next;
-   ReloadFolders();Refresh(true);Find<ListBox>("Gallery").UpdateLayout();if(scroll!=null)scroll.ScrollToVerticalOffset(offset);Status("已刷新 · 保留当前分类与筛选");
+   ReloadFolders();Refresh(true);Find<ListBox>("Gallery").UpdateLayout();if(scroll!=null)scroll.ScrollToVerticalOffset(offset);Status("已刷新 · 重试缺失缩略图，保留当前分类与筛选");
   }
   internal ContextMenu CreateGalleryMenu(){
    var menu=Theme.Menu(Window);var sort=new MenuItem{Header="排列方式"};var combo=Find<ComboBox>("Sort");

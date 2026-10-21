@@ -33,8 +33,8 @@ namespace Mori {
   internal const int MaxPackageEntries=2048;
   internal const int MaxPages=64;
   internal const int MaxSharedStrings=20000;
-  static readonly HashSet<string> TextExtensions=new HashSet<string>(new[]{".txt",".md",".markdown",".log",".json",".xml",".yaml",".yml",".ini",".csv",".tsv"},StringComparer.OrdinalIgnoreCase);
-  static readonly HashSet<string> PackageExtensions=new HashSet<string>(new[]{".docx",".xlsx",".pptx",".odt",".ods",".odp"},StringComparer.OrdinalIgnoreCase);
+  static readonly HashSet<string> TextExtensions=new HashSet<string>(MoriDesk.FileFormats.PlainDocuments.Split(' '),StringComparer.OrdinalIgnoreCase);
+  static readonly HashSet<string> PackageExtensions=new HashSet<string>(MoriDesk.FileFormats.PackageDocuments.Split(' '),StringComparer.OrdinalIgnoreCase);
   static readonly SemaphoreSlim ReadSlots=new SemaphoreSlim(2,2);
   static readonly Regex SlideName=new Regex(@"^ppt/slides/slide([1-9][0-9]*)\.xml$",RegexOptions.CultureInvariant|RegexOptions.IgnoreCase);
   internal static bool Supports(string pathOrExtension){

@@ -23,13 +23,14 @@ namespace Mori {
         internal string ThumbnailSourceStamp {get;set;}
         public bool HiddenFromAll {get;set;}
         public bool IsReference {get{return !string.IsNullOrEmpty(ReferencePath);}}
-        public bool FileIcon {get{return IsReference&&!IsDirectory&&!MediaTypes.CanThumbnail(this)&&!IsVideo&&!IsAudio;}}
+        public string HoverInfo {get{return (Name??"")+"\n"+(IsReference?"本地快捷收藏 · 只保存位置，不复制原文件":IsBookmark?"网址收藏":"素材库副本 · 文件保存在当前图库");}}
+        public bool FileIcon {get{return !IsDirectory&&!IsBookmark&&!MediaTypes.CanThumbnail(this)&&!IsVideo&&!IsAudio;}}
         public string FileGlyph {get{return ReferenceSection=="models"?"\uF158":"\uE8A5";}}
         bool selected,selecting; ImageSource thumbnail;
         public bool Selected {get{return selected;} set{selected=value; Changed("Selected");}}
         public bool Selecting {get{return selecting;} set{if(selecting==value)return;selecting=value;Changed("Selecting");}}
         public ImageSource Thumbnail {get{return thumbnail;} set{thumbnail=value; Changed("Thumbnail");}}
-        public bool IsBookmark {get{return !IsReference&&Ext==".url";}}
+        public bool IsBookmark {get{return !IsReference&&string.Equals(Ext,".url",StringComparison.OrdinalIgnoreCase);}}
         public bool IsAudio {get{return MediaTypes.Audio.Contains(Ext);}}
         public bool IsGif {get{return string.Equals(Ext,".gif",StringComparison.OrdinalIgnoreCase);}}
         public bool IsVideo {get{return MediaTypes.Videos.Contains(Ext);}}
@@ -137,10 +138,10 @@ namespace Mori {
             if(string.Equals(Path.GetExtension(source),".url",StringComparison.OrdinalIgnoreCase))return ImportBookmark(ReadBookmark(source),name??Path.GetFileNameWithoutExtension(source),folder,tags,notes,duplicateAction);
             return ImportCore(source,folder,name,url,tags,notes,created,duplicateAction,fillMissingSource);
         }
-        ImportResult ImportCore(string source,string folder,string name,string url,string tags,string notes,string created,string duplicateAction,bool fillMissingSource) {
+        ImportResult ImportCore(string source,string folder,string name,string url,string tags,string notes,string created,string duplicateAction,bool fillMissingSource,bool generatedConversion=false,string generatedExtension=null) {
             lock(writeGate) {
                 if(duplicateAction!="ask"&&duplicateAction!="reuse"&&duplicateAction!="keep"&&duplicateAction!="skip")throw new ArgumentException("无效的重复文件处理方式", "duplicateAction");
-                string ext=Path.GetExtension(source).ToLowerInvariant();if(!Extensions.Contains(ext))throw new IOException("暂不支持此格式："+ext);
+                string ext=generatedConversion&&!string.IsNullOrWhiteSpace(generatedExtension)?generatedExtension:Path.GetExtension(source).ToLowerInvariant();if(!Extensions.Contains(ext)&&!generatedConversion)throw new IOException("暂不支持此格式："+ext);
                 if(!string.IsNullOrEmpty(folder)){
                     var destination=Folders().FirstOrDefault(f=>f.Id==folder);if(destination==null)throw new IOException("分类已不存在，请重新选择");
                     // Media pasted while browsing bookmarks remains an unfiled media
@@ -251,11 +252,11 @@ namespace Mori {
                 if(string.IsNullOrEmpty(a.Perceptual)||(a.IsReference&&a.ThumbnailSourceStamp!=sourceStamp))RefreshThumbnailMetadata(a);
                 if(!a.IsReference||a.ThumbnailSourceStamp==sourceStamp)return;
             }
-            int previousWidth=a.Width,previousHeight=a.Height;string previousColor=a.Color,previousPerceptual=a.Perceptual;bool updated=false,decoding=false;string decodeStamp=null;
+            int previousWidth=a.Width,previousHeight=a.Height;string previousColor=a.Color,previousPerceptual=a.Perceptual;bool updated=false,decoding=false;string decodeStamp=null;long decodeFailureVersion=0;
             try {
                 BitmapSource bitmap;
                 if(MainWindow.IsVideo(a)){int width,height;bitmap=VideoThumbnail.Render(FullPath(a),out width,out height);if(bitmap==null)return;if(width>0&&height>0){a.Width=width;a.Height=height;}}
-                else{string source=FullPath(a);decodeStamp=ThumbnailBuildGate.SourceStamp(source);if(ThumbnailBuildGate.HasDecodeFailure(decodeStamp))return;int width,height;decoding=true;bitmap=PreviewThumbnail.Read(source,512,out width,out height);decoding=false;if(width>0&&height>0){a.Width=width;a.Height=height;}}
+                else{string source=FullPath(a);decodeStamp=ThumbnailBuildGate.SourceStamp(source);decodeFailureVersion=ThumbnailBuildGate.FailureVersion;if(ThumbnailBuildGate.HasDecodeFailure(decodeStamp))return;int width,height;decoding=true;bitmap=PreviewThumbnail.Read(source,512,out width,out height);decoding=false;if(width>0&&height>0){a.Width=width;a.Height=height;}}
                 var tiny=new TransformedBitmap(bitmap,new ScaleTransform(9.0/bitmap.PixelWidth,8.0/bitmap.PixelHeight));var pixels=new FormatConvertedBitmap(tiny,PixelFormats.Bgra32,null,0);byte[] data=new byte[9*8*4];pixels.CopyPixels(data,36,0);long red=0,green=0,blue=0,alpha=0;ulong bits=0;
                 for(int y=0;y<8;y++)for(int x=0;x<9;x++){int p=(y*9+x)*4;red+=(long)data[p+2]*data[p+3];green+=(long)data[p+1]*data[p+3];blue+=(long)data[p]*data[p+3];alpha+=data[p+3];if(x<8){int next=p+4;int light=data[p]*114+data[p+1]*587+data[p+2]*299;int right=data[next]*114+data[next+1]*587+data[next+2]*299;if(light>right)bits|=1UL<<(y*8+x);}}
                 if(alpha>0)a.Color=string.Format("#{0:X2}{1:X2}{2:X2}",red/alpha,green/alpha,blue/alpha);a.Perceptual=bits.ToString("X16");
@@ -266,7 +267,7 @@ namespace Mori {
                 Db.Exec("UPDATE "+(a.IsReference?"desk_refs":"assets")+" SET width="+a.Width+",height="+a.Height+",color="+Q(a.Color)+",perceptual="+Q(a.Perceptual)+(a.IsReference?",bytes="+sourceBytes+",thumb_stamp="+Q(sourceStamp):"")+" WHERE id="+Q(a.IsReference?RawReference(a.Id):a.Id));
                 if(a.IsReference){a.ThumbnailSourceStamp=sourceStamp;a.Bytes=sourceBytes;}
                 updated=true;
-            }catch(NotSupportedException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp);}catch(FileFormatException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp);}catch(IOException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp);}catch(ArgumentException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp);}
+            }catch(NotSupportedException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(FileFormatException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(IOException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(ArgumentException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}
             finally{if(a.IsReference&&!updated){a.Width=previousWidth;a.Height=previousHeight;a.Color=previousColor;a.Perceptual=previousPerceptual;}}
         }
         public static int Similarity(string a,string b){ulong x,y;if(!ulong.TryParse(a,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out x)||!ulong.TryParse(b,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out y))return 65;ulong v=x^y;int n=0;while(v!=0){n++;v&=v-1;}return n;}
@@ -283,10 +284,6 @@ namespace Mori {
                 try{Db.Exec("VACUUM INTO "+Q(snapshot));List<Asset> snapshotAssets;using(var snapshotDb=new Database(snapshot))snapshotAssets=snapshotDb.Query("SELECT * FROM assets").Select(ReadAsset).ToList();using(var archive=ZipFile.Open(partial,ZipArchiveMode.Create)){archive.CreateEntryFromFile(snapshot,".mori/library.db",CompressionLevel.Optimal);foreach(var a in snapshotAssets)archive.CreateEntryFromFile(FullPath(a),a.Relative.Replace('\\','/'),CompressionLevel.NoCompression);}File.Move(partial,output);}
                 finally{if(File.Exists(snapshot))File.Delete(snapshot);if(File.Exists(partial))File.Delete(partial);}
             }
-        }
-        public static void Restore(string zip,string destination) {
-            if(Directory.Exists(destination)&&Directory.EnumerateFileSystemEntries(destination).Any())throw new IOException("请选一个空文件夹，避免覆盖原有数据");
-            using(var archive=ZipFile.OpenRead(zip)){if(!archive.Entries.Any(e=>e.FullName==".mori/library.db"))throw new IOException("不是 Nook 图库备份");foreach(var e in archive.Entries){Inside(destination,e.FullName);if(!e.FullName.StartsWith("原图/",StringComparison.Ordinal)&&e.FullName!=".mori/library.db")throw new IOException("备份包含未知文件");}foreach(var e in archive.Entries){string target=Inside(destination,e.FullName);Directory.CreateDirectory(Path.GetDirectoryName(target));e.ExtractToFile(target,false);}}
         }
         static Dictionary<string,object> ObjectJson(string path){var json=new JavaScriptSerializer{MaxJsonLength=32*1024*1024};return json.Deserialize<Dictionary<string,object>>(File.ReadAllText(path,Encoding.UTF8));}
         static string Str(Dictionary<string,object> d,string key){return d.ContainsKey(key)&&d[key]!=null?Convert.ToString(d[key]):"";}

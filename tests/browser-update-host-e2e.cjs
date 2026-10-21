@@ -5,42 +5,41 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const {spawn} = require('node:child_process');
-const {once} = require('node:events');
 const readline = require('node:readline');
 const {chromium} = require('playwright');
+const {readyTimeout,trackHost} = require('./browser-fixture-diagnostics.cjs');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(read, label, timeout = 15000) {
   const end = Date.now() + timeout;let last;
   while (Date.now() < end) {
-    try {last = await read();if (last) return last;} catch (error) {last = error;}
+    try {last = await read();if (last) return last;} catch (error) {if(error.fixtureHostFatal)throw error;last = error;}
     await pause(60);
   }
   throw Error(`${label}: ${last instanceof Error ? last.message : JSON.stringify(last)}`);
 }
 (async () => {
+  const startupTimeoutMs = readyTimeout(15000);
   const repo = path.resolve(__dirname, '..');
   const runtime = path.resolve(repo, process.argv[2] || 'test-output/extension-host-e2e-20261013');
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'MoriDesk-update-host-'));
   const host = spawn(path.join(runtime, 'Mori.exe'), ['--browser-update-host-test', temp], {
     windowsHide: true, stdio: ['pipe', 'pipe', 'pipe']
   });
-  const messages = [];let errors = '', spawnError;
-  host.stderr.on('data', value => errors += value);
-  host.on('error', error => {spawnError = error;});
+  const diagnostics = trackHost(host,'real-host-update');
+  const messages = [];
   readline.createInterface({input: host.stdout}).on('line', line => {
-    try {messages.push(JSON.parse(line));} catch {errors += line + '\n';}
+    try {messages.push(JSON.parse(line));} catch { /* Captured verbatim by diagnostics. */ }
   });
-  const exit = once(host, 'exit');
-  const receive = kind => until(() => {
-    if (spawnError) throw spawnError;
+  const receive = async kind => {try{return await until(() => {
     const index = messages.findIndex(message => message.kind === kind);
     if (index >= 0) return messages.splice(index, 1)[0];
-    if (host.exitCode !== null) throw Error(`Host exited ${host.exitCode}: ${errors}`);
-  }, 'host ' + kind);
-  const command = async kind => {host.stdin.write(kind + '\n');return receive(kind === 'stage' ? 'staged' : kind);};
+    diagnostics.assertRunning();
+  }, 'host ' + kind,kind === 'ready' ? startupTimeoutMs : 15000);}catch(error){throw diagnostics.failure('Waiting for host '+kind+' failed: '+error.message);}};
+  const command = async kind => {diagnostics.setPhase('command-'+kind);host.stdin.write(kind + '\n');return receive(kind === 'stage' ? 'staged' : kind);};
   let browser;
   try {
     const boot = await receive('ready');
+    diagnostics.setPhase('ready-launching-isolated-edge');
     assert.notEqual(boot.port, 47891, 'must not use production port');
     assert(boot.path.startsWith(temp + path.sep));
     browser = await chromium.launchPersistentContext(path.join(temp, 'profile'), {
@@ -50,6 +49,7 @@ async function until(read, label, timeout = 15000) {
     });
     let worker = browser.serviceWorkers()[0] || await browser.waitForEvent('serviceworker');
     assert.equal(new URL(worker.url()).host, boot.id);
+    diagnostics.setPhase('edge-worker-ready-authenticated-control');
     const bridge = await worker.evaluate(() => native({action: 'bridgeStatus'}));
     assert.equal(bridge.ok, true, JSON.stringify(bridge));
     await worker.evaluate(() => updater.poll());
@@ -117,10 +117,11 @@ async function until(read, label, timeout = 15000) {
     const final = await command('finish');
     assert.equal(final.count, 1);assert.equal(final.source, true);assert.equal(final.saves, 1);
     assert.equal(final.applies, 1);assert.equal(final.settingsExists, false);
-    const [code] = await exit;assert.equal(code, 0, errors);
+    const [code] = await diagnostics.exit;assert.equal(code, 0, JSON.stringify(diagnostics.snapshot()));
     assert.deepEqual(pageErrors, []);
     console.log('PASS post-update drag saves exactly one actual asset with source; no duplicate handler/reload loop');
     console.log('PASS isolated real host + Edge update e2e; fixture: ' + temp);
+  } catch(error) {console.error('FIXTURE_FAILURE '+JSON.stringify(diagnostics.snapshot()));throw error;
   } finally {
     await browser?.close();
     if (host.exitCode === null) host.kill();

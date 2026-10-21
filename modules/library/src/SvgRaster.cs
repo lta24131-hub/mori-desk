@@ -13,6 +13,33 @@ using System.Xml;
 using System.Windows.Media.Imaging;
 
 namespace Mori {
+ // Fixed, content-free failure metadata. Samples reuse the caller's existing
+ // guard loop; a sampled private-byte peak is not an exact lifetime RAM peak.
+ internal sealed class WorkerFailureDiagnostic {
+  readonly string kind;internal string Reason="unknown";
+  internal long ElapsedMilliseconds,SampledPeakPrivateBytes;
+  internal bool TimeoutExceeded,MemoryExceeded,ParentKillRequested,StdoutFaulted;
+  internal int? ExitCode;
+  internal WorkerFailureDiagnostic(string kind){this.kind=kind;}
+  internal void Observe(long elapsed,long privateBytes){ElapsedMilliseconds=Math.Max(ElapsedMilliseconds,elapsed);SampledPeakPrivateBytes=Math.Max(SampledPeakPrivateBytes,privateBytes);}
+  internal bool LimitReached(long elapsed,long privateBytes,long timeout,long maximumMemory){
+   Observe(elapsed,privateBytes);TimeoutExceeded=elapsed>timeout;MemoryExceeded=privateBytes>maximumMemory;
+   if(!TimeoutExceeded&&!MemoryExceeded)return false;
+   Reason=TimeoutExceeded?"timeout":"memory";return true;
+  }
+  internal void ThrowIfOutputFailed(Task reading){
+   if(!reading.IsFaulted)return;StdoutFaulted=true;Reason="stdout-failure";reading.GetAwaiter().GetResult();
+  }
+  internal void CaptureExit(Process process){
+   // A code observed only after our Kill is not evidence of a child crash.
+   if(ParentKillRequested||ExitCode.HasValue)return;
+   try{if(process.HasExited)ExitCode=process.ExitCode;}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}
+  }
+  internal void Attach(Exception error){
+   // Diagnostic bookkeeping must never replace the original failure.
+   try{const string prefix="Nook.Worker.";error.Data[prefix+"Kind"]=kind;error.Data[prefix+"Reason"]=Reason;error.Data[prefix+"ElapsedMs"]=ElapsedMilliseconds;error.Data[prefix+"SampledPeakPrivateBytes"]=SampledPeakPrivateBytes;error.Data[prefix+"TimeoutExceeded"]=TimeoutExceeded;error.Data[prefix+"MemoryExceeded"]=MemoryExceeded;error.Data[prefix+"ParentKillRequested"]=ParentKillRequested;error.Data[prefix+"StdoutFaulted"]=StdoutFaulted;error.Data[prefix+"ExitCodeSigned"]=ExitCode.HasValue?(object)ExitCode.Value:null;error.Data[prefix+"ExitCodeHex"]=ExitCode.HasValue?"0x"+unchecked((uint)ExitCode.Value).ToString("X8"):null;}catch{}
+  }
+ }
  internal static class SvgRaster {
   internal const long MaximumInput=8*1024*1024;
   static readonly SemaphoreSlim Workers=new SemaphoreSlim(2);
@@ -29,13 +56,21 @@ namespace Mori {
     var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--svg-render \""+info.FullName+"\" "+Math.Max(1,Math.Min(2048,longest))){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
     using(var process=Process.Start(start)){
      var bytes=Task.Run(delegate{using(var data=new MemoryStream()){byte[] buffer=new byte[16384];int n;while((n=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(data.Length+n>20*1024*1024)throw new InvalidDataException("SVG 预览输出过大。");data.Write(buffer,0,n);}return data.ToArray();}});
-     bool stopped=false;var clock=Stopwatch.StartNew();
-     try{while(!process.WaitForExit(50)){long memory=0;try{process.Refresh();memory=process.PrivateMemorySize64;}catch(InvalidOperationException){if(process.HasExited)break;throw;}if(clock.ElapsedMilliseconds>8000||memory>256L*1024*1024){stopped=true;process.Kill();process.WaitForExit(2000);break;}}if(stopped||process.ExitCode!=0)throw new NotSupportedException("SVG 过于复杂或格式不受支持，无法安全预览。");
-      var result=bytes.GetAwaiter().GetResult();using(var data=new MemoryStream(result))using(var reader=new BinaryReader(data)){
+     bool stopped=false;var clock=Stopwatch.StartNew();var diagnostic=new WorkerFailureDiagnostic("svg");Exception failure=null;
+     try{
+      while(!process.WaitForExit(50)){
+       long memory=0;try{process.Refresh();memory=process.PrivateMemorySize64;}catch(InvalidOperationException){if(process.HasExited)break;throw;}
+       bool limited=diagnostic.LimitReached(clock.ElapsedMilliseconds,memory,8000,256L*1024*1024);diagnostic.ThrowIfOutputFailed(bytes);
+       if(limited){stopped=true;diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);break;}
+      }
+      diagnostic.CaptureExit(process);if(!stopped)diagnostic.ThrowIfOutputFailed(bytes);
+      if(stopped||process.ExitCode!=0){if(!stopped)diagnostic.Reason="child-exit";throw new NotSupportedException("SVG 过于复杂或格式不受支持，无法安全预览。");}
+      diagnostic.Reason="stdout-failure";var result=bytes.GetAwaiter().GetResult();diagnostic.Reason="payload-invalid";using(var data=new MemoryStream(result))using(var reader=new BinaryReader(data)){
        width=reader.ReadInt32();height=reader.ReadInt32();if(width<1||height<1||width>1000000||height>1000000)throw new InvalidDataException("SVG 尺寸无效。");
        using(var png=new MemoryStream(result,8,result.Length-8)){var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=png;bitmap.EndInit();bitmap.Freeze();if(bitmap.PixelWidth>2048||bitmap.PixelHeight>2048)throw new InvalidDataException("SVG 输出尺寸无效。");return bitmap;}
       }
-     }finally{if(!process.HasExited){process.Kill();process.WaitForExit(2000);}try{bytes.Wait(2000);}catch(AggregateException){}}
+     }catch(Exception error){diagnostic.Observe(clock.ElapsedMilliseconds,0);failure=error;throw;}
+     finally{try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}try{bytes.Wait(2000);}catch(AggregateException){}}finally{diagnostic.StdoutFaulted=bytes.IsFaulted;diagnostic.CaptureExit(process);if(failure!=null)diagnostic.Attach(failure);}}
     }
    }catch{if(longest<=512)lock(failureLock){if(failures.Count>=128)failures.Clear();failures[key]=DateTime.UtcNow;}throw;}finally{Workers.Release();}
   }

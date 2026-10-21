@@ -6,6 +6,57 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using QingJie;
 
+// Pixel preparation is checked independently of the wall-clock geometry budget:
+// a slow VM must not hide a wrong channel layout behind an empty timed-out scan.
+static class CaptureVisualPixelTests {
+    internal static string LastScanDiagnostic {get;private set;}
+    static BitmapSource Image(PixelFormat format,bool opaque){
+        var pixels=new byte[8*6*4];
+        for(int y=0;y<6;y++)for(int x=0;x<8;x++){
+            int at=(y*8+x)*4;byte alpha=opaque?(byte)255:(byte)(32+(x+y)%4*64);
+            pixels[at]=(byte)(23+x*19);pixels[at+1]=(byte)(31+y*27);pixels[at+2]=(byte)(51+(x+y)*13);pixels[at+3]=alpha;
+            if(format==PixelFormats.Pbgra32){pixels[at]=(byte)(pixels[at]*alpha/255);pixels[at+1]=(byte)(pixels[at+1]*alpha/255);pixels[at+2]=(byte)(pixels[at+2]*alpha/255);}
+            if(format==PixelFormats.Bgr32)pixels[at+3]=(byte)(x*23+y); // Undefined padding must never affect RGB.
+        }
+        var image=BitmapSource.Create(8,6,96,96,format,null,pixels,8*4);image.Freeze();return image;
+    }
+    static BitmapSource OriginalSamplingSource(BitmapSource image,double scale){
+        BitmapSource source=image;if(scale<1)source=new TransformedBitmap(source,new ScaleTransform(scale,scale));
+        if(source.Format!=PixelFormats.Bgra32)source=new FormatConvertedBitmap(source,PixelFormats.Bgra32,null,0);
+        return source;
+    }
+    static byte[] Pixels(BitmapSource image){var data=new byte[image.PixelWidth*image.PixelHeight*4];image.CopyPixels(data,image.PixelWidth*4,0);return data;}
+    static bool SameRgb(BitmapSource actual,BitmapSource expected){
+        if(actual.PixelWidth!=expected.PixelWidth||actual.PixelHeight!=expected.PixelHeight)return false;
+        var a=Pixels(actual);var b=Pixels(expected);
+        for(int i=0;i<a.Length;i+=4)for(int channel=0;channel<3;channel++)if(a[i+channel]!=b[i+channel])return false;
+        return true;
+    }
+    internal static void Run(Action<bool,string> check){
+        foreach(var format in new[]{PixelFormats.Bgra32,PixelFormats.Bgr32,PixelFormats.Pbgra32})
+            foreach(bool opaque in new[]{true,false})foreach(double scale in new[]{1.0,.5}){
+                var image=Image(format,opaque);bool converted;
+                var sampled=CaptureVisualRegions.SamplingSource(image,scale,out converted);var original=OriginalSamplingSource(image,scale);
+                string context="format="+format+", opaque="+opaque+", scale="+scale;
+                check(SameRgb(sampled,original),"visual sampling preserves every edge-relevant RGB channel: "+context);
+                if(scale==1){
+                    bool direct=format==PixelFormats.Bgra32||format==PixelFormats.Bgr32;
+                    check(converted!=direct&&ReferenceEquals(sampled,image)==direct,"only byte-compatible non-premultiplied formats bypass conversion: "+context);
+                }
+                if(format==PixelFormats.Pbgra32){
+                    check(sampled.Format==PixelFormats.Bgra32&&Pixels(sampled).SequenceEqual(Pixels(original)),"premultiplied RGB and alpha retain the previous conversion exactly: "+context);
+                }
+            }
+        bool transparentConverted;var premultiplied=Image(PixelFormats.Pbgra32,false);var straight=CaptureVisualRegions.SamplingSource(premultiplied,1,out transparentConverted);
+        check(transparentConverted&&Pixels(straight)[0]>Pixels(premultiplied)[0],"transparent premultiplied pixels are unpremultiplied, never treated as Bgr32 padding");
+        var blank=new byte[64*48*4];var source=BitmapSource.Create(64,48,96,96,PixelFormats.Bgr32,null,blank,64*4);source.Freeze();
+        var result=CaptureVisualRegions.Read(source,new System.Drawing.Rectangle(-64,-48,64,48));
+        LastScanDiagnostic="format=Bgr32; prepare="+result.PrepareMilliseconds+"ms; scan="+result.ScanMilliseconds+"ms; rows="+result.ProcessedRows+"; timedOut="+result.TimedOut+"; converted="+result.PixelFormatConverted+"; readFailed="+result.ReadFailed+"; preparationCompleted="+result.PreparationCompleted+"; regions="+result.Count;
+        check(result.PreparationCompleted&&!result.PixelFormatConverted&&!result.ReadFailed&&result.PrepareMilliseconds>=0&&result.ScanMilliseconds>=0&&result.ProcessedRows>=0&&result.ProcessedRows<=47,"visual scan exposes bounded per-result diagnostics without changing the wall-clock budget");
+        Console.WriteLine("visual Bgr32 diagnostics: "+LastScanDiagnostic);
+    }
+}
+
 static class CaptureVisualRegionTests {
     static BitmapSource Boxes(int width,int height,bool dark){
         var drawing=new DrawingVisual();
@@ -56,7 +107,8 @@ static class CaptureVisualRegionTests {
         var bounds=new System.Drawing.Rectangle(-600,-100,600,400);var screen=new Rect(bounds.X,bounds.Y,bounds.Width,bounds.Height);
         foreach(bool dark in new[]{false,true}){
             var image=Boxes(600,400,dark);var regions=CaptureVisualRegions.Read(image,bounds);var point=new Point(-450,20);var hits=regions.At(point,screen).ToList();
-            check(hits.Any(r=>Near(r,new Rect(-500,-20,180,130),3)),"visible custom card has a candidate without any native child HWND; dark="+dark);
+            string scanEvidence="; prepare="+regions.PrepareMilliseconds+"ms, scan="+regions.ScanMilliseconds+"ms, rows="+regions.ProcessedRows+", timedOut="+regions.TimedOut+", converted="+regions.PixelFormatConverted+", failed="+regions.ReadFailed+", regions="+regions.Count;
+            check(hits.Any(r=>Near(r,new Rect(-500,-20,180,130),3)),"visible custom card has a candidate without any native child HWND; dark="+dark+scanEvidence);
             check(hits.Any(r=>Near(r,new Rect(-560,-70,520,340),3)),"large custom panel remains an outward selection choice; dark="+dark);
             check(regions.Count<30,"text-like strokes do not flood rectangle candidates; dark="+dark);
             var native=new CaptureTarget(new Rect(-570,-80,540,360));native.ClientBounds=new Rect(-570,-55,540,335);

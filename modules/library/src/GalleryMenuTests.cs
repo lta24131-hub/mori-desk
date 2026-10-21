@@ -48,7 +48,14 @@ namespace Mori {
      main.ToggleSidebar(true);main.ToggleSidebar(false);content.UpdateLayout();check(sidebar.LeftVisible&&!sidebar.RightVisible&&sidebar.Left==before,"both sidebar switches are independent");main.ToggleSidebar(false);
      main.SetGalleryLayout(true);main.SetGalleryInformation(false,false);content.UpdateLayout();check(Item(main.CreateGalleryMenu(),"瀑布布局").IsChecked&&!Item(Item(main.CreateGalleryMenu(),"显示信息"),"文件名").IsChecked,"layout and information controls update check state");
      gallery.ItemsSource=GalleryLayout.Build(assets,850,210,true,false,false);content.UpdateLayout();check(Children<Border>(gallery).Count(b=>b.Tag is Asset)<150&&VirtualizingPanel.GetIsVirtualizing(gallery),"10000 masonry assets materialize bounded visible fragments only");
-     main.SetGalleryLayout(false);main.SetGalleryInformation(true,true);main.RefreshGallery();check(((TextBlock)main.Window.FindName("Status")).Text.StartsWith("已刷新")&&library.All().Count==16,"refresh uses real production path and preserves original assets");
+     main.SetGalleryLayout(false);main.SetGalleryInformation(true,true);
+     var cached=library.All().First();string thumbnail=library.ThumbnailPath(cached);byte[] thumbnailBytes=File.ReadAllBytes(thumbnail);DateTime thumbnailTime=File.GetLastWriteTimeUtc(thumbnail);string retryStamp=ThumbnailBuildGate.SourceStamp(library.FullPath(cached));
+     ThumbnailBuildGate.RememberDecodeFailure(retryStamp);VideoThumbnail.FailureCache.Remember(retryStamp,DateTime.UtcNow);
+     var busy=typeof(MainWindow).GetField("busy",BindingFlags.Instance|BindingFlags.NonPublic);busy.SetValue(main,true);try{main.RefreshGallery();}finally{busy.SetValue(main,false);}
+     check(ThumbnailBuildGate.HasDecodeFailure(retryStamp)&&VideoThumbnail.FailureCache.Has(retryStamp,DateTime.UtcNow),"busy refresh does not invalidate caches or disturb in-progress thumbnail work");
+     main.RefreshGallery();check(((TextBlock)main.Window.FindName("Status")).Text.StartsWith("已刷新")&&library.All().Count==16,"refresh uses real production path and preserves original assets");
+     check(!ThumbnailBuildGate.HasDecodeFailure(retryStamp)&&!VideoThumbnail.FailureCache.Has(retryStamp,DateTime.UtcNow),"F5 production refresh explicitly allows missing picture and video thumbnails to retry");
+     library.BuildThumbnail(cached);check(File.GetLastWriteTimeUtc(thumbnail)==thumbnailTime&&File.ReadAllBytes(thumbnail).SequenceEqual(thumbnailBytes),"retrying failed thumbnails preserves successful disk cache bytes and timestamps");
      foreach(string theme in new[]{"dark","light"}){Theme.Set(theme);var m=main.CreateGalleryMenu();var entry=Item(m,"排列方式");entry.Style=(Style)main.Window.Resources[typeof(MenuItem)];entry.ApplyTemplate();check(entry.Template.FindName("PART_Popup",entry) is Popup,theme+" context menu template supports actual nested submenus");}
      check(!main.Window.IsVisible,"gallery menu regression never brings a test window to foreground");
     }finally{main.Window.Close();ThumbnailImage.CurrentLibrary=null;Theme.Set("dark");app.ShutdownMode=shutdown;}

@@ -45,9 +45,11 @@ namespace MoriDesk {
   sealed class StalledStream : Stream {
    internal bool WasDisposed;
    readonly TaskCompletionSource<int> pending = new TaskCompletionSource<int>();
+   readonly TaskCompletionSource<bool> entered = new TaskCompletionSource<bool>();
+   internal Task ReadEntered { get { return entered.Task; } }
    public override bool CanRead { get { return true; } } public override bool CanSeek { get { return false; } } public override bool CanWrite { get { return false; } }
    public override long Length { get { throw new NotSupportedException(); } } public override long Position { get { throw new NotSupportedException(); } set { throw new NotSupportedException(); } }
-   public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) { return pending.Task; }
+   public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) { entered.TrySetResult(true); return pending.Task; }
    public override int Read(byte[] buffer, int offset, int count) { throw new InvalidOperationException("Synchronous reads are forbidden"); }
    public override void Flush() { } public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); } public override void SetLength(long length) { throw new NotSupportedException(); } public override void Write(byte[] buffer, int offset, int count) { throw new NotSupportedException(); }
    protected override void Dispose(bool disposing) { WasDisposed = true; pending.TrySetException(new IOException("Synthetic disposed stream")); base.Dispose(disposing); }
@@ -61,6 +63,10 @@ namespace MoriDesk {
   static HttpResponseMessage Redirect(string location) { var value = new HttpResponseMessage(HttpStatusCode.Found); value.Headers.Location = new Uri(location, UriKind.RelativeOrAbsolute); return value; }
   static UpdateRelease DownloadRelease() { return new UpdateRelease { Version = new Version(0, 2, 0, 0), Tag = "v0.2.0-preview", AssetId = 101, Size = Installer.Length, ExpectedSha256 = Hash(Installer) }; }
   static async Task<bool> Reject<T>(Func<Task> operation) where T : Exception { try { await operation().ConfigureAwait(false); return false; } catch (T) { return true; } }
+  static async Task AwaitBounded(Task operation, string message) {
+   if (await Task.WhenAny(operation, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false) != operation) throw new TimeoutException(message);
+   await operation.ConfigureAwait(false);
+  }
   static bool Reject<T>(Action operation) where T : Exception { try { operation(); return false; } catch (T) { return true; } }
   internal static void Run(string root, Action<bool, string> check) {
    string testRoot = Path.Combine(root, "app-update-fixtures"); Directory.CreateDirectory(testRoot);
@@ -168,13 +174,37 @@ namespace MoriDesk {
    var handler = new Handler(); using (var cancel = new CancellationTokenSource()) using (var service = new AppUpdateService(handler)) {
     cancel.Cancel(); check(await Reject<OperationCanceledException>(async () => { await service.DownloadAsync(DownloadRelease(), "", Path.Combine(root, "pre-cancel"), null, cancel.Token); }) && handler.Requests.Count == 0, "pre-cancelled download performs no request and no staging write");
    }
+   handler = new Handler(); var undelivered = new ReadStream(Installer, 3); string unrequestedFolder = Path.Combine(root, "pre-cancel-unrequested");
+   // A response queued in a fake handler belongs to the fixture until a request
+   // actually obtains it. Pre-cancellation must not require disposing a stream
+   // the service never received; the fixture releases it after this assertion.
+   using (var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(undelivered) }) {
+    handler.Reply(response);
+    using (var cancel = new CancellationTokenSource()) using (var service = new AppUpdateService(handler)) {
+     cancel.Cancel();
+     check(await Reject<OperationCanceledException>(async () => { await service.DownloadAsync(DownloadRelease(), "", unrequestedFolder, null, cancel.Token); }) && handler.Requests.Count == 0 && NoInstaller(unrequestedFolder) && !undelivered.WasDisposed, "pre-cancelled download leaves no installer and never takes ownership of an undelivered response stream");
+    }
+   }
    handler = new Handler(); handler.Replies.Enqueue(async (request, cancellation) => { await Task.Delay(Timeout.Infinite, cancellation); return Bytes(Installer); });
    using (var service = new AppUpdateService(handler, TimeSpan.FromMilliseconds(30))) check(await Reject<TimeoutException>(async () => { await service.CheckAsync(new Version(0, 1), "", true, CancellationToken.None); }), "unresponsive response headers have bounded timeout");
    handler = new Handler(); var stalled = new StalledStream(); handler.Reply(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(stalled) }); string folder = Path.Combine(root, "read-timeout");
    using (var service = new AppUpdateService(handler, TimeSpan.FromMilliseconds(30))) check(await Reject<TimeoutException>(async () => { await service.DownloadAsync(DownloadRelease(), "", folder, null, CancellationToken.None); }) && NoInstaller(folder) && stalled.WasDisposed, "stalled body times out, disposes network stream and removes partial");
    handler = new Handler(); stalled = new StalledStream(); handler.Reply(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(stalled) }); folder = Path.Combine(root, "read-cancel");
    using (var cancel = new CancellationTokenSource()) using (var service = new AppUpdateService(handler, TimeSpan.FromSeconds(5))) {
-    cancel.CancelAfter(30); check(await Reject<OperationCanceledException>(async () => { await service.DownloadAsync(DownloadRelease(), Token, folder, null, cancel.Token); }) && NoInstaller(folder) && stalled.WasDisposed, "user cancellation is distinct from timeout and cannot leave installable file");
+    // Cancel only after the response stream is owned and its first read really
+    // started. A 30ms wall-clock timer can fire before staging/headers on a slow
+    // VM, which tests pre-cancellation instead of in-flight stream disposal.
+    var cancelled = Reject<OperationCanceledException>(async () => { await service.DownloadAsync(DownloadRelease(), Token, folder, null, cancel.Token); });
+    try {
+     var first = await Task.WhenAny(stalled.ReadEntered, cancelled, Task.Delay(TimeSpan.FromSeconds(30))).ConfigureAwait(false);
+     if (first != stalled.ReadEntered) {
+      if (first == cancelled) { await cancelled.ConfigureAwait(false); throw new InvalidOperationException("Synthetic cancellation download completed before its first stream read."); }
+      throw new TimeoutException("Synthetic cancellation stream did not enter ReadAsync within 30 seconds.");
+     }
+     cancel.Cancel();
+     await AwaitBounded(cancelled, "In-flight user cancellation did not complete within 30 seconds.").ConfigureAwait(false);
+     check(cancelled.Result && NoInstaller(folder) && stalled.WasDisposed, "user cancellation is distinct from timeout and cannot leave installable file");
+    } finally { cancel.Cancel(); }
    }
   }
   static void Credentials(string root, Action<bool, string> check) {

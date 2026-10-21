@@ -38,7 +38,22 @@ namespace MoriDesk {
      check(OpenWithRegistration.SupportedExtensions.All(ext=>Value(scope,app+"\\SupportedTypes",ext)==""),"all advertised preview extensions are added without selecting defaults");
      check(OpenWithRegistration.SupportedExtensions.Distinct(StringComparer.OrdinalIgnoreCase).Count()==OpenWithRegistration.SupportedExtensions.Length,"supported extensions do not contain duplicate aliases");
      var routed=new HashSet<string>(FileRouter.Pictures.Concat(FileRouter.Models).Concat(Mori.MediaTypes.Documents).Concat(Mori.MediaTypes.Audio).Concat(Mori.MediaTypes.Videos),StringComparer.OrdinalIgnoreCase);
-     check(routed.SetEquals(OpenWithRegistration.SupportedExtensions),"Open-with advertises exactly the file router's supported formats");
+     check(routed.SetEquals(OpenWithRegistration.SupportedExtensions),"Open-with advertises exactly the file router's supported formats; missing="+string.Join(",",routed.Except(OpenWithRegistration.SupportedExtensions,StringComparer.OrdinalIgnoreCase))+" extra="+string.Join(",",OpenWithRegistration.SupportedExtensions.Except(routed,StringComparer.OrdinalIgnoreCase)));
+     foreach(var family in new[]{new{Extensions=FileFormats.Pictures,Kind="image",Section="pictures"},new{Extensions=FileFormats.Videos,Kind="preview",Section="videos"},new{Extensions=FileFormats.Audio,Kind="preview",Section="audio"},new{Extensions=FileFormats.Documents,Kind="preview",Section="documents"}}){
+      foreach(string extension in family.Extensions.Split(' ')){
+       var asset=new Mori.Asset{Ext=extension.ToUpperInvariant()};
+       check(FileRouter.Kind("sample"+extension.ToUpperInvariant())==family.Kind&&OpenWithRegistration.SupportedExtensions.Contains(extension),"the same capability routes and registers "+extension+" case insensitively");
+       check(new[]{"pictures","videos","audio","documents"}.Count(section=>Mori.MediaTypes.Contains(asset,section))==1&&Mori.MediaTypes.Contains(asset,family.Section),"previewable format belongs to exactly its declared library category: "+extension);
+      }
+     }
+     foreach(string extension in new[]{".flv",".f4v",".3g2",".vob",".dv",".mxf",".m4b",".ac3",".amr",".au",".caf",".weba",".mka",".mp2",".voc",".wv",".tta",".w64",".eac3"})
+      check(FileRouter.Kind("converted"+extension)=="preview"&&Value(scope,app+"\\SupportedTypes",extension)=="","newly classified media has a real Open-with registry entry and preview route: "+extension);
+     foreach(string extension in FileFormats.ContentDocuments.Split(' '))check(Mori.DocumentContent.Supports(extension)&&Mori.MediaTypes.TextDocuments.Contains(extension),"document content reader and classification share the supported format: "+extension);
+     foreach(string extension in FileFormats.Models.Split(' '))check(FileRouter.Kind("model"+extension.ToUpperInvariant())=="model"&&OpenWithRegistration.SupportedExtensions.Contains(extension),"model catalog routes and advertises the same capability: "+extension);
+     foreach(string extension in new[]{".qoi",".jxl",".eps",".svgz",".odg"}){
+      check(Mori.MediaTypes.Contains(new Mori.Asset{Ext=extension},"pictures")&&FileRouter.Kind("converted"+extension)=="external"&&!OpenWithRegistration.SupportedExtensions.Contains(extension),"conversion picture classification does not falsely advertise an unavailable native preview: "+extension);
+     }
+     foreach(string extension in new[]{".url",".exe",".ps1",".doc",".xls",".ppt",".unsupported"})check(FileRouter.Kind("unknown"+extension)=="external"&&!OpenWithRegistration.SupportedExtensions.Contains(extension),"external-only formats are not claimed by Explorer preview registration: "+extension);
      check(Value(scope,app+"\\SupportedTypes",".custom-extension")=="","unknown supported-type values remain intact");
      check(Value(scope,"Software\\Classes\\.png","")=="Other.Photo"&&Value(scope,"Software\\Classes\\.png\\OpenWithProgids","Other.Photo")=="","extension defaults and other ProgIDs are not changed");
      check(Value(scope,choices+"\\UserChoice","ProgId")=="Other.Photo"&&Value(scope,choices+"\\UserChoice","Hash")=="must-not-change","Windows protected default-app choice and hash stay intact");

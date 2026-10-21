@@ -44,8 +44,21 @@ namespace Mori {
   }
   public static object Handle(Library library,Dictionary<string,object> request){string action=Get(request,"action");if(action=="folders"){var categories=library.Folders(Get(request,"scope")=="bookmark");return new{ok=true,theme=Settings.Load().Theme,folders=categories.Select(c=>new{id=c.Id,name=Label(c,categories)}).Take(500).ToArray()};}if(action=="importBookmarks")return BrowserBookmarkImport.Handle(library,request);if(action=="bookmark")return SaveBookmark(library,request);if(action!="save")throw new InvalidDataException("未知请求");
    string duplicateAction=Get(request,"duplicateAction");if(duplicateAction=="")duplicateAction="ask";if(duplicateAction!="ask"&&duplicateAction!="reuse"&&duplicateAction!="keep")throw new InvalidDataException("无效的重复文件处理方式");
-   string data=Get(request,"data");if(data.Length>28*1024*1024)throw new InvalidDataException("素材超过 20 MB，请保存原文件后拖入 Nook");byte[] image=Convert.FromBase64String(data);if(image.Length<12||image.Length>20*1024*1024)throw new InvalidDataException("素材为空或过大");string ext=Detect(image);if(ext==null)throw new InvalidDataException("网页没有返回受支持的图片或视频（JPG / PNG / GIF / WebP / MP4 / WebM）；不支持流媒体播放列表");
-   string source=Get(request,"source");Uri uri;if(source.Length>8000||(!string.IsNullOrEmpty(source)&&(!Uri.TryCreate(source,UriKind.Absolute,out uri)||(uri.Scheme!="http"&&uri.Scheme!="https"))))throw new InvalidDataException("无效来源网址");
+   string expectedKind=Get(request,"kind");if(expectedKind!=""&&expectedKind!="image"&&expectedKind!="video")throw new InvalidDataException("无效的素材类型");
+   string data=Get(request,"data");if(data.Length>28*1024*1024)throw new InvalidDataException("素材超过 20 MB，请保存原文件后拖入 Nook");byte[] image=Convert.FromBase64String(data);if(image.Length>20*1024*1024)throw new InvalidDataException("素材超过 20 MB，请保存原文件后拖入 Nook");if(image.Length<12)throw new InvalidDataException("素材为空或不完整，本次没有收藏。");string ext=Detect(image);if(ext==null)throw new InvalidDataException("网页没有返回受支持的图片或视频（JPG / PNG / GIF / WebP / MP4 / WebM）；不支持流媒体播放列表");
+   // A successful HTTP response or a video-looking URL is not proof of a video.
+   // Validate before writing any temporary file, importing, or reusing a
+   // duplicate. Missing kind remains compatible with older image collectors.
+   if(expectedKind!=""){
+    bool actualVideo=WebMediaFormat.DetectVideo(image)!=null;
+    if(expectedKind=="video"&&!actualVideo)throw new InvalidDataException("网页返回了图片而不是可保存的视频，本次没有收藏，也没有改存为封面。");
+    if(expectedKind=="image"&&actualVideo)throw new InvalidDataException("网页返回了视频而不是所选图片，本次没有收藏。");
+   }
+   // A brand/EBML header is only a classifier. Require bounded container,
+   // video-track and media-block structure for both current and legacy clients.
+   // No platform decoder is used: an unsupported codec is still collectable.
+   if(WebMediaFormat.DetectVideo(image)!=null&&!WebMediaFormat.HasCompleteVideo(image))throw new InvalidDataException("网页返回的视频数据不完整或没有有效视频轨，本次没有收藏。请在原网页播放后重试，或下载原文件再拖入 Nook。");
+   string source=Get(request,"source");Uri uri;if(source.Length>8000||source.Any(char.IsControl)||(!string.IsNullOrEmpty(source)&&!SourceLink.TryParse(source,out uri)))throw new InvalidDataException("来源网址须为不含账号密码的 HTTP / HTTPS 地址，本次没有收藏。");
    string title=Get(request,"name");if(title.Length>250)title=title.Substring(0,250);if(string.IsNullOrWhiteSpace(title))title="网页收藏";
    string temp=Path.Combine(Path.GetTempPath(),"Mori-web-"+Guid.NewGuid().ToString("N")+ext);try{
     File.WriteAllBytes(temp,image);var result=library.Import(temp,Get(request,"folder"),title,source,"","","",duplicateAction);

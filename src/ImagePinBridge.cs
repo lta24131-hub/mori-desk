@@ -15,13 +15,13 @@ namespace MoriDesk {
  // Two fixed receivers bound decoding and dispatcher work; no browser/API key.
  internal sealed class ImagePinBridge:IDisposable {
   internal const int MaximumBytes=24*1024*1024,MaximumPixels=32*1024*1024;
-  readonly string name;readonly Dispatcher dispatcher;readonly Action<BitmapSource> pin;
+  readonly string name;readonly Dispatcher dispatcher;readonly Func<BitmapSource,Task> pin;
   readonly HashSet<NamedPipeServerStream> streams=new HashSet<NamedPipeServerStream>();
   volatile bool stopped;
   internal static void ValidateDimensions(int width,int height){if(width<1||height<1||(long)width*height>MaximumPixels)throw new NotSupportedException("图片超过贴图大小限制（3200 万像素），请先缩小后重试。");}
   internal static string PipeName(string root){var sid=WindowsIdentity.GetCurrent().User.Value;using(var hash=System.Security.Cryptography.SHA256.Create())return "Nook.ImagePins."+BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(sid+"|"+Path.GetFullPath(root).TrimEnd('\\','/').ToUpperInvariant()))).Replace("-","").Substring(0,24);}
   internal static PipeSecurity Security(){var security=new PipeSecurity();var user=WindowsIdentity.GetCurrent().User;security.SetAccessRuleProtection(true,false);security.SetOwner(user);security.AddAccessRule(new PipeAccessRule(user,PipeAccessRights.FullControl,AccessControlType.Allow));return security;}
-  internal ImagePinBridge(string root,Dispatcher dispatcher,Action<BitmapSource> pin){
+  internal ImagePinBridge(string root,Dispatcher dispatcher,Func<BitmapSource,Task> pin){
    if(dispatcher==null||pin==null)throw new ArgumentNullException();this.dispatcher=dispatcher;this.pin=pin;name=PipeName(root);
    // Bind before returning so startup errors are explicit, not lost on a thread.
    var first=Create();NamedPipeServerStream second;try{second=Create();}catch{Dispose();throw;}foreach(var stream in new[]{first,second})new Thread(()=>Listen(stream)){IsBackground=true,Name="Nook image pin receiver"}.Start();
@@ -30,8 +30,13 @@ namespace MoriDesk {
   void Listen(NamedPipeServerStream initial){var stream=initial;while(!stopped){try{stream.WaitForConnection();Serve(stream);}catch(IOException){}catch(ObjectDisposedException){}catch(Exception){}finally{lock(streams)streams.Remove(stream);stream.Dispose();}if(stopped)return;try{stream=Create();}catch{return;}}}
   void Serve(NamedPipeServerStream stream){
    string result="ok";try{var bytes=ReadPacket(stream,MaximumBytes,5000).GetAwaiter().GetResult();var ticket=new DispatchTicket{Image=Decode(bytes)};
-    var queued=dispatcher.BeginInvoke(DispatcherPriority.Normal,new Action(()=>{BitmapSource image;lock(ticket){if(ticket.Canceled)return;ticket.Started=true;image=ticket.Image;ticket.Image=null;}try{if(stopped)throw new InvalidOperationException("Nook 正在退出，请稍后重试。");pin(image);}catch(Exception error){ticket.Error=error.Message;}finally{ticket.Done.TrySetResult(true);}}));
-    if(!ticket.Done.Task.Wait(5000)){lock(ticket){if(!ticket.Started){ticket.Canceled=true;ticket.Image=null;queued.Abort();throw new InvalidOperationException("Nook 正忙，请稍后重试。");}}throw new InvalidOperationException("贴图保存尚未确认，请检查桌面后再重试，避免重复。");}
+    var queued=dispatcher.BeginInvoke(DispatcherPriority.Normal,new Action(async()=>{BitmapSource image;lock(ticket){if(ticket.Canceled)return;ticket.Started=true;image=ticket.Image;ticket.Image=null;}try{if(stopped)throw new InvalidOperationException("Nook 正在退出，请稍后重试。");await pin(image);}catch(Exception error){ticket.Error=error.Message;}finally{ticket.Done.TrySetResult(true);}}));
+    if(!ticket.Done.Task.Wait(5000)){
+     lock(ticket){if(!ticket.Started){ticket.Canceled=true;ticket.Image=null;queued.Abort();throw new InvalidOperationException("Nook 正忙，请稍后重试。");}}
+     // Once accepted, PNG encoding is asynchronous and can outlast the queue
+     // deadline on a slow drive. Acknowledge the actual commit, not submission.
+     if(!ticket.Done.Task.Wait(25000))throw new InvalidOperationException("贴图保存尚未确认，请检查桌面后再重试，避免重复。");
+    }
     if(ticket.Error!=null)throw new InvalidOperationException(ticket.Error);
    }catch(Exception error){result=error.Message;if(result.Length>1000)result=result.Substring(0,1000);}
    try{WritePacket(stream,Encoding.UTF8.GetBytes(result),2000).GetAwaiter().GetResult();}catch{}
@@ -50,7 +55,7 @@ namespace MoriDesk {
    if(!image.IsFrozen){image=image.Clone();image.Freeze();}var frozen=image;var bytes=await Task.Run(()=>Encode(frozen)).ConfigureAwait(false);
    using(var stream=new NamedPipeClientStream(".",PipeName(root),PipeDirection.InOut,PipeOptions.Asynchronous,TokenImpersonationLevel.Identification)){
     try{await Deadline(stream.ConnectAsync(1500),2000).ConfigureAwait(false);}catch(Exception error){throw new InvalidOperationException("请先打开 Nook 主窗口，再使用“钉在桌面”。",error);}
-    string result;try{await WritePacket(stream,bytes,5000).ConfigureAwait(false);result=Encoding.UTF8.GetString(await ReadPacket(stream,4096,12000).ConfigureAwait(false));}catch(Exception error){throw new InvalidOperationException("贴图请求已发送，但结果尚未确认。请先检查桌面，避免重复钉图。",error);}if(result!="ok")throw new InvalidOperationException(result);
+     string result;try{await WritePacket(stream,bytes,5000).ConfigureAwait(false);result=Encoding.UTF8.GetString(await ReadPacket(stream,4096,35000).ConfigureAwait(false));}catch(Exception error){throw new InvalidOperationException("贴图请求已发送，但结果尚未确认。请先检查桌面，避免重复钉图。",error);}if(result!="ok")throw new InvalidOperationException(result);
    }
   }
   public void Dispose(){stopped=true;lock(streams){foreach(var stream in streams)stream.Dispose();streams.Clear();}}

@@ -10,6 +10,7 @@ namespace MoriDesk {
   static string Send(int port,string text){using(var client=new TcpClient("127.0.0.1",port)){client.ReceiveTimeout=10000;using(var stream=client.GetStream()){byte[] data=Encoding.UTF8.GetBytes(text);stream.Write(data,0,data.Length);var header=new StringBuilder();while(!header.ToString().EndsWith("\r\n\r\n",StringComparison.Ordinal)){int next=stream.ReadByte();if(next<0)throw new EndOfStreamException();header.Append((char)next);}string length=header.ToString().Split(new[]{"\r\n"},StringSplitOptions.None).Single(x=>x.StartsWith("Content-Length:")).Substring(15).Trim();byte[] body=new byte[int.Parse(length)];int at=0;while(at<body.Length){int n=stream.Read(body,at,body.Length-at);if(n==0)throw new EndOfStreamException();at+=n;}return header+Encoding.UTF8.GetString(body);}}}
   static string Request(int port,string origin,string key,string body,string extra="",string method="POST"){return method+" /mori/v1 HTTP/1.1\r\nHost: 127.0.0.1:"+port+"\r\nOrigin: "+origin+"\r\nX-Mori-Token: "+key+"\r\nContent-Type: application/json\r\nContent-Length: "+Encoding.UTF8.GetByteCount(body)+"\r\n"+extra+"\r\n"+body;}
   public static void Run(string root,Action<bool,string> check){
+   WebMediaFormatTests.Run(check);
    string data=Path.Combine(root,"local-bridge"),extension=Path.Combine(root,"paired-extension"),id=new string('a',32),origin="chrome-extension://"+id;
    string secret=BrowserLocalBridge.Pair(data,extension);check(BrowserLocalBridge.ValidToken(secret),"bridge generates 256-bit key");check(BrowserLocalBridge.Pair(data,extension)==secret,"bridge key persists across updates");
    string configuration=Path.Combine(extension,"local-connection.js");var unchanged=new DateTime(2001,2,3,4,5,6,DateTimeKind.Utc);File.SetLastWriteTimeUtc(configuration,unchanged);BrowserLocalBridge.Pair(data,extension);check(File.GetLastWriteTimeUtc(configuration)==unchanged,"unchanged legacy pairing avoids repeated disk writes");
@@ -38,9 +39,46 @@ namespace MoriDesk {
     check(Send(port,Request(port,origin,secret,"{\"action\":\"delete\"}")).Contains("\"ok\":false")&&handled==1,"only collector actions allowed");
     check(Send(port,Request(port,origin,secret,"null")).Contains("\"ok\":false")&&handled==1,"invalid JSON root cannot reach library");
     var bytes=File.ReadAllBytes(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"qingjie-icon.png"));var request=new Dictionary<string,object>{{"action","save"},{"data",Convert.ToBase64String(bytes)},{"name","本机备用收藏测试"},{"source","https://example.com/bridge"},{"duplicateAction","ask"}};
+    var json=new JavaScriptSerializer{MaxJsonLength=BrowserLocalBridge.Maximum};
+    foreach(string unsafeSource in new[]{"https://user:PRIVATE-PASSWORD@example.com/photo","http://PRIVATE-USER@example.com/photo","file:///C:/private.png","\nhttps://example.com/photo"}){
+     request["source"]=unsafeSource;response=Send(port,Request(port,origin,secret,json.Serialize(request)));
+     check(response.Contains("\"ok\":false")&&response.Contains("不含账号密码")&&!response.Contains("PRIVATE-"),"unsafe source metadata is rejected without echoing credentials or claiming success");
+    }
+    using(var lib=new Mori.Library(library))check(lib.All().Count==0,"credential-bearing source metadata cannot import files before rejection");
+    string preservedSource="https://example.com/bridge?q=a%2Fb&name=%E5%9B%BE#preview%20one";request["source"]=preservedSource;
+    // The same byte validation protects the framed native protocol and HTTP
+    // fallback, even if a site returns a PNG cover from an .mp4 address.
+    request["kind"]="video";body=json.Serialize(request);response=Send(port,Request(port,origin,secret,body));
+    check(response.Contains("\"ok\":false")&&response.Contains("而不是可保存的视频"),"backup rejects a video request answered with an image, without claiming success");
+    using(var lib=new Mori.Library(library))check(lib.All().Count==0,"mismatched media response does not import an image or create a duplicate choice");
+    request["kind"]="image";
     body=new JavaScriptSerializer{MaxJsonLength=BrowserLocalBridge.Maximum}.Serialize(request);response=Send(port,Request(port,origin,secret,body));check(response.Contains("\"ok\":true")&&response.Contains("本机备用收藏测试"),"real image collection over backup transport");
     response=Send(port,Request(port,origin,secret,body));check(response.Contains("\"choiceRequired\":true"),"backup transport preserves duplicate confirmation");
-    using(var lib=new Mori.Library(library)){check(lib.All().Count==1&&lib.All()[0].Source=="https://example.com/bridge","actual save retains source and does not silently duplicate");}
+    request["kind"]="video";body=json.Serialize(request);response=Send(port,Request(port,origin,secret,body));
+    check(response.Contains("\"ok\":false")&&!response.Contains("\"choiceRequired\":true"),"media intent is validated before offering an existing image as a video duplicate");
+    request.Remove("kind");request["duplicateAction"]="reuse";body=json.Serialize(request);response=Send(port,Request(port,origin,secret,body));
+    check(response.Contains("\"ok\":true")&&response.Contains("\"duplicate\":true"),"legacy collectors without a media kind still save and reuse an image");
+    byte[] videoHeader=new byte[]{0,0,0,24,102,116,121,112,105,115,111,109,0,0,0,0,105,115,111,109,109,112,52,50};
+    check(Mori.NativeBridge.Detect(videoHeader)==".mp4","opposite-kind fixture is recognized from actual MP4 container bytes");
+    request["kind"]="image";request["data"]=Convert.ToBase64String(videoHeader);body=json.Serialize(request);response=Send(port,Request(port,origin,secret,body));
+    check(response.Contains("\"ok\":false")&&response.Contains("而不是所选图片"),"an image request cannot silently import video bytes");
+    int invalidVideo=0;
+    foreach(var broken in WebMediaFormatTests.InvalidVideos()){
+     request["data"]=Convert.ToBase64String(broken);request["duplicateAction"]="reuse";
+     foreach(string kind in new[]{"video",""}){
+      if(kind=="")request.Remove("kind");else request["kind"]=kind;
+      response=Send(port,Request(port,origin,secret,json.Serialize(request)));
+      check(response.Contains("\"ok\":false")&&!response.Contains("\"choiceRequired\":true"),"invalid video cannot claim save/duplicate success for current or legacy collectors (case "+invalidVideo+", "+(kind==""?"legacy":kind)+")");
+     }invalidVideo++;
+    }
+    request["kind"]="unknown";request["data"]=Convert.ToBase64String(bytes);body=json.Serialize(request);response=Send(port,Request(port,origin,secret,body));
+    check(response.Contains("\"ok\":false")&&response.Contains("无效的素材类型"),"invalid media intent is rejected instead of bypassing byte validation");
+    using(var lib=new Mori.Library(library)){
+     check(lib.All().Count==1&&lib.All()[0].Source==preservedSource,"actual save retains escaped source and fragment without silently duplicating");
+     var oversized=new Dictionary<string,object>{{"action","save"},{"data",Convert.ToBase64String(new byte[20*1024*1024+1])}};bool limited=false;
+     try{Mori.NativeBridge.Handle(lib,oversized);}catch(InvalidDataException ex){limited=ex.Message.Contains("超过 20 MB")&&ex.Message.Contains("保存原文件");}
+     check(limited&&lib.All().Count==1,"native decoded-byte size limit reports the precise 20 MB fallback without importing");
+    }
    }
   }
   static void Handoff(string secret,string origin,Action<bool,string> check){

@@ -10,6 +10,8 @@ const {chromium} = require('playwright');
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'Mori-collector-lifecycle-'));
   const extension=path.join(temp,'extension');
   fs.cpSync(path.join(root,'browser-extension'),extension,{recursive:true,filter:source=>path.basename(source)!=='local-connection.js'});
+  const generation='b'.repeat(32);
+  for(const file of ['preferences.js','updater.js'])fs.appendFileSync(path.join(extension,file),`\nglobalThis.MoriInstalledGeneration = ${JSON.stringify(generation)};\n`);
   fs.appendFileSync(path.join(extension,'background.js'),`\n// Synthetic test endpoint only.\nnative = async payload => {
     if (payload.action === 'folders') return {ok:true,folders:[]};
     const saved=(await chrome.storage.local.get('fixtureSaves')).fixtureSaves || [];
@@ -35,6 +37,17 @@ const {chromium} = require('playwright');
       assert.equal((await ready()).ready,true);
     };
     await waitReady();
+    assert.equal((await ready()).generation,generation);
+    // Reproduce a worker restarted from repaired files with an old, same-version
+    // collector in an already-open tab. No page navigation or runtime reload.
+    let staleId=await currentTab();
+    await worker.evaluate(async id=>{
+      await chrome.scripting.executeScript({target:{tabId:id},func:()=>{globalThis.MoriInstalledGeneration='a'.repeat(32);}});
+      await chrome.scripting.executeScript({target:{tabId:id},files:['content.js']});
+    },staleId);
+    await waitReady();assert.equal((await ready()).generation,'a'.repeat(32));
+    await worker.evaluate(id=>ensureCollector(id),staleId);await waitReady();
+    assert.equal((await ready()).generation,generation,'same-version stale collector is repaired from the exact installed generation');
     const state=async()=>{
       const id=await currentTab();
       return worker.evaluate(async id=>(await chrome.scripting.executeScript({target:{tabId:id},func:()=>({ready:globalThis.MoriCollectorInstance?.ready,panels:document.querySelectorAll('[data-mori-collector]').length})}))[0].result,id);
@@ -79,6 +92,6 @@ const {chromium} = require('playwright');
     const records=await worker.evaluate(async()=>(await chrome.storage.local.get('fixtureSaves')).fixtureSaves || []);
     assert.equal(records.length,1,'one drag creates exactly one save after reload and reinjection');
     assert.equal(records[0].name,'Synthetic image');assert.deepEqual(errors,[]);
-    console.log('PASS: real MV3 active-page repair after extension reload; repeated injection retires prior collector; drag saves exactly once; Escape closes.');
+    console.log('PASS: real MV3 same-version generation repair and active-page repair after extension reload; repeated injection retires prior collector; drag saves exactly once; Escape closes.');
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

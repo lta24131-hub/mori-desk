@@ -1,4 +1,7 @@
 (() => {
+  // Capture the identity loaded by preferences.js. A same-version repair can
+  // restart its background worker while this already-open page is still old.
+  const generation = /^[0-9a-f]{32}$/.test(globalThis.MoriInstalledGeneration || '') ? globalThis.MoriInstalledGeneration : '';
   // Dynamic reinjection and extension updates must leave exactly one collector
   // per frame. The DOM event also retires the previous extension world after a
   // reload; callbacks from that world may finish but cannot reopen its UI.
@@ -825,7 +828,7 @@
     }
     if(message?.action==='mori-update-verify') {reply({ready:!disposed && !collectionBusy() && updateLock===message.lock,lock:updateLock});return;}
     if(message?.action==='mori-update-resume') {releaseUpdateLock(message.lock);reply({ready:true});return;}
-    if (message?.action === 'mori-collector-ping') {reply({ready:!disposed && preferencesReady, version:chrome.runtime.getManifest().version}); return;}
+    if (message?.action === 'mori-collector-ping') {reply({ready:!disposed && preferencesReady, busy:collectionBusy(), version:chrome.runtime.getManifest().version, generation}); return;}
     if(updateLock && ['context-edit','resolve-context-image','context-saving'].includes(message?.action)){reply({displayed:false,ok:false,code:'UPDATE_IN_PROGRESS'});return;}
     if (message?.action === 'context-edit') {
       const session = mount(message.item, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});

@@ -38,6 +38,7 @@ class Tests {
     static void PerformanceTests(){
         var raw=new byte[37*79*4];new Random(25).NextBytes(raw);using(var stream=new MemoryStream(raw))using(var reader=new BinaryReader(stream)){var received=OcrWorker.ReadBitmap(reader,37,79);var copied=new byte[raw.Length];received.CopyPixels(copied,37*4,0);Check(received.IsFrozen&&raw.SequenceEqual(copied),"streamed worker image preserves odd-width pixels and final partial strip");}
         bool truncated=false;using(var stream=new MemoryStream(raw.Take(raw.Length-1).ToArray()))using(var reader=new BinaryReader(stream))try{OcrWorker.ReadBitmap(reader,37,79);}catch(EndOfStreamException){truncated=true;}Check(truncated,"incomplete OCR pipe image is rejected instead of recognizing corrupt pixels");
+        OcrResultContractTests.Run(Check);
         long time=0;var cache=new OcrResultCache(()=>time);
         var page=new OcrPage {Text="Hello",Words=new System.Collections.Generic.List<WordBox>{new WordBox {Text="Hello",Box=new Rect(2,3,20,8)}}};
         cache.Put("a",page);cache.Put("b",page);cache.Put("c",page);Check(cache.Get("a")!=null,"last three screenshots can reuse OCR without retaining images");cache.Put("d",page);Check(cache.Get("b")==null&&cache.Get("c")!=null,"OCR cache evicts least recently used transcript");

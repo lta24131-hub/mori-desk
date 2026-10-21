@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media.Imaging;
@@ -8,7 +9,7 @@ using Windows.Graphics.Imaging;
 
 namespace QingJie {
     public sealed class WordBox { public string Text; public Rect Box; public int Line; public int TextStart; }
-    public sealed class OcrPage { public string Text; public List<WordBox> Words = new List<WordBox>(); }
+    public sealed class OcrPage { public string Text; public string Notice; public List<WordBox> Words = new List<WordBox>(); }
     public static class OcrService {
         public static void IndexText(OcrPage page){var text=new System.Text.StringBuilder();int line=-1;foreach(var word in page.Words){if(text.Length>0){if(line!=word.Line)text.AppendLine();else if(word.Text.Length>0&&Geometry.NeedsWordSpace(text[text.Length-1],word.Text[0]))text.Append(' ');}word.TextStart=text.Length;text.Append(word.Text);line=word.Line;}page.Text=text.ToString();}
         private static Task<T> Wait<T>(Windows.Foundation.IAsyncOperation<T> operation) {
@@ -26,21 +27,24 @@ namespace QingJie {
         }
         public static Task<OcrPage> Read(BitmapSource source) {return OcrWorker.Read(source,System.Threading.CancellationToken.None);}
         public static Task<OcrPage> Read(BitmapSource source,System.Threading.CancellationToken cancel) {return OcrWorker.Read(source,cancel);}
-        public static async Task<OcrPage> ReadLocal(BitmapSource source,string extraLanguage=null) {
+        internal static string WithNotice(string message,string notice){return string.IsNullOrWhiteSpace(notice)?message??"":string.IsNullOrWhiteSpace(message)||message==notice?notice:message+Environment.NewLine+notice;}
+        public static async Task<OcrPage> ReadLocal(BitmapSource source,string extraLanguage=null,CancellationToken cancel=default(CancellationToken)) {
+            cancel.ThrowIfCancellationRequested();
+            if(source==null)throw new ArgumentNullException("source");
             OcrEngine engine = null;
             // Prefer a Chinese recognizer when installed; it also recognizes Latin text.
             foreach (var lang in OcrEngine.AvailableRecognizerLanguages)
                 if (lang.LanguageTag.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) { engine = OcrEngine.TryCreateFromLanguage(lang); break; }
             if (engine == null) engine = OcrEngine.TryCreateFromUserProfileLanguages();
-            if (engine == null) throw new InvalidOperationException("Windows 尚未安装文字识别语言。请在系统的语言选项中添加中文或英文 OCR 组件。");
             // Small, anti-aliased website text needs more pixels than the original
             // screenshot gives Windows OCR. Keep the inverse coordinate mapping.
             double ratio = Math.Min(3.0, (double)OcrEngine.MaxImageDimension / Math.Max(source.PixelWidth, source.PixelHeight));
             BitmapSource input = Prepare(source, ratio);
             var pixels=new OcrPixels(input);
-            OcrPage page;
-            using (var bitmap = pixels.WindowsBitmap()) {
+            var page=new OcrPage();
+            if(engine!=null)using (var bitmap = pixels.WindowsBitmap()) {
                 var result = await Wait(engine.RecognizeAsync(bitmap));
+                cancel.ThrowIfCancellationRequested();
                 page = new OcrPage { Text = result.Text };
                 int line = 0;
                 foreach (var l in result.Lines) {
@@ -49,7 +53,15 @@ namespace QingJie {
                 }
                 IndexText(page);
             }
-            return await EnglishOcr.Improve(pixels,ratio,page,extraLanguage??OcrLanguagePacks.EffectiveSelectionKey);
+            cancel.ThrowIfCancellationRequested();
+            string languages=extraLanguage??OcrLanguagePacks.EffectiveSelectionKey;
+            try{page=await EnglishOcr.Improve(pixels,ratio,page,languages);}
+            catch(OperationCanceledException){throw;}
+            catch(Exception error){if(engine!=null)throw;throw new InvalidOperationException("Windows 未安装 OCR 语言组件，内置文字识别也未完成。请重试；若持续失败，请修复 Nook 或在 Windows 语言选项中安装中文或英文 OCR 组件。",error);}
+            cancel.ThrowIfCancellationRequested();
+            if(engine==null){bool hasExtras=false;foreach(string language in OcrLanguagePacks.ParseSelection(languages))if(OcrLanguagePacks.Installed(language)){hasExtras=true;break;}
+                page.Notice="未安装 Windows OCR 语言组件；本次使用内置英文识别"+(hasExtras?"及已启用的附加语言":"")+"，中文暂不可用。可在 Windows 语言选项中安装中文 OCR 组件。";}
+            return page;
         }
         public static BitmapSource Prepare(BitmapSource source,double ratio){
             var bgra=new FormatConvertedBitmap(source,System.Windows.Media.PixelFormats.Bgra32,null,0);

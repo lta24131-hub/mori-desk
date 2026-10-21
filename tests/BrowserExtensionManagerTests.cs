@@ -20,7 +20,7 @@ namespace MoriDesk {
    internal BrowserExtensionStore Store(){return new BrowserExtensionStore(data,bundle,legacy,BrowserExtensionManager.PublicKey,id=>registered.Add(id),()=>registered.ToArray(),(source,target)=>{if(failMove&&source.Contains(".mori-stage-")){failMove=false;throw new IOException("synthetic rename failure");}Directory.Move(source,target);},()=>clock,()=>catalogReads++);}
    internal BrowserExtensionCatalog Catalog(){return json.Deserialize<BrowserExtensionCatalog>(File.ReadAllText(Path.Combine(data,"browser","extension-installs.json")));}
    internal Dictionary<string,object> Object(object value){return json.Deserialize<Dictionary<string,object>>(json.Serialize(value));}
-   internal Dictionary<string,object> Request(BrowserExtensionInstall item,string op,string token=null,string client=null){var value=new Dictionary<string,object>{{"action","extensionControl"},{"op",op},{"_extensionId",item.extensionId},{"extensionId",item.extensionId},{"installationId",item.installationId},{"clientId",client??new string('a',32)},{"version",item.version}};if(token!=null)value.Add("token",token);return value;}
+   internal Dictionary<string,object> Request(BrowserExtensionInstall item,string op,string token=null,string client=null){var value=new Dictionary<string,object>{{"action","extensionControl"},{"op",op},{"_extensionId",item.extensionId},{"extensionId",item.extensionId},{"installationId",item.installationId},{"clientId",client??new string('a',32)},{"version",item.version},{"generation",item.generation}};if(token!=null)value.Add("token",token);return value;}
    internal Dictionary<string,object> Send(BrowserExtensionStore store,BrowserExtensionInstall item,string op,string token=null,string client=null){return Object(store.Handle(Request(item,op,token,client)));}
   }
   static bool Ok(Dictionary<string,object> result){object value;return result.TryGetValue("ok",out value)&&true.Equals(value);}
@@ -31,7 +31,7 @@ namespace MoriDesk {
    check(BrowserExtensionStore.KeyId(BrowserExtensionManager.PublicKey)=="ohmoflmbcmhahccacmlbggkpalcmmmae","extension fixed public key produces stable Chrome ID");
    check(BrowserExtensionStore.PathId(@"C:\MoriSynthetic\Legacy\browser-extension")=="ohoboebcmiggodaodjkpcneaafpkmkii","legacy path identity agrees with Chromium UTF-16 path hash");
    check(BrowserExtensionStore.PathId(@"c:\MoriSynthetic\Legacy\browser-extension")==BrowserExtensionStore.PathId(@"C:\MoriSynthetic\Legacy\browser-extension"),"keyless ID normalizes drive letter");
-   FreshInstall(suite,check);RuntimeIo(suite,check);Updates(suite,check);Rollback(suite,check);CrashRecovery(suite,check);DowngradeProtection(suite,check);Clients(suite,check);UpdateTimeouts(suite,check);StatusAggregation(suite,check);Legacy(suite,check);UnsafeCatalog(suite,check);
+   FreshInstall(suite,check);RuntimeIo(suite,check);Updates(suite,check);SameVersionReload(suite,check);Rollback(suite,check);CrashRecovery(suite,check);DowngradeProtection(suite,check);Clients(suite,check);UpdateTimeouts(suite,check);StatusAggregation(suite,check);Legacy(suite,check);UnsafeCatalog(suite,check);
   }
   static void FreshInstall(string root,Action<bool,string> check){
    var f=new Fixture(root,"fresh");var store=f.Store();var initial=store.Status();check(!initial.connected&&!initial.pending&&initial.bundledVersion=="1.0.0"&&initial.version=="","uninstalled status exposes bundled version but no invented running version");
@@ -69,6 +69,24 @@ namespace MoriDesk {
    var old=new Fixture(root,"io-old");store=old.Store();store.EnsureInstalled();item=old.Catalog().installs.Single();var request=old.Request(item,"poll");request["version"]="0.9.0";store.Handle(request);store.RequestUpdate();check(old.Catalog().installs.Single().pending!=null,"current installed files still reload when browser reports old running code");
    var mixed=new Fixture(root,"io-mixed");store=mixed.Store();store.EnsureInstalled();item=mixed.Catalog().installs.Single();request=mixed.Request(item,"poll",null,new string('b',32));request["version"]="0.9.0";store.Handle(request);mixed.Send(store,item,"poll");store.RequestUpdate();check(mixed.Catalog().installs.Single().pending!=null,"confirmed new profile does not hide another recently running old profile");
    var pairBroken=new Fixture(root,"io-pairing");store=pairBroken.Store();store.EnsureInstalled();item=pairBroken.Catalog().installs.Single();pairBroken.Send(store,item,"poll");File.WriteAllText(Path.Combine(item.path,"local-connection.js"),"bad pairing");store.RequestUpdate();check(pairBroken.Catalog().installs.Single().pending!=null,"same-version no-op does not skip damaged generated pairing config");
+  }
+  static void SameVersionReload(string root,Action<bool,string> check){
+   var f=new Fixture(root,"same-version-reload");var store=f.Store();store.EnsureInstalled();var oldWorker=f.Catalog().installs.Single();f.Send(store,oldWorker,"poll");
+   File.AppendAllText(Path.Combine(oldWorker.path,"content.js")," damaged");store.RequestUpdate();var staged=f.Catalog().installs.Single();string token=staged.pending.token,generation=staged.pending.generation;
+   check(!string.IsNullOrEmpty(generation)&&generation!=oldWorker.generation,"same-version repair stages a fresh generation while preserving extension identity");
+   // The desktop commits, but its response is lost before the browser reloads.
+   check(Ok(f.Send(store,oldWorker,"apply",token)),"same-version repair commits through the original worker");
+   var response=f.Send(store,oldWorker,"poll");check(response["update"]!=null&&store.Status().pending&&!store.Status().upToDate,"old same-version poll after lost apply response cannot claim repair completed");
+   var legacyPoll=f.Request(oldWorker,"poll");legacyPoll.Remove("generation");response=f.Object(store.Handle(legacyPoll));
+   check(response["update"]!=null&&store.Status().pending,"pre-generation updater retains reload offer until it actually loads repaired scripts");
+   check(Ok(f.Send(store,oldWorker,"apply",token)),"legacy worker may safely repeat only the idempotent update apply before reloading");
+   var reloaded=f.Catalog().installs.Single();response=f.Send(store,reloaded,"poll");
+   check(reloaded.generation==generation&&response["update"]==null&&!store.Status().pending&&store.Status().upToDate,"newly loaded exact generation confirms same-version repair without permanent pending state");
+   store.RefreshPairing();check(new[]{"updater.js","preferences.js"}.All(file=>File.ReadAllText(Path.Combine(reloaded.path,file)).Contains("MoriInstalledGeneration = \""+generation+"\"")),"pairing refresh preserves the installed background and content script generations");
+   store.RequestUpdate();check(f.Catalog().installs.Single().pending==null,"generated updater suffix remains an exact same-version no-op rather than causing update loops");
+   var legacy=new Fixture(root,"pre-generation-catalog");store=legacy.Store();store.EnsureInstalled();var state=legacy.Catalog();state.installs.Single().generation="";state.installs.Single().awaitingReload=true;
+   File.WriteAllText(Path.Combine(legacy.data,"browser","extension-installs.json"),legacy.json.Serialize(state));var request=legacy.Request(state.installs.Single(),"poll");request.Remove("generation");store.Handle(request);
+   check(!store.Status().pending&&store.Status().upToDate,"existing catalogs without generation retain their legacy version acknowledgement compatibility");
   }
   static void Rollback(string root,Action<bool,string> check){
    var f=new Fixture(root,"rollback");var store=f.Store();store.EnsureInstalled();var item=f.Catalog().installs.Single();string old=File.ReadAllText(Path.Combine(item.path,"background.js"));f.SetVersion("2.0.0");store.RequestUpdate();item=f.Catalog().installs.Single();f.failMove=true;

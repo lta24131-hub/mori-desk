@@ -23,7 +23,7 @@ namespace QingJie {
                 hash.TransformFinalBlock(new byte[0],0,0);return source.PixelWidth+"x"+source.PixelHeight+":"+Convert.ToBase64String(hash.Hash);
             }
         }
-        static OcrPage Copy(OcrPage source){return new OcrPage{Text=source.Text,Words=source.Words.Select(w=>new WordBox{Text=w.Text,Line=w.Line,Box=w.Box,TextStart=w.TextStart}).ToList()};}
+        static OcrPage Copy(OcrPage source){return new OcrPage{Text=source.Text,Notice=source.Notice,Words=source.Words.Select(w=>new WordBox{Text=w.Text,Line=w.Line,Box=w.Box,TextStart=w.TextStart}).ToList()};}
         // Calls are serialized by OcrWorker's existing queue.
         void Purge(){long now=clock();for(var node=entries.First;node!=null;){var next=node.Next;if(now>=node.Value.Expires)entries.Remove(node);node=next;}}
         public OcrPage Get(string fingerprint){Purge();for(var node=entries.First;node!=null;node=node.Next)if(node.Value.Key==fingerprint){entries.Remove(node);entries.AddLast(node);return Copy(node.Value.Page);}return null;}

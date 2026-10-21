@@ -87,6 +87,7 @@ function background(localOptions = {}) {
     }
   };
   const context = vm.createContext({chrome, crypto, URL, AbortController, Uint8Array, setTimeout, clearTimeout,
+    MoriInstalledGeneration:localOptions.generation,
     self: {MoriLocalConnection:localOptions.config},
     btoa: value => Buffer.from(value, 'binary').toString('base64'),
     fetch: async (url, options) => {
@@ -100,9 +101,16 @@ function background(localOptions = {}) {
     }
   });
   context.importScripts = file => vm.runInContext(read(file), context);
+  const collectorScripts=[];
+  if(localOptions.collectors){
+    chrome.runtime.getManifest=()=>({version:'0.2.21',content_scripts:[{js:['preferences.js','content.js']}]});
+    chrome.tabs.sendMessage=async(id,message)=>message.action==='mori-collector-ping'?localOptions.pong:{displayed:true};
+    chrome.scripting={executeScript:async request=>{collectorScripts.push(request);return [{result:true}];}};
+  }
   vm.runInContext(read('background.js'), context);
   return {
-    nativeCalls, fetchCalls, menus, tabMessages, badges, titles,metadata,storeWrites,
+    nativeCalls, fetchCalls, menus, tabMessages, badges, titles,metadata,storeWrites,collectorScripts,
+    repairCollector:()=>vm.runInContext('ensureCollector(1)',context),
     preferences(value) {preferences = {...preferences,...value};},
     install: () => installedListener(), startup: () => startupListener(),
     click: (info, tab = {id: 1, title: '网页标题', url: 'https://example.com/page'}) => clickListener(info, tab),
@@ -115,6 +123,22 @@ function background(localOptions = {}) {
     request(message, tabId = 1, sender = {tab: {id: tabId}, frameId: 0}) {return new Promise(resolve => {const result = listener(message, sender, resolve); if (message.action !== 'discard') assert.equal(result, true);});}
   };
 }
+
+test('same-version collector repair compares loaded generation, while legacy bundles keep version compatibility',async()=>{
+  for(const pong of [{ready:true,version:'0.2.21',generation:'a'.repeat(32)},{ready:true,version:'0.2.21'}]){
+    const bridge=background({collectors:true,generation:'b'.repeat(32),pong});
+    assert.equal(await bridge.repairCollector(),true);
+    assert.equal(bridge.collectorScripts.length,1,'new background replaces old same-version open-page collector');
+  }
+  for(const options of [
+    {generation:'b'.repeat(32),pong:{ready:true,version:'0.2.21',generation:'b'.repeat(32)}},
+    {generation:'b'.repeat(32),pong:{ready:true,busy:true,version:'0.2.21',generation:'a'.repeat(32)}},
+    {pong:{ready:true,version:'0.2.21'}}
+  ]){
+    const bridge=background({collectors:true,...options});await bridge.repairCollector();
+    assert.equal(bridge.collectorScripts.length,0,'matching generation, an active gesture or a legacy bundle does not churn collectors');
+  }
+});
 
 test('paired backup handles host-not-found without altering the save payload', async () => {
   const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)}});
@@ -206,12 +230,25 @@ test('save retains source URL, category, name and original bytes through the act
   assert.equal(bridge.fetchCalls[0].options.credentials, 'include');
   const saved = bridge.nativeCalls[0].message;
   assert.equal(saved.data, 'AQID');
+  assert.equal(saved.kind, 'image');
   assert.equal(saved.source, 'https://example.com/article?q=one');
   assert.equal(saved.folder, 'folder-42');
   assert.equal(saved.name, '参考图');
   assert.equal(saved.duplicateAction, 'ask');
   assert.match((await bridge.request({action: 'save', url: 'blob:https://example.com/private'})).error, /截图/);
   assert.equal(bridge.fetchCalls.length, 1, 'unsupported sources never fetch or save');
+});
+
+test('media source metadata rejects embedded credentials before fetching without leaking them, but preserves escaped links', async () => {
+  const bridge=background();
+  for(const source of ['https://user:PRIVATE-PASSWORD@example.com/photo','http://PRIVATE-USER@example.com/photo','file:///C:/private.png','https://example.com/\nprivate']){
+    const result=await bridge.request({action:'save',url:'https://example.com/original.png',source});
+    assert.equal(result.ok,false);assert.match(result.error,/不含账号密码/);assert.doesNotMatch(result.error,/PRIVATE-/);
+  }
+  assert.equal(bridge.fetchCalls.length,0);assert.equal(bridge.nativeCalls.length,0,'invalid metadata must not save or report success');
+  const source='https://example.com/a%2Fb?q=one%20two#image%203';
+  assert.equal((await bridge.request({action:'save',url:'https://example.com/original.png',source})).ok,true);
+  assert.equal(bridge.nativeCalls[0].message.source,source);
 });
 
 test('duplicate choices keep original bytes in memory, require explicit choice, and do not refetch', async () => {
@@ -397,7 +434,33 @@ test('right-click blob video resolves in the original frame and stores the actua
   assert.equal(bridge.fetchCalls.length,1);assert.equal(bridge.fetchCalls[0].url,url);
   assert.equal(bridge.nativeCalls.length,1);assert.equal(bridge.nativeCalls[0].message.source,mediaPage);
   assert.notEqual(bridge.nativeCalls[0].message.action,'bookmark');
+  assert.equal(bridge.nativeCalls[0].message.kind,'video');
   assert.equal(bridge.nativeCalls[0].message.data,'AQID');
+});
+
+test('video intent survives local fallback and duplicate choices cannot downgrade it to an image', async () => {
+  const config={endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)};
+  const bridge=background({config,reply:{ok:true,choiceRequired:true}});
+  bridge.fail('Specified native messaging host not found.');
+  const first=await bridge.request({action:'save',kind:'video',url:'https://example.com/clip.mp4',source:'https://example.com/reel'});
+  assert.equal(first.ok,true);assert(first.choiceToken);
+  const original=JSON.parse(bridge.fetchCalls.at(-1).options.body);
+  assert.equal(original.kind,'video');assert.equal(bridge.nativeCalls[0].message.kind,'video');
+  bridge.fail(null);bridge.respond({ok:true,duplicate:true});
+  const second=await bridge.request({action:'save',choiceToken:first.choiceToken,duplicateAction:'reuse',kind:'image'});
+  assert.equal(second.ok,true);assert.equal(bridge.nativeCalls.at(-1).message.kind,'video');
+  assert.equal(bridge.nativeCalls.at(-1).message.data,original.data);
+  assert.equal(bridge.fetchCalls.length,2,'a duplicate choice never fetches or substitutes another media item');
+});
+
+test('a receiver media-kind rejection is shown as failure without fallback, retry, or success badge', async () => {
+  const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)}});
+  bridge.respond({ok:false,error:'网页返回了图片而不是可保存的视频，本次没有收藏，也没有改存为封面。'});
+  await bridge.click({menuItemId:'mori-save',mediaType:'video',srcUrl:'https://example.com/looks-like-video.mp4'});
+  assert.equal(bridge.nativeCalls.length,1);assert.equal(bridge.nativeCalls[0].message.kind,'video');
+  assert.equal(bridge.fetchCalls.length,1);assert.equal(bridge.badges.at(-1).text,'!');
+  assert.equal(bridge.tabMessages.at(-1).message.result.ok,false);
+  assert.match(bridge.titles.at(-1).title,/没有收藏/);
 });
 
 test('failed or stale right-click blob resolution never fetches a blob, poster or bookmark', async () => {

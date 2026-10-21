@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/KnifeLemon/Filee",
+  "tag": "v1.12.0",
+  "commit": "49911afab6eef81f144543710f1aa8021c617ff1",
+  "archiveUrl": "https://codeload.github.com/KnifeLemon/Filee/zip/49911afab6eef81f144543710f1aa8021c617ff1",
+  "archiveSha256": "D8612CDFE4298573C1EB3C3E31C563821C8349BAE5C5C8FA4589A406C9906BB5",
+  "license": "MIT",
+  "projects": ["src/Filee.Core/Filee.Core.csproj", "src/Filee.Engines/Filee.Engines.csproj"],
+  "enabledConverters": ["MagickImageConverter", "PdfSharpConverter", "PdfiumConverter"],
+  "externalEngines": false,
+  "experimental": true
+}

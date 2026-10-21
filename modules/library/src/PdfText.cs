@@ -100,22 +100,28 @@ namespace Mori {
    var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--pdf-text-worker \""+path+"\" "+page){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
    using(var process=Process.Start(start)){
     var reading=Task.Run(delegate{using(var output=new MemoryStream()){var buffer=new byte[16384];int read;while((read=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(output.Length+read>PdfTextWorker.MaximumOutput)throw new InvalidDataException("PDF 文字输出过大。");output.Write(buffer,0,read);}return output.ToArray();}});
-    var watch=Stopwatch.StartNew();
+    var watch=Stopwatch.StartNew();var diagnostic=new WorkerFailureDiagnostic("pdf-text");Exception failure=null;
     try{
      while(!process.WaitForExit(40)){
-      cancellation.ThrowIfCancellationRequested();
-      if(reading.IsFaulted)reading.GetAwaiter().GetResult();
+      diagnostic.Reason="cancelled";
+      cancellation.ThrowIfCancellationRequested();diagnostic.Reason="unknown";
       long memory;try{process.Refresh();memory=process.PrivateMemorySize64;}catch(InvalidOperationException){if(process.HasExited)break;throw;}
-      if(watch.ElapsedMilliseconds>TimeoutMilliseconds||memory>MaximumWorkerMemory)throw new NotSupportedException("此页文字较复杂，已停止提取；仍可浏览或使用截图翻译。");
+      bool limited=diagnostic.LimitReached(watch.ElapsedMilliseconds,memory,TimeoutMilliseconds,MaximumWorkerMemory);diagnostic.ThrowIfOutputFailed(reading);
+      if(limited)throw new NotSupportedException("此页文字较复杂，已停止提取；仍可浏览或使用截图翻译。");
      }
+     diagnostic.CaptureExit(process);diagnostic.Reason="cancelled";
      cancellation.ThrowIfCancellationRequested();
-     if(process.ExitCode!=0)throw new NotSupportedException("此页文字层无法提取；仍可浏览或使用截图翻译。");
+     diagnostic.ThrowIfOutputFailed(reading);
+     if(process.ExitCode!=0){diagnostic.Reason="child-exit";throw new NotSupportedException("此页文字层无法提取；仍可浏览或使用截图翻译。");}
+     diagnostic.Reason="stdout-failure";
      if(!reading.Wait(2000))throw new IOException("PDF 文字读取未完成。");
-     byte[] bytes=reading.GetAwaiter().GetResult();if(bytes.Length==0)throw new InvalidDataException("PDF 文字输出为空。");
+     byte[] bytes=reading.GetAwaiter().GetResult();diagnostic.Reason="payload-invalid";if(bytes.Length==0)throw new InvalidDataException("PDF 文字输出为空。");
      var result=PdfTextWorker.Serializer().Deserialize<PdfTextPage>(Encoding.UTF8.GetString(bytes));if(result==null)throw new InvalidDataException("PDF 文字层数据无效。");result.Validate(page);return result;
-    }finally{
-     try{if(!process.HasExited){process.Kill();process.WaitForExit(2000);}}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}
+    }catch(Exception error){diagnostic.Observe(watch.ElapsedMilliseconds,0);failure=error;throw;}
+    finally{
+     try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}
      try{reading.Wait(2000);}catch(AggregateException){}
+     diagnostic.StdoutFaulted=reading.IsFaulted;diagnostic.CaptureExit(process);if(failure!=null)diagnostic.Attach(failure);
     }
    }
   }
