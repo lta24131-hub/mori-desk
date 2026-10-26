@@ -15,8 +15,8 @@ using Microsoft.Win32;
 using MoriDesk;
 [assembly: AssemblyTitle("Nook Installer")]
 [assembly: AssemblyProduct("Nook Installer")]
-[assembly: AssemblyVersion("0.1.30.0")]
-[assembly: AssemblyFileVersion("0.1.30.0")]
+[assembly: AssemblyVersion("0.1.31.0")]
+[assembly: AssemblyFileVersion("0.1.31.0")]
 namespace MoriDeskInstaller {
  internal sealed class UpdateRequest {
   internal string RequestPath,SessionDirectory,ParentExecutable,ExpectedVersion;
@@ -27,7 +27,7 @@ namespace MoriDeskInstaller {
   internal UpdateCancelledException(string message,Exception inner):base(message,inner){}
  }
  static partial class Program {
-  const string Version="0.1.30";
+  const string Version="0.1.31";
   internal static string InstallerVersion {get{return Version;}}
   static string ProgramRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk");}}
   static string UpdatesRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MoriDesk","updates");}}
