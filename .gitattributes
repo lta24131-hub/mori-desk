@@ -3,6 +3,10 @@
 /modules/library/src/*.cs text eol=lf
 /modules/capture/src/*.cs text eol=lf
 /assets/update-data-contract.json text eol=lf
+/modules/file-conversion/upstream.json text eol=lf
 # These two frozen, compiled inputs intentionally retain their original mixed endings.
 /modules/library/src/MainWindow.cs -text -eol
 /modules/library/src/VideoThumbnail.cs -text -eol
+# Third-party notice inventories authenticate original bytes, including endings.
+/modules/shell-preview/licenses/** -text -eol -whitespace
+/modules/shell-preview/icons/** -text -eol -whitespace

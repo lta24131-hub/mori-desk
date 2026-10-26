@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using System.Web.Script.Serialization;
 
 namespace MoriDeskInstaller {
@@ -14,6 +15,23 @@ namespace MoriDeskInstaller {
   static string Json(Dictionary<string,object> data){return new JavaScriptSerializer().Serialize(data);}
   static Dictionary<string,object> BackupData(){return new Dictionary<string,object>{{"schemaVersion",1},{"completedUtc",new DateTime(2026,10,16,1,2,3,DateTimeKind.Utc).ToString("O",CultureInfo.InvariantCulture)},{"metadataOnly",true},{"sourceMediaIncluded",false},{"credentialsIncluded",false},{"bytes",1024}};}
   static Dictionary<string,object> StartupData(string executable){return new Dictionary<string,object>{{"schemaVersion",1},{"expectedVersion",Program.InstallerVersion},{"processId",42},{"startedUtcTicks",638960000000000001L},{"executable",executable}};}
+  static void VersionChecks(){
+   var assembly=typeof(Program).Assembly;var compiled=assembly.GetName().Version;
+   var metadata=(AssemblyFileVersionAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyFileVersionAttribute));
+   Check(compiled.Revision==0&&metadata!=null&&new Version(metadata.Version)==compiled,"installer assembly and file versions agree with the three-field update protocol");
+   Check(Program.InstallerVersion==compiled.ToString(3),"runtime desired version comes from the compiled release, not a stale independent constant");
+   var desired=new Version(Program.InstallerVersion+".0");
+   Check(Program.ShouldReplace(new Version(0,1,31,0),desired,"previous-payload","new-payload",false),"the compiled release can replace the prior 0.1.31 installation");
+   Check(Program.ShouldReplace(new Version(0,1,32,0),desired,"previous-candidate","new-payload",false),"the corrected release can replace the 0.1.32 candidate without bypassing version protection");
+   Check(!Program.ShouldReplace(compiled,desired,"same-payload","same-payload",false),"the identical compiled release remains a no-op");
+   Rejected(()=>Program.ShouldReplace(compiled,desired,"other-payload","new-payload",false),"equal-version different bytes remain rejected");
+   Rejected(()=>Program.ShouldReplace(compiled,desired,"other-payload","new-payload",true),"repair cannot bypass equal-version payload protection");
+   Rejected(()=>Program.ShouldReplace(new Version(compiled.Major,compiled.Minor,compiled.Build+1,0),desired,"future-payload","new-payload",false),"a genuinely newer installation still blocks downgrade");
+   string root=@"C:\Nook-installer-version-fixture\Programs\MoriDesk",executable=Path.Combine(root,"previous","Mori.exe");
+   string updates=@"C:\Nook-installer-version-fixture\updates",request=Path.Combine(updates,"0123456789abcdef0123456789abcdef","request.json");
+   var data=UpdateData(executable);data["expectedVersion"]=compiled.ToString(3);
+   Check(Program.ParseUpdateRequest(Json(data),request,updates,root,10).ExpectedVersion==compiled.ToString(3),"request version generated from release metadata is accepted by the runtime protocol");
+  }
   static void StartupChecks(){
    string executable=@"C:\Generated\Programs\MoriDesk\0.1.24\Mori.exe";
    Action<string> verify=text=>Program.ValidateStartupReceipt(text,Program.InstallerVersion,executable,42,638960000000000001L);
@@ -71,11 +89,12 @@ namespace MoriDeskInstaller {
   }
   public static int Main(string[] args){
    try{
+    VersionChecks();
     foreach(string product in new[]{"Mori Desk","mori desk","MORI DESK","Nook","nook","NOOK"}){
      Check(Program.MatchesRunningProcess(20,1,product,"Mori.exe",10,1),"same-session legacy or new product blocks installation: "+product);
      Check(Program.MatchesRunningProcess(20,1,product,"mori.exe",10,1),"stable original-filename comparison is case insensitive: "+product);
      Check(!Program.MatchesRunningProcess(10,1,product,"Mori.exe",10,1),"installer never blocks on itself: "+product);
-     Check(!Program.MatchesRunningProcess(20,2,product,"Mori.exe",10,1),"another Windows session is not changed or blocked: "+product);
+     Check(Program.MatchesRunningProcess(20,2,product,"Mori.exe",10,1),"an owned running process in another Windows session blocks replacement without being closed: "+product);
     }
     foreach(string product in new[]{"Mori Desk","Nook"})foreach(string filename in new[]{null,"","Nook.exe","NookApp.exe","Mori-Desk.exe","MoriDesk.exe","Mori.exe.old","Mori.exe "," Mori.exe","C:\\Other App\\Mori.exe"})
      Check(!Program.MatchesRunningProcess(20,1,product,filename,10,1),"same-named unrelated product or unknown original identity does not block installation");
@@ -140,7 +159,7 @@ namespace MoriDeskInstaller {
     Check(!Directory.Exists(root),"pure guard/configuration tests do not create directories or mutate personal data");
     BackupChecks();
     StartupChecks();
-    if(args.Length==1){var metadata=FileVersionInfo.GetVersionInfo(Path.GetFullPath(args[0]));Check(Program.MatchesRunningProcess(20,1,metadata.ProductName,metadata.OriginalFilename,10,1),"real suite assembly metadata matches the guard");}
+    if(args.Length==1){var metadata=FileVersionInfo.GetVersionInfo(Path.GetFullPath(args[0]));Check(Program.MatchesRunningProcess(20,1,metadata.ProductName,metadata.OriginalFilename,10,1),"real suite assembly metadata matches the guard");Check(new Version(metadata.FileVersion)==typeof(Program).Assembly.GetName().Version,"actual suite file version matches the compiled installer and update protocol");}
     Console.WriteLine("PASS "+checks+" installer safety checks; no process inspection, registry writes or install performed.");return 0;
    }catch(Exception error){Console.Error.WriteLine("FAIL after "+checks+" checks: "+error.Message);return 1;}
   }

@@ -20,6 +20,7 @@
 /tools/*
 !/tools/Assert-UpdateDataContract.ps1
 !/tools/Build-UpdateLauncher.ps1
+!/tools/Build-FileIcons.ps1
 
 **/node_modules/
 **/.env

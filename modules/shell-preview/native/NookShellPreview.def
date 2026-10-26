@@ -1,0 +1,4 @@
+LIBRARY Nook.ShellPreview
+EXPORTS
+    DllGetClassObject
+    DllCanUnloadNow

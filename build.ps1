@@ -1,4 +1,4 @@
-param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory,[string]$FileConversionDirectory)
+param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory,[string]$FileConversionDirectory,[string]$ShellPreviewDirectory)
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
@@ -86,6 +86,15 @@ if($FileConversionDirectory){
  if(Test-Path -LiteralPath (Join-Path $output 'file-conversion')){throw 'An old conversion component is present. Use a fresh output directory or explicitly supply -FileConversionDirectory.'}
  Write-Warning 'Experimental file conversion component omitted. Tools will explain its unavailability without downloading or starting an engine.'
 }
+if($ShellPreviewDirectory){
+ . (Join-Path $suiteRoot 'modules\shell-preview\Validate-Component.ps1')
+ $shellSource=[IO.Path]::GetFullPath($ShellPreviewDirectory)
+ Assert-ShellPreviewComponent $shellSource
+ $shellTarget=Join-Path $output 'shell-preview'
+ if(Test-Path -LiteralPath $shellTarget){throw 'Use a fresh output directory for shell previews.'}
+ Copy-Item -LiteralPath $shellSource -Destination $shellTarget -Recurse
+ Assert-ShellPreviewComponent $shellTarget
+}else{Write-Warning 'Shell previews omitted from this development build. Release packaging requires -ShellPreviewDirectory.'}
 if($Test){$testProcess=Start-Process "$output\Mori.exe" -ArgumentList '--suite-test' -Wait -PassThru -WindowStyle Hidden;if($testProcess.ExitCode -ne 0){throw 'Suite tests failed'}}
 if($CaptureTests){
  $captureTestSources=Get-ChildItem "$suiteRoot\modules\capture\tests\*.cs" | ForEach-Object FullName

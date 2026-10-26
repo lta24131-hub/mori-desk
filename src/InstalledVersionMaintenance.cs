@@ -113,6 +113,11 @@ namespace MoriDesk {
       for(int attempt=0;attempt<40&&!integrationReady();attempt++)await Task.Delay(500).ConfigureAwait(false);
       if(!integrationReady()){Publish(local,"deferred","integration-not-ready",null,notify);return;}
      }
+     // Explorer components are installed only after the real main window and
+     // the committed installation are ready. Failure must not block the app
+     // or authorize deleting any additional payload.
+     try{ShellVisualRegistration.RepairCommittedInstallation(executable);}
+     catch(Exception visualError){Trace.WriteLine("Nook file previews deferred: "+visualError.GetType().Name);}
      string sid;using(var identity=WindowsIdentity.GetCurrent())sid=identity.User.Value;
      using(var mutex=new Mutex(false,"Local\\Nook.VersionCleanup."+sid)){
       bool held=false;try{

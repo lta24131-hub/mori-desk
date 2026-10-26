@@ -141,7 +141,9 @@ namespace MoriDesk {
    changed|=Put(scopeRoot,ApplicationKey+"\\Application","ApplicationName","Nook");
    changed|=Put(scopeRoot,ApplicationKey+"\\Application","ApplicationDescription","素材、截图、翻译与文件预览");
    changed|=Put(scopeRoot,ApplicationKey+"\\Application","ApplicationIcon",icon);
-   changed|=Put(scopeRoot,ApplicationKey+"\\DefaultIcon","",icon);
+   // A verified per-file handler supplies format icons without changing the
+   // user's default application. Keep the application branding separately.
+   changed|=Put(scopeRoot,ApplicationKey+"\\DefaultIcon","",ShellVisualRegistration.IsOwnedIconHandler(scopeRoot,programRoot)?"%1":icon);
    changed|=Put(scopeRoot,ApplicationKey+"\\shell\\open\\command","","\""+selected+"\" \"%1\"");
    foreach(string extension in SupportedExtensions)changed|=Put(scopeRoot,ApplicationKey+"\\SupportedTypes",extension,"");
    if(changed&&notify!=null)notify();return changed;
