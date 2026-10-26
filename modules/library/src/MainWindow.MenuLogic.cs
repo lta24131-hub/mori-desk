@@ -29,7 +29,7 @@ namespace Mori {
    if(referenceNav!=null)referenceNav.SetResourceReference(Button.BackgroundProperty,!bookmarkMode&&view=="all"&&mediaSection=="shortcuts"?"AccentSoft":"Panel");
    Find<ComboBox>("MediaFilter").Visibility=!bookmarkMode&&mediaSection=="media"?Visibility.Visible:Visibility.Collapsed;
    B("Import").Content=bookmarkMode?"导入书签":"导入素材";B("Import").ToolTip=bookmarkMode?"从 Chrome / Edge 或书签文件导入 · Ctrl+O":"导入图片、视频、音频和文档 · Ctrl+O";
-   T("Search").ToolTip="搜索当前页面的名称、标签、备注和网址 · Ctrl+F";
+   T("Search").ToolTip="搜索当前页面的名称、标签、备注、来源和本地路径；多个词同时匹配，双引号匹配短语 · Ctrl+F";
    B("ImportBookmarks").Visibility=Visibility.Collapsed;
    B("NewBookmarkFolder").Visibility=bookmarkMode&&view!="trash"?Visibility.Visible:Visibility.Collapsed;
    if(view=="trash"){

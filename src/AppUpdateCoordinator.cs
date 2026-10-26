@@ -20,6 +20,8 @@ namespace MoriDesk {
  // launch installers; the settings UI must explicitly call BeginAsync.
  internal static class AppUpdateCoordinator {
   static readonly Dictionary<Window,AppUpdateRegistration> windows=new Dictionary<Window,AppUpdateRegistration>();
+  internal const int PreparationTimeoutMilliseconds=15*60*1000;
+  internal const int PreparationPollMilliseconds=200;
   static int active;
   internal static void Register(Window main,Func<bool> preview,Func<string,Func<bool>,CancellationToken,Task<bool>> exit){
    windows[main]=new AppUpdateRegistration{Preview=preview,Exit=exit};main.Closed+=(s,e)=>windows.Remove(main);
@@ -66,6 +68,7 @@ namespace MoriDesk {
    if(string.IsNullOrEmpty(requestPath)&&string.IsNullOrEmpty(expectedVersion))return false;
    Environment.SetEnvironmentVariable("NOOK_UPDATE_REQUEST",null);Environment.SetEnvironmentVariable("NOOK_UPDATE_EXPECTED_VERSION",null);
    try{
+    PhysicalUserContext.RequireInstalledContext();
     AppUpdateRegistration registration;
     if(main==null||!main.Dispatcher.CheckAccess()||!main.IsLoaded||!main.IsVisible||!windows.TryGetValue(main,out registration)||registration.Preview()||!Entry.InteractiveShell)return false;
     Version current=typeof(Entry).Assembly.GetName().Version;if(expectedVersion!=VersionText(current))return false;
@@ -109,6 +112,7 @@ namespace MoriDesk {
   }
   static void Cancel(string session){try{if(Directory.Exists(session)&&!File.Exists(Path.Combine(session,"cancel.request")))WriteNew(Path.Combine(session,"cancel.request"),"cancelled");}catch(IOException){}catch(UnauthorizedAccessException){}catch(InvalidDataException){}}
   internal static async Task<string> BeginAsync(Window owner,string verifiedInstallerPath,Version expectedVersion,string expectedSha256,CancellationToken cancellationToken){
+   PhysicalUserContext.RequireInstalledContext();
    if(owner==null||!owner.Dispatcher.CheckAccess())throw new InvalidOperationException("请从 Nook 设置中点击安装更新。");
    AppUpdateRegistration main=null;
    for(Window current=owner;current!=null;current=current.Owner)if(windows.TryGetValue(current,out main))break;
@@ -139,16 +143,9 @@ namespace MoriDesk {
     var clock=Stopwatch.StartNew();
     // Package extraction happens before ready. It must not prematurely close
     // the app or be mistaken for a failed 30-second graceful shutdown.
-    handedOff=await RunHandoffAsync(async token=>{
-     while(true){
-      token.ThrowIfCancellationRequested();
-      string terminal=ReadSessionRecord(session,"result.json");if(terminal!=null){var record=ReadRecord(terminal,expectedVersion,null);throw new IOException("更新未开始："+RecordMessage(record));}
-      string ready=ReadSessionRecord(session,"ready.json");if(ready!=null){ReadRecord(ready,expectedVersion,"ready");return;}
-      if(installer.HasExited)throw new IOException("更新器提前退出，旧版保持运行。");
-      if(clock.Elapsed>TimeSpan.FromMinutes(3))throw new TimeoutException("准备更新超时，旧版保持运行。请稍后重试。");
-      await Task.Delay(200,token);
-     }
-    },async token=>{
+    handedOff=await RunHandoffAsync(token=>WaitForPreparationAsync(
+     ()=>ReadSessionRecord(session,"result.json"),()=>ReadSessionRecord(session,"ready.json"),
+     ()=>installer.HasExited,()=>clock.ElapsedMilliseconds,(milliseconds,pollToken)=>Task.Delay(milliseconds,pollToken),expectedVersion,token),async token=>{
      // The normal exit pipeline invokes this guard only after inspector,
      // canvases and pin metadata have saved. A veto never forces shutdown.
      using(var deadline=CancellationTokenSource.CreateLinkedTokenSource(token)){
@@ -157,10 +154,36 @@ namespace MoriDesk {
      }
     },()=>Cancel(session),cancellationToken);
     if(!handedOff){Cancel(session);return "更新已取消或退出前保存未完成；旧版保持运行，原文件未替换。";}
-    return "已正常退出，更新器将完成安装并重新打开 Nook；旧版本保留。";
+    return "已正常退出，更新器将完成安装并重新打开 Nook；新版启动确认后自动清理已核对的旧程序，素材和设置保留。";
    }catch(OperationCanceledException){if(session!=null)Cancel(session);return "已取消更新，旧版保持运行。";}
    catch{if(session!=null&&!handedOff)Cancel(session);throw;}
    finally{if(installer!=null)installer.Dispose();Interlocked.Exchange(ref active,0);}
+  }
+  // Pure polling seam: slow disks may need several minutes to extract and
+  // verify the package. This bounded preparation phase never exits the app;
+  // normal save/exit still has its separate 25-second deadline above.
+  internal static async Task WaitForPreparationAsync(Func<string> readTerminal,Func<string> readReady,Func<bool> installerExited,Func<long> elapsedMilliseconds,Func<int,CancellationToken,Task> delay,Version expectedVersion,CancellationToken token){
+   if(readTerminal==null||readReady==null||installerExited==null||elapsedMilliseconds==null||delay==null)throw new ArgumentNullException();
+   VersionText(expectedVersion);
+   while(true){
+    long elapsed=RequirePreparationActive(readTerminal,installerExited,elapsedMilliseconds,expectedVersion,token);
+    string ready=readReady();
+    if(ready!=null){
+     ReadRecord(ready,expectedVersion,"ready");
+     // A terminal result/exit/cancel arriving with ready must not authorize
+     // shutdown. The normal exit pipeline repeats its own liveness guard.
+     RequirePreparationActive(readTerminal,installerExited,elapsedMilliseconds,expectedVersion,token);return;
+    }
+    await delay((int)Math.Min(PreparationPollMilliseconds,PreparationTimeoutMilliseconds-elapsed),token);
+   }
+  }
+  static long RequirePreparationActive(Func<string> readTerminal,Func<bool> installerExited,Func<long> elapsedMilliseconds,Version expectedVersion,CancellationToken token){
+   token.ThrowIfCancellationRequested();
+   string terminal=readTerminal();if(terminal!=null){var record=ReadRecord(terminal,expectedVersion,null);throw new IOException("更新未开始："+RecordMessage(record));}
+   if(installerExited())throw new IOException("更新器提前退出，旧版保持运行。");
+   long elapsed=elapsedMilliseconds();if(elapsed<0)throw new InvalidOperationException("无法确认更新准备时间，旧版保持运行。");
+   if(elapsed>=PreparationTimeoutMilliseconds)throw new TimeoutException("准备更新超过 15 分钟，旧版保持运行。请稍后重试。");
+   return elapsed;
   }
   // A process/filesystem-free transport seam used by background tests. There is
   // no exit request until readiness is verified; every veto/failure cancels.
@@ -175,47 +198,4 @@ namespace MoriDesk {
   }
  }
 
- // Local, bounded, metadata-only recovery snapshot. No recursive data-root copy,
- // browser profile, credential file, source media or canvas images are copied.
- internal static class AppUpdateMetadataBackup {
-  internal const long MaximumBytes=128L*1024*1024,MaximumFileBytes=64L*1024*1024;
-  static readonly string[] LibraryKeys=("LibraryPath FileConversionOutputPath Theme ThumbnailSize LeftSidebarWidth RightSidebarWidth WaterfallLayout ShowAssetNames ShowAssetDetails LeftSidebarVisible RightSidebarVisible StartupSection DefaultSort ThemeAccent CloseToTray ConfirmTrash BookmarkOpenInApp AnimateImages PreviewBackdrop MediaVolume MediaMuted MediaAutoPlay MediaLoop CanvasDefaultTopmost CanvasSaveDelay CanvasCacheMB CanvasGrid CanvasShowTools CanvasSnap CanvasZoomSpeed CanvasDash CanvasSize").Split(' ');
-  static readonly string[] CaptureKeys=("Stroke Color OcrLanguage TranslationProvider SaveFolder").Split(' ');
-  internal static string SanitizeSettings(string text,bool capture){
-   var json=new JavaScriptSerializer{MaxJsonLength=4*1024*1024,RecursionLimit=16};var source=json.Deserialize<Dictionary<string,object>>(text);if(source==null)throw new InvalidDataException("设置备份内容为空。");
-   var output=new Dictionary<string,object>();
-   foreach(string key in capture?CaptureKeys:LibraryKeys){object value;if(source.TryGetValue(key,out value)&&(value==null||value is string||value is bool||value is int||value is long||value is decimal||value is double))output[key]=value;}
-   if(capture){object shortcuts;if(source.TryGetValue("Shortcuts",out shortcuts)){
-    var set=shortcuts as Dictionary<string,object>;var clean=new Dictionary<string,object>();
-    if(set!=null)foreach(string name in new[]{"Capture","Pin","Translate","TogglePins"}){object shortcut;if(!set.TryGetValue(name,out shortcut))continue;var fields=shortcut as Dictionary<string,object>;object key,mod;if(fields!=null&&fields.TryGetValue("Key",out key)&&key is int&&fields.TryGetValue("Modifiers",out mod)&&mod is int)clean[name]=new{Key=(int)key,Modifiers=(int)mod};}
-    output["Shortcuts"]=clean;
-   }}
-   return json.Serialize(output);
-  }
-  internal static void Create(string output,string dataRoot,string libraryRoot,Action<string> databaseSnapshot){
-   output=Path.GetFullPath(output);dataRoot=Path.GetFullPath(dataRoot);libraryRoot=Path.GetFullPath(libraryRoot);AppUpdateCoordinator.PlainPath(output);AppUpdateCoordinator.PlainPath(dataRoot);AppUpdateCoordinator.PlainPath(libraryRoot);
-   if(Path.GetFileName(output)!="metadata-backup"||Directory.Exists(output)||File.Exists(output))throw new IOException("更新备份目录已使用或无效。");
-   string database=Path.Combine(libraryRoot,".mori","library.db");CheckFile(database,MaximumFileBytes);Directory.CreateDirectory(output);long total=0;
-   string dbTarget=Path.Combine(output,"library.db");databaseSnapshot(dbTarget);CheckFile(dbTarget,MaximumFileBytes);total+=new FileInfo(dbTarget).Length;
-   CopySettings(Path.Combine(dataRoot,"settings.json"),Path.Combine(output,"settings.json"),false,ref total);
-   CopySettings(Path.Combine(dataRoot,"capture","settings.json"),Path.Combine(output,"capture-settings.json"),true,ref total);
-   CopyMetadata(Path.Combine(dataRoot,"capture","pins","pins.json"),Path.Combine(output,"pins.json"),ref total);
-   string canvases=Path.Combine(dataRoot,"free-canvas");
-   if(Directory.Exists(canvases)){
-    AppUpdateCoordinator.PlainPath(canvases);int count=0;
-    foreach(string folder in Directory.EnumerateDirectories(canvases)){
-     Guid id;if(!Guid.TryParseExact(Path.GetFileName(folder),"N",out id))continue;if(++count>10000)throw new IOException("画布索引过多，更新已停止；请先手动备份。");AppUpdateCoordinator.PlainPath(folder);
-     foreach(string name in new[]{"project.json","mature-canvas.json"}){string source=Path.Combine(folder,name);if(!File.Exists(source))continue;string target=Path.Combine(output,"canvas-"+id.ToString("N")+"-"+name);CopyMetadata(source,target,ref total);}
-    }
-   }
-   // This marker is written last: partial/failed snapshots are never advertised
-   // as complete, and a backup failure vetoes the normal application close.
-   Write(Path.Combine(output,"complete.json"),new JavaScriptSerializer().Serialize(new{schemaVersion=1,completedUtc=DateTime.UtcNow.ToString("O"),metadataOnly=true,sourceMediaIncluded=false,credentialsIncluded=false,bytes=total}));
-  }
-  static void CheckFile(string file,long maximum){AppUpdateCoordinator.PlainPath(file);if(!File.Exists(file)||new FileInfo(file).Length>maximum)throw new IOException("更新前元数据备份缺失或超过安全上限；旧版保持运行。");}
-  static void AddBytes(long count,ref long total){if(count<0||count>MaximumFileBytes||total>MaximumBytes-count)throw new IOException("更新前元数据备份超过安全上限；请先手动备份。");total+=count;}
-  static void CopySettings(string source,string target,bool capture,ref long total){if(!File.Exists(source))return;CheckFile(source,4*1024*1024);string text=SanitizeSettings(File.ReadAllText(source,Encoding.UTF8),capture);AddBytes(Encoding.UTF8.GetByteCount(text),ref total);Write(target,text);}
-  static void CopyMetadata(string source,string target,ref long total){if(!File.Exists(source))return;CheckFile(source,MaximumFileBytes);using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read)){AddBytes(input.Length,ref total);using(var destination=new FileStream(target,FileMode.CreateNew,FileAccess.Write,FileShare.None)){input.CopyTo(destination);destination.Flush(true);}}}
-  static void Write(string file,string text){byte[] bytes=new UTF8Encoding(false).GetBytes(text);using(var output=new FileStream(file,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush(true);}}
- }
 }

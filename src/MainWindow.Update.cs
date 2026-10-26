@@ -11,7 +11,19 @@ namespace Mori {
    AppUpdateCoordinator.Register(Window,()=>PreviewMode,ExitForUpdateAsync);
    EventHandler rendered=null;rendered=(sender,args)=>{
     Window.ContentRendered-=rendered;
-    if(!PreviewMode)AppUpdateCoordinator.ReportStartupReady(Window);
+    if(!PreviewMode&&Entry.InteractiveShell&&Window.IsLoaded&&Window.IsVisible){
+     // ReportStartupReady consumes these one-use environment values. Keep
+     // their exact session for cleanup, which must wait for installer commit.
+     string request=Environment.GetEnvironmentVariable("NOOK_UPDATE_REQUEST"),version=Environment.GetEnvironmentVariable("NOOK_UPDATE_EXPECTED_VERSION");
+     bool updateLaunch=!string.IsNullOrEmpty(request)||!string.IsNullOrEmpty(version);
+     bool startupReady=AppUpdateCoordinator.ReportStartupReady(Window);
+     // An invalid/replayed update session must not turn into an ordinary
+     // startup cleanup when the readiness check has rejected it.
+     if(updateLaunch&&!startupReady)return;
+     InstalledVersionMaintenance.Queue(request,version,library.Root,message=>{
+      if(!Window.Dispatcher.HasShutdownStarted)Window.Dispatcher.BeginInvoke(new Action(()=>Status(message)));
+     },()=>BrowserConnection.LocalState=="listening"||BrowserConnection.LocalState=="unpaired");
+    }
    };
    Window.ContentRendered+=rendered;
   }

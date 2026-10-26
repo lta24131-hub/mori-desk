@@ -5,6 +5,8 @@
   <main>
     <section id="home">
       <div id="status" class="status" role="status"></div>
+      <details id="connection-diagnostics" class="connection-diagnostics hidden"><summary data-i18n="diagnostics">连接详情</summary><pre id="connection-detail"></pre></details>
+      <div id="update-channel" class="connection-channel" role="status" aria-live="polite"></div>
       <div class="update-row"><span id="update-status" role="status" aria-live="polite"></span><button id="check-update" type="button" data-i18n="checkUpdate">检查更新</button></div>
       <button id="acknowledge-update" class="update-ack hidden" type="button" data-i18n="acknowledgeUpdate">已检查图库，继续更新</button>
       <button id="import-bookmarks" class="nav">导入 Chrome 书签</button>

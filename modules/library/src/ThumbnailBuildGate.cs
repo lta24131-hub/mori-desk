@@ -45,6 +45,18 @@ namespace Mori {
    lock(sync){if(!entries.TryGetValue(path,out entry)){entry=new Entry();entries.Add(path,entry);}entry.Users++;}
    try{Monitor.Enter(entry.Sync);return new Lease(path,entry);}catch{Release(path,entry);throw;}
   }
+  // Same thread-affine lease as Enter, but no wait for the registry or path.
+  // A failed probe never registers a user/path that then needs blocking cleanup.
+  internal static IDisposable TryEnter(string thumbnailPath){
+   string path=Path.GetFullPath(thumbnailPath);
+   if(!Monitor.TryEnter(sync))return null;
+   try{
+    Entry entry;bool known=entries.TryGetValue(path,out entry);if(!known)entry=new Entry();
+    if(!Monitor.TryEnter(entry.Sync))return null;
+    try{var lease=new Lease(path,entry);if(!known)entries.Add(path,entry);entry.Users++;return lease;}
+    catch{Monitor.Exit(entry.Sync);throw;}
+   }finally{Monitor.Exit(sync);}
+  }
   static void Release(string path,Entry entry){lock(sync){entry.Users--;if(entry.Users==0)entries.Remove(path);}}
   internal static int ActivePathCount {get{lock(sync)return entries.Count;}}
   internal static int FailureCount {get{return failures.Count;}}

@@ -44,11 +44,23 @@ namespace MoriDesk {
    try{File.WriteAllText(temp,data,new UTF8Encoding(false));if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);}finally{if(File.Exists(temp))File.Delete(temp);}return path;
   }
   public static void Register(string id){
-   string path=WriteManifest(Path.Combine(Entry.DataRoot,"browser"),typeof(Entry).Assembly.Location,id);
+   PhysicalUserContext.RequireInstalledContext();
+   string executable=InstalledApplicationRouting.RegistrationExecutable();
+   string path=WriteManifest(Path.Combine(Entry.DataRoot,"browser"),executable,id);
    foreach(string browser in new[]{"Google\\Chrome","Microsoft\\Edge"})using(var key=Registry.CurrentUser.CreateSubKey("Software\\"+browser+"\\NativeMessagingHosts\\"+Host))key.SetValue("",path);
    BrowserLocalBridge.Pair(Path.GetDirectoryName(path),ExtensionDirectory(typeof(Entry).Assembly.Location));
   }
   public static void StartLocal(){
+   // Guard before the ready shortcut, recovery, pairing and status-log writes.
+   // Maintenance callers can invoke this API without passing through Main.
+   try{PhysicalUserContext.RequireInstalledContext();if(InstalledApplicationRouting.IsPendingCandidate){
+    // No manifest, pairing, managed extension or port ownership changes until
+    // the install transaction commits. Polling must not block candidate startup.
+    if(retry==null){retry=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};retry.Tick+=(s,e)=>StartLocal();retry.Start();}
+    LocalState="waiting-for-update-commit";return;
+   }
+   InstalledApplicationRouting.RegistrationExecutable();}
+   catch(Exception ex){StopLocal();LocalState="installation-blocked";if(DeskRuntime.Notify!=null)DeskRuntime.Notify(ex.Message);return;}
    if(local!=null&&local.Ready)return;
    string folder=Path.Combine(Entry.DataRoot,"browser"),manifest=Path.Combine(folder,Host+".json");
    try{
@@ -93,7 +105,7 @@ namespace MoriDesk {
     if(previous.requiresBootstrap&&!string.IsNullOrEmpty(previous.legacyId)){
      if(MessageBox.Show(w,"检测到旧版 Mori 插件（现名 Nook）。首次升级会保留原安装位置和偏好设置，但还需要在扩展管理页手动重新加载一次。\n\n请先完成正在进行的收藏、编辑和书签导入，并关闭其他浏览器。现在升级插件文件吗？","首次升级浏览器插件",MessageBoxButton.OKCancel,MessageBoxImage.Information)!=MessageBoxResult.OK)return;
      s=BrowserExtensionManager.BootstrapLegacy(previous.legacyId);message("插件文件已升级。请在浏览器扩展管理页重新加载 Nook 一次；后续可使用“一键更新”。");
-    }else{if(!string.IsNullOrEmpty(previous.installedVersion))BrowserExtensionManager.RequestUpdate();s=BrowserExtensionManager.EnsureInstalled();if(s.pending)updateRequested=true;message(BrowserSettingsPresentation.Current(s)?"连接与文件已检查，插件已是最新版本。":s.pending?"修复更新已准备好，当前收藏完成后会自动应用。请关闭浏览器里的插件弹窗。":"插件已准备好。首次安装请在下面展开安装说明，由浏览器确认加载。");}
+    }else{s=BrowserExtensionManager.EnsureInstalled();if(!previous.filesMissing&&!string.IsNullOrEmpty(previous.installedVersion))s=BrowserExtensionManager.RequestUpdate();if(s.pending)updateRequested=true;message(s.filesMissing?"插件文件不完整，修复已暂存。为保护正在进行的收藏，暂未替换使用中的文件。请完成收藏并关闭插件弹窗；若浏览器无法连接，关闭浏览器后再点“安装 / 修复”。":BrowserSettingsPresentation.Current(s)?"连接与文件已检查，插件已是最新版本。":s.pending?"插件修复尚未完成，正在等待浏览器安全更新并确认。":"插件已准备好。首次安装请在下面展开安装说明，由浏览器确认加载。");}
     StartLocal();dir=s.path;location.Text=dir;refresh();}catch(Exception ex){message("未完成："+ex.Message);}}));
    updateButton=ReferencePage.Button("一键更新",()=>{if(preview){message("测试预览不会更新插件。");return;}try{var previous=BrowserExtensionManager.Status();if(!BrowserSettingsPresentation.CanUpdate(previous)){message(BrowserSettingsPresentation.UpdateHint(previous));refresh();return;}BrowserExtensionManager.RequestUpdate();StartLocal();updateRequested=true;message("已请求更新。请关闭浏览器里的插件弹窗；当前收藏完成后会自动更新。");refresh();}catch(Exception ex){message("未完成："+ex.Message);}});ToolTipService.SetShowOnDisabled(updateButton,true);actions.Children.Add(updateButton);
    var hint=label("更新只使用当前 Nook 随附的插件，不会下载陌生程序。正在使用的收藏窗口不会被强制关闭。",12);hint.SetResourceReference(TextBlock.ForegroundProperty,"Muted");

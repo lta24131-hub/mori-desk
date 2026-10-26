@@ -58,7 +58,8 @@ namespace MoriDesk {
    body.Children.Add(Previews);AddHint(body,"预览版包含新功能，可能仍需完善。关闭后只检查正式版。",new Thickness(22,0,0,0));
    body.Children.Add(releaseTitle);Notes.SetResourceReference(BackgroundProperty,"Canvas");Notes.SetResourceReference(ForegroundProperty,"Text");AutomationProperties.SetName(Notes,"更新说明");body.Children.Add(Notes);
    var divider=new Border{Height=1,Margin=new Thickness(0,24,0,16)};divider.SetResourceReference(Border.BackgroundProperty,"Divider");body.Children.Add(divider);
-   AddHint(body,this.autoUpdateAvailable?"更新前会先保存并备份资料记录和设置，保留旧版程序。原始素材不搬动、不删除。":"这里只检查发布信息，不会为当前运行位置下载或启动自动安装器。手动升级前请保留旧版和资料备份。",new Thickness(0,0,0,8));
+   AddHint(body,this.autoUpdateAvailable?"更新前先保存并备份资料记录和设置；新版成功启动后自动清理已核验的旧程序。更新失败保留旧版，原始素材不搬动、不删除。":"这里只检查发布信息，不会为当前运行位置下载或启动自动安装器。手动升级前请保留旧版和资料备份。",new Thickness(0,0,0,8));
+   if(this.autoUpdateAvailable&&!preview)AddHint(body,InstalledVersionMaintenance.ReadSummary(),new Thickness(0,0,0,8));
    AddHint(body,this.autoUpdateAvailable?"下载会校验完整性。连接失败时可以重试，不影响当前版本；安装需要正常退出 Nook，未完成的截图会关闭。":"连接失败时可以重试，不影响当前版本。",new Thickness(0,0,0,12));
    var project=new Button{Content=this.autoUpdateAvailable||preview?"在 GitHub 查看项目":"前往 GitHub 手动升级",Padding=new Thickness(0,6,0,6),HorizontalAlignment=HorizontalAlignment.Left,BorderThickness=new Thickness(0)};
    project.SetResourceReference(BackgroundProperty,"Canvas");project.SetResourceReference(ForegroundProperty,"Accent");project.IsEnabled=!preview;

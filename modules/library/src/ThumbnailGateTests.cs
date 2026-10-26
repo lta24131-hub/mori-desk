@@ -23,9 +23,43 @@ namespace Mori {
    first.Dispose();var last=await queued;check(last!=null,"resumed pending load receives a slot");second.Dispose();third.Dispose();last.Dispose();
    using(await gate.PauseAndDrainAsync())check(gate.IsPaused,"idle gate can pause again after complete cycle");
    using(var job=await gate.EnterAsync())check(job!=null&&!gate.IsPaused,"idle resume allows later gallery reload");
-   await Scheduler(check);
+   await Scheduler(check);await WarmScheduler(check);await CancelledAdmissions(check);
   }
   static async Task<T> Complete<T>(Task<T> task){if(await Task.WhenAny(task,Task.Delay(5000))!=task)throw new Exception("Thumbnail scheduler did not release its queued work");return await task;}
+  static async Task<bool> WasCancelled(Task<IDisposable> task){try{var lease=await Complete(task);if(lease!=null)lease.Dispose();return false;}catch(OperationCanceledException){return true;}}
+  static async Task CancelledAdmissions(Action<bool,string> check){
+   var gate=new ThumbnailLoadGate(1);using(var first=await gate.EnterAsync())using(var cancellation=new System.Threading.CancellationTokenSource()){
+    var queued=gate.EnterAsync(cancellation.Token);check(gate.WaitingCount==1&&!queued.IsCompleted,"a queued admission is counted separately from the active decoder");cancellation.Cancel();
+    check(await WasCancelled(queued)&&gate.WaitingCount==0,"canceling an offscreen queued admission removes its waiter without taking or releasing the active slot");
+    var next=gate.EnterAsync();check(!next.IsCompleted,"a canceled waiter cannot inflate decoder capacity");first.Dispose();(await Complete(next)).Dispose();
+   }
+   var scheduler=new ThumbnailLoadScheduler(1);using(var warm=await scheduler.EnterWarmAsync())using(var video=await scheduler.EnterAsync(true))using(var cancellation=new System.Threading.CancellationTokenSource()){
+    var queuedWarm=scheduler.EnterWarmAsync(cancellation.Token);var queuedVideo=scheduler.EnterAsync(true,cancellation.Token);var queuedImage=scheduler.EnterAsync(false,cancellation.Token);cancellation.Cancel();
+    check(await WasCancelled(queuedWarm)&&await WasCancelled(queuedVideo)&&await WasCancelled(queuedImage),"recycled controls can cancel independent warm, video-serial and shared admissions");
+    warm.Dispose();video.Dispose();using(var resumedWarm=await Complete(scheduler.EnterWarmAsync()))using(var resumedVideo=await Complete(scheduler.EnterAsync(true)))check(resumedWarm!=null&&resumedVideo!=null,"cancellation preserves both cache-probe and decoder capacity for later visible controls");
+   }
+   using(await scheduler.PauseAndDrainAsync())check(scheduler.IsPaused,"scheduler still drains normally after admission cancellations");
+  }
+  static async Task WarmScheduler(Action<bool,string> check){
+   var gate=new ThumbnailLoadScheduler(3);IDisposable first=null,second=null,third=null,warm=null,pause=null,nested=null;
+   try{
+    first=await Complete(gate.EnterAsync(false));second=await Complete(gate.EnterAsync(false));third=await Complete(gate.EnterAsync(false));
+    var queuedImage=gate.EnterAsync(false);warm=await Complete(gate.EnterWarmAsync());var queuedWarm=gate.EnterWarmAsync();
+    check(warm!=null&&!queuedImage.IsCompleted&&!queuedWarm.IsCompleted,"one positive-only probe progresses with all three decoders occupied; a second probe is bounded independently");
+    var pausing=gate.PauseAndDrainAsync();check(gate.IsPaused&&!pausing.IsCompleted,"pause closes and drains the positive-cache lane as well as decoders");
+    check(await gate.EnterWarmAsync()==null,"a new positive-cache probe cannot enter during pause");
+    first.Dispose();first=null;second.Dispose();second=null;third.Dispose();third=null;
+    check(await Complete(queuedImage)==null&&!pausing.IsCompleted,"decoders draining cannot finish pause while an admitted probe still owns its lease");
+    warm.Dispose();warm.Dispose();warm=null;
+    check(await Complete(queuedWarm)==null,"a previously queued probe rechecks pause instead of starting file-stat work");
+    pause=await Complete(pausing);nested=await Complete(gate.PauseAndDrainAsync());pause.Dispose();pause=null;
+    check(gate.IsPaused&&await gate.EnterWarmAsync()==null,"a nested pause keeps the probe lane closed after the first pause releases");
+    nested.Dispose();nested=null;warm=await Complete(gate.EnterWarmAsync());queuedWarm=gate.EnterWarmAsync();
+    first=await Complete(gate.EnterAsync(false));second=await Complete(gate.EnterAsync(false));third=await Complete(gate.EnterAsync(false));queuedImage=gate.EnterAsync(false);
+    check(warm!=null&&!queuedWarm.IsCompleted&&first!=null&&second!=null&&third!=null&&!queuedImage.IsCompleted,"resume restores exactly one probe plus the original three decoder slots, without adding decode concurrency");
+    warm.Dispose();warm=null;(await Complete(queuedWarm)).Dispose();first.Dispose();first=null;(await Complete(queuedImage)).Dispose();
+   }finally{if(first!=null)first.Dispose();if(second!=null)second.Dispose();if(third!=null)third.Dispose();if(warm!=null)warm.Dispose();if(pause!=null)pause.Dispose();if(nested!=null)nested.Dispose();}
+  }
   static async Task Scheduler(Action<bool,string> check){
    var gate=new ThumbnailLoadScheduler(3);var video=await gate.EnterAsync(true);var queuedVideo=gate.EnterAsync(true);var anotherVideo=gate.EnterAsync(true);
    check(video!=null&&!queuedVideo.IsCompleted&&!anotherVideo.IsCompleted,"video scheduler admits one decoder and queues later videos before shared capacity");

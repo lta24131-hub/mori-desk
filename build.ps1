@@ -26,7 +26,9 @@ if(!(Test-Path -LiteralPath $standardFacade)){$standardFacade=Join-Path $framewo
 $refs+='/r:'+$standardFacade
 $refs+='/r:'+(Join-Path $framework 'System.Xml.Linq.dll')
 $sources=@(Get-ChildItem "$suiteRoot\modules\library\src\*.cs"; Get-ChildItem "$suiteRoot\modules\capture\src\*.cs" | Where-Object Name -ne 'AssemblyInfo.cs'; Get-ChildItem "$suiteRoot\src\*.cs"; Get-ChildItem "$suiteRoot\tests\*.cs") | ForEach-Object FullName
+$sources+=Join-Path $suiteRoot 'installer\InstalledVersionCleanup.cs'
 $resources=@(
+ '/resource:'+$suiteRoot+'\assets\legacy-installed-payloads.json,Nook.LegacyInstalledPayloads.json'
  '/resource:'+$suiteRoot+'\src\BoardPage.xaml,MoriDesk.BoardPage.xaml'
  '/resource:'+$suiteRoot+'\src\ReferencePage.xaml,MoriDesk.ReferencePage.xaml'
  '/resource:'+$suiteRoot+'\modules\library\Main.xaml,Mori.Main.xaml'

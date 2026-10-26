@@ -9,17 +9,39 @@ function tick(force=false){const now=performance.now();if(force||now-lastTick>=1
 function opened(){if(ready)return;if(!Number.isFinite(video.duration)||video.duration<=0)return;ready=true;send('ready',{duration:video.duration,width:video.videoWidth,height:video.videoHeight});}
 video.addEventListener('loadedmetadata',opened);video.addEventListener('durationchange',opened);
 video.addEventListener('timeupdate',()=>tick());video.addEventListener('seeked',()=>tick(true));
-video.addEventListener('ended',()=>send('ended'));video.addEventListener('error',()=>send('error'));
+video.addEventListener('ended',()=>send('ended'));video.addEventListener('error',()=>send('error',{code:video.error?video.error.code:0}));
 video.addEventListener('dblclick',()=>send('close'));
 document.addEventListener('keydown',event=>{if(['Escape','F11','m','M',' ','ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();if(event.repeat&&['Escape','F11','m','M',' '].includes(event.key))return;send('key',{key:event.key});}});
-function frame(){if(video.readyState<2){video.addEventListener('loadeddata',frame,{once:true});return;}
- const scale=Math.min(1,512/Math.max(video.videoWidth,video.videoHeight));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
- try{canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);send('thumbnail',{width:video.videoWidth,height:video.videoHeight,png:canvas.toDataURL('image/png').split(',')[1]});}catch(_){send('error');}}
+function thumbnailStatus(stage){send('thumbnail-status',{stage,readyState:video.readyState,networkState:video.networkState,seeking:video.seeking,width:video.videoWidth,height:video.videoHeight});}
+function captureThumbnail(){
+ let complete=false,callback=null;
+ const events=['loadeddata','canplay','seeked','timeupdate'];
+ function cleanup(){for(const event of events)video.removeEventListener(event,frame);if(callback!==null&&video.cancelVideoFrameCallback)video.cancelVideoFrameCallback(callback);callback=null;}
+ function frame(){
+  // loadeddata is not replayed for every seek. Inspect the current state first,
+  // and also listen to later decode/seek events instead of waiting for that
+  // one event after it may already have fired.
+  if(complete||video.seeking||video.readyState<2||video.videoWidth<1||video.videoHeight<1)return;
+  complete=true;cleanup();video.pause();
+  const scale=Math.min(1,512/Math.max(video.videoWidth,video.videoHeight));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+  try{const context=canvas.getContext('2d');if(!context)throw Error('canvas');context.drawImage(video,0,0,canvas.width,canvas.height);thumbnailStatus('captured');send('thumbnail',{width:video.videoWidth,height:video.videoHeight,png:canvas.toDataURL('image/png').split(',')[1]});}catch(_){send('error',{code:0});}
+ }
+ for(const event of events)video.addEventListener(event,frame);
+ video.muted=true;video.pause();thumbnailStatus('requested');
+ const target=Math.min(.4,video.duration*.15);
+ try{if(Math.abs(video.currentTime-target)>.01)video.currentTime=target;}catch(_){cleanup();send('error',{code:0});return;}
+ frame();if(complete)return;
+ if(video.requestVideoFrameCallback)callback=video.requestVideoFrameCallback(()=>{callback=null;frame();});
+ // Chromium may defer decoding a paused background video after metadata. A
+ // short muted play supplies an actual frame; capture pauses immediately.
+ // The containing worker still owns the unchanged 12 s deadline.
+ video.play().then(()=>{if(!complete){thumbnailStatus('decoding');frame();}}).catch(error=>{if(!complete&&error.name!=='AbortError'){cleanup();send('error',{code:0});}});
+}
 window.chrome.webview.addEventListener('message',event=>{const command=event.data;
  if(command.type==='play')video.play().catch(error=>{if(error.name!=='AbortError')send('error');});
  else if(command.type==='pause')video.pause();
  else if(command.type==='seek'){if(Number.isFinite(command.position)){video.currentTime=Math.max(0,Math.min(video.duration,command.position));}}
  else if(command.type==='volume'&&Number.isFinite(command.volume)){video.volume=Math.max(0,Math.min(1,command.volume));video.muted=video.volume===0;}
- else if(command.type==='thumbnail'&&!thumbnail){thumbnail=true;video.muted=true;video.pause();const target=Math.min(.4,video.duration*.15);if(Math.abs(video.currentTime-target)>.01){video.addEventListener('seeked',frame,{once:true});video.currentTime=target;}else frame();}
+ else if(command.type==='thumbnail'&&!thumbnail){thumbnail=true;captureThumbnail();}
 });
 </script></body></html>

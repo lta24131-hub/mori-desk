@@ -38,9 +38,11 @@ namespace Mori {
   internal const string PageUrl="https://mori-media.invalid/player",ClipUrl="https://mori-media.invalid/clip";
   internal readonly WebView2 View=new WebView2{DefaultBackgroundColor=System.Drawing.Color.FromArgb(23,25,28),AllowExternalDrop=false};
   readonly string file;readonly bool audio;readonly List<Stream> responses=new List<Stream>();readonly JavaScriptSerializer json=new JavaScriptSerializer{MaxJsonLength=3*1024*1024};
-  CoreWebView2Environment environment;bool closed;internal bool Ready {get;private set;}
+  CoreWebView2Environment environment;bool closed,pageRequested,clipRequested;internal bool Ready {get;private set;}
   internal int BrowserProcessId {get;private set;}internal int DeniedRequests {get;private set;}
   internal string LastError {get;private set;}
+  internal string LastStage {get;private set;}
+  internal event Action<string> Diagnostic;
   internal event Action<double,int,int> Opened;internal event Action<double> PositionChanged;internal event Action Ended,Failed,CloseRequested;internal event Action<string> Key;
   internal event Action<byte[],int,int> Thumbnail;
   internal BrowserVideo(string path){file=Path.GetFullPath(path);audio=MediaTypes.Audio.Contains(Path.GetExtension(file));}
@@ -48,24 +50,27 @@ namespace Mori {
   internal static bool Available {get{try{return !string.IsNullOrEmpty(CoreWebView2Environment.GetAvailableBrowserVersionString());}catch{return false;}}}
   internal async Task Start(){
    try{
-    if(closed)return;if(!Available)throw new NotSupportedException("WebView2 Runtime not installed");
+    if(closed)return;Stage("runtime-check");if(!Available)throw new NotSupportedException("WebView2 Runtime not installed");
     string profile=Environment.GetEnvironmentVariable("MORI_TEST_MEDIA_PROFILE");if(string.IsNullOrEmpty(profile))profile=Path.Combine(Settings.ConfigDir,"video-runtime");
-    environment=await CoreWebView2Environment.CreateAsync(null,profile,new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required --disable-background-networking --disk-cache-size=16777216"));if(closed)return;
-    await View.EnsureCoreWebView2Async(environment);if(closed)return;var core=View.CoreWebView2;BrowserProcessId=(int)core.BrowserProcessId;
+    Stage("environment");environment=await CoreWebView2Environment.CreateAsync(null,profile,new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required --disable-background-networking --disk-cache-size=16777216"));if(closed)return;
+    Stage("controller");await View.EnsureCoreWebView2Async(environment);if(closed)return;var core=View.CoreWebView2;BrowserProcessId=(int)core.BrowserProcessId;
     core.Settings.AreDefaultContextMenusEnabled=false;core.Settings.AreDevToolsEnabled=false;core.Settings.AreBrowserAcceleratorKeysEnabled=false;core.Settings.AreDefaultScriptDialogsEnabled=false;core.Settings.IsStatusBarEnabled=false;core.Settings.IsZoomControlEnabled=false;core.Settings.AreHostObjectsAllowed=false;core.Settings.IsGeneralAutofillEnabled=false;core.Settings.IsPasswordAutosaveEnabled=false;
-    core.NavigationStarting+=delegate(object sender,CoreWebView2NavigationStartingEventArgs e){if(e.Uri!=PageUrl)e.Cancel=true;};
+    core.NavigationStarting+=delegate(object sender,CoreWebView2NavigationStartingEventArgs e){if(e.Uri!=PageUrl)e.Cancel=true;Stage("navigation-starting allowed="+(e.Cancel?"0":"1"));};
+    core.NavigationCompleted+=delegate(object sender,CoreWebView2NavigationCompletedEventArgs e){Stage("navigation-completed success="+(e.IsSuccess?"1":"0")+" status="+e.WebErrorStatus);};
+    core.DOMContentLoaded+=delegate{Stage("dom-content-loaded");};
     core.NewWindowRequested+=delegate(object sender,CoreWebView2NewWindowRequestedEventArgs e){e.Handled=true;};
     core.PermissionRequested+=delegate(object sender,CoreWebView2PermissionRequestedEventArgs e){e.State=CoreWebView2PermissionState.Deny;};
     core.DownloadStarting+=delegate(object sender,CoreWebView2DownloadStartingEventArgs e){e.Cancel=true;};
     core.AddWebResourceRequestedFilter("*",CoreWebView2WebResourceContext.All);core.WebResourceRequested+=Resource;
-    core.WebMessageReceived+=Message;core.ProcessFailed+=delegate{Failure();};core.Navigate(PageUrl);
+    core.WebMessageReceived+=Message;core.ProcessFailed+=delegate{LastError="Browser media process failed";Failure();};Stage("navigation");core.Navigate(PageUrl);Stage("navigation-submitted");
    }catch(Exception ex){LastError=ex.GetType().Name+": "+ex.Message;if(!closed)Failure();}
   }
   internal static bool AllowedRequest(string uri,string method){return method=="GET"&&(uri==PageUrl||uri==ClipUrl);}
   void Resource(object sender,CoreWebView2WebResourceRequestedEventArgs e){
    try{
     if(closed||!AllowedRequest(e.Request.Uri,e.Request.Method)){DeniedRequests++;e.Response=environment.CreateWebResourceResponse(null,403,"Forbidden","");return;}
-    if(e.Request.Uri==PageUrl){var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("Mori.Video.html");responses.Add(stream);e.Response=environment.CreateWebResourceResponse(stream,200,"OK","Content-Type: text/html; charset=utf-8\r\nCache-Control: no-store");return;}
+    if(e.Request.Uri==PageUrl){if(!pageRequested){pageRequested=true;Stage("request-page");}var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("Mori.Video.html");if(stream==null)throw new InvalidDataException("Embedded media page missing");responses.Add(stream);e.Response=environment.CreateWebResourceResponse(stream,200,"OK","Content-Type: text/html; charset=utf-8\r\nCache-Control: no-store");return;}
+    if(!clipRequested){clipRequested=true;Stage("request-clip");}
     long size=new FileInfo(file).Length;string header=e.Request.Headers.Contains("Range")?e.Request.Headers.GetHeader("Range"):null;var range=VideoRange.Parse(size,header);
     if(range.Status==416){e.Response=environment.CreateWebResourceResponse(null,416,"Range Not Satisfiable","Content-Range: bytes */"+size);return;}
     // A canceled seek leaves no open file handle; WebView2 owns this stream's lifetime.
@@ -74,18 +79,20 @@ namespace Mori {
     string headers="Content-Type: "+mime+"\r\nAccept-Ranges: bytes\r\nCache-Control: no-store\r\nContent-Length: "+range.Length;
     if(range.Status==206)headers+="\r\nContent-Range: bytes "+range.Start+"-"+(range.Start+range.Length-1)+"/"+size;
     e.Response=environment.CreateWebResourceResponse(body,range.Status,range.Status==206?"Partial Content":"OK",headers);
-   }catch{e.Response=environment.CreateWebResourceResponse(null,404,"Not Found","");}
+   }catch(Exception ex){Stage("resource-error "+ex.GetType().Name);e.Response=environment.CreateWebResourceResponse(null,404,"Not Found","");}
   }
   void Message(object sender,CoreWebView2WebMessageReceivedEventArgs e){
    if(closed||e.Source!=PageUrl)return;
    try{var data=json.Deserialize<Dictionary<string,object>>(e.WebMessageAsJson);object kind;if(data==null||!data.TryGetValue("type",out kind))return;string type=kind as string;
-    if(type=="ready"){double duration=Convert.ToDouble(data["duration"],CultureInfo.InvariantCulture);int width=Convert.ToInt32(data["width"]),height=Convert.ToInt32(data["height"]);if(duration<=0||double.IsInfinity(duration)||double.IsNaN(duration)||(!audio&&(width<=0||height<=0)))throw new InvalidDataException();Ready=true;if(Opened!=null)Opened(duration,width,height);}
+    if(type=="ready"){double duration=Convert.ToDouble(data["duration"],CultureInfo.InvariantCulture);int width=Convert.ToInt32(data["width"]),height=Convert.ToInt32(data["height"]);if(duration<=0||double.IsInfinity(duration)||double.IsNaN(duration)||(!audio&&(width<=0||height<=0)))throw new InvalidDataException();Ready=true;Stage("metadata");if(Opened!=null)Opened(duration,width,height);}
     else if(type=="position"&&PositionChanged!=null)PositionChanged(Convert.ToDouble(data["position"],CultureInfo.InvariantCulture));
-    else if(type=="ended"&&Ended!=null)Ended();else if(type=="close"&&CloseRequested!=null)CloseRequested();else if(type=="error")Failure();
+    else if(type=="ended"&&Ended!=null)Ended();else if(type=="close"&&CloseRequested!=null)CloseRequested();else if(type=="error"){object code;int number=0;if(data.TryGetValue("code",out code))int.TryParse(Convert.ToString(code,CultureInfo.InvariantCulture),out number);LastError="Media decode error "+Math.Max(0,Math.Min(4,number));Failure();}
     else if(type=="key"&&Key!=null)Key(data["key"] as string);
+    else if(type=="thumbnail-status"){string stage=data["stage"] as string;if(stage=="requested"||stage=="decoding"||stage=="captured")Stage("thumbnail-"+stage+" ready="+Convert.ToInt32(data["readyState"])+" network="+Convert.ToInt32(data["networkState"])+" seeking="+(data["seeking"] is bool&&(bool)data["seeking"]?"1":"0"));}
     else if(type=="thumbnail"&&!audio&&Thumbnail!=null)Thumbnail(Convert.FromBase64String((string)data["png"]),Convert.ToInt32(data["width"]),Convert.ToInt32(data["height"]));
-   }catch{Failure();}
+   }catch(Exception ex){LastError="Invalid media response: "+ex.GetType().Name;Failure();}
   }
+  void Stage(string stage){LastStage=stage;if(Diagnostic!=null)Diagnostic(stage);}
   internal void Command(string type,double position=0){if(closed||!Ready)return;try{View.CoreWebView2.PostWebMessageAsJson(json.Serialize(new{type=type,position=position}));}catch{Failure();}}
   internal void SetVolume(double volume){if(closed||!Ready)return;try{View.CoreWebView2.PostWebMessageAsJson(json.Serialize(new{type="volume",volume=VideoVolume.Clamp(volume)}));}catch{Failure();}}
   void Failure(){if(closed)return;Ready=false;if(Failed!=null)Failed();}

@@ -62,6 +62,17 @@ namespace Mori {
    path=Path.GetFullPath(path);Directory.CreateDirectory(Path.GetDirectoryName(path));
    using(SettingsFileLock.Acquire(path)){
    var values=ValuesToSave(path);
+   // Explicit LibraryPath edits must obey the same root lease as native/UI
+   // collectors. Preferences-only saves retain newer routes without this lock.
+   IDisposable routeLease=null;
+   if(File.Exists(path)){
+    string previous=LoadUnlocked(path).LibraryPath;
+    if(!LibraryTransfer.SameRoot(previous,(string)values["LibraryPath"])){
+     routeLease=LibraryTransfer.TryAcquireWrite(previous);
+     if(routeLease==null)throw new IOException("原图库正在接收收藏或迁移，暂未切换保存位置。请等待完成后重试。");
+    }
+   }
+   using(routeLease){
    string temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
    try{
     byte[] data=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(values));
@@ -69,6 +80,7 @@ namespace Mori {
     if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);
     ApplySaved(values);RememberLoaded(path);
    }finally{if(File.Exists(temp))File.Delete(temp);}
+   }
    }
   }
  }
@@ -86,22 +98,49 @@ namespace Mori {
     var settings=Settings.Load();bool startup=args.Any(a=>string.Equals(a,"--startup",StringComparison.Ordinal));
     bool preview=args.Length>1&&args[0]=="--ui-test";string root=args.Length>1&&(args[0]=="--library"||preview)?args[1]:settings.LibraryPath;
     if(preview)BookmarkIcons.NetworkEnabled=false;
-    string instanceName=InstanceName(root);
+    string instanceName=InstanceName(root),shellName=preview?null:MoriDesk.InstalledApplicationRouting.ProductionShellInstanceName();
+    using(var shell=new ShellLease(shellName)){
+    if(handoff==null&&!shell.TryAcquire()){if(!startup&&!TrayHost.ActivateExisting(ShellActivationName(shellName,instanceName)))MessageBox.Show("Nook 已在运行（可能在另一个 Windows 登录会话）。请切换到已有窗口；如需更换图库，请在设置中切换。","Nook");return 0;}
     bool owned;using(var mutex=new Mutex(true,instanceName,out owned)){
      if(!owned){if(!startup&&handoff==null&&!TrayHost.ActivateExisting(instanceName+"-activate"))MessageBox.Show("此图库已在 Nook 中打开，请切换到已有窗口。","Nook");return handoff==null?0:1;}
      ValidateStartupLibrary(args,settings);
      var app=new Application();app.DispatcherUnhandledException+=delegate(object sender,System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e){e.Handled=true;MessageBox.Show("操作未完成，原文件没有改动。\n"+e.Exception.Message,"Nook");};
-     using(var library=new Library(root)){if(ShouldRememberLibrary(args))Settings.RememberLibrary(root);var main=new MainWindow(library);app.SessionEnding+=delegate{main.AllowSessionEnd();};main.PreviewMode=preview;if(!preview&&MoriDesk.Entry.InteractiveShell)main.SetSection(settings.StartupSection);if(preview)main.Window.Title="Nook · 测试预览";if(handoff!=null)PrepareHandoff(main,handoff,instanceName+"-activate");else main.EnableTray(instanceName+"-activate",startup);app.Run(main.Window);}return 0;
+     string activationName=ShellActivationName(shellName,instanceName);
+     bool candidate=MoriDesk.InstalledApplicationRouting.IsPendingCandidate;
+     using(var library=new Library(root)){if(ShouldRememberLibrary(args))Settings.RememberLibrary(root);var main=new MainWindow(library,!preview,handoff!=null||candidate);app.SessionEnding+=delegate{main.AllowSessionEnd();};main.PreviewMode=preview;if(!preview&&MoriDesk.Entry.InteractiveShell)main.SetSection(settings.StartupSection);if(preview)main.Window.Title="Nook · 测试预览";if(handoff!=null)PrepareHandoff(main,handoff,activationName,shell.TryAcquire);else if(candidate)PrepareUpdateCandidate(main,activationName);else main.EnableTray(activationName,startup);app.Run(main.Window);}return 0;
+    }
     }
    } catch(Exception ex){if(handoff==null)MessageBox.Show("Nook 无法启动：\n"+ex.Message,"Nook");return 1;}
   }
-  static void PrepareHandoff(MainWindow main,string name,string activationName){
+  // Library handoff renders a disabled pending child, but only acquires the
+  // production shell lease after the old window has exited. It cannot start a
+  // second tray, screenshot hotkeys or browser listener in the interim.
+  sealed class ShellLease:IDisposable {
+   readonly Mutex mutex;bool held;
+   internal ShellLease(string name){if(name!=null)mutex=new Mutex(false,name);}
+   internal bool TryAcquire(){if(mutex==null||held)return true;try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}return held;}
+   public void Dispose(){if(mutex==null)return;if(held){held=false;mutex.ReleaseMutex();}mutex.Dispose();}
+  }
+  internal static string ShellActivationName(string shellName,string instanceName){return (shellName==null?instanceName:"Local\\"+shellName.Substring(shellName.IndexOf('\\')+1))+"-activate";}
+  static void PrepareUpdateCandidate(MainWindow main,string activationName){
+   main.DeferDeskServices();var content=main.Window.Content as UIElement;
+   if(content!=null)content.IsEnabled=false;string title=main.Window.Title;main.Window.Title="Nook · 正在完成更新";
+   // The window chrome stays enabled and no tray exists yet: X is a real close
+   // while an installer crash/cancel is being resolved, never a hidden zombie.
+   var timer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(150)};
+   timer.Tick+=delegate{
+    try{if(MoriDesk.InstalledApplicationRouting.IsPendingCandidate)return;timer.Stop();main.CompleteLibraryRoute();if(content!=null)content.IsEnabled=true;main.Window.Title=title;main.EnableTray(activationName,false);main.StartDeskServices();}
+    catch{timer.Stop();main.CloseForReplacement();}
+   };
+   main.Window.ContentRendered+=delegate{timer.Start();};main.Window.Closed+=delegate{timer.Stop();};
+  }
+  static void PrepareHandoff(MainWindow main,string name,string activationName,Func<bool> acquireShell){
    main.DeferDeskServices();
    var activate=EventWaitHandle.OpenExisting(name+"-commit");var timer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(100)};var clock=System.Diagnostics.Stopwatch.StartNew();
    main.Window.IsEnabled=false;bool released=false;
    Action release=delegate{timer.Stop();if(!released){released=true;activate.Dispose();}};
    EventHandler rendered=null;rendered=delegate{main.Window.ContentRendered-=rendered;try{using(var ready=EventWaitHandle.OpenExisting(name))ready.Set();timer.Start();}catch(WaitHandleCannotBeOpenedException){main.Window.Close();}};main.Window.ContentRendered+=rendered;
-   timer.Tick+=delegate{if(activate.WaitOne(0)){release();main.Window.IsEnabled=true;main.EnableTray(activationName,false);main.StartDeskServices();main.Window.Activate();}else if(clock.ElapsedMilliseconds>20000){release();main.CloseForReplacement();}};
+   timer.Tick+=delegate{if(activate.WaitOne(0)&&acquireShell()){release();try{main.CompleteLibraryRoute();}catch{main.CloseForReplacement();return;}main.Window.IsEnabled=true;main.EnableTray(activationName,false);main.StartDeskServices();main.Window.Activate();}else if(clock.ElapsedMilliseconds>20000){release();main.CloseForReplacement();}};
    main.Window.Closed+=delegate{release();};
   }
   // Merely opening the current library must not re-save a stale selection from

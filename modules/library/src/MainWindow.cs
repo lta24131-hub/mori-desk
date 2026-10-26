@@ -35,8 +35,9 @@ namespace Mori {
   T Find<T>(string name)where T:class{return Window.FindName(name)as T;}
   Button B(string name){return Find<Button>(name);}TextBox T(string name){return Find<TextBox>(name);}TextBlock L(string name){return Find<TextBlock>(name);}
   void Status(string text){L("Status").Text=text;}
-  public MainWindow(Library lib) {
-   library=lib;if(MoriDesk.Entry.ClassicEnabled)lib.EnableReferenceAssets();history=lib.IncludeReferences?new UndoHistory(lib.Db,"board"):new UndoHistory(lib.Db);ThumbnailImage.CurrentLibrary=lib;var settings=Settings.Load();thumbnailSize=settings.ThumbnailSize;Theme.Apply(settings);using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("Mori.Main.xaml"))Window=(Window)XamlReader.Load(stream);Theme.Attach(Window,null);
+  public MainWindow(Library lib):this(lib,false){}
+  internal MainWindow(Library lib,bool enforceDefaultRoute,bool pendingActivation=false) {
+   library=lib;libraryWrites=new LibraryWriteGuard(lib.Root,enforceDefaultRoute?(Func<string>)(()=>Settings.Load().LibraryPath):null,pendingActivation);if(MoriDesk.Entry.ClassicEnabled)libraryWrites.RunInitialization(lib.EnableReferenceAssets);history=lib.IncludeReferences?new UndoHistory(lib.Db,"board"):new UndoHistory(lib.Db);ThumbnailImage.CurrentLibrary=lib;var settings=Settings.Load();thumbnailSize=settings.ThumbnailSize;Theme.Apply(settings);using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("Mori.Main.xaml"))Window=(Window)XamlReader.Load(stream);Theme.Attach(Window,null);
    MoriDesk.InitialWindowPlacement.Attach(Window);
    B("Settings").Click+=delegate{ShowSettings();};B("OpenSource").Click+=delegate{OpenSource(T("Source").Text);};T("Source").TextChanged+=delegate{Uri uri;B("OpenSource").IsEnabled=Selected().Count==1&&SourceLink.TryParse(T("Source").Text,out uri);};
    B("Import").Click+=delegate{ChooseFiles();};B("CreateFirstFolder").Click+=delegate{NewFolder("");};B("ImportBookmarks").Click+=delegate{ShowBookmarkImport();};B("NewBookmarkFolder").Click+=delegate{NewBookmarkFolder(CurrentFolder());};B("Videos").Click+=delegate{SetSection("videos");};B("Documents").Click+=delegate{SetSection("documents");};B("EmptyImport").Click+=delegate{if(bookmarkMode)AddBookmark("");else ChooseFiles();};B("Paste").Click+=delegate{Paste();};B("AddBookmark").Click+=delegate{AddBookmark("");};B("Export").Click+=delegate{Export();};B("More").Click+=delegate{More();};
@@ -77,7 +78,7 @@ namespace Mori {
    // Later handlers may cancel exit (capture confirmation / canvas save).
    // Keep synchronization alive until the window has actually closed.
    Window.Closed+=delegate{externalTimer.Stop();searchTimer.Stop();layoutTimer.Stop();sizeSaveTimer.Stop();sidebarSaveTimer.Stop();};
-   externalTimer.Interval=TimeSpan.FromSeconds(3);externalTimer.Tick+=delegate{if(busy)return;if(tray!=null&&(!Window.IsVisible||Window.WindowState==WindowState.Minimized)){SuspendBackground();return;}string next=library.Db.Query("PRAGMA data_version")[0]["data_version"];if(dataVersion!=""&&next!=dataVersion){history.Clear();if(canvasProjectsMode)RefreshCanvasProjects();else if(boardMode)boardPage.Refresh();else if(referenceMode)referencePage.Refresh();else{ReloadFolders();Refresh(false);if(!refreshDeferred)Status("已同步浏览器收藏");}}dataVersion=next;};externalTimer.Start();
+   externalTimer.Interval=TimeSpan.FromSeconds(3);externalTimer.Tick+=delegate{CheckLibraryRoute();if(busy)return;if(tray!=null&&(!Window.IsVisible||Window.WindowState==WindowState.Minimized)){SuspendBackground();return;}string next=library.Db.Query("PRAGMA data_version")[0]["data_version"];if(dataVersion!=""&&next!=dataVersion){history.Clear();if(canvasProjectsMode)RefreshCanvasProjects();else if(boardMode)boardPage.Refresh();else if(referenceMode)referencePage.Refresh();else{ReloadFolders();Refresh(false);if(!refreshDeferred)Status("已同步浏览器收藏");}}dataVersion=next;};externalTimer.Start();
    B("RestoreTrash").Click+=delegate{RestoreTrash();};
    InitializeInspectorPreview();ReloadFolders();Refresh(true);if(!string.IsNullOrEmpty(library.DeletionRecoveryWarning))Status("上次删除的文件清理未完成："+library.DeletionRecoveryWarning);InitializeDesk();
   }
@@ -97,14 +98,14 @@ namespace Mori {
    bool metadataRefreshed=!metadataLoaded||metadataReloadRequired;
    LoadMetadataForRefresh();IEnumerable<Asset> query=all.Where(a=>a.Deleted==(view=="trash")&&a.IsBookmark==bookmarkMode);
    if(view=="favorites")query=query.Where(a=>a.Favorite);
-   string search=T("Search").Text.Trim();
-   if(view=="unfiled"||(bookmarkMode&&view=="home"&&search.Length==0)){var ids=library.Classified();query=query.Where(a=>!ids.Contains(a.Id));}
+   string search=T("Search").Text.Trim();var searchQuery=AssetSearch.Parse(search);
+   if(view=="unfiled"||(bookmarkMode&&view=="home"&&searchQuery.IsEmpty)){var ids=library.Classified();query=query.Where(a=>!ids.Contains(a.Id));}
    if(!bookmarkMode)query=query.Where(a=>SectionContains(a,mediaSection));
    // Visibility is a preference for the aggregate page, never a media type or deletion flag.
    if(!bookmarkMode&&view=="all"&&mediaSection=="assets")query=query.Where(a=>!a.HiddenFromAll);
-   query=FilterLocalCollections(query,search);
-   if(CurrentFolder()!=""){var ids=library.Members(view,!bookmarkMode||search.Length>0);query=query.Where(a=>ids.Contains(a.Id));}
-   if(search.Length>0)query=query.Where(a=>(a.Name+"\n"+a.Tags+"\n"+a.Notes+"\n"+a.Source+(LocalCollectionsActive?"\n"+a.ReferencePath:"")).IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0);
+   query=FilterLocalCollections(query,searchQuery.IsEmpty?string.Empty:search);
+   if(CurrentFolder()!=""){var ids=library.Members(view,!bookmarkMode||!searchQuery.IsEmpty);query=query.Where(a=>ids.Contains(a.Id));}
+   if(!searchQuery.IsEmpty)query=query.Where(searchQuery.Matches);
    int kind=Find<ComboBox>("MediaFilter").SelectedIndex;if(kind==1)query=query.Where(a=>SectionContains(a,"pictures"));else if(kind==2)query=query.Where(IsVideo);else if(kind==3)query=query.Where(a=>SectionContains(a,"documents"));else if(kind==4)query=query.Where(a=>a.IsAudio);
    int sort=Find<ComboBox>("Sort").SelectedIndex;if(sort==1)query=query.OrderBy(a=>a.Added);else if(sort==2)query=query.OrderBy(a=>a.Name,StringComparer.CurrentCultureIgnoreCase);else if(sort==3)query=query.OrderByDescending(a=>a.Bytes);
    if(similarId!=""){var target=all.FirstOrDefault(a=>a.Id==similarId);query=ImageSimilarityIndex.HasIndex(target,false)?query.Where(a=>ImageSimilarityIndex.HasIndex(a,false)).OrderBy(a=>Library.Similarity(target.Perceptual,a.Perceptual)):Enumerable.Empty<Asset>();}

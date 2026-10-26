@@ -9,11 +9,16 @@ const MAX = 20 * 1024 * 1024;
 const pendingSaves = new Map();
 const CHOICE_TTL = 5 * 60 * 1000;
 const ownerOf = sender => `${sender?.tab?.id ?? 'none'}:${sender?.frameId ?? 0}`;
+let updateConnection='',updateConnectionChecked=0,healthFlight=null;
+const updateStatus=value=>({...value,connection:Date.now()-updateConnectionChecked<=65000?updateConnection:''});
 const updater = MoriUpdater.create({
   chrome, uuid:()=>crypto.randomUUID(),
   configured:()=>MoriLocalBridge.configured(),
   identity:()=>({installationId:self.MoriLocalConnection?.installationId,extensionId:chrome.runtime.id,version:chrome.runtime.getManifest().version}),
-  request:message=>MoriLocalBridge.request(message),
+  request:async message=>{
+    try {const reply=await MoriLocalBridge.request(message);updateConnection=reply?.ok?'connected':'unavailable';updateConnectionChecked=Date.now();return reply;}
+    catch(error){updateConnection='unavailable';updateConnectionChecked=Date.now();throw error;}
+  },
   extraBusy:()=>{
     for(const [key,value] of pendingSaves)if(Date.now()-value.created>CHOICE_TTL)pendingSaves.delete(key);
     return pendingSaves.size>0 || contextRequests.size>0;
@@ -29,26 +34,99 @@ const fromPopup = sender => !sender?.tab && sender?.url === `chrome-extension://
 // when an unpacked extension is reloaded. Restore only the missing collectors;
 // content.js disposes its old listeners before a replacement becomes active.
 const collectorRepairs = new Map();
+const collectorInjections = new Map();
+const COLLECTOR_MESSAGE_TIMEOUT = 2000;
+const COLLECTOR_READY_TIMEOUT = 8500;
+function collectorDeadline(task, timeout = COLLECTOR_MESSAGE_TIMEOUT) {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = value => {if (!settled) {settled = true; clearTimeout(timer); resolve(value);}};
+    const timer = setTimeout(() => finish({state:'timeout'}), timeout);
+    Promise.resolve().then(task).then(value => finish({state:'reply',value}), error => {
+      // A timeout/closed message port is not proof that there is no collector:
+      // its old instance might still own an unfinished category/save gesture.
+      const missing = /(?:receiving end does not exist|no receiver)/i.test(String(error?.message || error));
+      finish({state:missing ? 'missing' : 'unavailable'});
+    });
+  });
+}
+const collectorMatches = pong => pong?.version === chrome.runtime.getManifest().version &&
+  (!collectorGeneration || pong.generation === collectorGeneration);
+const collectorMessage = (tabId, frameId, action, timeout) => collectorDeadline(
+  () => chrome.tabs.sendMessage(tabId, {action}, {frameId}), timeout);
+async function waitForCollector(tabId, frameId, pong) {
+  if (!collectorMatches(pong)) return false;
+  if (pong.ready === true) return true;
+  if (pong.busy || pong.readinessProtocol !== 1) return false;
+  // Initialization can fail transiently while a worker is waking. Wake the
+  // existing instance; repeated script injection would discard its recovery.
+  const deadline = Date.now() + COLLECTOR_READY_TIMEOUT;
+  const wake = await collectorMessage(tabId, frameId, 'mori-collector-wake');
+  if (wake.state !== 'reply' || !collectorMatches(wake.value)) return false;
+  pong = wake.value;
+  for (let attempt = 0; attempt < 34; attempt++) {
+    if (pong.ready === true) return true;
+    if (pong.busy || pong.degraded || pong.state === 'degraded') return false;
+    if (Date.now() + 250 >= deadline || updater.isFrozen()) return false;
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const probe = await collectorMessage(tabId, frameId, 'mori-collector-ping', Math.min(COLLECTOR_MESSAGE_TIMEOUT, Math.max(1, deadline - Date.now())));
+    if (probe.state !== 'reply' || !collectorMatches(probe.value)) return false;
+    pong = probe.value;
+  }
+  return false;
+}
+async function repairCollectorFrame(tabId, frameId) {
+  const probe = await collectorMessage(tabId, frameId, 'mori-collector-ping');
+  if (probe.state === 'reply') {
+    if (collectorMatches(probe.value)) {
+      // Legacy collectors did not implement wake. A confirmed idle/not-ready
+      // legacy instance cannot recover itself; replace it once instead of
+      // repeatedly sending an unsupported wake. Missing/unknown busy state is
+      // deliberately not permission to replace an unfinished collection.
+      const legacyIdle = probe.value.ready === false && probe.value.busy === false && probe.value.readinessProtocol === undefined;
+      if (!legacyIdle) return waitForCollector(tabId, frameId, probe.value);
+    }
+    if (!probe.value || typeof probe.value.ready !== 'boolean' || probe.value.busy !== false) return false;
+  } else if (probe.state !== 'missing') return false;
+  if (updater.isFrozen()) return false;
+  const key = `${tabId}:${frameId}`;
+  let injection = collectorInjections.get(key);
+  if (!injection) {
+    const files = chrome.runtime.getManifest().content_scripts[0].js;
+    injection = Promise.resolve().then(() => chrome.scripting.executeScript({target:{tabId,frameIds:[frameId]},files}));
+    collectorInjections.set(key, injection);
+    // Keep an in-flight injection locked even if the caller's deadline expires.
+    // The API cannot be cancelled and a second injection could replace it late.
+    const clear = () => {if (collectorInjections.get(key) === injection) collectorInjections.delete(key);};
+    injection.then(clear, clear);
+  }
+  const result = await collectorDeadline(() => injection);
+  if (result.state !== 'reply' || !result.value?.length) return false;
+  const loaded = await collectorMessage(tabId, frameId, 'mori-collector-ping');
+  // executeScript completion proves only that files ran, not that preferences
+  // loaded successfully or that drag collection can handle the next gesture.
+  return loaded.state === 'reply' && waitForCollector(tabId, frameId, loaded.value);
+}
 async function ensureCollector(tabId, frameId = null) {
   if(updater.isFrozen())return false;
-  if (!Number.isInteger(tabId) || !chrome.scripting?.executeScript) return false;
+  if (!Number.isInteger(tabId) || (frameId !== null && (!Number.isInteger(frameId) || frameId < 0)) || !chrome.scripting?.executeScript) return false;
   const key = `${tabId}:${frameId ?? 'all'}`;
   if (collectorRepairs.has(key)) return collectorRepairs.get(key);
   const repair = (async () => {
-    try {
-      const pong = await chrome.tabs.sendMessage(tabId, {action:'mori-collector-ping'}, {frameId:frameId ?? 0});
-      if (pong?.ready && pong.version === chrome.runtime.getManifest().version &&
-          (!collectorGeneration || pong.generation === collectorGeneration)) return true;
-      // A worker can wake while its old page is still choosing a category. Do
-      // not discard that gesture; collector-idle will retry after it finishes.
-      if (pong?.busy) return false;
-    } catch {}
-    try {
-      const files = chrome.runtime.getManifest().content_scripts[0].js;
-      const results = await chrome.scripting.executeScript({target:frameId === null ? {tabId,allFrames:true} : {tabId,frameIds:[frameId]}, files});
-      return results?.length > 0;
-    } catch {return false;} // Restricted pages and closed tabs are not errors.
-  })().finally(() => collectorRepairs.delete(key));
+    if (frameId !== null) return repairCollectorFrame(tabId, frameId);
+    // Enumerate frames without modifying their collectors. Checking only the
+    // top frame and then injecting allFrames could destroy a busy iframe.
+    const frames = await collectorDeadline(() => chrome.scripting.executeScript({target:{tabId,allFrames:true},func:() => /^https?:$/.test(location.protocol)}));
+    if (frames.state !== 'reply' || !Array.isArray(frames.value)) return false;
+    const ids = [...new Set(frames.value.filter(frame => frame.result === true && Number.isInteger(frame.frameId) && frame.frameId >= 0).map(frame => frame.frameId))];
+    if (!ids.length) return false;
+    let ready = true;
+    for (let at = 0; at < ids.length; at += 4) {
+      const results = await Promise.all(ids.slice(at, at + 4).map(id => ensureCollector(tabId, id)));
+      if (results.some(result => !result)) ready = false;
+    }
+    return ready;
+  })().catch(() => false).finally(() => collectorRepairs.delete(key));
   collectorRepairs.set(key, repair);
   return repair;
 }
@@ -82,28 +160,44 @@ async function submitImage(payload, owner) {
 }
 function nativeFailure(error) {
   const diagnostic = String(error?.message || error || 'Unknown native messaging error').slice(0, 500);
-  const lower = diagnostic.toLowerCase();
+  const lower = diagnostic.toLowerCase().trim();
   let code = 'NATIVE_CONNECTION_ERROR';
-  let message = 'Nook 本机连接失败，请检查连接注册后重试。';
-  if (lower.includes('forbidden') || lower.includes('not allowed') || lower.includes('permission')) {
+  let message = 'Nook 本机连接失败。请打开 Nook，在设置 → 浏览器收藏中点“安装 / 修复”。';
+  // Chromium reports these refusals before starting the host. Keep its known
+  // errors separate; a generic mention of "permission" does not prove that the
+  // host's allowed_origins rejected this extension.
+  if (/^access to native messaging requires nativemessaging permission\.?$/.test(lower) ||
+      lower === 'chrome.runtime.sendnativemessage is not a function') {
+    code = 'NATIVE_PERMISSION_MISSING';
+    message = 'Nook 插件未获得浏览器的本机通信权限，本次请求未发送到 Nook。请检查插件安装及权限。';
+  } else if (/^(?:access to the native messaging host was disabled by the system administrator|native messaging is disabled by system policy)\.?$/.test(lower)) {
+    code = 'NATIVE_POLICY_BLOCKED';
+    message = '浏览器管理员策略禁止 Nook 本机通信，本次请求未发送到 Nook。重新安装插件不能解除此限制，需要由设备管理员确认策略。';
+  } else if (/^access to the specified native messaging host is forbidden\.?$/.test(lower)) {
     code = 'NATIVE_EXTENSION_FORBIDDEN';
-    message = `本机连接未授权当前扩展 ID（${chrome.runtime.id}）。请用此 ID 重新运行 Register-Extension.ps1，再刷新网页。`;
+    message = '浏览器未允许当前 Nook 插件连接本机程序，本次请求未发送到 Nook。需要核对插件身份和本机连接授权。';
   } else if (lower.includes('not found') || lower.includes('not registered')) {
     code = 'NATIVE_HOST_NOT_FOUND';
-    message = '找不到 Nook 本机连接。请打开 Nook，在设置 → 浏览器收藏中连接当前插件 ID，再重新加载插件。';
+    message = '找不到 Nook 本机连接。请打开 Nook，在设置 → 浏览器收藏中点“安装 / 修复”。';
   } else if (lower.includes('failed to start') || lower.includes('cannot start')) {
     code = 'NATIVE_HOST_START_FAILED';
-    message = 'Nook 本机程序未能启动。请确认 Mori.exe 仍在注册时的位置且可打开，再重新注册连接。';
+    message = 'Nook 本机程序未能启动。请打开 Nook，在设置 → 浏览器收藏中点“安装 / 修复”。';
   } else if (lower.includes('exited') || lower.includes('communicating') || lower.includes('disconnected')) {
     code = 'NATIVE_HOST_DISCONNECTED';
-    message = 'Nook 本机连接意外中断。请确认桌面程序可以打开，再重试；若移动过程序，请重新注册连接。';
+    message = 'Nook 本机连接意外中断。请先打开 Nook，并在设置 → 浏览器收藏中点“安装 / 修复”。';
   } else if (lower.includes('invalid') || lower.includes('manifest')) {
     code = 'NATIVE_HOST_INVALID';
-    message = 'Nook 本机连接配置无效。请在桌面程序所在目录重新运行 Register-Extension.ps1。';
+    message = 'Nook 本机连接配置无效。请在 Nook 设置 → 浏览器收藏中点“安装 / 修复”。';
   }
   return {ok: false, code, error: message, diagnostic};
 }
-async function native(message) {
+async function native(message, waitForNativeCallback = false) {
+  // Chromium omits this API entirely when nativeMessaging is unavailable.
+  // This is a definite pre-transmission refusal: do not journal an ambiguous
+  // write or route around the browser permission through the HTTP backup.
+  if (typeof chrome.runtime.sendNativeMessage !== 'function') {
+    return nativeFailure(new TypeError('chrome.runtime.sendNativeMessage is not a function'));
+  }
   const uncertain = ['save','bookmark','importBookmarks'].includes(message.action);
   let finishWrite, result;
   if(uncertain) {
@@ -113,7 +207,10 @@ async function native(message) {
   try {result=await new Promise(resolve => {
     let finished = false;
     const finish = reply => {if (!finished) {finished = true; clearTimeout(timer); resolve(reply);}};
-    const timer = setTimeout(() => finish({ok:false,code:'NATIVE_TIMEOUT',error:uncertain
+    // A health request has no write result to time out. Its popup owns a UI
+    // deadline, while this flight remains locked until Chrome actually returns:
+    // a JS timer cannot cancel sendNativeMessage or stop a hung native host.
+    const timer = waitForNativeCallback ? null : setTimeout(() => finish({ok:false,code:'NATIVE_TIMEOUT',error:uncertain
       ? '等待 Nook 收藏结果超时，请先检查图库是否已保存，再重试。'
       : 'Nook 本机连接响应超时，请打开桌面程序后重试。'}),30000);
     try {
@@ -180,7 +277,11 @@ async function saveImage(message, owner, iconUrl = '') {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
   try {
-    const response = await fetch(url.href, {credentials: 'include', signal: controller.signal});
+    // Ask image CDNs for formats the native receiver already validates. This
+    // is negotiation only: ignored Accept headers still face byte validation.
+    // Never apply image format negotiation to actual video requests.
+    const response = await fetch(url.href, {credentials: 'include', signal: controller.signal,
+      ...(message.kind === 'video' ? {} : {headers:{Accept:'image/webp,image/png,image/jpeg,image/gif'}})});
     if (!response.ok) throw new Error(`网站拒绝下载（HTTP ${response.status}）`);
     if (Number(response.headers.get('content-length')) > MAX) throw new Error('素材超过 20 MB，请保存原文件后拖入 Nook');
     const reader = response.body.getReader();
@@ -198,11 +299,16 @@ async function saveImage(message, owner, iconUrl = '') {
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
   if(['extensionUpdateStatus','extensionUpdateCheck','extensionUpdateAcknowledge'].includes(message?.action)) {
     if(!fromPopup(sender)){reply({ok:false});return;}
-    if(message.action==='extensionUpdateStatus')reply(updater.status());
-    else (message.action==='extensionUpdateAcknowledge'?updater.acknowledge():updater.poll()).then(reply);
+    if(message.action==='extensionUpdateStatus')reply(updateStatus(updater.status()));
+    else (message.action==='extensionUpdateAcknowledge'?updater.acknowledge():updater.poll()).then(value=>reply(updateStatus(value)));
     return true;
   }
-  if(message?.action==='bridgeStatus') {if(!fromPopup(sender)){reply({ok:false});return;}native({action:'bridgeStatus'}).then(reply).catch(()=>reply({ok:false}));return true;}
+  if(message?.action==='bridgeStatus') {
+    if(!fromPopup(sender)){reply({ok:false});return;}
+    // Closing/reopening a popup cannot create parallel native health launches.
+    if(!healthFlight)healthFlight=native({action:'bridgeStatus'},true).finally(()=>{healthFlight=null;});
+    healthFlight.then(reply).catch(()=>reply({ok:false}));return true;
+  }
   if(message?.action==='collector-idle') {updater.schedule();reply({ok:true});if(collectorGeneration&&sender.tab)void ensureCollector(sender.tab.id,sender.frameId??0);return;}
   if(message?.action==='importBookmarks') {
     // Only the extension popup, never website content scripts, may bulk import.
@@ -222,7 +328,9 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 // MV3 workers can sleep between messages. While a choice is visible, a content
 // script sends a small heartbeat so its in-memory original survives deliberation.
 chrome.runtime.onConnect.addListener(port => {
-  if(port.name==='mori-popup' && fromPopup(port.sender)){updater.popup(port);return;}
+  if(port.name==='mori-popup' && fromPopup(port.sender)){
+    updater.popup({onDisconnect:port.onDisconnect,postMessage:message=>port.postMessage(message?.updateStatus?{...message,updateStatus:updateStatus(message.updateStatus)}:message)});return;
+  }
   if (port.name !== 'mori-duplicate-choice') return;
   const owner = ownerOf(port.sender);
   port.onMessage.addListener(message => {
@@ -316,8 +424,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     }
     let kind = info.mediaType === 'video' ? 'video' : 'image';
     let item = info.srcUrl ? {url: info.srcUrl,kind} : null;
-    let lookupError;
-    if (!item || info.srcUrl?.startsWith('blob:')) {
+    let lookupError, aliasMatched = false;
+    if (item && kind === 'image' && !info.srcUrl.startsWith('blob:')) {
+      try {
+        // A native image URL normally wins. The only exception is an exact,
+        // same-contextmenu framework alias captured by the existing receiver.
+        // Do not reinject here: that would discard the genuine event snapshot.
+        const resolved = await chrome.tabs.sendMessage(tab.id, {action:'resolve-context-native-image',expectedUrl:info.srcUrl}, {frameId:info.frameId ?? 0});
+        if (resolved?.matched === true && resolved.expectedUrl === info.srcUrl) {
+          aliasMatched = true;
+          if (resolved.ok && resolved.item?.kind === 'image' && resolved.item.url) item = resolved.item;
+          else {item = null;lookupError = resolved.error || '图片尚未加载完成，请稍后重新右键收藏。本次没有保存占位图。';}
+        }
+      } catch {} // Restricted/old/missing content receivers keep native behavior.
+    }
+    if ((!item && !aliasMatched) || info.srcUrl?.startsWith('blob:')) {
       try {
         await ensureCollector(tab.id, info.frameId ?? 0);
         const resolved = await chrome.tabs.sendMessage(tab.id, {action:'resolve-context-image', ...(info.srcUrl ? {expectedUrl:info.srcUrl} : {})}, {frameId: info.frameId ?? 0});

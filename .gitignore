@@ -1,6 +1,7 @@
 # Publish only source, bundled runtime components, and documentation.
 /*
 !/.gitignore
+!/.gitattributes
 !/README.md
 !/build.ps1
 !/package.ps1
@@ -15,6 +16,10 @@
 !/browser-extension/
 !/web/
 !/tests/
+!/tools/
+/tools/*
+!/tools/Assert-UpdateDataContract.ps1
+!/tools/Build-UpdateLauncher.ps1
 
 **/node_modules/
 **/.env

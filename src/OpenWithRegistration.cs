@@ -26,7 +26,18 @@ namespace MoriDesk {
    catch(ArgumentException){return false;}catch(IOException){return false;}catch(UnauthorizedAccessException){return false;}catch(System.Security.SecurityException){return false;}catch(InvalidOperationException){return false;}catch(System.ComponentModel.Win32Exception){return false;}
   }
   public static bool RepairInstalled(string executable){
+   PhysicalUserContext.RequireInstalledContext();
+   // A candidate may render for health checking but has no authority to take
+   // Windows registrations until its install transaction commits.
+   if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NOOK_UPDATE_REQUEST"))||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NOOK_UPDATE_EXPECTED_VERSION")))return false;
    return RepairInScope(Registry.CurrentUser,executable,ManagedRoot,NotifyShell);
+  }
+  // Installer-only operation: the caller validates the embedded launcher
+  // payload before invoking this, under the installation transaction lease.
+  public static bool RepairStableInstalled(string launcher){
+   PhysicalUserContext.RequireInstalledContext();string root=InstalledApplicationState.ProgramRoot;
+   if(!string.Equals(Path.GetFullPath(launcher),InstalledApplicationState.LauncherPath(root),StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("固定打开入口地址无效。");
+   return RepairInScopeCore(Registry.CurrentUser,launcher,root,NotifyShell,true);
   }
   internal static bool ManagedPath(string executable,string programRoot){
    if(string.IsNullOrWhiteSpace(executable)||string.IsNullOrWhiteSpace(programRoot))return false;
@@ -74,14 +85,19 @@ namespace MoriDesk {
   // scopeRoot is the actual HKCU in production. Tests pass a disposable nested
   // HKCU key; every path below remains inside that scope, including sentinels.
   internal static bool RepairInScope(RegistryKey scopeRoot,string executable,string programRoot,Action notify){
+   return RepairInScopeCore(scopeRoot,executable,programRoot,notify,false);
+  }
+  static bool RepairInScopeCore(RegistryKey scopeRoot,string executable,string programRoot,Action notify,bool stableInstaller){
    if(scopeRoot==null)throw new ArgumentNullException("scopeRoot");
+   // Same lock order as the installer: install identity, then shell registry.
+   using(InstalledApplicationState.AcquireLease(programRoot,1000))
    using(var mutex=new Mutex(false,MutexName(scopeRoot))){
     bool held=false;
     try{
      try{held=mutex.WaitOne(1000);}catch(AbandonedMutexException){held=true;}
      // Registration is an optional startup repair, not a reason to stall the UI.
      if(!held)return false;
-     return RepairLocked(scopeRoot,executable,programRoot,notify);
+     return RepairLocked(scopeRoot,executable,programRoot,notify,stableInstaller);
     }finally{if(held)mutex.ReleaseMutex();}
    }
   }
@@ -90,10 +106,22 @@ namespace MoriDesk {
    // Fixture scopes get a different mutex from the real HKCU registration.
    using(var hash=SHA256.Create())return "Local\\Nook.OpenWith."+BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(sid+"|"+scopeRoot.Name.ToUpperInvariant()))).Replace("-","");
   }
-  static bool RepairLocked(RegistryKey scopeRoot,string executable,string programRoot,Action notify){
+  static bool RepairLocked(RegistryKey scopeRoot,string executable,string programRoot,Action notify,bool stableInstaller){
    Version candidateVersion;
    if(!Identity(executable,programRoot,true,out candidateVersion))return false;
    string selected=Path.GetFullPath(executable);
+   bool authoritative=stableInstaller;
+   if(!stableInstaller){
+    var active=InstalledApplicationState.Read(programRoot);
+    if(active!=null){
+     // Equal-version timestamps and a running old binary cannot overrule the
+     // one committed payload identity. The registered route never changes.
+     if(!string.Equals(InstalledApplicationState.ResolveExecutable(programRoot,active),selected,StringComparison.OrdinalIgnoreCase))return false;
+     selected=InstalledApplicationState.LauncherPath(programRoot);Version launcherVersion;
+     if(!Identity(selected,programRoot,true,out launcherVersion))return false;
+     authoritative=true;
+    }
+   }
    using(var application=scopeRoot.OpenSubKey(ApplicationKey)){
     if(application!=null){
      var friendly=application.GetValue("FriendlyAppName") as string;
@@ -103,7 +131,7 @@ namespace MoriDesk {
        string old=CommandTarget(command.GetValue("") as string);Version oldVersion;
        // Preserve unknown commands, unrelated products and external Mori copies.
        if(old==null||!Identity(old,programRoot,false,out oldVersion))return false;
-       if(RetainExisting(old,oldVersion,selected,candidateVersion))selected=Path.GetFullPath(old);
+       if(!authoritative&&RetainExisting(old,oldVersion,selected,candidateVersion))selected=Path.GetFullPath(old);
       }
      }
     }

@@ -37,7 +37,7 @@ namespace Mori {
    L("LocalCollectionBreadcrumb").Text=current==null?"":"/  "+current.Name;
    B("LocalCollectionBack").Content=current==null?"分类文件夹":"← 本地收藏";
    B("NewLocalCollection").Visibility=current==null?Visibility.Visible:Visibility.Collapsed;
-   string search=T("Search").Text.Trim();
+   string search=T("Search").Text.Trim();if(AssetSearch.Parse(search).IsEmpty)search=string.Empty;
    if(current==null)foreach(var folder in folders.Where(f=>search.Length==0||f.Name.IndexOf(search,StringComparison.CurrentCultureIgnoreCase)>=0)){
     var items=all.Where(a=>a.IsReference&&a.LocalCollection==folder.Id).ToList();
     panel.Children.Add(LocalCollectionCard(folder,items));

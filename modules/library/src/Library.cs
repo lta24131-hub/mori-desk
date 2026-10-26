@@ -232,7 +232,11 @@ namespace Mori {
         public void Update(Asset a){Db.Exec("UPDATE "+(a.IsReference?"desk_refs":"assets")+" SET name="+Q(a.Name)+",tags="+Q(a.Tags)+",notes="+Q(a.Notes)+",source="+Q(a.Source)+",favorite="+(a.Favorite?1:0)+" WHERE id="+Q(a.IsReference?RawReference(a.Id):a.Id));}
         public void Trash(IEnumerable<string> ids,bool value){Db.Transaction(delegate {foreach(var id in ids)if(ReferenceKey(id)){if(value)Db.Exec("DELETE FROM desk_refs WHERE id="+Q(RawReference(id)));}else Db.Exec("UPDATE assets SET deleted="+(value?1:0)+" WHERE id="+Q(id));});}
         public const string ThumbnailSuffix=".512.png";
-        public string ThumbnailPath(Asset a){return Path.Combine(Root,".mori","thumbs",a.Id+ThumbnailSuffix);}
+        public string ThumbnailPath(Asset a){
+            if(a==null||string.IsNullOrEmpty(a.Id)||a.Id.Length>128)throw new ArgumentException("无效的缩略图编号");
+            foreach(char c in a.Id)if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='-'||c=='_'))throw new ArgumentException("无效的缩略图编号");
+            return Path.Combine(Root,".mori","thumbs",a.Id+ThumbnailSuffix);
+        }
         public void BuildThumbnail(Asset a) {
             if(!MediaTypes.CanThumbnail(a))return;
             string path=ThumbnailPath(a);
@@ -242,18 +246,24 @@ namespace Mori {
             var rows=Db.Query("SELECT width,height,color,perceptual,bytes"+(a.IsReference?",thumb_stamp":"")+" FROM "+(a.IsReference?"desk_refs":"assets")+" WHERE id="+Q(a.IsReference?RawReference(a.Id):a.Id));
             if(rows.Count==0)return;var row=rows[0];a.Width=int.Parse(row["width"]);a.Height=int.Parse(row["height"]);a.Color=row["color"];a.Perceptual=row["perceptual"];a.Bytes=long.Parse(row["bytes"]);if(a.IsReference)a.ThumbnailSourceStamp=row["thumb_stamp"];
         }
-        void BuildThumbnailLocked(Asset a,string path) {
+        void BuildThumbnailLocked(Asset a,string path,bool repair=false,string failedOutputStamp=null) {
+            ValidateThumbnailPath(a,path);
             string sourceStamp=null;long sourceBytes=0;
             if(a.IsReference){sourceStamp=ReferenceThumbnailStamp(a,out sourceBytes);if(sourceStamp==null)return;}
+            string repairSource=repair?FullPath(a):null,repairStamp=repair?ThumbnailBuildGate.SourceStamp(repairSource):null;
+            if(repair){ValidateThumbnailWritePath(a,path);if(repairStamp==null||failedOutputStamp==null||ThumbnailBuildGate.SourceStamp(path)!=failedOutputStamp)return;}
             if(File.Exists(path)){
                 // Freshly loaded assets already contain their indexed fields.
                 // Only a request that lost the first-build race (or a changed
                 // shortcut version) needs another database lookup.
                 if(string.IsNullOrEmpty(a.Perceptual)||(a.IsReference&&a.ThumbnailSourceStamp!=sourceStamp))RefreshThumbnailMetadata(a);
-                if(!a.IsReference||a.ThumbnailSourceStamp==sourceStamp)return;
+                if(!repair&&(!a.IsReference||a.ThumbnailSourceStamp==sourceStamp))return;
             }
             int previousWidth=a.Width,previousHeight=a.Height;string previousColor=a.Color,previousPerceptual=a.Perceptual;bool updated=false,decoding=false;string decodeStamp=null;long decodeFailureVersion=0;
             try {
+                // Keep the reference-version decision above: linked locations
+                // can reuse a healthy cache but may not publish a new version.
+                ValidateThumbnailWritePath(a,path);
                 BitmapSource bitmap;
                 if(MainWindow.IsVideo(a)){int width,height;bitmap=VideoThumbnail.Render(FullPath(a),out width,out height);if(bitmap==null)return;if(width>0&&height>0){a.Width=width;a.Height=height;}}
                 else{string source=FullPath(a);decodeStamp=ThumbnailBuildGate.SourceStamp(source);decodeFailureVersion=ThumbnailBuildGate.FailureVersion;if(ThumbnailBuildGate.HasDecodeFailure(decodeStamp))return;int width,height;decoding=true;bitmap=PreviewThumbnail.Read(source,512,out width,out height);decoding=false;if(width>0&&height>0){a.Width=width;a.Height=height;}}
@@ -263,12 +273,21 @@ namespace Mori {
                 // A live shortcut may be edited while decoding. Keep its last
                 // good thumbnail unless this entire read describes one version.
                 if(a.IsReference){long currentBytes;if(ReferenceThumbnailStamp(a,out currentBytes)!=sourceStamp)return;}
-                var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));string pending=path+"."+Guid.NewGuid().ToString("N")+".tmp";try{using(var output=File.Create(pending))encoder.Save(output);if(!File.Exists(path))File.Move(pending,path);else if(a.IsReference)File.Replace(pending,path,null);}finally{if(File.Exists(pending))File.Delete(pending);}
+                if(repair&&ThumbnailBuildGate.SourceStamp(repairSource)!=repairStamp)return;
+                var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));string pending=path+"."+Guid.NewGuid().ToString("N")+".tmp";
+                try{
+                    ValidateThumbnailWritePath(a,path);
+                    using(var output=new FileStream(pending,FileMode.CreateNew,FileAccess.Write,FileShare.None))encoder.Save(output);
+                    if(repair){var verified=DecodedThumbnailCache.DecodeFile(pending);if(verified.PixelWidth<1||verified.PixelHeight<1||verified.PixelWidth>512||verified.PixelHeight>512)throw new InvalidDataException("重建的缩略图尺寸无效");if(ThumbnailBuildGate.SourceStamp(repairSource)!=repairStamp||ThumbnailBuildGate.SourceStamp(path)!=failedOutputStamp)return;}
+                    ValidateThumbnailWritePath(a,path);
+                    if(!File.Exists(path))File.Move(pending,path);else if(a.IsReference||repair)File.Replace(pending,path,null);
+                    if(repair)ThumbnailImage.DecodedCache.Invalidate(path);
+                }finally{if(File.Exists(pending))File.Delete(pending);}
                 Db.Exec("UPDATE "+(a.IsReference?"desk_refs":"assets")+" SET width="+a.Width+",height="+a.Height+",color="+Q(a.Color)+",perceptual="+Q(a.Perceptual)+(a.IsReference?",bytes="+sourceBytes+",thumb_stamp="+Q(sourceStamp):"")+" WHERE id="+Q(a.IsReference?RawReference(a.Id):a.Id));
                 if(a.IsReference){a.ThumbnailSourceStamp=sourceStamp;a.Bytes=sourceBytes;}
                 updated=true;
-            }catch(NotSupportedException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(FileFormatException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(IOException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(ArgumentException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}
-            finally{if(a.IsReference&&!updated){a.Width=previousWidth;a.Height=previousHeight;a.Color=previousColor;a.Perceptual=previousPerceptual;}}
+            }catch(NotSupportedException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(FileFormatException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}catch(IOException){/* Sharing/missing/output IO is transient, not proof of corrupt source pixels. */}catch(ArgumentException){if(decoding)ThumbnailBuildGate.RememberDecodeFailure(decodeStamp,decodeFailureVersion);}
+            finally{if(!updated){a.Width=previousWidth;a.Height=previousHeight;a.Color=previousColor;a.Perceptual=previousPerceptual;}}
         }
         public static int Similarity(string a,string b){ulong x,y;if(!ulong.TryParse(a,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out x)||!ulong.TryParse(b,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out y))return 65;ulong v=x^y;int n=0;while(v!=0){n++;v&=v-1;}return n;}
         public int Export(IEnumerable<Asset> assets,string destination,bool hierarchy,string renamePrefix) {

@@ -23,6 +23,7 @@ namespace Mori {
   internal static int ActiveWorkerId {get{return Volatile.Read(ref activeWorkerId);}}
   static readonly object FailureLock=new object();
   static readonly Dictionary<string,DateTime> Failures=new Dictionary<string,DateTime>();
+  static readonly byte[] PngSignature={137,80,78,71,13,10,26,10};
   static readonly HashSet<string> Extensions=new HashSet<string>(new[]{".jpg",".jpeg",".png",".gif",".bmp",".tif",".tiff",".ico",".webp",".avif",".heic",".heif",".psd",".psb",".dng",".cr2",".cr3",".nef",".arw",".orf",".rw2",".raf"},StringComparer.OrdinalIgnoreCase);
   internal static string ConfigurationPath {get{return Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),"image-codecs","config");}}
   internal static bool Supports(string path){return !string.IsNullOrWhiteSpace(path)&&Extensions.Contains(Path.GetExtension(path));}
@@ -36,6 +37,7 @@ namespace Mori {
    if(!Available)throw new NotSupportedException("图像增强组件尚未安装，请用默认程序打开。");
    var info=new FileInfo(path);if(!info.Exists)throw new FileNotFoundException("图片不存在，可能已移动。",path);
    if(info.Length<4||info.Length>MaximumInput)throw new NotSupportedException("此图片无法使用增强预览，文件上限为 256 MB。");
+   ValidatePngFallbackHeader(info.FullName);
    string key=info.FullName+"|"+info.LastWriteTimeUtc.Ticks+"|"+info.Length;DateTime failed;
    lock(FailureLock)if(longest<=512&&Failures.TryGetValue(key,out failed)&&failed>DateTime.UtcNow.AddMinutes(-10))throw new NotSupportedException("此图片暂时无法生成增强缩略图。");
    Workers.Wait(cancellation);
@@ -54,6 +56,15 @@ namespace Mori {
    }catch(OperationCanceledException){throw;}
    catch{if(longest<=512)lock(FailureLock){if(Failures.Count>=128)Failures.Clear();Failures[key]=DateTime.UtcNow;}throw;}
    finally{Workers.Release();}
+  }
+  static void ValidatePngFallbackHeader(string path){
+   // This is only the enhanced fallback, after ordinary decoders have had
+   // their chance. Match the worker's existing PNG signature rule before
+   // queueing or paying its process/native startup cost; other formats retain
+   // their current policy. Sharing/missing errors must not poison Failures.
+   if(!string.Equals(Path.GetExtension(path),".png",StringComparison.OrdinalIgnoreCase))return;
+   using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))
+    for(int n=0;n<PngSignature.Length;n++)if(stream.ReadByte()!=PngSignature[n])throw new NotSupportedException("图片已损坏或增强解码不支持此变体，请用默认程序打开。");
   }
   internal static void ValidateDimensions(int width,int height){if(width<1||height<1||width>MaximumSourceDimension||height>MaximumSourceDimension||(long)width*height>MaximumSourcePixels)throw new NotSupportedException("图片尺寸超过增强预览的安全范围，请用默认程序打开。");}
   static byte[] RunWorker(string path,int longest,CancellationToken cancellation){

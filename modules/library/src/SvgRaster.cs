@@ -43,13 +43,13 @@ namespace Mori {
  internal static class SvgRaster {
   internal const long MaximumInput=8*1024*1024;
   static readonly SemaphoreSlim Workers=new SemaphoreSlim(2);
-  static readonly object failureLock=new object();
-  static readonly Dictionary<string,DateTime> failures=new Dictionary<string,DateTime>();
+  internal static readonly ThumbnailFailureCache FailureCache=new ThumbnailFailureCache(TimeSpan.FromMinutes(10),128);
+  internal static void ClearFailures(){FailureCache.Clear();}
   // Rendering is isolated: a malformed/recursive/expensive SVG cannot crash the
   // gallery or keep a render worker indefinitely. No external resources execute.
   internal static BitmapSource Render(string path,int longest,out int width,out int height){
-   string key=Path.GetFullPath(path)+"|"+File.GetLastWriteTimeUtc(path).Ticks;DateTime failed;
-   lock(failureLock)if(longest<=512&&failures.TryGetValue(key,out failed)&&failed>DateTime.UtcNow.AddMinutes(-10))throw new NotSupportedException("此 SVG 暂时无法生成缩略图。");
+   string key=ThumbnailBuildGate.SourceStamp(path);long attemptVersion=FailureCache.Version;
+   if(longest<=512&&FailureCache.Has(key,DateTime.UtcNow))throw new NotSupportedException("此 SVG 暂时无法生成缩略图，可按 F5 重试。");
    Workers.Wait();
    try{
     var info=new FileInfo(path);if(!info.Exists||info.Length>MaximumInput)throw new NotSupportedException("SVG 文件过大，内置预览上限为 8 MB。");
@@ -72,7 +72,7 @@ namespace Mori {
      }catch(Exception error){diagnostic.Observe(clock.ElapsedMilliseconds,0);failure=error;throw;}
      finally{try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}try{bytes.Wait(2000);}catch(AggregateException){}}finally{diagnostic.StdoutFaulted=bytes.IsFaulted;diagnostic.CaptureExit(process);if(failure!=null)diagnostic.Attach(failure);}}
     }
-   }catch{if(longest<=512)lock(failureLock){if(failures.Count>=128)failures.Clear();failures[key]=DateTime.UtcNow;}throw;}finally{Workers.Release();}
+   }catch{if(longest<=512)FailureCache.Remember(key,DateTime.UtcNow,attemptVersion);throw;}finally{Workers.Release();}
   }
   internal static XmlDocument SafeDocument(string path){
    var document=new XmlDocument{XmlResolver=null};

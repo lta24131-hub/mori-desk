@@ -27,7 +27,7 @@ namespace Mori {
    }return sets.ToDictionary(pair=>pair.Key,pair=>pair.Value.Count);
   }
   void UpdateBookmarkBrowserStatus(){
-   if(!bookmarkMode)return;bool search=T("Search").Text.Trim().Length>0;var list=Find<WrapPanel>("BookmarkFolderList");
+   if(!bookmarkMode)return;bool search=!AssetSearch.Parse(T("Search").Text).IsEmpty;var list=Find<WrapPanel>("BookmarkFolderList");
    if(view=="home"&&!search)L("ViewCount").Text=all.Count(a=>a.IsBookmark&&!a.Deleted)+" 个网址";
    int total;if(!search&&bookmarkFolderCounts.TryGetValue(view,out total))L("ViewCount").Text=total+" 个网址（含子文件夹）";
    L("BookmarkItemsHeading").Text=search?"搜索结果 · 包含子文件夹":view=="home"?"未分类网址 · "+visible.Count:view=="all"?"全部网址 · "+visible.Count:"本层网址 · "+visible.Count;
@@ -47,7 +47,7 @@ namespace Mori {
    var chain=new List<Category>();var node=folders.FirstOrDefault(f=>f.Id==view);var seen=new HashSet<string>();while(node!=null&&seen.Add(node.Id)){chain.Insert(0,node);node=folders.FirstOrDefault(f=>f.Id==node.Parent);}foreach(var item in chain)crumb(item.Name,item.Id);
    if(view!="home"&&chain.Count==0)crumb(view=="all"?"全部网址":view=="trash"?"回收站":view=="favorites"?"星标":"未分类",view);
    B("BookmarkOverview").Content=view=="all"?"按文件夹":"全部网址";UiIcons.SetGlyph(B("BookmarkOverview"),view=="all"?"\uE8B7":"\uEA37");
-   if((view!="home"&&CurrentFolder()=="")||T("Search").Text.Trim().Length>0)return;
+   if((view!="home"&&CurrentFolder()=="")||!AssetSearch.Parse(T("Search").Text).IsEmpty)return;
    var counts=BookmarkCounts(folders,library.Db.Query("SELECT asset,folder FROM memberships"),new HashSet<string>(all.Where(a=>a.IsBookmark&&!a.Deleted).Select(a=>a.Id)));
    bookmarkFolderCounts=counts;
    var childCounts=folders.GroupBy(f=>f.Parent).ToDictionary(g=>g.Key,g=>g.Count());

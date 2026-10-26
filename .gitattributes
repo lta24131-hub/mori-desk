@@ -1,0 +1,8 @@
+# Compatibility pins are byte hashes; preserve the reviewed LF source on Windows.
+/src/*.cs text eol=lf
+/modules/library/src/*.cs text eol=lf
+/modules/capture/src/*.cs text eol=lf
+/assets/update-data-contract.json text eol=lf
+# These two frozen, compiled inputs intentionally retain their original mixed endings.
+/modules/library/src/MainWindow.cs -text -eol
+/modules/library/src/VideoThumbnail.cs -text -eol

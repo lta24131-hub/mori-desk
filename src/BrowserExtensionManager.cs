@@ -16,8 +16,9 @@ namespace MoriDesk {
  internal static class BrowserExtensionManager {
   internal const string PublicKey="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjddSxVsBeHA9rnjVHgN42pIsavjBH8scM7Fxekyyecen8rotsw3QpVzGPAgFUTvBVOQPL+ftbIUm8JQRkKPB1BUh3/KI0OPM8QH8t7u+cyj1KQY3hEmPa/HvpAur3vBEv0Q6QhBDAzzEZLFff9hfaMkfuzLJYbHvOSLYANqLffeRmsXcGA4/qh5FZDYzflGyvic53nayI2wH5ui50oDM+WrrsjWd7c/0DfQcvf+XoquggvYylLq8lAC7l8PgLOhcgcL+uhkVs5wtJ/GpQpLWvjAmwY8zCd2hBXGSqqNfHu7Mfjvm7B6R0+Retdod7CeNrBwiACfzyzgxGAYMG5bTsQIDAQAB";
   internal static readonly string[] RuntimeFiles={"background.js","bookmarks.js","collector-text.js","content.js","drag-geometry.js","icon-16.png","icon-32.png","icon-48.png","icon-128.png","local-bridge.js","manifest.json","media-source.js","popup.css","popup.html","popup.js","preferences.js","runtime-client.js","updater.js"};
-  static BrowserExtensionStore Store(){return new BrowserExtensionStore(Entry.DataRoot,BrowserConnection.ExtensionDirectory(typeof(Entry).Assembly.Location),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","Mori","browser-extension"),PublicKey,BrowserConnection.Register,null,null);}
+  static BrowserExtensionStore Store(){PhysicalUserContext.RequireInstalledContext();InstalledApplicationRouting.RegistrationExecutable();return new BrowserExtensionStore(Entry.DataRoot,BrowserConnection.ExtensionDirectory(typeof(Entry).Assembly.Location),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","Mori","browser-extension"),PublicKey,BrowserConnection.Register,null,null);}
   internal static BrowserExtensionStatus EnsureInstalled(){return Store().EnsureInstalled();}
+  internal static BrowserExtensionStatus PrepareFixedReinstall(string expectedOrphanFingerprint=null,bool retireDisconnectedLegacy=false){return Store().PrepareFixedReinstall(expectedOrphanFingerprint,retireDisconnectedLegacy);}
   internal static BrowserExtensionStatus RequestUpdate(){return Store().RequestUpdate();}
   internal static BrowserExtensionStatus BootstrapLegacy(string extensionId){return Store().BootstrapLegacy(extensionId);}
   internal static BrowserExtensionStatus Status(){return Store().Status();}
@@ -29,7 +30,7 @@ namespace MoriDesk {
 
  internal sealed class BrowserExtensionStatus {
   public string summary="",version="",installedVersion="",bundledVersion="",availableVersion="",path="",legacyId="";
-  public bool pending,connected,requiresBootstrap,retryUpdate,upToDate;
+  public bool pending,connected,requiresBootstrap,retryUpdate,upToDate,filesMissing;
   public int profiles;
  }
  internal sealed class BrowserExtensionCatalog {public int schema=1;public List<BrowserExtensionInstall> installs=new List<BrowserExtensionInstall>();public BrowserExtensionRecovery recovery;}
@@ -122,7 +123,7 @@ namespace MoriDesk {
   bool InstalledMatchesBundle(BrowserExtensionInstall item,string version){if(item.pending!=null||item.awaitingReload||string.IsNullOrEmpty(item.activeVersion)||CompareVersions(item.version,version)!=0||CompareVersions(item.activeVersion,version)!=0||Recent(item).Any(c=>CompareVersions(c.version,version)!=0))return false;try{SafeAncestors(item.path);if(!Directory.Exists(item.path)||Directory.GetDirectories(item.path).Length!=0||Directory.GetFiles(item.path).Length!=BrowserExtensionManager.RuntimeFiles.Length+1)return false;var manifest=ManifestAt(bundle);object publicKey;if(!manifest.TryGetValue("key",out publicKey)||Convert.ToString(publicKey)!=key)return false;if(item.manifestKey==null)manifest.Remove("key");else manifest["key"]=item.manifestKey;string installedManifest=Path.Combine(item.path,"manifest.json");SafeFile(installedManifest,true);if(new FileInfo(installedManifest).Length>65536||File.ReadAllText(installedManifest)!=json.Serialize(manifest))return false;foreach(string file in BrowserExtensionManager.RuntimeFiles.Where(f=>f!="manifest.json"))if(BundledHash(Path.Combine(bundle,file),CarriesGeneration(file)?item.generation:null)!=Hash(Path.Combine(item.path,file)))return false;string keyFile=Path.Combine(browser,"local-key.txt"),connection=Path.Combine(item.path,"local-connection.js");SafeFile(keyFile,true);SafeFile(connection,true);if(new FileInfo(keyFile).Length>1024||new FileInfo(connection).Length>4096)return false;string secret=File.ReadAllText(keyFile).Trim();return BrowserLocalBridge.ValidToken(secret)&&File.ReadAllText(connection)==BrowserLocalBridge.Configuration(secret,item.installationId);}catch(InvalidDataException){return false;}catch(IOException){return false;}}
   void VerifyFiles(BrowserExtensionInstall item,BrowserExtensionPending pending,string directory){GuardVersion(item,pending.version);SafeAncestors(directory);if(!Directory.Exists(directory)||Directory.GetDirectories(directory).Length!=0||Directory.GetFiles(directory).Length!=pending.hashes.Count)throw new InvalidDataException("插件暂存文件已改变，未替换原插件。");foreach(var pair in pending.hashes)if(Hash(Path.Combine(directory,pair.Key))!=pair.Value)throw new InvalidDataException("插件暂存文件校验失败，未替换原插件。");var manifest=ManifestAt(directory);object raw;string identity=manifest.TryGetValue("key",out raw)?KeyId(Convert.ToString(raw)):PathId(item.path);if(identity!=item.extensionId||Convert.ToString(manifest["version"])!=pending.version)throw new InvalidDataException("插件暂存身份不匹配。");}
   void VerifyStage(BrowserExtensionInstall item){var pending=item.pending;if(pending==null||pending.expires<now().Ticks)throw new InvalidDataException("本次更新已过期，请在 Nook 中重新点更新。");ValidateSibling(item.path,pending.path,".mori-stage-");VerifyFiles(item,pending,pending.path);}
-  void CompleteMetadata(BrowserExtensionCatalog state,BrowserExtensionInstall item,BrowserExtensionRecovery record){var pending=item.pending;item.version=pending.version;item.generation=pending.generation;item.pending=null;item.awaitingReload=record.hadOriginal;item.backup=record.hadOriginal&&Directory.Exists(record.backup)?record.backup:item.backup;item.lastToken=pending.token;item.lastClient=record.client;item.lastVersion=pending.version;item.lastApplied=record.started;state.recovery=null;}
+  void CompleteMetadata(BrowserExtensionCatalog state,BrowserExtensionInstall item,BrowserExtensionRecovery record){var pending=item.pending;item.version=pending.version;item.generation=pending.generation;item.pending=null;item.awaitingReload=record.hadOriginal||!string.IsNullOrEmpty(record.client);item.backup=record.hadOriginal&&Directory.Exists(record.backup)?record.backup:item.backup;item.lastToken=pending.token;item.lastClient=record.client;item.lastVersion=pending.version;item.lastApplied=record.started;state.recovery=null;}
   // The catalog is a write-ahead journal: it is committed before the first
   // directory rename. A later process can recover after a crash/power loss,
   // not only after an exception in the process performing the update.
@@ -147,17 +148,109 @@ namespace MoriDesk {
    }
   }
   List<BrowserExtensionClient> Recent(BrowserExtensionInstall item){long limit=now().Ticks-RecentTicks;return item.clients.Where(c=>c.seen>=limit&&c.seen<=now().Ticks+TimeSpan.TicksPerMinute).ToList();}
-  BrowserExtensionStatus MakeStatus(BrowserExtensionCatalog state){string latest=BundleVersion(),legacyId=LegacyId();var item=state.installs.OrderByDescending(i=>Recent(i).Count>0).ThenByDescending(i=>i.legacy).ThenByDescending(i=>i.lastSeen).FirstOrDefault();var result=new BrowserExtensionStatus{bundledVersion=latest,availableVersion=latest,legacyId=legacyId,requiresBootstrap=!string.IsNullOrEmpty(legacyId)&&!state.installs.Any(i=>Same(i.path,legacy)),path=item==null?fixedPath:item.path};
+  bool RuntimePresent(BrowserExtensionInstall item){
+   try{SafeAncestors(item.path);if(!Directory.Exists(item.path))return false;foreach(string file in BrowserExtensionManager.RuntimeFiles.Concat(new[]{"local-connection.js"}))SafeFile(Path.Combine(item.path,file),true);return true;}
+   catch(IOException){return false;}catch(UnauthorizedAccessException){return false;}
+  }
+  BrowserExtensionStatus MakeStatus(BrowserExtensionCatalog state){string latest=BundleVersion(),legacyId=LegacyId();var item=state.installs.OrderByDescending(i=>Recent(i).Count>0).ThenByDescending(i=>i.legacy).ThenByDescending(i=>i.lastSeen).FirstOrDefault();var result=new BrowserExtensionStatus{bundledVersion=latest,availableVersion=latest,legacyId=legacyId,requiresBootstrap=!string.IsNullOrEmpty(legacyId)&&!state.installs.Any(i=>Same(i.path,legacy))&&!state.installs.Any(i=>!i.legacy),path=item==null?fixedPath:item.path};
    if(item==null){result.summary=result.requiresBootstrap?"检测到旧版插件，首次升级需要确认并重新加载一次。":"尚未安装浏览器插件。点“安装 / 修复”准备插件。";return result;}
    // The selected installation still controls the shown path and versions;
    // completion and safety must account for every tracked installation/profile.
    var clients=Recent(item);string known=latest;foreach(var installation in state.installs){string version=MaximumKnownVersion(installation);if(CompareVersions(version,known)>0)known=version;}
    var waiting=state.installs.Where(i=>i.pending!=null||i.awaitingReload).ToList();result.installedVersion=item.version;result.version=clients.Count>0?clients.OrderByDescending(c=>c.seen).First().version:"";result.profiles=state.installs.Max(i=>Recent(i).Count);result.connected=result.profiles>0;result.pending=waiting.Count>0;result.retryUpdate=result.pending&&waiting.All(i=>i.pending!=null?i.pending.expires<now().Ticks:now().Ticks-i.lastApplied>TokenTicks);result.availableVersion=known;
-   result.upToDate=result.connected&&!result.pending&&state.installs.All(i=>CompareVersions(i.version,latest)==0&&!string.IsNullOrEmpty(i.activeVersion)&&CompareVersions(i.activeVersion,latest)==0&&Recent(i).All(c=>CompareVersions(c.version,latest)==0));
-   result.summary=CompareVersions(known,latest)>0?"浏览器插件版本较新，已保留现有版本，不会降级。请先更新 Nook 本机软件。":result.profiles>1&&!result.upToDate?"检测到多个浏览器或用户配置正在使用插件。请只保留一个后重试更新。":result.retryUpdate?"上次等待浏览器更新已超时，请点“一键更新”重试。":result.pending&&waiting.All(i=>i.pending==null)?"插件文件已更新，等待浏览器重新加载并确认新版本。":result.pending?(result.connected?"更新已准备好，等待当前收藏完成并关闭插件弹窗。":"更新已准备好。请打开已连接的浏览器；首次安装需先加载插件。"):result.connected?(result.upToDate?"浏览器已连接，插件已是最新版本。":"部分浏览器插件尚未确认最新版本，请点“一键更新”。"):"插件文件已准备好，等待浏览器连接。首次使用请在扩展管理页加载插件。";return result;
+   result.filesMissing=state.installs.Any(i=>!RuntimePresent(i));
+   result.upToDate=!result.filesMissing&&result.connected&&!result.pending&&state.installs.All(i=>CompareVersions(i.version,latest)==0&&!string.IsNullOrEmpty(i.activeVersion)&&CompareVersions(i.activeVersion,latest)==0&&Recent(i).All(c=>CompareVersions(c.version,latest)==0));
+   result.summary=result.filesMissing?"插件文件缺失或不完整，请点“安装 / 修复”恢复。":CompareVersions(known,latest)>0?"浏览器插件版本较新，已保留现有版本，不会降级。请先更新 Nook 本机软件。":result.profiles>1&&!result.upToDate?"检测到多个浏览器或用户配置正在使用插件。请只保留一个后重试更新。":result.retryUpdate?"上次等待浏览器更新已超时，请点“一键更新”重试。":result.pending&&waiting.All(i=>i.pending==null)?"插件文件已更新，等待浏览器重新加载并确认新版本。":result.pending?(result.connected?"更新已准备好，等待当前收藏完成并关闭插件弹窗。":"更新已准备好。请打开已连接的浏览器；首次安装需先加载插件。"):result.connected?(result.upToDate?"浏览器已连接，插件已是最新版本。":"部分浏览器插件尚未确认最新版本，请点“一键更新”。"):"插件文件已准备好，等待浏览器连接。首次使用请在扩展管理页加载插件。";return result;
   }
   internal BrowserExtensionStatus Status(){return Locked(()=>MakeStatus(Load()));}
-  internal BrowserExtensionStatus EnsureInstalled(){return Locked(()=>{var state=Load();var item=state.installs.FirstOrDefault(i=>!i.legacy);if(item==null&&state.installs.Count==0){if(Directory.Exists(fixedPath))throw new IOException("固定插件目录已存在，但安装记录缺失。为保护原文件，未覆盖该目录。");item=new BrowserExtensionInstall{installationId=RandomHex(),extensionId=KeyId(key),manifestKey=key,path=fixedPath,version=BundleVersion()};state.installs.Add(item);item.pending=Stage(item);Commit(state,item,"");}foreach(var known in state.installs){if(!Directory.Exists(known.path)){known.pending=Stage(known);Commit(state,known,"");}register(known.extensionId);Pair(known,known.path);}return MakeStatus(state);});}
+  internal BrowserExtensionStatus EnsureInstalled(){return Locked(()=>{
+   var state=Load();var item=state.installs.FirstOrDefault(i=>!i.legacy);
+   if(item==null&&state.installs.Count==0){
+    if(Directory.Exists(fixedPath))throw new IOException("固定插件目录已存在，但安装记录缺失。为保护原文件，未覆盖该目录。");
+    item=new BrowserExtensionInstall{installationId=RandomHex(),extensionId=KeyId(key),manifestKey=key,path=fixedPath,version=BundleVersion()};state.installs.Add(item);item.pending=Stage(item);Commit(state,item,"");
+   }
+   var missing=state.installs.Where(i=>!RuntimePresent(i)).ToList();string version=BundleVersion();
+   // Check every affected identity before touching any installation. Never
+   // replace an active browser's files behind its safe-update handshake.
+   foreach(var known in missing)GuardVersion(known,version);
+   bool active=state.installs.Any(i=>Recent(i).Count>0);
+   foreach(var known in state.installs){
+    if(missing.Contains(known)){
+     bool prepare=known.pending==null||known.pending.expires<now().Ticks||known.pending.version!=version;
+     if(!prepare)try{VerifyStage(known);}catch(InvalidDataException){prepare=true;}catch(IOException){prepare=true;}
+     if(prepare)known.pending=Stage(known);
+     if(active){Save(state);register(known.extensionId);continue;}
+     // Commit keeps the old directory as a backup and journals both renames.
+     // A missing target must not erase the requirement for browser confirmation.
+     Commit(state,known,"");known.awaitingReload=true;Save(state);
+    }
+    register(known.extensionId);Pair(known,known.path);
+   }
+   return MakeStatus(state);
+  });}
+  // A pin is an explicit, separately reviewed authorization to preserve an
+  // otherwise untracked fixed directory. It never authorizes extra files,
+  // links, another public key, or an unreviewed change after fingerprinting.
+  string OrphanFingerprint(){
+   SafeAncestors(fixedPath);if(!Directory.Exists(fixedPath)||File.Exists(fixedPath)||Directory.GetDirectories(fixedPath).Length!=0)throw new InvalidDataException("未记录的插件目录不完整或含子目录，未移动原文件。");
+   var expected=BrowserExtensionManager.RuntimeFiles.Concat(new[]{"local-connection.js"}).OrderBy(f=>f,StringComparer.Ordinal).ToArray();var actual=Directory.GetFiles(fixedPath).Select(Path.GetFileName).OrderBy(f=>f,StringComparer.Ordinal).ToArray();
+   if(!actual.SequenceEqual(expected,StringComparer.Ordinal))throw new InvalidDataException("未记录的插件目录含未知或缺失文件，未移动原文件。");
+   var manifest=ManifestAt(fixedPath);object publicKey;if(!manifest.TryGetValue("key",out publicKey)||Convert.ToString(publicKey)!=key)throw new InvalidDataException("未记录的插件公钥不匹配，未移动原文件。");
+   var text=new StringBuilder();foreach(string file in expected)text.Append(file).Append('\n').Append(Hash(Path.Combine(fixedPath,file))).Append('\n');using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text.ToString()))).Replace("-","").ToLowerInvariant();
+  }
+  internal string FixedDirectoryFingerprint(){return Locked(()=>{if(Load().installs.Any(i=>!i.legacy))throw new InvalidOperationException("固定插件已有安装记录，不属于待核验目录。");return OrphanFingerprint();});}
+  // Explicit reinstall after the user has removed the browser extension. No
+  // recent browser may be reporting. Legacy retirement is opt-in and does not
+  // delete old files, preferences or pending/reload journals.
+  internal BrowserExtensionStatus PrepareFixedReinstall(string expectedOrphanFingerprint=null,bool retireDisconnectedLegacy=false){return Locked(()=>{
+   var state=Load();
+   if(state.installs.Any(i=>Recent(i).Count>0))throw new InvalidOperationException("浏览器插件仍有活动连接。请卸载后等待至少 90 秒，再准备固定身份插件；现有文件未替换。");
+   if(retireDisconnectedLegacy&&state.installs.Any(i=>i.legacy&&(i.pending!=null||i.awaitingReload)))throw new InvalidOperationException("旧插件仍有待完成的更新记录，未退休其身份或改动文件。");
+   var original=json.Deserialize<BrowserExtensionCatalog>(json.Serialize(state));string retired=null;
+   var item=state.installs.SingleOrDefault(i=>!i.legacy);string version=BundleVersion();
+   if(item==null){
+    if(state.installs.Count>=2)throw new InvalidOperationException("插件安装记录已满，未修改旧插件。");
+    if(Directory.Exists(fixedPath)||File.Exists(fixedPath)){
+     if(!Hex(expectedOrphanFingerprint,64)||OrphanFingerprint()!=expectedOrphanFingerprint)throw new IOException("固定插件路径已存在但没有对应安装记录或核验指纹不匹配，未覆盖原文件。");
+     retired=fixedPath+".nook-retired-"+RandomHex();SafeAncestors(retired);
+    }else if(!string.IsNullOrEmpty(expectedOrphanFingerprint))throw new IOException("待核验的旧插件目录已改变或消失，未准备新插件。");
+    item=new BrowserExtensionInstall{installationId=RandomHex(),extensionId=KeyId(key),manifestKey=key,path=fixedPath,version=version};
+    state.installs.Add(item);
+   }else GuardVersion(item,version);
+   // Stage always creates fresh generated files; Commit owns the durable
+   // recovery record and rollback. Older pending stages are retained, not
+   // deleted or treated as an acknowledgement from an uninstalled browser.
+   item.pending=Stage(item);VerifyStage(item);
+   if(retired!=null){
+    // Stage before moving any original files. Recheck the reviewed pin after
+    // staging, while still holding the same cross-process manager lock.
+    if(OrphanFingerprint()!=expectedOrphanFingerprint)throw new IOException("旧插件目录在准备期间改变，原目录未移动；新暂存文件已保留。");
+    move(fixedPath,retired);
+   }
+   try{Commit(state,item,"");}catch(Exception failure){
+    if(retired==null)throw;
+    bool restored=false;
+    try{
+     // Commit normally rolls a failed rename back itself. If a candidate is
+     // still at the target, move only its exact verified bytes aside first.
+     if(Directory.Exists(fixedPath)){VerifyFiles(item,item.pending,fixedPath);move(fixedPath,fixedPath+".nook-failed-"+RandomHex());}
+     if(File.Exists(fixedPath))throw new IOException("插件目标路径被文件占用。");
+     Save(original);leaseCatalog=original;
+     if(Directory.Exists(retired)&&!Directory.Exists(fixedPath)){move(retired,fixedPath);restored=true;}
+    }catch{}
+    throw new IOException("新插件准备失败，未删除任何原文件。原目录保留在："+(restored?fixedPath:retired)+"；生成的暂存及恢复证据也已保留。",failure);
+   }
+   // Explicit reinstall has no running browser to acknowledge Commit. Even a
+   // fresh/orphan target must remain pending until the new generated worker
+   // actually polls, rather than looking complete merely because no old target
+   // existed when the directory transaction was committed.
+   item.awaitingReload=true;Save(state);
+   register(item.extensionId);Pair(item,item.path);
+   if(retireDisconnectedLegacy){state.installs.RemoveAll(i=>i.legacy);Save(state);}
+   // Without explicit retirement, global status retains legacy state. A newly
+   // prepared installation remains unconfirmed until a real browser reports.
+   return MakeStatus(state);
+  });}
   internal BrowserExtensionStatus RequestUpdate(){return Locked(()=>{var state=Load();if(state.installs.Count==0)throw new InvalidOperationException("请先点“安装 / 修复”。旧版插件首次升级需确认并重新加载一次。");string version=BundleVersion();foreach(var item in state.installs)GuardVersion(item,version);bool changed=false;foreach(var item in state.installs){if(InstalledMatchesBundle(item,version))continue;bool prepare=item.pending==null||item.pending.expires<now().Ticks||item.pending.version!=version;if(!prepare)try{VerifyStage(item);}catch(InvalidDataException){prepare=true;}catch(IOException){prepare=true;}if(prepare){item.pending=Stage(item);changed=true;}}if(changed)Save(state);return MakeStatus(state);});}
   internal BrowserExtensionStatus BootstrapLegacy(string extensionId){return Locked(()=>{var state=Load();string legacyId=LegacyId();if(!Id(extensionId)||legacyId!=extensionId)throw new InvalidOperationException("无法确认旧插件的安装身份，未修改旧插件。请使用固定目录重新安装。");var item=state.installs.FirstOrDefault(i=>i.legacy);if(item!=null&&Recent(item).Count>1)throw new InvalidOperationException("请关闭其他浏览器或用户配置后再更新。");if(item==null){var manifest=ManifestAt(legacy);object raw;item=new BrowserExtensionInstall{installationId=RandomHex(),extensionId=legacyId,path=legacy,legacy=true,manifestKey=manifest.TryGetValue("key",out raw)?raw as string:null,version=Convert.ToString(manifest["version"])};state.installs.Add(item);}item.pending=Stage(item);Commit(state,item,"");register(item.extensionId);Pair(item,item.path);return MakeStatus(state);});}
   internal void RegisterKnown(){Locked(()=>{var state=Load();foreach(var item in state.installs)register(item.extensionId);foreach(var item in state.installs)if(Directory.Exists(item.path))Pair(item,item.path);return true;});}

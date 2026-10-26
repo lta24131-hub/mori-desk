@@ -28,6 +28,7 @@ namespace MoriDesk {
    bool escaped=false;try{using(ThumbnailBuildGate.Enter(same))throw new IOException("synthetic work failure");}catch(IOException){escaped=true;}
    using(ThumbnailBuildGate.Enter(same))check(escaped&&ThumbnailBuildGate.ActivePathCount==baseline+1,"exception releases path gate and a future request can enter");
    check(ThumbnailBuildGate.ActivePathCount==baseline,"exception path does not leak gate entries");
+   TryEnterContention(root,check);
    string versioned=Path.Combine(root,"version.bin");var modified=new DateTime(2026,1,1,0,0,0,DateTimeKind.Utc);File.WriteAllBytes(versioned,new byte[]{1,2,3});File.SetLastWriteTimeUtc(versioned,modified);string oldVersion=ThumbnailBuildGate.SourceStamp(versioned);DateTime now=DateTime.UtcNow;
    ThumbnailBuildGate.RememberDecodeFailure(oldVersion,now);
    check(ThumbnailBuildGate.HasDecodeFailure(oldVersion,now.AddSeconds(1)),"predictable source decode failure is cached briefly");
@@ -43,8 +44,12 @@ namespace MoriDesk {
    check(ThumbnailBuildGate.FailureCount<=ThumbnailBuildGate.MaximumFailures&&!ThumbnailBuildGate.HasDecodeFailure(failurePrefix+"0",now.AddSeconds(1))&&ThumbnailBuildGate.HasDecodeFailure(failurePrefix+ThumbnailBuildGate.MaximumFailures,now.AddSeconds(1)),"negative cache is bounded and retains its newest source failures");
    for(int i=0;i<=ThumbnailBuildGate.MaximumFailures;i++)ThumbnailBuildGate.HasDecodeFailure(failurePrefix+i,now.AddMinutes(1));
    long beforeRefresh=ThumbnailBuildGate.FailureVersion;ThumbnailBuildGate.RememberDecodeFailure(oldVersion,now);VideoThumbnail.FailureCache.Remember(oldVersion,now);long videoAttempt=VideoThumbnail.FailureCache.Version;
+   SvgRaster.FailureCache.Remember(oldVersion,now);long svgAttempt=SvgRaster.FailureCache.Version;
    ThumbnailImage.RetryFailedThumbnails();
    check(!ThumbnailBuildGate.HasDecodeFailure(oldVersion,now)&&!VideoThumbnail.FailureCache.Has(oldVersion,now)&&ThumbnailBuildGate.FailureCount==0&&VideoThumbnail.FailureCache.Count==0,"explicit retry clears picture and video failure caches without waiting for expiry");
+   check(SvgRaster.FailureCache.Count==0&&!SvgRaster.FailureCache.Has(oldVersion,now),"explicit F5 retry also clears independent SVG failure backoff");
+   SvgRaster.FailureCache.Remember(oldVersion,now,svgAttempt);
+   check(!SvgRaster.FailureCache.Has(oldVersion,now),"SVG decode begun before F5 cannot reinsert stale failure after refresh");
    ThumbnailBuildGate.RememberDecodeFailure(oldVersion,beforeRefresh);VideoThumbnail.FailureCache.Remember(oldVersion,now,videoAttempt);
    check(!ThumbnailBuildGate.HasDecodeFailure(oldVersion,now)&&!VideoThumbnail.FailureCache.Has(oldVersion,now),"decode attempts started before refresh cannot repopulate stale failures after refresh");
    ThumbnailBuildGate.RememberDecodeFailure(oldVersion,ThumbnailBuildGate.FailureVersion);VideoThumbnail.FailureCache.Remember(oldVersion,now,VideoThumbnail.FailureCache.Version);
@@ -52,6 +57,23 @@ namespace MoriDesk {
    check(!VideoThumbnail.FailureCache.Has(oldVersion,now.AddMinutes(10)),"video failure expires after its bounded ten-minute backoff");
    ThumbnailImage.RetryFailedThumbnails();
    LibraryIntegration(root,check);
+  }
+  static void TryEnterContention(string root,Action<bool,string> check){
+   string path=Path.Combine(root,"nonblocking.png"),other=Path.Combine(root,"nonblocking-other.png");int baseline=ThumbnailBuildGate.ActivePathCount;Task<bool> probe=null;
+   try{
+    using(var held=ThumbnailBuildGate.Enter(path)){
+     // Monitor is reentrant on its owning thread. Only this separate worker
+     // can establish that a contended warm probe does not wait for the writer.
+     probe=Task.Factory.StartNew(()=>{bool missed=true;for(int n=0;n<100;n++){using(var lease=ThumbnailBuildGate.TryEnter(n%2==0?path:path.ToUpperInvariant()))missed&=lease==null;}return missed;},CancellationToken.None,TaskCreationOptions.LongRunning,TaskScheduler.Default);
+     bool finished=probe.Wait(5000);
+     check(finished&&probe.Result&&ThumbnailBuildGate.ActivePathCount==baseline+1,"100 contended cross-thread/case-insensitive TryEnter probes miss before the writer releases its lock and add no path entries");
+     using(var independent=ThumbnailBuildGate.TryEnter(other))check(independent!=null&&ThumbnailBuildGate.ActivePathCount==baseline+2,"unrelated TryEnter path progresses while a different output remains writer-locked");
+     check(ThumbnailBuildGate.ActivePathCount==baseline+1,"disposing an independent TryEnter lease preserves only the existing writer's path gate");
+    }
+   }finally{if(probe!=null&&!probe.Wait(6000))throw new TimeoutException("Nonblocking thumbnail gate worker did not finish");}
+   check(ThumbnailBuildGate.ActivePathCount==baseline,"failed nonblocking gate probes release their user counts after the writer exits");
+   using(var lease=ThumbnailBuildGate.TryEnter(path.ToUpperInvariant()))check(lease!=null&&ThumbnailBuildGate.ActivePathCount==baseline+1,"TryEnter obtains the same output immediately after the previous writer releases it");
+   check(ThumbnailBuildGate.ActivePathCount==baseline,"successful nonblocking gate lease disposal removes its final path entry");
   }
   static void LibraryIntegration(string root,Action<bool,string> check){
    string library=Path.Combine(root,"library"),source=Path.Combine(root,"sample.png");Image(source,73,51,Color.DarkSlateBlue);byte[] original=File.ReadAllBytes(source);
@@ -73,7 +95,12 @@ namespace MoriDesk {
     ThumbnailImage.RetryFailedThumbnails();first.BuildThumbnail(retry);
     check(File.Exists(first.ThumbnailPath(retry))&&retry.Width==31&&retry.Height==19,"explicit refresh retries a previously failed identical source version through the real image decoder");
     check(File.ReadAllBytes(retrySource).SequenceEqual(retryOriginal)&&File.GetLastWriteTimeUtc(retrySource)==retryTime,"explicit retry never rewrites the source bytes or source timestamp");
-    string saveSource=Path.Combine(root,"save-retry.png");Image(saveSource,41,27,Color.DarkCyan);string saveId=first.AddReferenceAssets(new[]{saveSource},"").Single();var save=first.All().Single(a=>a.Id==saveId);string savePath=first.ThumbnailPath(save);Directory.CreateDirectory(savePath);first.BuildThumbnail(save);
+    string saveSource=Path.Combine(root,"save-retry.png");Image(saveSource,41,27,Color.DarkCyan);string saveId=first.AddReferenceAssets(new[]{saveSource},"").Single();var save=first.All().Single(a=>a.Id==saveId);string savePath=first.ThumbnailPath(save);byte[] saveOriginal=File.ReadAllBytes(saveSource);Directory.CreateDirectory(savePath);bool outputDenied=false;
+    // Structural output collisions are deliberately rejected before decoding.
+    // Catch only that expected IO rejection so the recovery/database legs below
+    // still execute; unrelated failures must continue to fail this test group.
+    try{first.BuildThumbnail(save);}catch(IOException){outputDenied=true;}
+    check(outputDenied&&Directory.Exists(savePath)&&Directory.GetFileSystemEntries(savePath).Length==0&&File.ReadAllBytes(saveSource).SequenceEqual(saveOriginal)&&ThumbnailBuildGate.ActivePathCount==0,"directory collision is explicitly rejected without writing the output, changing the source or leaking its path gate");
     check(!ThumbnailBuildGate.HasDecodeFailure(ThumbnailBuildGate.SourceStamp(saveSource)),"thumbnail output/save failure does not poison source decoding cache");
     Directory.Delete(savePath);first.BuildThumbnail(save);
     check(File.Exists(savePath)&&save.Width==41&&save.Height==27,"save failure can retry immediately after output becomes writable");

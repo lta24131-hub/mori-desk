@@ -14,6 +14,7 @@ header{display:flex;align-items:center;gap:10px;height:54px;padding:0 18px;backg
 main{padding:16px 18px;max-height:530px;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--scroll-thumb) transparent}
 .icon{width:26px;height:26px;background:var(--control);border:0;border-radius:6px;font-size:17px;line-height:1}.icon:hover{background:var(--hover)}
 .status{font-size:12px;white-space:pre-line;overflow-wrap:anywhere;color:var(--muted);margin:0 0 14px}
+.connection-channel{font-size:11px;color:var(--muted);margin:0 0 10px}.connection-diagnostics{margin:-6px 0 12px}.connection-diagnostics pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:120px;overflow:auto;font:11px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif;color:var(--muted);margin:6px 0}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}.row>label,.toggle-row>span{flex:1}
 select{max-width:192px;border:1px solid var(--line);border-radius:5px;padding:5px 4px;background:var(--input);font-size:12px}select:disabled{opacity:.55}option{background:var(--surface);color:var(--text)}
 .nav{display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 0;border:0;border-top:1px solid var(--divider);background:none;font-size:13px}.nav:hover{color:var(--text);background:var(--hover)}

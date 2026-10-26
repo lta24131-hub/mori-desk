@@ -1,6 +1,16 @@
-param([string]$BuildDirectory='dist',[switch]$IncludeExperimentalFileConversion)
+param([string]$BuildDirectory='dist',[switch]$IncludeExperimentalFileConversion,[string]$LauncherDirectory='dependencies\update-launcher-v1')
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
+. (Join-Path $suiteRoot 'tools\Assert-UpdateDataContract.ps1')
+$dataContract=Assert-UpdateDataContract -SourceRoot $suiteRoot
+$launcherRoot=if([IO.Path]::IsPathRooted($LauncherDirectory)){$LauncherDirectory}else{Join-Path $suiteRoot $LauncherDirectory}
+$launcher=Join-Path $launcherRoot 'Mori.exe'
+$provenance=Join-Path $launcherRoot 'launcher-provenance.json'
+if(!(Test-Path -LiteralPath $launcher -PathType Leaf) -or !(Test-Path -LiteralPath $provenance -PathType Leaf)){throw 'A frozen, VM-validated protocol-1 launcher is required. Do not rebuild a different launcher for every release. Use tools\Build-UpdateLauncher.ps1 in an isolated candidate directory for validation first.'}
+$launcherRecord=Get-Content -LiteralPath $provenance -Raw | ConvertFrom-Json
+if($launcherRecord.schemaVersion -ne 1 -or $launcherRecord.protocolVersion -ne 1 -or $launcherRecord.sha256 -ne (Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash){throw 'Stable launcher provenance mismatch'}
+$launcherIdentity=[Diagnostics.FileVersionInfo]::GetVersionInfo($launcher)
+if($launcherIdentity.ProductName -ne 'Nook' -or $launcherIdentity.OriginalFilename -ne 'Mori.exe' -or $launcherIdentity.FileVersion -ne '1.0.0.1'){throw 'Unexpected stable launcher identity'}
 . (Join-Path $suiteRoot 'modules\file-conversion\Validate-Component.ps1')
 $buildPath=if([IO.Path]::IsPathRooted($BuildDirectory)){$BuildDirectory}else{Join-Path $suiteRoot $BuildDirectory}
 function Assert-NoMachineSecrets([string]$PathToCheck){
@@ -98,7 +108,7 @@ Assert-NoMachineSecrets $payload
 Compress-Archive -Path "$payload\*" -DestinationPath $zip -CompressionLevel Optimal
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $refs=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.IO.Compression.dll','System.Web.Extensions.dll','Microsoft.CSharp.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }
-& "$framework\csc.exe" /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 ('/out:'+$releaseRoot+'\Nook-Setup.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/resource:'+$zip+',MoriDesk.Payload.zip') @refs "$suiteRoot\installer\Setup.cs" "$suiteRoot\src\OpenWithRegistration.cs" "$suiteRoot\src\FileFormats.cs"
+& "$framework\csc.exe" /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 ('/out:'+$releaseRoot+'\Nook-Setup.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/resource:'+$zip+',MoriDesk.Payload.zip') ('/resource:'+$launcher+',MoriDesk.Launcher.exe') @refs "$suiteRoot\installer\Setup.cs" "$suiteRoot\installer\InstallerProgress.cs" "$suiteRoot\installer\ReplacementInstall.cs" "$suiteRoot\installer\ReplacementStaging.cs" "$suiteRoot\installer\InstalledVersionCleanup.cs" "$suiteRoot\installer\ManualMetadataBackup.cs" "$suiteRoot\src\AppUpdateMetadataBackup.cs" "$suiteRoot\src\InstalledApplicationState.cs" "$suiteRoot\src\InstalledCleanupState.cs" "$suiteRoot\src\OpenWithRegistration.cs" "$suiteRoot\src\FileFormats.cs" "$suiteRoot\src\PhysicalUserContext.cs"
 if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
 $installerVersion=[System.Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $releaseRoot 'Nook-Setup.exe')).FileVersion
 if([version]$installerVersion -ne [version]$buildVersion){throw 'Installer and application versions do not match. Update both before publishing an installable release.'}

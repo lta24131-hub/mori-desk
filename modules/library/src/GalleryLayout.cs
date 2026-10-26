@@ -16,6 +16,9 @@ namespace Mori {
   // Keep source identity separate from the format badge and multi-select mark.
   // Extremely narrow/short tiles retain the same explanation in their tooltip.
   public bool ShowSourceBadge {get{return Asset!=null&&Asset.IsReference&&Width>=56&&ImageHeight>=52;}}
+  // Compact shortcut tiles keep their format icon; status must not collide
+  // with the bottom-left format badge or the file name below the tile.
+  public bool ShowPreviewStatus {get{return Width>=140&&ImageHeight>=110;}}
   public double LabelHeight {get{return (ShowName?21:0)+(ShowDetails?19:0);}}
  }
  public sealed class AssetRow {

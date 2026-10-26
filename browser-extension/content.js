@@ -2,12 +2,14 @@
   // Capture the identity loaded by preferences.js. A same-version repair can
   // restart its background worker while this already-open page is still old.
   const generation = /^[0-9a-f]{32}$/.test(globalThis.MoriInstalledGeneration || '') ? globalThis.MoriInstalledGeneration : '';
-  // Dynamic reinjection and extension updates must leave exactly one collector
-  // per frame. The DOM event also retires the previous extension world after a
-  // reload; callbacks from that world may finish but cannot reopen its UI.
+  // Recheck busy at execution time, not only during the worker's earlier ping:
+  // the user may have begun a drag in between. Newer collectors in a previous
+  // isolated world can also veto replacement while their gesture is active.
   const replacementEvent = 'mori-collector-replace-' + chrome.runtime.id;
-  document.dispatchEvent(new Event(replacementEvent));
-  globalThis.MoriCollectorInstance?.dispose();
+  const previous = globalThis.MoriCollectorInstance;
+  if (previous?.busy) return;
+  if (!document.dispatchEvent(new Event(replacementEvent, {cancelable:true}))) return;
+  previous?.dispose();
   let disposed = false, updateLock = null, updateLockTimer, resolving = 0;
   const subscriptions = [], sessions = new Set();
   const listen = (target, name, handler, options) => {
@@ -21,12 +23,16 @@
   const geometry = globalThis.MoriDragGeometry;
   const P = globalThis.MoriPreferences;
   let preferences = P.normalize(), preferencesReady = false, topPageUrl = location.href;
+  let preferencesKnown = false, preferenceRevision = 0, preferenceFlight = null, preferenceRetryTimer = null;
+  let preferenceAttempts = 0, preferenceCycleAt = -Infinity, preferenceNoticeAt = -Infinity;
+  const preferenceNotice = {}, preferenceRetryDelays = [250, 1000];
   const darkMedia = matchMedia('(prefers-color-scheme: dark)');
   const t = text => MoriCollectorText(text, P.language(preferences));
   let active = null;
   let hideTimer;
   let contextPoint;
   let contextImage;
+  let contextFramework;
   let contextTime = 0;
   const notices = new Map();
   let noticeHost, noticeRoot, noticeList;
@@ -45,6 +51,8 @@
     if (disposed) return;
     disposed = true;
     releaseUpdateLock();
+    clearTimeout(preferenceRetryTimer); preferenceRetryTimer = null;
+    clearTimeout(preferenceFlight?.timer); preferenceFlight = null;
     subscriptions.splice(0).forEach(remove => remove());
     clearTimeout(hideTimer); restoreDrag();
     for (const session of sessions) {
@@ -54,8 +62,9 @@
     for (const notice of notices.values()) clearTimeout(notice.timer);
     notices.clear(); noticeHost?.remove(); active = null; sessions.clear();
   }
-  globalThis.MoriCollectorInstance = {dispose, updateProtocol:1, get ready() {return !disposed && preferencesReady;}};
-  listen(document, replacementEvent, dispose);
+  const preferenceState = () => disposed ? 'disposed' : preferencesReady ? 'ready' : preferenceFlight || preferenceRetryTimer !== null ? 'initializing' : 'degraded';
+  globalThis.MoriCollectorInstance = {dispose, updateProtocol:1, get ready() {return !disposed && preferencesReady;}, get state() {return preferenceState();}, get busy() {return !disposed && collectionBusy();}};
+  listen(document, replacementEvent, event => {if (collectionBusy()) {event.preventDefault(); return;} dispose();});
 
   function removeNotice(session, cancel = false) {
     const notice = notices.get(session);
@@ -145,7 +154,7 @@
     signalIdle();
   }
 
-  function imageAtContext(event) {
+  function imageAtContext(event, frameworkContext) {
     const p = point(event);
     const seen = new Set();
     const path = event.composedPath().filter(node => node instanceof Element);
@@ -168,6 +177,16 @@
         return {url: url.href, kind, name: (name || document.title || '网页收藏').slice(0, 200)};
       } catch {return null;}
     };
+    const fromMedia = image => {
+      const video = image instanceof HTMLVideoElement;
+      // A poster is not the animation. preload=none videos often have no
+      // currentSrc yet, so use the declared source without forcing playback.
+      const src = image.currentSrc || image.getAttribute('src') || (video ? image.querySelector('source[src]')?.getAttribute('src') : '');
+      const found = item(src, image.alt || image.getAttribute('aria-label') || image.title, video ? 'video' : 'image');
+      if (video && found?.url.startsWith('blob:')) found.mediaPage = MoriMediaSource.identify(image);
+      return found;
+    };
+    let unresolvedMedia = false;
     // Prefer actual image pixels at this point. Bounded descendant checks also
     // cover pointer-events:none images underneath a stretched card link.
     for (const node of hits.slice(0, 16)) {
@@ -175,19 +194,57 @@
       for (const image of images) {
         if (seen.has(image)) continue;
         seen.add(image);
-        if (visibleAt(image)) {
-          const video = image instanceof HTMLVideoElement;
-          // A poster is not the animation. preload=none videos often have no
-          // currentSrc yet, so use the declared source without forcing playback.
-          const src = image.currentSrc || image.getAttribute('src') || (video ? image.querySelector('source[src]')?.getAttribute('src') : '');
-          const found = item(src, image.alt || image.getAttribute('aria-label') || image.title, video ? 'video' : 'image');
-          if (found) {
-            if (video && found.url.startsWith('blob:')) found.mediaPage = MoriMediaSource.identify(image);
-            return found;
+        // A real video is its own target, even when a framework image wrapper
+        // also contains it. Never turn its animation into a sibling still.
+        if (image instanceof HTMLVideoElement && visibleAt(image)) return fromMedia(image);
+        // Gatsby puts a transparent sizing SVG before its placeholder and real
+        // image. DOM order is not the painted image order. Resolve this explicit
+        // local visual group through its main image, never through its spacer.
+        // This does not reject SVG, alpha-transparent images or aria-hidden
+        // media elsewhere; a genuine SVG main image is still a valid target.
+        const group = image.closest('[data-gatsby-image-wrapper]');
+        const frameworkImage = image.matches('img[data-main-image],img[data-placeholder-image]') ||
+          (image.matches('img') && image.getAttribute('role') === 'presentation' &&
+            image.parentElement?.tagName === 'DIV' && image.parentElement.parentElement === group);
+        if (group && frameworkImage && visibleAt(group)) {
+          const mainImages = Array.from(group.querySelectorAll('img[data-main-image]')).filter(candidate => candidate.closest('[data-gatsby-image-wrapper]') === group).slice(0, 80);
+          if (mainImages.length) {
+            if (frameworkContext) {
+              // Exact aliases from this local framework group only. Capture
+              // these at contextmenu time, not later from arbitrary page DOM.
+              const aliases = new Set();
+              for (const candidate of Array.from(group.querySelectorAll('img')).filter(candidate => candidate.closest('[data-gatsby-image-wrapper]') === group).slice(0, 80)) {
+                const structural = candidate.matches('img[data-main-image],img[data-placeholder-image]') ||
+                  (candidate.getAttribute('role') === 'presentation' && candidate.parentElement?.tagName === 'DIV' && candidate.parentElement.parentElement === group);
+                if (!structural) continue;
+                for (const src of [candidate.currentSrc,candidate.getAttribute('src')]) {
+                  const alias = item(src);
+                  if (alias && alias.url.length <= 2 * 1024 * 1024) aliases.add(alias.url);
+                }
+              }
+              frameworkContext.aliases = [...aliases];
+              frameworkContext.item = null;
+            }
+            for (const main of mainImages) {
+              if (!visibleAt(main)) continue;
+              const found = fromMedia(main);
+              if (found) {if (frameworkContext) frameworkContext.item = found;return found;}
+            }
+            // Its pixels/source are not ready yet. Do not silently collect the
+            // low-res placeholder, transparent spacer or page wallpaper.
+            return null;
           }
+        }
+        if (visibleAt(image)) {
+          const found = fromMedia(image);
+          if (found) return found;
+          unresolvedMedia = true;
         }
       }
     }
+    // A real local image/video without a usable source is not permission to
+    // substitute a larger ancestor's decorative background (or a video poster).
+    if (unresolvedMedia) return null;
     // CSS background URLs are already resolved by the browser. Never use the
     // clicked link's href or choose an unrelated nearby image as a fallback.
     for (const node of hits.slice(0, 16)) {
@@ -279,15 +336,75 @@
     active.panel.dataset.theme = P.theme(preferences, darkMedia.matches);
     position(active, fitted(active));
   }
-  runtime({action: 'preferences'}, response => {
-    if (!response.ok) return;
-    topPageUrl = response.pageUrl || location.href;
-    applyPreferences(response.preferences); preferencesReady = true;
-    if(response.updateLocked)holdUpdateLock('startup');
-  });
+  // Preference reads are safe to retry, unlike saves. Own this small deadline
+  // here so a lost startup response cannot leave a page inert for 45 seconds.
+  // Only one logical read/backoff is active, and late replies cannot commit.
+  function readPreferences() {
+    if (disposed || preferencesReady || preferenceFlight) return;
+    const task = {revision:preferenceRevision, timer:null};
+    preferenceFlight = task; preferenceAttempts++;
+    const finish = (response, terminal = false) => {
+      if (disposed || preferenceFlight !== task) return;
+      clearTimeout(task.timer); preferenceFlight = null;
+      let pageUrl = window === window.top ? location.href : '';
+      if (window !== window.top && typeof response?.pageUrl === 'string') {
+        try {
+          const parsed = new URL(response.pageUrl);
+          if (['http:', 'https:'].includes(parsed.protocol) && !parsed.username && !parsed.password) pageUrl = parsed.href;
+        } catch {}
+      }
+      if (response?.ok === true && response.preferences && typeof response.preferences === 'object' && !Array.isArray(response.preferences) && pageUrl) {
+        topPageUrl = pageUrl;
+        // A storage event is newer than the snapshot requested by this read.
+        // Never re-enable a page/domain which the user just disabled.
+        if (task.revision === preferenceRevision) {applyPreferences(response.preferences); preferencesKnown = true;}
+        preferencesReady = true;
+        removeNotice(preferenceNotice);
+        if (response.updateLocked) holdUpdateLock('startup');
+        return;
+      }
+      if (!terminal && preferenceAttempts <= preferenceRetryDelays.length) {
+        preferenceRetryTimer = setTimeout(() => {preferenceRetryTimer = null; readPreferences();}, preferenceRetryDelays[preferenceAttempts - 1]);
+      }
+    };
+    task.timer = setTimeout(() => finish({ok:false}), 2000);
+    try {
+      chrome.runtime.sendMessage({action:'preferences'}, response => {
+        const error = chrome.runtime.lastError;
+        finish(error ? {ok:false} : response, /context.*invalidated/i.test(error?.message || ''));
+      });
+    } catch (error) {finish({ok:false}, /context.*invalidated/i.test(error?.message || ''));}
+  }
+  function wakePreferences(changed = false) {
+    if (disposed || preferencesReady || preferenceFlight || preferenceRetryTimer !== null) return;
+    // Exhaustion stays quiet until a real wake signal. Repeated tab activation
+    // or clicks cannot turn a broken worker into an unbounded polling loop.
+    if (!changed && Date.now() - preferenceCycleAt < 10000) return;
+    preferenceCycleAt = Date.now(); preferenceAttempts = 0;
+    readPreferences();
+  }
+  function unavailableDrag() {
+    // Only an actual media drag can show a notice; background retries, focus,
+    // clicks and deliberately disabled sites remain silent. Never claim a save.
+    if (preferencesKnown && P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
+    if (Date.now() - preferenceNoticeAt < 10000) return;
+    preferenceNoticeAt = Date.now();
+    const english = P.language(preferences) === 'en';
+    const initializing = preferenceState() === 'initializing';
+    notify(preferenceNotice, initializing
+      ? (english ? 'Nook is connecting. Please drag again shortly.' : 'Nook 收藏正在连接，请稍后再拖一次。')
+      : (english ? 'Nook collection is temporarily unavailable. Please try again shortly.' : 'Nook 收藏暂未就绪，请稍后再拖一次。'), initializing ? 'info' : 'error');
+  }
+  wakePreferences();
   subscribe(chrome.storage.onChanged, (changes, area) => {
-    if (area === 'local' && changes[P.key]) applyPreferences(changes[P.key].newValue);
+    if (area === 'local' && changes[P.key]) {
+      preferenceRevision++; preferencesKnown = true;
+      applyPreferences(changes[P.key].newValue);
+      wakePreferences(true);
+    }
   });
+  listen(window, 'focus', () => wakePreferences());
+  listen(document, 'visibilitychange', () => {if (!document.hidden) wakePreferences();});
   listen(darkMedia, 'change', () => {if (active) active.panel.dataset.theme = P.theme(preferences, darkMedia.matches);for (const {row} of notices.values()) row.dataset.theme = P.theme(preferences, darkMedia.matches);});
 
   function setPhase(session, phase) {
@@ -771,7 +888,9 @@
     restoreDrag();
     if(updateLock)return;
     if (event.composedPath().includes(active?.host) || event.composedPath().includes(noticeHost)) return;
-    if (event.button !== 0 || event.pointerType !== 'mouse' || !preferencesReady || P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
+    if (event.button !== 0 || event.pointerType !== 'mouse') return;
+    if (!preferencesReady) {wakePreferences(); if (!preferencesReady) return;}
+    if (P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
     const target = event.composedPath().find(node => node instanceof Element);
     if (!target || target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])')) return;
     // Do not turn a player's seek/volume controls into a collection gesture.
@@ -787,12 +906,29 @@
   listen(document, 'dragstart', event => {
     if(updateLock)return;
     if (event.composedPath().includes(active?.host) || event.composedPath().includes(noticeHost)) return;
-    if (!preferencesReady || P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
     const target = event.target instanceof Element ? event.target : null;
     let found = preparedDrag && event.composedPath().includes(preparedDrag.target) ? preparedDrag.item : imageAtContext(event);
     // Programmatic/native image drags may report a point outside their element.
-    if (!found && target instanceof HTMLImageElement && (target.currentSrc || target.getAttribute('src'))) found = {url:target.currentSrc || target.src, kind:'image', name:target.alt || document.title};
+    // The resolver deliberately rejects a pending framework image group. Its
+    // native spacer/placeholder drag must not undo that decision here. Ordinary
+    // native IMG drags outside their reported coordinates retain the fallback.
+    const frameworkGroup = target instanceof HTMLImageElement ? target.closest('[data-gatsby-image-wrapper]') : null;
+    let readyFrameworkMain = false;
+    if (frameworkGroup && target.matches('img[data-main-image]')) {
+      const rect = target.getBoundingClientRect();
+      readyFrameworkMain = rect.width > 0 && rect.height > 0;
+      for (let node = target; readyFrameworkMain && node instanceof Element; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.display === 'none' || ['hidden','collapse'].includes(style.visibility) || Number(style.opacity) === 0) readyFrameworkMain = false;
+      }
+    }
+    const frameworkTarget = frameworkGroup && Array.from(frameworkGroup.querySelectorAll('img[data-main-image]')).some(candidate => candidate.closest('[data-gatsby-image-wrapper]') === frameworkGroup) &&
+      (!readyFrameworkMain && target.matches('img[data-main-image],img[data-placeholder-image]') ||
+        (target.getAttribute('role') === 'presentation' && target.parentElement?.tagName === 'DIV' && target.parentElement.parentElement === frameworkGroup));
+    if (!found && target instanceof HTMLImageElement && !frameworkTarget && (target.currentSrc || target.getAttribute('src'))) found = {url:target.currentSrc || target.src, kind:'image', name:target.alt || document.title};
     if (!found) return;
+    if (!preferencesReady) {wakePreferences(); if (!preferencesReady) {unavailableDrag(); return;}}
+    if (P.mode(preferences, window === window.top ? location.href : topPageUrl) !== 'enabled') return;
     const item = {...found, source:location.href};
     if (event.dataTransfer && !(target instanceof HTMLImageElement)) {
       event.dataTransfer.setData('text/uri-list', item.url);
@@ -818,7 +954,11 @@
   listen(window, 'resize', () => {if (active) position(active, fitted(active));});
   listen(document, 'contextmenu', event => {
     contextPoint = point(event);
-    contextImage = imageAtContext(event);
+    const framework = {};
+    // Synthetic page events may not seed a native-image override. Ordinary DOM
+    // resolver tests remain separate from genuine Chrome menu acceptance.
+    contextImage = imageAtContext(event, event.isTrusted ? framework : null);
+    contextFramework = framework.aliases ? framework : null;
     contextTime = Date.now();
   }, true);
   subscribe(chrome.runtime.onMessage, (message, sender, reply) => {
@@ -828,17 +968,31 @@
     }
     if(message?.action==='mori-update-verify') {reply({ready:!disposed && !collectionBusy() && updateLock===message.lock,lock:updateLock});return;}
     if(message?.action==='mori-update-resume') {releaseUpdateLock(message.lock);reply({ready:true});return;}
-    if (message?.action === 'mori-collector-ping') {reply({ready:!disposed && preferencesReady, busy:collectionBusy(), version:chrome.runtime.getManifest().version, generation}); return;}
-    if(updateLock && ['context-edit','resolve-context-image','context-saving'].includes(message?.action)){reply({displayed:false,ok:false,code:'UPDATE_IN_PROGRESS'});return;}
+    if (message?.action === 'mori-collector-ping' || message?.action === 'mori-collector-wake') {
+      if (message.action === 'mori-collector-wake') wakePreferences();
+      const state = preferenceState();
+      reply({ready:!disposed && preferencesReady, state, initializing:state === 'initializing', degraded:state === 'degraded', readinessProtocol:1, busy:collectionBusy(), version:chrome.runtime.getManifest().version, generation}); return;
+    }
+    if(updateLock && ['context-edit','resolve-context-image','resolve-context-native-image','context-saving'].includes(message?.action)){reply({displayed:false,ok:false,code:'UPDATE_IN_PROGRESS'});return;}
     if (message?.action === 'context-edit') {
       const session = mount(message.item, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
       session.requestId = message.requestId;
       edit(session);
       reply({displayed: true}); return;
     }
+    if (message?.action === 'resolve-context-native-image') {
+      const framework = Date.now() - contextTime < 120000 ? contextFramework : null;
+      contextFramework = null; contextImage = null;
+      if (typeof message.expectedUrl !== 'string' || !framework?.aliases.includes(message.expectedUrl)) {reply({matched:false});return;}
+      // Three states: exact known alias and ready main; exact alias but pending
+      // main (block); no alias match (background keeps Chrome's native source).
+      reply(framework.item ? {matched:true,ok:true,expectedUrl:message.expectedUrl,item:framework.item} :
+        {matched:true,ok:false,expectedUrl:message.expectedUrl,error:'图片尚未加载完成，请等图片清晰后重新右键收藏。本次没有保存占位图。'});
+      return;
+    }
     if (message?.action === 'resolve-context-image') {
       const item = Date.now() - contextTime < 120000 ? contextImage : null;
-      contextImage = null;
+      contextImage = null; contextFramework = null;
       if (message.expectedUrl && item?.url !== message.expectedUrl) {reply({ok:false,kind:item?.kind,error:'视频目标已变化，请重新右键目标视频收藏。'});return;}
       if (item?.kind === 'video' && item.url.startsWith('blob:')) {
         resolving++;
