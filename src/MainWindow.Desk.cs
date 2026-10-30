@@ -13,16 +13,19 @@ namespace Mori {
   public void DeferDeskServices(){deskDeferred=true;}
   public void StartDeskServices(){
    deskDeferred=false;if(!deskLoaded||deskServicesActive||(!Entry.InteractiveShell&&!PreviewMode))return;
-   deskServicesActive=true;DeskRuntime.Notify=NotifyFromTools;DeskRuntime.CollectImage=CollectScreenshot;DeskRuntime.OpenSettings=()=>OpenDeskSettings("capture");DeskRuntime.Start(PreviewMode,library.Root);if(!PreviewMode)BrowserConnection.StartLocal();
+   RefreshTaskbarIdentity();deskServicesActive=true;DeskRuntime.Notify=NotifyFromTools;DeskRuntime.CollectImage=CollectScreenshot;DeskRuntime.OpenSettings=()=>OpenDeskSettings("capture");DeskRuntime.Start(PreviewMode,library.Root);if(!PreviewMode)BrowserConnection.StartLocal();
   }
   void InitializeDesk(){
    Window.Title="Nook · 素材与工具";
+   InitializeTaskbarIdentity();
    InitializeFileConversionLifecycle();
    Window.Closed+=delegate{DisposeBrowser();};
    Find<Grid>("Workspace").SizeChanged+=delegate{ApplyBrowserPresentation();ApplyCanvasProjectsPresentation();};
-   deskTools=new Button{Content="工具",ToolTip="截图 · 输入翻译 · 看图 · 3D 查看 · 格式转换",Style=B("More").Style};UiIcons.SetGlyph(deskTools,"\uE90F");var actions=(Panel)B("More").Parent;actions.Children.Insert(actions.Children.IndexOf(B("Settings")),deskTools);deskTools.Click+=delegate{ToolMenu(deskTools);};
-   var nav=new Button{Content="本地收藏",ToolTip="电脑文件拖入默认在这里 · 只存位置，不复制文件",Style=B("All").Style};referenceNav=nav;UiIcons.SetGlyph(nav,"\uE8B7");var navigation=(Panel)B("All").Parent;navigation.Children.Insert(navigation.Children.IndexOf(B("Documents"))+1,nav);nav.Click+=delegate{ShowReferences();};
-   canvasNav=new Button{Name="CanvasNav",Content="项目",ToolTip="按项目查看画板缩略图；拖图片到指定画板加入",Style=B("All").Style,Margin=new Thickness(10,8,10,0)};UiIcons.SetGlyph(canvasNav,"\uE7C5");navigation.Children.Insert(navigation.Children.IndexOf(B("Audio"))+1,canvasNav);Window.RegisterName("CanvasNav",canvasNav);canvasNav.Click+=delegate{ShowCanvasProjects();};Window.Activated+=delegate{RefreshCanvasProjects();};
+   deskTools=new Button{Name="DeskTools",Content="工具箱",ToolTip="截图、翻译、桌面贴图与文件工具",Style=B("All").Style};UiIcons.SetGlyph(deskTools,"\uE90F");Find<StackPanel>("SidebarUtilityActions").Children.Insert(0,deskTools);Window.RegisterName("DeskTools",deskTools);InitializeToolbox(deskTools);
+   var navigation=Find<StackPanel>("SidebarCollectionLinks");
+   canvasNav=new Button{Name="CanvasNav",Content="项目",ToolTip="按项目查看画板缩略图；拖图片到指定画板加入",Style=B("All").Style};UiIcons.SetGlyph(canvasNav,"\uE7C5");navigation.Children.Insert(1,canvasNav);Window.RegisterName("CanvasNav",canvasNav);canvasNav.Click+=delegate{ShowCanvasProjects();};Window.Activated+=delegate{RefreshCanvasProjects();};
+   var nav=new Button{Name="ReferenceNav",Content="本地收藏",ToolTip="电脑文件拖入默认在这里 · 只存位置，不复制文件",Style=B("All").Style};referenceNav=nav;UiIcons.SetGlyph(nav,"\uE8B7");navigation.Children.Insert(2,nav);Window.RegisterName("ReferenceNav",nav);nav.Click+=delegate{ShowReferences();};
+   InitializeHomeLayout();
    Window.Loaded+=delegate{deskLoaded=true;if(!deskDeferred)StartDeskServices();Application.Current.ShutdownMode=ShutdownMode.OnMainWindowClose;};
    Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(e.Cancel)return;if(matureCanvas!=null&&!matureCanvas.PreparedForExit){e.Cancel=true;matureCanvas.SaveAndRun(delegate{exitRequested=true;Window.Close();});return;}if(freeCanvas!=null&&!freeCanvas.PrepareExit()){e.Cancel=true;return;}if(!DeskRuntime.PrepareExit(Window)){e.Cancel=true;return;}CloseFreeCanvasForExit(s,e);if(e.Cancel&&!DeskRuntime.SessionEnding)QingJie.AppState.Quitting=false;};
    InitializeAppUpdate();
@@ -30,8 +33,8 @@ namespace Mori {
    Application.Current.Exit+=delegate{BrowserConnection.StopLocal();DeskRuntime.Stop();};
    if(Entry.BoardEnabled)ShowBoard("all");if(Entry.ClassicEnabled){InitializeLocalAddress();UpdateInspector();UpdateNavigationScope();}
   }
-  void CoverForReferences(UIElement element){if(element==null||referenceCovered.ContainsKey(element))return;referenceCovered[element]=element.Visibility;element.Visibility=Visibility.Collapsed;}
-  void ShowReferences(){if(Entry.ClassicEnabled){SetSection("shortcuts");return;}if(Entry.BoardEnabled){ShowBoard("shortcuts");return;}if(busy||(!referenceMode&&!PrepareLibraryChange()))return;HideCanvasProjects();HideBrowser();if(referencePage==null){referencePage=new ReferencePage(Window,new ReferenceStore(library.Db),HideReferences,Status,(path,name)=>FileRouter.Open(Window,path,name));Grid.SetColumn(referencePage,2);Grid.SetColumnSpan(referencePage,3);Panel.SetZIndex(referencePage,10);Find<Grid>("Workspace").Children.Add(referencePage);}if(!referenceMode){referenceCovered.Clear();foreach(UIElement child in Find<Grid>("Workspace").Children)if(child!=referencePage&&Grid.GetColumn(child)>=2)CoverForReferences(child);foreach(string name in new[]{"Import","Paste","AddBookmark","Export"})CoverForReferences(B(name));CoverForReferences((UIElement)T("Search").Parent);CoverForReferences((UIElement)Find<Slider>("ThumbnailSize").Parent);CoverForReferences(Find<TreeView>("Folders"));CoverForReferences(Find<Grid>("MediaFolderHeading"));foreach(string name in new[]{"Unfiled","Favorites","Trash"})CoverForReferences(B(name));}referenceMode=true;referencePage.Visibility=Visibility.Visible;referencePage.Refresh();foreach(string name in new[]{"All","Pictures","Videos","Audio","Bookmarks","Documents"})B(name).SetResourceReference(Button.BackgroundProperty,"Panel");referenceNav.SetResourceReference(Button.BackgroundProperty,"AccentSoft");Status("本地收藏只记位置 · 双击打开 · 不复制、不移动、不删除原件");}
+  void CoverForReferences(UIElement element){if(element==null||referenceCovered.ContainsKey(element))return;referenceCovered[element]=element.Visibility;element.Visibility=element==B("Trash")?Visibility.Hidden:Visibility.Collapsed;}
+  void ShowReferences(){if(Entry.ClassicEnabled){SetSection("shortcuts");return;}if(Entry.BoardEnabled){ShowBoard("shortcuts");return;}if(busy||(!referenceMode&&!PrepareLibraryChange()))return;HideCanvasProjects();HideBrowser();if(referencePage==null){referencePage=new ReferencePage(Window,new ReferenceStore(library.Db),HideReferences,Status,(path,name)=>FileRouter.Open(Window,path,name));Grid.SetColumn(referencePage,2);Grid.SetColumnSpan(referencePage,3);Panel.SetZIndex(referencePage,10);Find<Grid>("Workspace").Children.Add(referencePage);}if(!referenceMode){referenceCovered.Clear();foreach(UIElement child in Find<Grid>("Workspace").Children)if(child!=referencePage&&Grid.GetColumn(child)>=2)CoverForReferences(child);foreach(string name in new[]{"Import","Paste","AddBookmark","Export","HomeAdd"})CoverForReferences(B(name));CoverForReferences((UIElement)T("Search").Parent);CoverForReferences((UIElement)Find<Slider>("ThumbnailSize").Parent);CoverForReferences(Find<TreeView>("Folders"));CoverForReferences(Find<Grid>("MediaFolderHeading"));foreach(string name in new[]{"Unfiled","Favorites","Trash"})CoverForReferences(B(name));}referenceMode=true;referencePage.Visibility=Visibility.Visible;referencePage.Refresh();foreach(string name in new[]{"All","Pictures","Videos","Audio","Bookmarks","Documents"})B(name).SetResourceReference(Button.BackgroundProperty,"Panel");referenceNav.SetResourceReference(Button.BackgroundProperty,"AccentSoft");Status("本地收藏只记位置 · 双击打开 · 不复制、不移动、不删除原件");}
   void HideReferences(){if(!referenceMode)return;referenceMode=false;if(referencePage!=null)referencePage.Visibility=Visibility.Collapsed;foreach(var child in referenceCovered)child.Key.Visibility=child.Value;referenceCovered.Clear();referenceNav.SetResourceReference(Button.BackgroundProperty,"Panel");Refresh(false);}
   internal static bool IsLocalFileDrop(IDataObject data){return data.GetDataPresent(DataFormats.FileDrop)&&!DesktopImageDrop.Internal(data)&&!DesktopImageDrop.TemporaryPictures(data);}
   internal void CollectLocalPaths(string[] paths){if(canvasProjectsMode){Status("将图片拖到具体画布项目，不会收藏到素材库。");return;}if(busy){Status("请等待当前操作结束后再收藏本地文件。");return;}if(Entry.ClassicEnabled){CollectClassicPaths(paths,bookmarkMode?"":CurrentFolder());return;}if(Entry.BoardEnabled){OfferBoardPaths(paths,"");return;}bool local=referenceMode;ShowReferences();if(referenceMode){if(local)referencePage.DropFiles(paths);else referencePage.CollectPaths(paths,"",false);}}
@@ -59,7 +62,7 @@ namespace Mori {
     try{if(Window.IsVisible&&!referenceMode)Refresh(false);}catch{}
     try{NotifyFromTools(result.Duplicate?"已收藏到素材库 · 相同截图不重复保存":"截图已收藏到素材库 · 未分类");}catch{}
     return true;
-   }finally{busy=false;}
+   }finally{busy=false;UpdateBatchActions();}
   }
  }
 }

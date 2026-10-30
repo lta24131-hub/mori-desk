@@ -14,6 +14,8 @@ namespace Mori {
   public int Right {get;private set;}
   public bool LeftVisible {get;private set;}
   public bool RightVisible {get;private set;}
+  internal bool RightTemporarilyHidden {get;private set;}
+  internal bool RightDisplayed {get{return RightVisible&&!RightTemporarilyHidden;}}
   public event Action Changed;
   public static int ClampLeft(int value){return Math.Max(MinLeft,Math.Min(MaxLeft,value));}
   public static int ClampRight(int value){return Math.Max(MinRight,Math.Min(MaxRight,value));}
@@ -33,8 +35,11 @@ namespace Mori {
    splitter.KeyUp+=delegate(object s,KeyEventArgs e){if(e.Key==Key.Left||e.Key==Key.Right)Commit(isLeft);};
    splitter.MouseDoubleClick+=delegate(object s,MouseButtonEventArgs e){SetPreferred(isLeft,isLeft?DefaultLeft:DefaultRight);e.Handled=true;};
   }
-  void Commit(bool isLeft){if(applying)return;if(LeftVisible)Left=ClampLeft((int)Math.Round(left.Width.IsAbsolute?left.Width.Value:left.ActualWidth));if(RightVisible&&(!temporaryRightWidth.HasValue||!isLeft)){Right=ClampRight((int)Math.Round(right.Width.IsAbsolute?right.Width.Value:right.ActualWidth));if(temporaryRightWidth.HasValue)temporaryRightWidth=Right;}Apply();if(Changed!=null)Changed();}
+  void Commit(bool isLeft){if(applying)return;if(LeftVisible)Left=ClampLeft((int)Math.Round(left.Width.IsAbsolute?left.Width.Value:left.ActualWidth));if(RightDisplayed&&(!temporaryRightWidth.HasValue||!isLeft)){Right=ClampRight((int)Math.Round(right.Width.IsAbsolute?right.Width.Value:right.ActualWidth));if(temporaryRightWidth.HasValue)temporaryRightWidth=Right;}Apply();if(Changed!=null)Changed();}
   internal void SetVisible(bool isLeft,bool visible){if(isLeft)LeftVisible=visible;else RightVisible=visible;Apply();}
+  // A selection-free gallery can use the full width without changing the user's
+  // saved preference or preferred inspector width.
+  internal void SetTemporaryRightHidden(bool hidden){if(RightTemporarilyHidden==hidden)return;RightTemporarilyHidden=hidden;Apply();}
   // A task panel may need breathing room without overwriting the saved details
   // width. Explicit splitter movement still becomes the user's new preference.
   internal void SetTemporaryRightWidth(int? width){temporaryRightWidth=width.HasValue?(int?)ClampRight(width.Value):null;Apply();}
@@ -44,11 +49,12 @@ namespace Mori {
    if(applying)return;applying=true;
    try{
    int displayRight=temporaryRightWidth??Right;
-    var sizes=LeftVisible&&RightVisible&&grid.ActualWidth>0?Fit(grid.ActualWidth,Left,displayRight):new double[]{Left,displayRight};
-    left.MinWidth=LeftVisible?MinLeft:0;right.MinWidth=RightVisible?MinRight:0;
-    left.Width=new GridLength(LeftVisible?sizes[0]:0);right.Width=new GridLength(RightVisible?sizes[1]:0);
-    grid.ColumnDefinitions[1].Width=new GridLength(LeftVisible?6:0);grid.ColumnDefinitions[3].Width=new GridLength(RightVisible?6:0);
-    foreach(UIElement child in grid.Children){int col=Grid.GetColumn(child);if(col==0||col==1)child.Visibility=LeftVisible?Visibility.Visible:Visibility.Collapsed;else if(col==3||col==4)child.Visibility=RightVisible?Visibility.Visible:Visibility.Collapsed;}
+    bool showRight=RightDisplayed;
+    var sizes=LeftVisible&&showRight&&grid.ActualWidth>0?Fit(grid.ActualWidth,Left,displayRight):new double[]{Left,displayRight};
+    left.MinWidth=LeftVisible?MinLeft:0;right.MinWidth=showRight?MinRight:0;
+    left.Width=new GridLength(LeftVisible?sizes[0]:0);right.Width=new GridLength(showRight?sizes[1]:0);
+    grid.ColumnDefinitions[1].Width=new GridLength(LeftVisible?6:0);grid.ColumnDefinitions[3].Width=new GridLength(showRight?6:0);
+    foreach(UIElement child in grid.Children){int col=Grid.GetColumn(child);if(col==0||col==1)child.Visibility=LeftVisible?Visibility.Visible:Visibility.Collapsed;else if(col==3||col==4)child.Visibility=showRight?Visibility.Visible:Visibility.Collapsed;}
    }finally{applying=false;}
   }
  }

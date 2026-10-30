@@ -4,17 +4,26 @@ using System.Windows.Media.Imaging;
 
 namespace Mori {
  public sealed partial class Library {
+  static bool HasWarmThumbnailIndex(Asset asset){
+   if(!MediaTypes.CanThumbnail(asset)||string.IsNullOrEmpty(asset.Perceptual))return false;
+   if(asset.Width>0&&asset.Height>0)return true;
+   // These renderers deliberately leave original pixel dimensions unknown:
+   // PDF page units and generated document pages are not source-image pixels.
+   // Their frozen derived PNG is still dimension-checked by the decoded cache.
+   // Keep incomplete raster/video metadata on the normal build/read route.
+   return asset.Width==0&&asset.Height==0&&(string.Equals(asset.Ext,".pdf",StringComparison.OrdinalIgnoreCase)||string.Equals(asset.Ext,".ai",StringComparison.OrdinalIgnoreCase)||DocumentContent.Supports(asset.Ext));
+  }
   // Pure admission hint on the UI path. Syntax and indexed metadata only: no
   // source/disk stat, database lookup or full path validation may happen here.
   internal bool MayHaveWarmThumbnail(Asset asset){
-   if(!MediaTypes.CanThumbnail(asset)||string.IsNullOrEmpty(asset.Perceptual)||asset.Width<=0||asset.Height<=0||(asset.IsReference&&string.IsNullOrEmpty(asset.ThumbnailSourceStamp)))return false;
+   if(!HasWarmThumbnailIndex(asset)||(asset.IsReference&&string.IsNullOrEmpty(asset.ThumbnailSourceStamp)))return false;
    try{return ThumbnailImage.DecodedCache.HasWarmCandidate(ThumbnailPath(asset));}
    catch(IOException){return false;}catch(UnauthorizedAccessException){return false;}catch(ArgumentException){return false;}catch(NotSupportedException){return false;}catch(System.Security.SecurityException){return false;}
   }
   // Read-only best effort: never build, repair, refresh metadata or wait for a
   // decoder. Any uncertainty is a miss; ReadThumbnail remains authoritative.
   internal BitmapImage TryReadWarmThumbnail(Asset asset){
-   if(!MediaTypes.CanThumbnail(asset)||string.IsNullOrEmpty(asset.Perceptual)||asset.Width<=0||asset.Height<=0)return null;
+   if(!HasWarmThumbnailIndex(asset))return null;
    try{
     string path=ThumbnailPath(asset);
     using(var lease=ThumbnailBuildGate.TryEnter(path)){
@@ -28,7 +37,7 @@ namespace Mori {
      var image=ThumbnailImage.DecodedCache.TryReadWarm(path);
      if(image==null)return null;
      ValidateThumbnailPath(asset,path);
-     if(asset.IsReference!=reference||string.IsNullOrEmpty(asset.Perceptual)||asset.Width<=0||asset.Height<=0)return null;
+     if(asset.IsReference!=reference||!HasWarmThumbnailIndex(asset))return null;
      if(reference){
       long sourceBytes;string after=ReferenceThumbnailStamp(asset,out sourceBytes);
       if(!string.Equals(sourceStamp,after,StringComparison.Ordinal)||!string.Equals(indexedStamp,asset.ThumbnailSourceStamp,StringComparison.Ordinal))return null;

@@ -21,14 +21,14 @@ namespace QingJie {
         int textResize=-1;
         Rect oldTextBounds,oldTextFrame;
 
-        static Annotation CopyAnnotation(Annotation a){return new Annotation {Kind=a.Kind,Start=a.Start,End=a.End,Color=a.Color,Width=a.Width,Text=a.Text,TextWrapWidth=a.TextWrapWidth,Points=new List<Point>(a.Points),Mosaic=a.Mosaic};}
-        static void RestoreAnnotation(Annotation a,Annotation value){a.Kind=value.Kind;a.Start=value.Start;a.End=value.End;a.Color=value.Color;a.Width=value.Width;a.Text=value.Text;a.TextWrapWidth=value.TextWrapWidth;a.Points=new List<Point>(value.Points);a.Mosaic=value.Mosaic;}
-        static bool SameAnnotation(Annotation a,Annotation b){return a.Kind==b.Kind&&a.Start==b.Start&&a.End==b.End&&a.Color==b.Color&&a.Width==b.Width&&a.Text==b.Text&&a.TextWrapWidth==b.TextWrapWidth&&a.Points.SequenceEqual(b.Points);}
+        static Annotation CopyAnnotation(Annotation a){return new Annotation {Kind=a.Kind,ArrowStyle=a.ArrowStyle,Start=a.Start,End=a.End,Color=a.Color,Width=a.Width,Text=a.Text,TextWrapWidth=a.TextWrapWidth,Points=new List<Point>(a.Points),Mosaic=a.Mosaic};}
+        static void RestoreAnnotation(Annotation a,Annotation value){a.Kind=value.Kind;a.ArrowStyle=value.ArrowStyle;a.Start=value.Start;a.End=value.End;a.Color=value.Color;a.Width=value.Width;a.Text=value.Text;a.TextWrapWidth=value.TextWrapWidth;a.Points=new List<Point>(value.Points);a.Mosaic=value.Mosaic;}
+        static bool SameAnnotation(Annotation a,Annotation b){return a.Kind==b.Kind&&a.ArrowStyle==b.ArrowStyle&&a.Start==b.Start&&a.End==b.End&&a.Color==b.Color&&a.Width==b.Width&&a.Text==b.Text&&a.TextWrapWidth==b.TextWrapWidth&&a.Points.SequenceEqual(b.Points);}
         void RememberAnnotation(Annotation mark,Annotation before,Annotation after,int index){
             RememberChange(new AnnotationChange {Mark=mark,Before=before,After=after,Index=index});
         }
         void RememberChange(AnnotationChange change){
-            annotationUndo.Push(change);
+            wheelHistory=null;annotationUndo.Push(change);
             // History retains annotation deltas, not screenshot-sized bitmaps or copies
             // of every pen stroke. Keep even a long editing session bounded.
             if(annotationUndo.Count>100){var keep=annotationUndo.Take(100).Reverse().ToArray();annotationUndo.Clear();foreach(var savedChange in keep)annotationUndo.Push(savedChange);}
@@ -44,16 +44,16 @@ namespace QingJie {
             else {RestoreAnnotation(change.Mark,value);if(!surface.Marks.Contains(change.Mark))surface.Marks.Insert(Math.Min(change.Index,surface.Marks.Count),change.Mark);}
         }
         void UndoAnnotation(){
-            FinishShapeGesture();FinishTextGesture();
+            ResetStrokeWheel();FinishShapeGesture();FinishTextGesture();
             if(annotationUndo.Count>0){var change=annotationUndo.Pop();ApplyAnnotationChange(change,false);annotationRedo.Push(change);}
             SelectText(null);last=null;PositionTools();surface.InvalidateVisual();
         }
         void RedoAnnotation(){
-            FinishShapeGesture();FinishTextGesture();
-            if(annotationRedo.Count>0){var change=annotationRedo.Pop();ApplyAnnotationChange(change,true);annotationUndo.Push(change);}
+            ResetStrokeWheel();FinishShapeGesture();FinishTextGesture();
+            if(annotationRedo.Count>0){var change=annotationRedo.Pop();ApplyAnnotationChange(change,true);wheelHistory=null;annotationUndo.Push(change);}
             SelectText(null);last=null;PositionTools();surface.InvalidateVisual();
         }
-        void ClearAnnotationHistory(){annotationUndo.Clear();annotationRedo.Clear();redo.Clear();SelectText(null);}
+        void ClearAnnotationHistory(){ResetStrokeWheel();annotationUndo.Clear();annotationRedo.Clear();redo.Clear();SelectText(null);}
         void ClearTextState(){
             shapeDrag=null;shapeBefore=null;selectionBefore=null;textDrag=null;textDragBefore=null;dragging=false;surface.ReleaseMouseCapture();
             Mori.Theme.Changed-=RefreshTextEditorBackground;
@@ -165,6 +165,7 @@ namespace QingJie {
             // its committed/exported caption retains the full width.
             textEditor.Language=System.Windows.Markup.XmlLanguage.GetLanguage(System.Globalization.CultureInfo.CurrentUICulture.IetfLanguageTag);
             textEditor.Tag=wrap;
+            textEditor.PreviewMouseWheel+=(s,e)=>{e.Handled=HandleCaptureWheel(e.Delta,Keyboard.Modifiers,e.GetPosition(surface));};
             textEditor.TextChanged+=(s,e)=>UpdateTextEditorPlacement();textEditor.SizeChanged+=(s,e)=>UpdateTextEditorPlacement();
             Ui.Theme(textEditor,Control.BorderBrushProperty,"Primary");RefreshTextEditorBackground();Mori.Theme.Changed+=RefreshTextEditorBackground;
             // TextBoxView adds a two-DIP horizontal caret gutter inside its

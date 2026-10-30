@@ -30,8 +30,9 @@ internal static class CaptureToolbarUsabilityTests {
         var b=second.TransformToAncestor(host).TransformBounds(new Rect(second.RenderSize));
         return b.Left-a.Right;
     }
-    static void Layout(CaptureWindow window){
-        var size=new Size(1200,800);window.Width=size.Width;window.Height=size.Height;
+    static void Layout(CaptureWindow window){Layout(window,new Size(1200,800));}
+    static void Layout(CaptureWindow window,Size size){
+        window.Width=size.Width;window.Height=size.Height;
         window.Measure(size);window.Arrange(new Rect(new Point(),size));
         var root=(Grid)window.Content;root.Measure(size);root.Arrange(new Rect(new Point(),size));
         Call(window,"PositionTools");root.UpdateLayout();
@@ -53,7 +54,16 @@ internal static class CaptureToolbarUsabilityTests {
             check(ToolTipService.GetShowOnDisabled(undo)&&ToolTipService.GetShowOnDisabled(redo)&&AutomationProperties.GetName(redo).Contains("Ctrl+Y"),"disabled history still explains each action and its keyboard shortcut");
             check(!buttons.Any(button=>button.Name=="CaptureTool_select")&&Gap(Action(window,"Tool_rect"),Action(window,"Tool_ellipse"),toolbar)<5,"crop adjustment is direct on the border; drawing tools stay consecutive without a redundant selection button");
             check(Gap(undo,redo,toolbar)<5&&Gap(redo,Action(window,"Ocr"),toolbar)>=10,"undo and redo stay together before a distinct recognition group");
-            check(Gap(Action(window,"Save"),Action(window,"Cancel"),toolbar)>=10&&Gap(Action(window,"Cancel"),Action(window,"Copy"),toolbar)<5,"finish actions stay together after the export group");
+            var pin=Action(window,"Pin");var previousOutput=buttons.SingleOrDefault(button=>button.Name=="CaptureCollect")??Action(window,"Save");
+            check(Gap(previousOutput,pin,toolbar)>=10&&Gap(pin,Action(window,"Cancel"),toolbar)<5&&Gap(Action(window,"Cancel"),Action(window,"Copy"),toolbar)<5,"frequent pin action joins the right finish group while Cancel and Copy keep their familiar order");
+            var pinIcon=pin.Content as System.Windows.Shapes.Path;
+            check(pinIcon!=null&&pinIcon.Stroke==Ui.Tone("Accent")&&pin.Background==Ui.Tone("AccentSoft")&&!Tree(pin).OfType<TextBlock>().Any()&&AutomationProperties.GetName(pin).StartsWith("钉到屏幕"),"pin is an accessible icon-only accent tile rather than another text command");
+            pin.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice,0){RoutedEvent=Mouse.MouseEnterEvent});pin.RaiseEvent(new MouseEventArgs(Mouse.PrimaryDevice,0){RoutedEvent=Mouse.MouseLeaveEvent});
+            check(pin.Background==Ui.Tone("AccentSoft"),"leaving the pin action does not erase its persistent visual emphasis");
+            window.SetScrollingPreparationUi(true);
+            check(!pin.IsEnabled&&pin.Opacity<.5&&Action(window,"Cancel").IsEnabled,"scroll preparation still disables and dims the emphasized pin while retaining cancellation");
+            window.SetScrollingPreparationUi(false);
+            check(pin.IsEnabled&&pin.Opacity==1&&pin.Background==Ui.Tone("AccentSoft"),"returning from scroll preparation restores the pin action and its original emphasis");
             check(card.Visibility==Visibility.Collapsed,"crop adjustment has no irrelevant drawing properties");
 
             Call(window,"SetTool","rect");
@@ -76,10 +86,10 @@ internal static class CaptureToolbarUsabilityTests {
             check(palette.Length==6&&palette.Select(AutomationProperties.GetName).Distinct().Count()==6&&palette.All(button=>AutomationProperties.GetName(button).StartsWith("标注颜色：")),"every color swatch has a distinct accessible color name");
             window.BeginPointer(new Point(420,300));var editor=Field<TextBox>(window,"textEditor");editor.Text="Synthetic label";
             window.HandleCaptureWheel(120,ModifierKeys.Control,new Point(500,340));
-            check(label.Text=="字号 25"&&editor.FontSize==25,"live text wheel updates the actual font-size property immediately");
+            check(label.Text=="字号 22"&&editor.FontSize==22,"live text wheel updates the actual font-size property immediately");
             Call(window,"CommitText");var text=surface.Marks.Single(annotation=>annotation.Kind=="text");
             Call(window,"SetTool","select");
-            check(surface.SelectedText==text&&label.Text=="字号 25"&&card.Visibility==Visibility.Visible,"selected text keeps text-specific properties while using crop adjustment");
+            check(surface.SelectedText==text&&label.Text=="字号 22"&&card.Visibility==Visibility.Visible,"selected text keeps text-specific properties while using crop adjustment");
             Call(window,"SelectShape",surface.Marks.First(annotation=>annotation.Kind=="rect"));
             check(label.Text=="粗细 4"&&hint.Text=="Ctrl+滚轮调粗细"&&card.Visibility==Visibility.Visible,"selecting a shape restores stroke-specific properties without a stale font-size hint");
 
@@ -91,6 +101,29 @@ internal static class CaptureToolbarUsabilityTests {
             Call(window,"SelectShape",new object[]{null});
             check(card.Visibility==Visibility.Collapsed,"clearing an annotation selection collapses its properties again");
             check(!window.IsVisible&&new WindowInteropHelper(window).Handle==IntPtr.Zero,"toolbar usability checks never create a native or visible capture window");
+            PinPriority(image,check);
         }finally{window.Close();AppState.Settings=preferences;}
+    }
+    static void PinPriority(BitmapSource image,Action<bool,string> check){
+        var collector=MoriDesk.DeskRuntime.CollectImage;
+        try{
+            foreach(bool collect in new[]{false,true})foreach(bool allowPin in new[]{false,true})foreach(double width in new[]{1200.0,320.0}){
+                MoriDesk.DeskRuntime.CollectImage=collect?(Func<BitmapSource,System.Threading.Tasks.Task<bool>>)(pixels=>System.Threading.Tasks.Task.FromResult(false)):null;
+                var window=new CaptureWindow(new Snapshot {Image=image,Bounds=new System.Drawing.Rectangle(0,0,16,16)},null,new CaptureFeatures {Pin=allowPin});
+                try{
+                    Field<ScreenshotSurface>(window,"surface").Selection=new Rect(10,10,width-20,220);Layout(window,new Size(width,400));
+                    var toolbar=Field<StackPanel>(window,"toolbar");var buttons=Tree(toolbar).OfType<Button>().ToArray();
+                    var expected=allowPin?new[]{"CapturePin","CaptureCancel","CaptureCopy"}:new[]{"CaptureCancel","CaptureCopy"};
+                    check(buttons.Skip(buttons.Length-expected.Length).Select(button=>button.Name).SequenceEqual(expected)&&buttons.Count(button=>button.Name=="CapturePin")== (allowPin?1:0),"pin priority keeps the same terminal order with optional collection and pin: "+collect+"/"+allowPin+" at "+width);
+                    check(buttons.Any(button=>button.Name=="CaptureCollect")==collect,"moving pin does not add a collection action without a connected collector");
+                    if(allowPin){
+                        var pin=Action(window,"Pin");var cancel=Action(window,"Cancel");var done=Action(window,"Copy");
+                        double pinY=pin.TransformToAncestor(toolbar).Transform(new Point()).Y,cancelY=cancel.TransformToAncestor(toolbar).Transform(new Point()).Y,doneY=done.TransformToAncestor(toolbar).Transform(new Point()).Y;
+                        check(Math.Abs(pinY-cancelY)<.1&&Math.Abs(pinY-doneY)<.1&&Gap(pin,cancel,toolbar)<5&&Gap(cancel,done,toolbar)<5,"narrow layouts keep pin, cancel and completion together instead of stranding pin among other exports at "+width);
+                    }
+                    check(!window.IsVisible&&new WindowInteropHelper(window).Handle==IntPtr.Zero,"priority variants remain synthetic and never show a native window");
+                }finally{window.Close();}
+            }
+        }finally{MoriDesk.DeskRuntime.CollectImage=collector;}
     }
 }

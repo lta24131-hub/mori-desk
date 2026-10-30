@@ -104,7 +104,7 @@ namespace MoriDesk {
    }
    var viewer=new ImageBrowser(null);
    try{
-    Set(viewer,"currentPath",missing);var bar=((DockPanel)viewer.Content).Children.OfType<WrapPanel>().Single();var button=bar.Children.OfType<Button>().Single(item=>Equals(item.Content,"文件位置"));button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    Set(viewer,"currentPath",missing);var menu=Field<ContextMenu>(viewer,"moreMenu");var button=menu.Items.OfType<MenuItem>().Single(item=>Equals(item.Header,"文件位置"));button.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
     check(Field<TextBlock>(viewer,"label").Text.Contains("无法打开文件位置")&&Field<TextBlock>(viewer,"label").Text.Contains("原文件已移动")&&!Field<bool>(viewer,"closed"),"actual file-position button reports moved/deleted file inline without crashing, closing or opening a modal dialog");
    }finally{viewer.Close();}
   }

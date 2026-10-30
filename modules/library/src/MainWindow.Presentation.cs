@@ -6,6 +6,14 @@ using System.Windows.Controls.Primitives;
 
 namespace Mori {
  public partial class MainWindow {
+  // Reset scope-specific instructions only after explicit navigation. Ordinary
+  // refresh/selection updates must preserve operation results and errors.
+  void UpdateNavigationHint(){
+   if(view=="trash")Status(bookmarkMode?"网址回收站 · 可恢复删除的网址":"回收站 · 可恢复删除的素材");
+   else if(LocalCollectionsActive)Status("本地收藏只记位置 · 双击打开 · 不复制、不移动、不删除原件");
+   else if(bookmarkMode)Status("收藏网址 · 双击快速浏览 · 右键可用外部浏览器打开");
+   else Status("拖入文件收藏 · 双击或空格预览 · Ctrl / Shift 多选");
+  }
   // Presentation only: these groups never migrate or alter library membership.
   void UpdateNavigationPresentation(){
    if(canvasProjectsMode){ApplyCanvasProjectsPresentation();return;}
@@ -18,18 +26,26 @@ namespace Mori {
    B("Export").Visibility=Selected().Count>0&&!Selected().Any(a=>a.IsDirectory)?Visibility.Visible:Visibility.Collapsed;
    Find<Grid>("MediaFolderHeading").Visibility=bookmarkMode||local?Visibility.Collapsed:Visibility.Visible;
    Find<TreeView>("Folders").Visibility=bookmarkMode||local?Visibility.Collapsed:Visibility.Visible;
-   B("Unfiled").Visibility=B("Favorites").Visibility=B("Trash").Visibility=local?Visibility.Collapsed:Visibility.Visible;
+   B("Unfiled").Visibility=B("Favorites").Visibility=local?Visibility.Collapsed:Visibility.Visible;
+   B("Trash").Visibility=local?Visibility.Hidden:Visibility.Visible;
    bool noFolders=Find<TreeView>("Folders").Items.Count==0;
    Find<StackPanel>("SidebarGuide").Visibility=bookmarkMode||local||noFolders?Visibility.Visible:Visibility.Collapsed;
    L("SidebarGuideTitle").Text=local?"本地快捷收藏":bookmarkMode?"网址文件夹":"还没有素材分类";
    L("SidebarGuideHint").Text=local?"分组在本页上方管理。\n文件只保存位置，原件不移动。":bookmarkMode?"文件夹在网址页内管理。\n素材分类与网址文件夹互不混用。":"可按项目、用途建立分类。\n一个素材可以属于多个分类。";
    B("CreateFirstFolder").Visibility=!bookmarkMode&&!local&&noFolders?Visibility.Visible:Visibility.Collapsed;
    L("InspectorEmptyHint").Text=local?"选中文件，查看本地地址和所属分组。\n移除快捷收藏不会删除原文件。":bookmarkMode?"选中网址，查看链接、标签和备注。":"选中素材，查看来源、标签和本地地址。";
-   ApplyBrowserPresentation();
+   UpdateHomeNavigation();ApplyBrowserPresentation();
   }
-  void ClearGalleryFilters(){similarId=colorId="";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;RefreshView();}
+  bool WholeLibraryTypeFilterActive {get{return !bookmarkMode&&view=="all"&&(mediaSection=="pictures"||mediaSection=="videos"||mediaSection=="audio"||mediaSection=="documents");}}
+  bool HasGalleryFilters(){return WholeLibraryTypeFilterActive||similarId!=""||colorId!=""||T("Search").Text.Trim()!=""||Find<ComboBox>("MediaFilter").SelectedIndex>0;}
+  void ClearGalleryFilters(){
+   // The unified type picker uses whole-library sections at the top level and
+   // MediaFilter inside a category. Clear both without leaving scoped pages.
+   if(WholeLibraryTypeFilterActive)mediaSection="assets";
+   similarId=colorId="";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;searchTimer.Stop();RefreshView();
+  }
   void UpdateEmptyRecoveryPresentation(){
-   bool filtered=similarId!=""||colorId!=""||T("Search").Text.Trim()!=""||Find<ComboBox>("MediaFilter").SelectedIndex>0;
+   bool filtered=HasGalleryFilters();
    bool recover=filtered&&visible.Count==0;
    B("EmptyClearFilter").Visibility=recover?Visibility.Visible:Visibility.Collapsed;
    if(!recover)return;
@@ -50,13 +66,14 @@ namespace Mori {
    bool pictures=any&&items.All(a=>SectionContains(a,"pictures"));
    B("Similar").Visibility=B("ColorSearch").Visibility=single&&pictures?Visibility.Visible:Visibility.Collapsed;
    Find<UniformGrid>("ImageActions").Visibility=single&&pictures?Visibility.Visible:Visibility.Collapsed;
-   B("SelectionCanvas").Visibility=items.Count>=2&&pictures&&view!="trash"?Visibility.Visible:Visibility.Collapsed;
+   B("SelectionCanvas").Visibility=any&&pictures&&view!="trash"?Visibility.Visible:Visibility.Collapsed;
+   B("SelectionCanvas").IsEnabled=!busy&&any&&pictures&&view!="trash";
    // Both buttons formerly opened the same local-group chooser.
    B("Categorize").Visibility=LocalCollectionsActive?Visibility.Collapsed:Visibility.Visible;
    Find<UniformGrid>("CategoryActions").Columns=LocalCollectionsActive?1:2;
    B("Star").Margin=LocalCollectionsActive?new Thickness(0,0,0,5):new Thickness(3,0,0,5);
    B("Export").Visibility=any&&!items.Any(a=>a.IsDirectory)?Visibility.Visible:Visibility.Collapsed;
-   ApplyBrowserPresentation();
+   UpdateHomeSelection();ApplyBrowserPresentation();
   }
   internal ContextMenu CreateNewFolderMenu(){
    var menu=Theme.Menu(Window);menu.Items.Add(ActionItem("新建顶层分类…",()=>NewFolder(""),"",!busy));

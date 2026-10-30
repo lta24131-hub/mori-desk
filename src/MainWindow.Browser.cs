@@ -18,7 +18,7 @@ namespace Mori {
   void ApplyBrowserPresentation(){
    if(!browserMode)return;
    foreach(UIElement child in Find<Grid>("Workspace").Children)if(child!=browserHost&&Grid.GetColumn(child)>=2)CoverForBrowser(child);
-   foreach(string name in new[]{"Import","Paste","AddBookmark","Export"})CoverForBrowser(B(name));
+   foreach(string name in new[]{"Import","Paste","AddBookmark","Export","HomeAdd"})CoverForBrowser(B(name));
    CoverForBrowser((UIElement)T("Search").Parent);CoverForBrowser((UIElement)Find<Slider>("ThumbnailSize").Parent);
   }
   internal bool BrowseBookmark(string address){

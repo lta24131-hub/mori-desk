@@ -50,7 +50,25 @@ namespace Mori {
    catch(System.Runtime.InteropServices.COMException ex){if(FormatPreviewInfo.NeedsSystemImageCodec(path))throw CodecFailure(ex);throw;}
   }
   static NotSupportedException CodecFailure(Exception ex){return new NotSupportedException("Windows 尚未安装或无法使用此格式的图片解码组件，文件也可能损坏。可安装对应扩展或用默认程序打开。",ex);}
-  internal static BitmapSource FromDrawing(Drawing.Bitmap bitmap){using(var stream=new MemoryStream()){bitmap.Save(stream,Drawing.Imaging.ImageFormat.Png);stream.Position=0;var result=new BitmapImage();result.BeginInit();result.CacheOption=BitmapCacheOption.OnLoad;result.StreamSource=stream;result.EndInit();result.Freeze();return result;}}
+  internal static BitmapSource FromDrawing(Drawing.Bitmap bitmap){
+   if(bitmap==null)throw new ArgumentNullException("bitmap");
+   int width=bitmap.Width,height=bitmap.Height;
+   if(width<1||height<1||(long)width*height>32L*1024*1024)throw new NotSupportedException("预览图像素过大。");
+   // The pixels are already decoded. Copy them into an independent WPF image
+   // instead of PNG-encoding then decoding every PSD/document thumbnail.
+   var data=bitmap.LockBits(new Drawing.Rectangle(0,0,width,height),Drawing.Imaging.ImageLockMode.ReadOnly,Drawing.Imaging.PixelFormat.Format32bppArgb);
+   try{
+    int stride=checked(width*4);BitmapSource result;double dpiX=bitmap.HorizontalResolution,dpiY=bitmap.VerticalResolution;if(!(dpiX>0))dpiX=96;if(!(dpiY>0))dpiY=96;
+    if(data.Stride>=stride)result=BitmapSource.Create(width,height,dpiX,dpiY,PixelFormats.Bgra32,null,data.Scan0,checked(data.Stride*height),data.Stride);
+    else{
+     if(data.Stride>-stride)throw new InvalidDataException("Invalid preview stride");
+     var pixels=new byte[checked(stride*height)];
+     for(int row=0;row<height;row++)System.Runtime.InteropServices.Marshal.Copy(IntPtr.Add(data.Scan0,checked(row*data.Stride)),pixels,row*stride,stride);
+     result=BitmapSource.Create(width,height,dpiX,dpiY,PixelFormats.Bgra32,null,pixels,stride);
+    }
+    result.Freeze();return result;
+   }finally{bitmap.UnlockBits(data);}
+  }
   static BitmapSource Document(string path,int size){
    var content=DocumentContent.Read(path);int w=Math.Max(1,(int)(size*.77)),h=size;
    using(var bitmap=new Drawing.Bitmap(w,h))using(var graphics=Drawing.Graphics.FromImage(bitmap)){

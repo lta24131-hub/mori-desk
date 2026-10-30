@@ -102,6 +102,8 @@ namespace QingJie {
                 case "rect":d.DrawRoundedRectangle(null,p,new Rect(3,4,14,12),1,1);break;
                 case "ellipse":d.DrawEllipse(null,p,new Point(10,10),7,7);break;
                 case "arrow":line(3,17,16,4);line(8,4,16,4);line(16,4,16,12);break;
+                case "arrowFilled":CaptureArrowGeometry.Draw(d,new Annotation{Start=new Point(3,17),End=new Point(17,3),Width=2,ArrowStyle="filled"},p);break;
+                case "arrowDouble":line(3,17,16,4);line(8,4,16,4);line(16,4,16,12);line(3,9,3,17);line(3,17,11,17);break;
                 case "line":line(3,17,17,3);break;
                 case "chevron":line(5,8,10,13);line(10,13,15,8);break;
                 case "pen":line(4,15,14,5);line(6,17,16,7);line(4,15,3,18);line(3,18,6,17);line(14,5,16,7);break;

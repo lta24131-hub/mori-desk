@@ -32,6 +32,51 @@ namespace MoriDeskInstaller {
    var data=UpdateData(executable);data["expectedVersion"]=compiled.ToString(3);
    Check(Program.ParseUpdateRequest(Json(data),request,updates,root,10).ExpectedVersion==compiled.ToString(3),"request version generated from release metadata is accepted by the runtime protocol");
   }
+  static void ManualFlowChecks(){
+   Check(Program.ManualOperation(false,false,true)==InstallerOperation.Install,"first install has its own progress operation");
+   Check(Program.ManualOperation(true,false,true)==InstallerOperation.Update,"an existing version reports update");
+   Check(Program.ManualOperation(true,true,true)==InstallerOperation.Repair,"a damaged known installation reports repair");
+   Check(Program.ManualOperation(true,false,false)==InstallerOperation.VerifyEntrypoints,"identical healthy payload only checks entrypoints");
+   var order=new List<string>();bool held=false,closedAfterRelease=true,promptOutsideLease=true;int attempts=0,prompts=0;
+   int result=Program.RunManualInstallation(()=>InstallerProgress.Run(()=>{
+    attempts++;held=true;order.Add("lease"+attempts);
+    try{return attempts<3?Program.ManualNeedsExit:0;}
+    finally{held=false;order.Add("release"+attempts);}
+   },state=>{order.Add("show");return ()=>{closedAfterRelease&=!held&&state.Snapshot().Finished;order.Add("close");};}),()=>{
+    prompts++;promptOutsideLease&=!held&&order[order.Count-1]=="close";order.Add("retry"+prompts);return true;
+   });
+   Check(result==0&&attempts==3&&prompts==2,"each explicit retry runs a fresh complete installation attempt, including still-running rechecks");
+   Check(closedAfterRelease&&promptOutsideLease&&string.Join(",",order.ToArray())=="show,lease1,release1,close,retry1,show,lease2,release2,close,retry2,show,lease3,release3,close","manual exit prompt occurs only after the installation lease and progress presentation have ended");
+   attempts=prompts=0;result=Program.RunManualInstallation(()=>{attempts++;return Program.ManualNeedsExit;},()=>{prompts++;return false;});
+   Check(result==2&&attempts==1&&prompts==1,"cancelling the exit prompt does not retry, shut down an application or begin a replacement");
+   foreach(int terminal in new[]{0,1,2}){
+    attempts=prompts=0;result=Program.RunManualInstallation(()=>{attempts++;return terminal;},()=>{prompts++;return true;});
+    Check(result==terminal&&attempts==1&&prompts==0,"completed/no-op, failed and cancelled attempts do not ask for an unnecessary exit: "+terminal);
+   }
+   prompts=0;bool failed=false;try{Program.RunManualInstallation(()=>{throw new IOException("synthetic validation failure");},()=>{prompts++;return true;});}catch(IOException){failed=true;}
+   Check(failed&&prompts==0,"validation failure is not disguised as an application-exit request");
+   Rejected(()=>Program.RunManualInstallation(null,()=>true),"missing manual attempt is rejected");
+   Rejected(()=>Program.RunManualInstallation(()=>0,null),"missing retry decision is rejected");
+  }
+  static void ProgressChecks(){
+   long elapsed=20;var state=new InstallerProgressState(()=>elapsed);
+   Check(state.Snapshot().Operation==InstallerOperation.Preparing&&!state.Snapshot().Finished&&InstallerProgress.Title(state.Snapshot()).Contains("准备安装"),"progress begins with a neutral preparation stage");
+   foreach(var operation in new[]{InstallerOperation.Install,InstallerOperation.Update,InstallerOperation.Repair,InstallerOperation.VerifyEntrypoints}){
+    state.SetOperation(operation,"0.1.99");var view=state.Snapshot();
+    Check(view.Operation==operation&&view.Version=="0.1.99"&&InstallerProgress.Title(view)=="Nook · "+InstallerProgress.OperationText(operation)+" · 0.1.99","progress title tracks the verified operation and target version: "+operation);
+   }
+   state.Report("正在校验程序…");var before=state.Snapshot();bool close=state.RequestClose();var waiting=state.Snapshot();
+   Check(!close&&waiting.CloseRequested&&!waiting.Finished&&waiting.Stage==before.Stage&&InstallerProgress.Hint(waiting).Contains("自动关闭")&&InstallerProgress.Hint(waiting).Contains("最小化"),"clicking close exposes an explanation without cancelling, completing or overwriting transaction progress");
+   elapsed=10;Check(state.Snapshot().ElapsedMilliseconds==20,"a backward clock cannot reduce displayed elapsed time");
+   elapsed=30;state.Complete();state.Report("late stage");state.SetOperation(InstallerOperation.Update,"wrong");elapsed=50;var complete=state.Snapshot();
+   Check(state.RequestClose()&&complete.Finished&&complete.ElapsedMilliseconds==30&&complete.Stage==before.Stage&&complete.Operation==before.Operation&&complete.Version==before.Version,"completed progress permits close and ignores late presentation changes");
+   InstallerProgressState observed=null;bool closed=false;int result=InstallerProgress.Run(()=>{InstallerProgress.SetOperation(InstallerOperation.Repair,"0.1.99");InstallerProgress.Report("修复中");return 7;},value=>{observed=value;return ()=>closed=value.Snapshot().Finished;});
+   Check(result==7&&closed&&observed.Snapshot().Operation==InstallerOperation.Repair&&observed.Snapshot().Stage=="修复中","progress returns the transaction result and closes only after marking its presentation complete");
+   bool ran=false;result=InstallerProgress.Run(()=>{ran=true;return 0;},value=>{throw new IOException("synthetic presentation failure");});
+   Check(ran&&result==0,"a failed progress window does not skip the transaction");
+   closed=false;bool failed=false;try{InstallerProgress.Run(()=>{throw new IOException("synthetic rollback");},value=>()=>closed=value.Snapshot().Finished);}catch(IOException){failed=true;}
+   Check(failed&&closed,"transaction failure still completes the progress presentation and propagates to normal error handling");
+  }
   static void StartupChecks(){
    string executable=@"C:\Generated\Programs\MoriDesk\0.1.24\Mori.exe";
    Action<string> verify=text=>Program.ValidateStartupReceipt(text,Program.InstallerVersion,executable,42,638960000000000001L);
@@ -87,9 +132,24 @@ namespace MoriDeskInstaller {
    string absent=Path.Combine(sandbox,Guid.NewGuid().ToString("N"));bool missing=false;try{Program.RequireMetadataBackup(absent);}catch(IOException){missing=true;}Check(missing,"missing session marker cannot be mistaken for completed backup");
    Console.WriteLine("Generated marker fixtures retained at: "+sandbox);
   }
-  public static int Main(string[] args){
+  static void TaskbarShortcutChecks(){
+   string root=Path.Combine(Path.GetTempPath(),"Nook-taskbar-shortcut-"+Guid.NewGuid().ToString("N")),launcher=Path.Combine(root,"Launcher","Mori.exe"),link=Path.Combine(root,"Nook.lnk");
+   Directory.CreateDirectory(Path.GetDirectoryName(launcher));File.Copy(typeof(Program).Assembly.Location,launcher);
+   Program.WriteShortcutFile(link,launcher);
+   Check(MoriDesk.ShellTaskbarProperties.ReadShortcutAppId(link)==MoriDesk.ShellTaskbarProperties.AppId,"installer's real temporary shortcut stores the same explicit AppID as the main window");
+   object shell=null,shortcut=null;try{
+    shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));shortcut=((dynamic)shell).CreateShortcut(link);dynamic value=shortcut;
+    Check((string)value.TargetPath==launcher&&(string)value.Arguments==""&&(string)value.WorkingDirectory==Path.GetDirectoryName(launcher),"writing shortcut identity preserves the stable launch target and never adds version or library arguments");
+    Check((string)value.IconLocation==launcher+",0"&&(string)value.Description=="Nook · 素材、截图、翻译与看图","writing shortcut identity preserves the Nook icon and description");
+   }finally{if(shortcut!=null)System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shortcut);if(shell!=null)System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);}
+   byte[] before=File.ReadAllBytes(link);bool rejected=false;
+   try{Program.PublishShortcut(link,launcher,(temporary,exe)=>{Program.WriteShortcutFile(temporary,exe);throw new IOException("fixture property publication failure");},path=>launcher,path=>{});}catch(IOException){rejected=true;}
+   Check(rejected&&Convert.ToBase64String(before)==Convert.ToBase64String(File.ReadAllBytes(link)),"failed staged shortcut identity publication cannot truncate or replace the existing entrypoint");
+   Console.WriteLine("Generated taskbar shortcut fixture retained at: "+root);
+  }
+  [STAThread]public static int Main(string[] args){
    try{
-    VersionChecks();
+    VersionChecks();ManualFlowChecks();ProgressChecks();TaskbarShortcutChecks();
     foreach(string product in new[]{"Mori Desk","mori desk","MORI DESK","Nook","nook","NOOK"}){
      Check(Program.MatchesRunningProcess(20,1,product,"Mori.exe",10,1),"same-session legacy or new product blocks installation: "+product);
      Check(Program.MatchesRunningProcess(20,1,product,"mori.exe",10,1),"stable original-filename comparison is case insensitive: "+product);

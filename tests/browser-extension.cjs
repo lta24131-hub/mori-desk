@@ -7,6 +7,7 @@ const {test} = require('node:test');
 const crypto = require('node:crypto');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, 'browser-extension', file), 'utf8');
+const extensionManifest = JSON.parse(read('manifest.json'));
 const geometryContext = vm.createContext({});
 vm.runInContext(read('drag-geometry.js'), geometryContext);
 const geometry = geometryContext.MoriDragGeometry;
@@ -103,14 +104,23 @@ function background(localOptions = {}) {
   context.importScripts = file => vm.runInContext(read(file), context);
   const collectorScripts=[];
   if(localOptions.collectors){
-    chrome.runtime.getManifest=()=>({version:'0.2.21',content_scripts:[{js:['preferences.js','content.js']}]});
-    chrome.tabs.sendMessage=async(id,message)=>message.action==='mori-collector-ping'?localOptions.pong:{displayed:true};
-    chrome.scripting={executeScript:async request=>{collectorScripts.push(request);return [{result:true}];}};
+    let pong=localOptions.pong;
+    chrome.runtime.getManifest=()=>extensionManifest;
+    chrome.tabs.sendMessage=async(id,message)=>{
+      if(message.action==='mori-collector-ping')return pong;
+      if(message.action==='mori-collector-wake')return localOptions.wakePong || pong;
+      return {displayed:true};
+    };
+    chrome.scripting={executeScript:async request=>{
+      collectorScripts.push(request);
+      pong=localOptions.injectedPong || {ready:true,busy:false,version:extensionManifest.version,generation:localOptions.generation};
+      return [{result:true}];
+    }};
   }
   vm.runInContext(read('background.js'), context);
   return {
     nativeCalls, fetchCalls, menus, tabMessages, badges, titles,metadata,storeWrites,collectorScripts,
-    repairCollector:()=>vm.runInContext('ensureCollector(1)',context),
+    repairCollector:()=>vm.runInContext('ensureCollector(1,0)',context),
     preferences(value) {preferences = {...preferences,...value};},
     install: () => installedListener(), startup: () => startupListener(),
     click: (info, tab = {id: 1, title: '网页标题', url: 'https://example.com/page'}) => clickListener(info, tab),
@@ -125,19 +135,38 @@ function background(localOptions = {}) {
 }
 
 test('same-version collector repair compares loaded generation, while legacy bundles keep version compatibility',async()=>{
-  for(const pong of [{ready:true,version:'0.2.21',generation:'a'.repeat(32)},{ready:true,version:'0.2.21'}]){
+  const version=extensionManifest.version;
+  for(const pong of [{ready:true,busy:false,version,generation:'a'.repeat(32)},{ready:true,busy:false,version}]){
     const bridge=background({collectors:true,generation:'b'.repeat(32),pong});
     assert.equal(await bridge.repairCollector(),true);
     assert.equal(bridge.collectorScripts.length,1,'new background replaces old same-version open-page collector');
   }
   for(const options of [
-    {generation:'b'.repeat(32),pong:{ready:true,version:'0.2.21',generation:'b'.repeat(32)}},
-    {generation:'b'.repeat(32),pong:{ready:true,busy:true,version:'0.2.21',generation:'a'.repeat(32)}},
-    {pong:{ready:true,version:'0.2.21'}}
+    {generation:'b'.repeat(32),pong:{ready:true,version,generation:'b'.repeat(32)}},
+    {generation:'b'.repeat(32),pong:{ready:true,busy:true,version,generation:'a'.repeat(32)}},
+    {generation:'b'.repeat(32),pong:{ready:true,version,generation:'a'.repeat(32)}},
+    {pong:{ready:true,version}}
   ]){
     const bridge=background({collectors:true,...options});await bridge.repairCollector();
     assert.equal(bridge.collectorScripts.length,0,'matching generation, an active gesture or a legacy bundle does not churn collectors');
   }
+});
+
+test('collector repair verifies readiness after injection and leaves a busy replacement intact',async()=>{
+  const generation='b'.repeat(32),version=extensionManifest.version;
+  const bridge=background({collectors:true,generation,pong:{ready:true,busy:false,version,generation:'a'.repeat(32)},
+    injectedPong:{ready:false,busy:true,version,generation,readinessProtocol:1}});
+  assert.equal(await bridge.repairCollector(),false,'executing files is not proof the new collector is ready');
+  assert.equal(await bridge.repairCollector(),false,'a repeated repair cannot interrupt the busy replacement');
+  assert.equal(bridge.collectorScripts.length,1);
+  assert.deepEqual(Array.from(bridge.collectorScripts[0].files),extensionManifest.content_scripts[0].js);
+});
+
+test('a matching initializing collector wakes without repeated script injection',async()=>{
+  const generation='b'.repeat(32),version=extensionManifest.version;
+  const bridge=background({collectors:true,generation,pong:{ready:false,busy:false,version,generation,readinessProtocol:1},
+    wakePong:{ready:true,busy:false,version,generation,readinessProtocol:1}});
+  assert.equal(await bridge.repairCollector(),true);assert.equal(bridge.collectorScripts.length,0);
 });
 
 test('paired backup handles host-not-found without altering the save payload', async () => {
@@ -207,7 +236,10 @@ test('native bridge distinguishes forbidden extension, missing host, launch, dis
     assert.equal(reply.ok, false);
     assert.equal(reply.code, code);
     assert.equal(reply.diagnostic, message);
-    if (code === 'NATIVE_EXTENSION_FORBIDDEN') assert.match(reply.error, /abcdefghijklmnopabcdefghijklmnop/);
+    if (code === 'NATIVE_EXTENSION_FORBIDDEN') {
+      assert.match(reply.error, /未允许.*本机程序/);
+      assert.match(reply.error, /本次请求未发送/);
+    }
   }
   bridge.fail(null);
   assert.equal((await bridge.request({action: 'folders'})).theme, 'dark');
@@ -347,10 +379,12 @@ test('right-click collection preserves image/source and sends progress/result on
   const saved = bridge.nativeCalls[0].message;
   assert.equal(saved.data, 'AQID'); assert.equal(saved.source, 'https://example.com/article');
   assert.equal(saved.name, '网页标题'); assert.equal(saved.folder, ''); assert.equal(saved.duplicateAction, 'ask');
-  assert.equal(bridge.tabMessages[0].message.action, 'context-saving');
-  assert.equal(bridge.tabMessages[1].message.action, 'result');
-  assert.equal(bridge.tabMessages[0].message.requestId, bridge.tabMessages[1].message.requestId);
-  assert(bridge.tabMessages.every(call => call.id === 1 && call.options.frameId === 0));
+  const alias=bridge.tabMessages.find(call=>call.message.action==='resolve-context-native-image');
+  assert.equal(alias.options.frameId,8);assert.equal(alias.message.expectedUrl,'https://example.com/original.png');
+  const feedback=bridge.tabMessages.filter(call=>['context-saving','result'].includes(call.message.action));
+  assert.deepEqual(feedback.map(call=>call.message.action),['context-saving','result']);
+  assert.equal(feedback[0].message.requestId,feedback[1].message.requestId);
+  assert(feedback.every(call => call.id === 1 && call.options.frameId === 0));
   assert.equal(bridge.badges.at(-1).text, '✓');
   assert.match(bridge.titles.at(-1).title, /已收藏/);
 });
@@ -489,9 +523,9 @@ test('unavailable video receiver and unsupported video URL do not suggest screen
   assert.equal(reply.ok,false);assert(!reply.error.includes('截图'));assert.equal(bridge.nativeCalls.length,0);
 });
 
-test('extension is 0.2.21 with repair and idle update permissions and sources loaded before content', () => {
+test('extension manifest retains repair and idle update permissions and sources loaded before content', () => {
   const manifest = JSON.parse(read('manifest.json'));
-  assert.equal(manifest.version, '0.2.21');
+  assert.equal(manifest.manifest_version,3);assert.match(manifest.version,/^\d+\.\d+\.\d+(?:\.\d+)?$/);
   assert.deepEqual(manifest.permissions, ['nativeMessaging', 'contextMenus', 'storage', 'scripting', 'alarms']);
   assert.deepEqual(manifest.host_permissions, ['https://*/*', 'http://*/*']);
   assert.deepEqual(manifest.content_scripts[0].js, ['preferences.js', 'collector-text.js', 'drag-geometry.js', 'media-source.js', 'runtime-client.js', 'content.js']);
@@ -516,8 +550,10 @@ test('bulk browser import is restricted to extension popup rather than websites'
 test('right-click edit waits for confirmation and never silently saves when editor cannot display',async()=>{
   const bridge=background();bridge.preferences({editBeforeSave:true});
   await bridge.click({menuItemId:'mori-save',srcUrl:'https://example.com/image.png'});
-  assert.equal(bridge.nativeCalls.length,0);assert.equal(bridge.fetchCalls.length,0);assert.equal(bridge.tabMessages[0].message.action,'context-edit');
-  assert.equal(bridge.tabMessages[0].message.item.source,'https://example.com/page');
+  assert.equal(bridge.nativeCalls.length,0);assert.equal(bridge.fetchCalls.length,0);
+  const edit=bridge.tabMessages.find(call=>call.message.action==='context-edit');
+  assert.equal(edit.message.item.source,'https://example.com/page');assert.equal(edit.options.frameId,0);
+  assert(!bridge.tabMessages.some(call=>call.message.action==='context-saving'));
   bridge.receive(false);await bridge.click({menuItemId:'mori-save',srcUrl:'https://example.com/image.png'});
   assert.equal(bridge.fetchCalls.length,0);assert.equal(bridge.badges.at(-1).text,'!');assert.match(bridge.titles.at(-1).title,/未保存/);
 });

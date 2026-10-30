@@ -28,6 +28,7 @@ namespace MoriDesk {
    check(!Program.ShouldRememberLibrary(new[]{"--ui-test",folder})&&!Program.ShouldRememberLibrary(new[]{"--library",folder,"--handoff","event"}),"preview and uncommitted handoff cannot change the default library");
    SettingsConcurrency(Path.Combine(root,"startup-settings.json"),root,check);
    StartupLibrarySafety(Path.Combine(root,"startup-library-safety"),check);
+   ExternalFileOpenTests.Run(Path.Combine(root,"external-open"),check);
   }
   static void StartupLibrarySafety(string root,Action<bool,string> check){
    Directory.CreateDirectory(root);string path=Path.Combine(root,"settings.json"),library=Path.Combine(root,"remembered-library");

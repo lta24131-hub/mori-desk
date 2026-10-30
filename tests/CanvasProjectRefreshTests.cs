@@ -26,7 +26,7 @@ namespace MoriDesk {
     var store=new FreeCanvasStore(Path.Combine(root,"profile"));var mature=new MatureCanvasStore(Path.Combine(root,"profile"));
     var documents=new List<FreeCanvasDocument>();for(int i=0;i<30;i++)documents.Add(store.Create("项目 "+i.ToString("D2")));
     var messages=new List<string>();page=new CanvasProjectsPage(store,(id,paths)=>true,data=>new string[0],data=>new string[0],()=>true,()=>true,()=>false,messages.Add,mature);
-    bool visible=false;page.RefreshVisibleForTests=()=>visible;var initial=page.ProjectsForTests.ToDictionary(p=>p.Id,p=>page.ProjectButtonForTests(p.Id));int queries=page.QueryCountForTests;
+    CanvasPageTestSupport.Wait(page);bool visible=false;page.RefreshVisibleForTests=()=>visible;var initial=page.ProjectsForTests.ToDictionary(p=>p.Id,p=>page.ProjectButtonForTests(p.Id));int queries=page.QueryCountForTests;
     for(int i=0;i<50;i++)page.RequestRefresh();Await(page.FlushRefreshForTests());
     check(page.QueryCountForTests==queries&&page.RefreshPendingForTests&&page.ProjectsForTests.Count==30,"hidden project page keeps one dirty flag without reading every autosave notification");
     visible=true;Await(page.FlushRefreshForTests());
@@ -52,7 +52,17 @@ namespace MoriDesk {
     }
     page.ProjectQueryForTests=null;Await(page.FlushRefreshForTests());
     check(page.ProjectsForTests.Single(p=>p.Id==changed).Name=="最新项目名"&&!page.RefreshPendingForTests,"the merged follow-up scan publishes the latest committed project metadata");
-    var board=mature.Create("预览稍后到达");page.Refresh();Button beforeThumbnail=page.ProjectButtonForTests(board.Id);string sameUpdated=page.ProjectsForTests.Single(p=>p.Id==board.Id).Updated;
+    using(var entered=new ManualResetEventSlim(false))using(var release=new ManualResetEventSlim(false)){
+     var stable=page.ProjectsForTests;int reads=page.QueryCountForTests;
+     page.ProjectQueryForTests=()=>{var snapshot=CanvasProjectsPage.QueryProjects(store,mature);entered.Set();if(!release.Wait(5000))throw new TimeoutException("Explicit refresh was not released.");return snapshot;};
+     page.Refresh();Task active=page.RefreshTaskForTests;check(entered.Wait(3000)&&!active.IsCompleted,"F5 starts a background read without waiting for slow storage");
+     for(int i=0;i<40;i++)page.Refresh();check(page.QueryCountForTests==reads+1&&page.RefreshPendingForTests,"repeated explicit refreshes retain only one running scan and one pending scan");
+     visible=false;page.RaiseEvent(new RoutedEventArgs(FrameworkElement.UnloadedEvent));release.Set();Await(active);
+     check(ReferenceEquals(stable,page.ProjectsForTests)&&page.RefreshPendingForTests&&page.QueryCountForTests==reads+1,"leaving during explicit refresh discards its stale result and stops follow-up disk work");
+    }
+    page.ProjectQueryForTests=null;visible=true;Await(page.FlushRefreshForTests());
+    check(!page.RefreshPendingForTests&&page.ProjectsForTests.Count==30,"returning after a canceled display refresh publishes a complete current list");
+    var board=mature.Create("预览稍后到达");CanvasPageTestSupport.Wait(page);Button beforeThumbnail=page.ProjectButtonForTests(board.Id);string sameUpdated=page.ProjectsForTests.Single(p=>p.Id==board.Id).Updated;
     CanvasProjectThumbnail.SaveMature(mature,board,Thumbnail());page.RequestRefresh();Await(page.FlushRefreshForTests());
     check(page.ProjectsForTests.Single(p=>p.Id==board.Id).Updated==sameUpdated&&!ReferenceEquals(beforeThumbnail,page.ProjectButtonForTests(board.Id)),"a newly saved thumbnail updates its card even when the scene timestamp is unchanged");
     string manifest=Path.Combine(store.Root,changed,"project.json");byte[] bytes=File.ReadAllBytes(manifest);DateTime modified=File.GetLastWriteTimeUtc(manifest);visible=false;

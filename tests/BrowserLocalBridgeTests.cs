@@ -23,7 +23,7 @@ namespace MoriDesk {
     check(proof.Contains("\"id\":\""+id+"\"")&&!proof.Contains(new string('b',32)),"HTTP identity comes from authenticated origin not message body");
    }
    bool loadedSettings=false;string untouched=Path.Combine(root,"no-status-library");
-   try{Mori.NativeBridge.HandleAtCurrentLibrary(new Dictionary<string,object>{{"action","bridgeStatus"},{"_extensionId",""}},untouched,()=>{loadedSettings=true;throw new Exception("Status touched settings");});}catch(UnauthorizedAccessException){}catch(InvalidDataException){}
+   try{Mori.NativeBridge.HandleAtCurrentLibrary(new Dictionary<string,object>{{"action","bridgeStatus"},{"_extensionId",""}},untouched,()=>{loadedSettings=true;throw new Exception("Status touched settings");});}catch(UnauthorizedAccessException){}catch(InvalidDataException){}catch(InvalidOperationException error){if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA"))||!error.Message.Contains("独立数据目录"))throw;}
    check(!loadedSettings&&!Directory.Exists(untouched),"connection health never loads or initializes a media library");
    Handoff(secret,origin,check);
    string manifest=BrowserConnection.WriteManifest(data,typeof(Entry).Assembly.Location,id);check(BrowserLocalBridge.OriginAllowed(manifest,origin),"only paired origin accepted");foreach(string value in new[]{"https://example.com","null",origin+"/",origin+".evil", "chrome-extension://"+new string('b',32)})check(!BrowserLocalBridge.OriginAllowed(manifest,value),"unpaired origin rejected");

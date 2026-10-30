@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 using System.Windows;
 
 namespace Mori {
@@ -116,7 +115,7 @@ namespace Mori {
      diagnostic.Reason="stdout-failure";
      if(!reading.Wait(2000))throw new IOException("PDF 文字读取未完成。");
      byte[] bytes=reading.GetAwaiter().GetResult();diagnostic.Reason="payload-invalid";if(bytes.Length==0)throw new InvalidDataException("PDF 文字输出为空。");
-     var result=PdfTextWorker.Serializer().Deserialize<PdfTextPage>(Encoding.UTF8.GetString(bytes));if(result==null)throw new InvalidDataException("PDF 文字层数据无效。");result.Validate(page);return result;
+     return PdfTextCodec.Decode(bytes,page);
     }catch(Exception error){diagnostic.Observe(watch.ElapsedMilliseconds,0);failure=error;throw;}
     finally{
      try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}
@@ -129,7 +128,6 @@ namespace Mori {
  }
  internal static class PdfTextWorker {
   internal const int MaximumLetters=40000,MaximumWords=20000,MaximumCharacters=150000,MaximumOutput=4*1024*1024;
-  internal static JavaScriptSerializer Serializer(){return new JavaScriptSerializer{MaxJsonLength=MaximumOutput,RecursionLimit=16};}
   internal static FileInfo Source(string path){
    var info=new FileInfo(Path.GetFullPath(path));string extension=info.Extension;
    if(!string.Equals(extension,".pdf",StringComparison.OrdinalIgnoreCase)&&!string.Equals(extension,".ai",StringComparison.OrdinalIgnoreCase))throw new NotSupportedException("仅支持 PDF 或 PDF 兼容 AI 文字层。");
@@ -164,7 +162,7 @@ namespace Mori {
    }
   }
   internal static int Run(string[] args){
-   try{int index;if(args.Length!=3||args[0]!="--pdf-text-worker"||!int.TryParse(args[2],out index))return 2;var page=Extract(args[1],index);byte[] bytes=Encoding.UTF8.GetBytes(Serializer().Serialize(page));if(bytes.Length>MaximumOutput)return 2;using(var output=Console.OpenStandardOutput()){output.Write(bytes,0,bytes.Length);output.Flush();}return 0;}catch{return 2;}
+   try{int index;if(args.Length!=3||args[0]!="--pdf-text-worker"||!int.TryParse(args[2],out index))return 2;var page=Extract(args[1],index);byte[] bytes=PdfTextCodec.Encode(page);using(var output=Console.OpenStandardOutput()){output.Write(bytes,0,bytes.Length);output.Flush();}return 0;}catch{return 2;}
   }
  }
 }

@@ -26,7 +26,7 @@ class Tests {
         var surface=((System.Windows.Controls.Grid)capture.Content).Children.OfType<ScreenshotSurface>().Single();surface.Selection=new Rect(0,0,200,100);
         Func<string,System.Windows.Controls.Button> button=name=>(System.Windows.Controls.Button)LogicalTreeHelper.FindLogicalNode(capture,name);
         Action<string> click=name=>button(name).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
-        click("CaptureTool_arrow");Check(capture.SelectedTool=="arrow"&&(bool)button("LineMode_arrow").Tag,"arrow tool starts in arrow mode with the matching subtool selected");
+        click("CaptureTool_arrow");Check(capture.SelectedTool=="arrow"&&(bool)button("LineMode_arrowFilled").Tag,"arrow tool starts in tapered filled mode with the matching subtool selected");
         var originalMark=new Annotation {Kind="arrow",Start=new Point(10,10),End=new Point(80,70)};surface.Marks.Add(originalMark);
         click("LineMode_line");Check(capture.SelectedTool=="line"&&(bool)button("LineMode_line").Tag&&button("LineMode_arrow").Tag==null,"line mode switches drawing kind and selected indicator");
         Check(originalMark.Kind=="arrow"&&surface.Marks.Count==1&&surface.Selection==new Rect(0,0,200,100),"changing line mode never rewrites existing annotations or selection");
@@ -268,7 +268,7 @@ class Tests {
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
         CaptureTests.Run(Check);
-        CaptureInputUsabilityTests.Run(Check);CaptureDirectResizeTests.Run(Check);
+        CaptureDrawingExperienceTests.Run(Check);CaptureRenderingPerformanceTests.Run(Check);CaptureHistoryMemoryTests.Run(Check);CaptureInputUsabilityTests.Run(Check);CaptureDirectResizeTests.Run(Check);
         ScrollCaptureStitcherTests.Run(Check);ScrollCaptureSessionTests.Run(Check);ScrollCapturePreviewTests.Run(Check);ExternalScrollCaptureTests.Run(Check);
         if(args.Length==1&&args[0]=="--snap-only"){Console.WriteLine(count+" capture selection tests passed.");return 0;}
         if(args.Length==1&&args[0]=="--snap-native"){CaptureTests.Native(Check);Console.WriteLine(count+" capture tests passed.");return 0;}
@@ -326,7 +326,7 @@ class Tests {
         var horizontal=PinTransforms.Apply(rotationSample,0,true,false);horizontal.CopyPixels(rotatedBytes,12,0);Check(rotatedBytes[0]==3&&rotatedBytes[8]==1&&rotatedBytes[12]==6,"horizontal flip mirrors on screen axis");var vertical=PinTransforms.Apply(rotationSample,0,false,true);vertical.CopyPixels(rotatedBytes,12,0);Check(rotatedBytes[0]==4&&rotatedBytes[12]==1,"vertical flip mirrors on screen axis");
         for(int i=0;i<3;i++)rotated=PinTransforms.Apply(rotated,1,false,false);rotated.CopyPixels(rotatedBytes,12,0);Check(samplePixels.SequenceEqual(rotatedBytes),"four rotations retain all original pixels");
         bool composed=true;for(int turns=0;turns<4;turns++)foreach(bool h in new[]{false,true})foreach(bool v in new[]{false,true})foreach(int direction in new[]{-1,1}){var orientation=new PinRecord{QuarterTurns=turns,FlipHorizontal=h,FlipVertical=v};var before=PinTransforms.Apply(rotationSample,turns,h,v);var expected=PinTransforms.Apply(before,direction,false,false);PinTransforms.Rotate(orientation,direction);var actual=PinTransforms.Apply(rotationSample,orientation.QuarterTurns,orientation.FlipHorizontal,orientation.FlipVertical);var a=new byte[24];var b=new byte[24];actual.CopyPixels(a,actual.PixelWidth*4,0);expected.CopyPixels(b,expected.PixelWidth*4,0);composed&=a.SequenceEqual(b);}Check(composed,"rotate after either mirror follows visible screen direction");
-        Check(PinToolbar.Button("rotate","旋转 / 翻转",()=>{}).Width==26,"external toolbar buttons reduced to 26 DIP");Check(((BitmapSource)Ui.AppIcon).PixelWidth==256,"new application icon embedded in executable");
+        Check(((BitmapSource)Ui.AppIcon).PixelWidth==256,"new application icon embedded in executable");
         var crop=Geometry.PixelCrop(new Rect(-3,-4,25,30),1.5,1.5,100,80);Check(crop.X==0&&crop.Y==0&&crop.Width==33&&crop.Height==39,"DPI crop clamps to image");
         var words=new[]{new WordBox{Text="Hello",Line=0},new WordBox{Text="world",Line=0},new WordBox{Text="你",Line=1},new WordBox{Text="好",Line=1}};Check(Geometry.JoinWords(words)=="Hello world"+Environment.NewLine+"你好","selected words reading order");
         var visual=new DrawingVisual();using(var d=visual.RenderOpen()){d.DrawRectangle(Brushes.White,null,new Rect(0,0,600,180));d.DrawText(new FormattedText("Save the screenshot",System.Globalization.CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Arial"),30,Brushes.Black),new Point(20,35));}

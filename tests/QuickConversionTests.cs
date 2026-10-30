@@ -129,7 +129,7 @@ namespace MoriDesk {
   internal static void Run(string root,Action<bool,string> check){
    string sandbox=Path.Combine(root,"quick-conversion");Directory.CreateDirectory(sandbox);
    var previous=SynchronizationContext.Current;SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-   try{MenuAndSelection(check);CapabilitiesValidation(check);EntryContracts(check);StaticSources(sandbox,check);ReadLockLifecycle(sandbox,check);SingleAndBatch(sandbox,check);FrozenInputs(sandbox,check);FailuresAndCancellation(sandbox,check);UntrustedReplies(sandbox,check);MultipleOutputJobs(sandbox,check);MetadataAndOriginals(sandbox,check);MultipleOutputCollection(sandbox,check);ExternalPanel(sandbox,check);ExternalPanelLifecycle(sandbox,check);BroaderFormatCollection(sandbox,check);RenderExternalPanel(sandbox,check);RenderVideoFormats(sandbox,check);}
+   try{MenuAndSelection(check);CapabilitiesValidation(check);EntryContracts(check);StaticSources(sandbox,check);ReadLockLifecycle(sandbox,check);SingleAndBatch(sandbox,check);FrozenInputs(sandbox,check);FailuresAndCancellation(sandbox,check);UntrustedReplies(sandbox,check);MultipleOutputJobs(sandbox,check);LatestSelectionMetadata(sandbox,check);MetadataAndOriginals(sandbox,check);MultipleOutputCollection(sandbox,check);ExternalPanel(sandbox,check);ExternalPanelLifecycle(sandbox,check);BroaderFormatCollection(sandbox,check);RenderExternalPanel(sandbox,check);RenderVideoFormats(sandbox,check);}
    finally{SynchronizationContext.SetSynchronizationContext(previous);}
    check(Application.Current==null,"quick conversion checks never create an Application or a desktop window");
   }
@@ -709,6 +709,28 @@ namespace MoriDesk {
     var again=Await(collector.CollectAsync(new[]{Success(original,second)}));
     check(again.CollectedPaths.SequenceEqual(new[]{second})&&library.All().Count==3&&library.All().Single(asset=>asset.Id==two.Id).Name=="项目.v3-002","retrying only page 002 neither duplicates a saved page nor renumbers it as 001");
     check(Hash(pdf)==externalHash&&Hash(original)==originalHash&&library.All().Any(asset=>asset.Id==source.Id&&!asset.Deleted&&asset.Ext==".pdf"),"multi-page conversion keeps the external PDF, managed original and original asset record unchanged");
+   }
+  }
+  static void LatestSelectionMetadata(string root,Action<bool,string> check){
+   using(var library=new Library(Path.Combine(root,"latest-selection-library"))){
+    string input=Picture(root,"latest-selection.png",46),output=Picture(root,"最新名称.jpg",47);
+    string oldFolder=library.CreateFolder("修改前",""),newFolder=library.CreateFolder("修改后","");
+    var source=library.Import(input,oldFolder,"旧名称","https://example.invalid/old","旧标签","旧备注").Item;
+    string path=library.FullPath(source),before=Hash(path);var ids=new[]{source.Id};var paths=new Dictionary<string,string>{{source.Id,path}};
+    // The toolbar has already captured its selection/path identity. The user
+    // then saves edits before clicking a target format on that same toolbar.
+    source.Name="最新名称";source.Tags="新标签";source.Notes="新备注";source.Source="https://example.invalid/new";library.Update(source);
+    library.RemoveFromFolder(ids,oldFolder);library.AddToFolder(ids,newFolder);
+    var origin=MainWindow.CaptureQuickConversionOrigin(library,ids,paths);var captured=origin.FindSource(path);
+    check(captured.Name=="最新名称"&&captured.Tags=="新标签"&&captured.Notes=="新备注"&&captured.Source=="https://example.invalid/new"&&captured.Folders.SequenceEqual(new[]{newFolder}),"conversion click captures the latest saved metadata and category instead of the old toolbar selection");
+    source.Tags="任务开始后修改";library.Update(source);
+    var result=Await(origin.CollectAsync(new[]{Success(path,output)}));var copy=library.All().Single(item=>item.Id==origin.CollectedAssetId(output));
+    check(result.CollectedPaths.Length==1&&copy.Name=="最新名称"&&copy.Tags=="新标签"&&copy.Notes=="新备注"&&library.AssetFolders(copy.Id).Select(folder=>folder.Id).SequenceEqual(new[]{newFolder}),"independent result inherits the click-time metadata/category even if the original is edited during conversion");
+    check(Hash(path)==before&&library.All().Single(item=>item.Id==source.Id).Tags=="任务开始后修改","late metadata capture preserves the original bytes and later edits");
+    bool rejected=false;try{MainWindow.CaptureQuickConversionOrigin(library,ids,new Dictionary<string,string>{{source.Id,output}});}catch(IOException){rejected=true;}
+    check(rejected,"a changed source path cannot reuse the retained toolbar's conversion selection");
+    library.Trash(ids,true);rejected=false;try{MainWindow.CaptureQuickConversionOrigin(library,ids,paths);}catch(IOException){rejected=true;}
+    check(rejected,"a deleted original cannot be revived by conversion from a retained menu");
    }
   }
   static void MetadataAndOriginals(string root,Action<bool,string> check){

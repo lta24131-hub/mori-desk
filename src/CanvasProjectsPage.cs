@@ -21,7 +21,8 @@ namespace MoriDesk {
   readonly Action<string> status;readonly WrapPanel rows=new WrapPanel{Orientation=Orientation.Horizontal};readonly TextBlock count,empty;readonly MatureCanvasStore matureStore;readonly Action createRequested;readonly bool destinationMode;
   readonly Dictionary<string,Button> cards=new Dictionary<string,Button>(StringComparer.Ordinal);
   readonly Dictionary<string,CanvasProjectRow> renderedRows=new Dictionary<string,CanvasProjectRow>(StringComparer.Ordinal);
-  readonly ScrollViewer scroll;readonly DispatcherTimer refreshTimer;bool refreshPending,refreshReading;int refreshGeneration;
+  readonly ScrollViewer scroll;readonly DispatcherTimer refreshTimer;bool refreshPending,refreshReading,refreshImmediate;int refreshGeneration;
+  ControlTemplate cardTemplate;Button dropTarget;
   internal Func<List<CanvasProjectRow>> ProjectQueryForTests;internal Func<bool> RefreshVisibleForTests;
   internal Task RefreshTaskForTests=Task.FromResult(false);internal int QueryCountForTests;
   internal bool RefreshPendingForTests {get{return refreshPending;}}
@@ -39,7 +40,7 @@ namespace MoriDesk {
    empty=Label(destinationMode?"还没有画布\n点击“新建画布”，用所选图片开始一个项目":"还没有画布\n点击“新建画布”，开始一个项目",15,"Muted");empty.TextAlignment=TextAlignment.Center;empty.LineHeight=28;empty.HorizontalAlignment=HorizontalAlignment.Center;empty.VerticalAlignment=VerticalAlignment.Center;body.Children.Add(empty);
    refreshTimer=new DispatcherTimer(DispatcherPriority.Background,Dispatcher){Interval=TimeSpan.FromMilliseconds(300)};
    refreshTimer.Tick+=(s,e)=>{refreshTimer.Stop();RefreshTaskForTests=RefreshPendingAsync();};
-   Loaded+=(s,e)=>ScheduleRefresh();Unloaded+=(s,e)=>{refreshTimer.Stop();refreshGeneration++;if(refreshReading)refreshPending=true;};
+   Loaded+=(s,e)=>ScheduleRefresh();Unloaded+=(s,e)=>{refreshTimer.Stop();ClearDropTarget();refreshGeneration++;if(refreshReading)refreshPending=true;};
    IsVisibleChanged+=(s,e)=>{if(IsVisible)ScheduleRefresh();else{refreshTimer.Stop();refreshGeneration++;if(refreshReading)refreshPending=true;}};
    DragOver+=(s,e)=>HandleDragOver(e);Drop+=(s,e)=>HandleDrop(e);DragLeave+=(s,e)=>ClearDropTarget();Refresh();
   }
@@ -47,19 +48,24 @@ namespace MoriDesk {
   internal static string[] ImageFiles(IEnumerable<string> paths){return (paths??new string[0]).Where(p=>!string.IsNullOrWhiteSpace(p)&&Path.IsPathRooted(p)&&FreeCanvasStore.SupportedImage(p)&&File.Exists(p)&&!Directory.Exists(p)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();}
   internal static CanvasProjectRow Describe(FreeCanvasDocument d){int pictures=d.Items.Count(i=>i.Kind=="image"),texts=d.Items.Count(i=>i.Kind=="text"),drawings=d.Items.Count(i=>i.IsDrawing);return new CanvasProjectRow{Id=d.Id,Name=d.Name,Updated=d.Updated,Images=pictures,Text=texts,Drawing=drawings,Pinned=d.Pinned,Summary=d.Items.Count==0?"空白画布":"图片 "+pictures+"   文字 "+texts+"   绘图 "+drawings};}
   internal static List<CanvasProjectRow> QueryProjects(FreeCanvasStore store,MatureCanvasStore matureStore=null){return (matureStore==null?store.List():matureStore.List()).Select(info=>new CanvasProjectRow{Id=info.Id,Name=info.Name,Updated=info.Updated,Error=info.Error,Images=info.Images,Text=info.Text,Drawing=info.Drawing,Pinned=info.Pinned,Summary=string.IsNullOrEmpty(info.Error)?(info.Images+info.Text+info.Drawing==0?"空白画布":"图片 "+info.Images+"   文字 "+info.Text+"   绘图 "+info.Drawing):"记录暂时无法读取"}).ToList();}
-  // Explicit Refresh remains immediate (including F5). Save/thumbnail callbacks
-  // use RequestRefresh: merge bursts and never scan projects on a hidden page.
-  public void Refresh(){refreshTimer.Stop();refreshPending=false;refreshGeneration++;try{QueryCountForTests++;ApplyProjects(ReadProjects());}catch(Exception error){RefreshError(error);}}
+  // F5 and initial navigation start as soon as visible, but disk reads and
+  // manifest validation never block the dispatcher. Repeated requests merge.
+  public void Refresh(){
+   if(!Dispatcher.CheckAccess()){Dispatcher.BeginInvoke(new Action(Refresh));return;}
+   refreshPending=true;refreshImmediate=true;refreshGeneration++;
+   if(cards.Count==0){empty.Text="正在读取项目…";empty.Visibility=Visibility.Visible;}
+   ScheduleRefresh();
+  }
   public void RequestRefresh(){
    if(!Dispatcher.CheckAccess()){Dispatcher.BeginInvoke(new Action(RequestRefresh));return;}
    refreshPending=true;refreshGeneration++;ScheduleRefresh();
   }
   bool CanRefreshAutomatically {get{return RefreshVisibleForTests!=null?RefreshVisibleForTests():IsLoaded&&IsVisible;}}
-  void ScheduleRefresh(){refreshTimer.Stop();if(refreshPending&&!refreshReading&&CanRefreshAutomatically)refreshTimer.Start();}
-  internal Task FlushRefreshForTests(){refreshTimer.Stop();return RefreshTaskForTests=RefreshPendingAsync();}
+  void ScheduleRefresh(){refreshTimer.Stop();if(refreshPending&&!refreshReading&&CanRefreshAutomatically){if(refreshImmediate)RefreshTaskForTests=RefreshPendingAsync();else refreshTimer.Start();}}
+  internal Task FlushRefreshForTests(){refreshTimer.Stop();if(refreshReading)return Task.FromResult(false);return RefreshTaskForTests=RefreshPendingAsync();}
   async Task RefreshPendingAsync(){
    if(!refreshPending||refreshReading||!CanRefreshAutomatically)return;
-   refreshPending=false;refreshReading=true;int generation=refreshGeneration;QueryCountForTests++;
+   refreshPending=false;refreshImmediate=false;refreshReading=true;int generation=refreshGeneration;QueryCountForTests++;
    try{var projects=await Task.Run(()=>ReadProjects());if(generation==refreshGeneration&&CanRefreshAutomatically)ApplyProjects(projects);}
    catch(Exception error){if(generation==refreshGeneration&&CanRefreshAutomatically)RefreshError(error);}
    finally{refreshReading=false;ScheduleRefresh();}
@@ -71,6 +77,7 @@ namespace MoriDesk {
   }
   static bool SameCard(CanvasProjectRow left,CanvasProjectRow right){return left.Name==right.Name&&left.Updated==right.Updated&&left.Error==right.Error&&left.Summary==right.Summary&&left.Images==right.Images&&left.Text==right.Text&&left.Drawing==right.Drawing&&left.Pinned==right.Pinned&&left.PreviewKey==right.PreviewKey;}
   void ApplyProjects(List<CanvasProjectRow> projects){
+   ClearDropTarget();
    double offset=scroll.VerticalOffset;string focusedId=ProjectAt(Keyboard.FocusedElement as DependencyObject);bool changed=false;
    var wanted=new HashSet<string>(projects.Select(p=>p.Id),StringComparer.Ordinal);
    foreach(string id in cards.Keys.Where(id=>!wanted.Contains(id)).ToArray()){rows.Children.Remove(cards[id]);cards.Remove(id);renderedRows.Remove(id);changed=true;}
@@ -89,7 +96,8 @@ namespace MoriDesk {
   void AddCard(CanvasProjectRow row){
    var card=new Button{Tag=row.Id,Width=252,Height=218,HorizontalContentAlignment=HorizontalAlignment.Stretch,VerticalContentAlignment=VerticalAlignment.Stretch,Margin=new Thickness(0,0,16,20),Padding=new Thickness(10),AllowDrop=true,ToolTip=string.IsNullOrEmpty(row.Error)?(destinationMode?"加入此画布":"单击打开此画布；也可把图片拖到这里"):"记录无法读取；现有项目文件保持不变"};
    card.SetResourceReference(Control.BackgroundProperty,"Panel");card.SetResourceReference(Control.ForegroundProperty,"Text");card.SetResourceReference(Control.BorderBrushProperty,"Divider");
-   card.Template=(ControlTemplate)System.Windows.Markup.XamlReader.Parse("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'><Border x:Name='Card' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1' CornerRadius='6' Padding='{TemplateBinding Padding}'><ContentPresenter HorizontalAlignment='Stretch'/></Border><ControlTemplate.Triggers><Trigger Property='IsMouseOver' Value='True'><Setter TargetName='Card' Property='Background' Value='{DynamicResource Hover}'/></Trigger><Trigger Property='IsKeyboardFocused' Value='True'><Setter TargetName='Card' Property='BorderBrush' Value='{DynamicResource Accent}'/><Setter TargetName='Card' Property='BorderThickness' Value='2'/></Trigger></ControlTemplate.Triggers></ControlTemplate>");
+   if(cardTemplate==null)cardTemplate=(ControlTemplate)System.Windows.Markup.XamlReader.Parse("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml' TargetType='Button'><Border x:Name='Card' Background='{TemplateBinding Background}' BorderBrush='{TemplateBinding BorderBrush}' BorderThickness='1' CornerRadius='6' Padding='{TemplateBinding Padding}'><ContentPresenter HorizontalAlignment='Stretch'/></Border><ControlTemplate.Triggers><Trigger Property='IsMouseOver' Value='True'><Setter TargetName='Card' Property='Background' Value='{DynamicResource Hover}'/></Trigger><Trigger Property='IsKeyboardFocused' Value='True'><Setter TargetName='Card' Property='BorderBrush' Value='{DynamicResource Accent}'/><Setter TargetName='Card' Property='BorderThickness' Value='2'/></Trigger></ControlTemplate.Triggers></ControlTemplate>");
+   card.Template=cardTemplate;
    var content=new Grid();content.RowDefinitions.Add(new RowDefinition{Height=new GridLength(146)});content.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});content.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
    var board=new Grid{ClipToBounds=true};board.SetResourceReference(BackgroundProperty,"Canvas");var fallback=new StackPanel{HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};var glyph=new Label{Padding=new Thickness(0),HorizontalContentAlignment=HorizontalAlignment.Center};glyph.SetResourceReference(Control.ForegroundProperty,"Muted");glyph.Content=CanvasIcons.Create("image",glyph,24);fallback.Children.Add(glyph);var note=Label(string.IsNullOrEmpty(row.Error)?(row.Images+row.Text+row.Drawing==0?"空白画布":"正在读取预览") :"无法读取",12,"Muted");note.Margin=new Thickness(0,7,0,0);fallback.Children.Add(note);board.Children.Add(fallback);
    if(string.IsNullOrEmpty(row.Error)){var preview=new CanvasProjectThumbnailImage(store,matureStore,row);preview.PreviewResolved+=available=>{fallback.Visibility=available?Visibility.Collapsed:Visibility.Visible;if(!available&&row.Images+row.Text+row.Drawing>0)note.Text="当前页为空或预览暂不可用";};board.Children.Add(preview);}
@@ -101,8 +109,9 @@ namespace MoriDesk {
   internal string ProjectAt(DependencyObject source){for(var current=source;current!=null;current=MainWindow.SelectionParent(current)){if(current==this)break;var button=current as Button;if(button!=null&&button.Tag is string&&cards.ContainsKey((string)button.Tag)&&ReferenceEquals(cards[(string)button.Tag],button))return (string)button.Tag;}return null;}
   internal bool AcceptsDrop(string id,IDataObject data){return canDrop()&&ProjectsForTests.Any(p=>p.Id==id&&string.IsNullOrEmpty(p.Error))&&dropPaths(data).Length>0;}
   internal bool DropOnProject(string id,IDataObject data){if(!AcceptsDrop(id,data)){status("请将已有图片文件拖到可读取的画布；文件夹不会展开导入。");return false;}var paths=commitPaths(data);if(paths.Length==0){status("拖入的图片已不可读取，未添加到画布；请检查原文件或刷新素材列表。");return false;}return open(id,paths);}
-  internal void ClearDropTarget(){foreach(var button in cards.Values)button.SetResourceReference(Control.BorderBrushProperty,"Divider");}
-  internal void HandleDragOver(DragEventArgs e){string id=ProjectAt(e.OriginalSource as DependencyObject);bool accepts=id!=null&&(e.AllowedEffects&DragDropEffects.Copy)!=0&&AcceptsDrop(id,e.Data);ClearDropTarget();if(accepts)cards[id].SetResourceReference(Control.BorderBrushProperty,"Accent");e.Effects=accepts?DragDropEffects.Copy:DragDropEffects.None;e.Handled=true;}
+  internal void ClearDropTarget(){SetDropTarget(null);}
+  void SetDropTarget(Button target){if(ReferenceEquals(dropTarget,target))return;if(dropTarget!=null)dropTarget.SetResourceReference(Control.BorderBrushProperty,"Divider");dropTarget=target;if(dropTarget!=null)dropTarget.SetResourceReference(Control.BorderBrushProperty,"Accent");}
+  internal void HandleDragOver(DragEventArgs e){string id=ProjectAt(e.OriginalSource as DependencyObject);bool accepts=id!=null&&(e.AllowedEffects&DragDropEffects.Copy)!=0&&AcceptsDrop(id,e.Data);SetDropTarget(accepts?cards[id]:null);e.Effects=accepts?DragDropEffects.Copy:DragDropEffects.None;e.Handled=true;}
   internal void HandleDrop(DragEventArgs e){string id=ProjectAt(e.OriginalSource as DependencyObject);ClearDropTarget();e.Effects=id!=null&&(e.AllowedEffects&DragDropEffects.Copy)!=0&&DropOnProject(id,e.Data)?DragDropEffects.Copy:DragDropEffects.None;e.Handled=true;}
   internal void CreateProject(){if(!canDrop()){status("请等待当前画布保存图片后再新建。");return;}if(createRequested!=null){createRequested();return;}if(!prepareCreate())return;try{string name="画布 "+(ProjectsForTests.Count+1);while(ProjectsForTests.Any(p=>p.Name==name))name+=" 新";var document=store.Create(name);if(defaultPinned()){document.Pinned=true;store.Save(document);}if(!open(document.Id,null)){store.Trash(document.Id);status("新建画布未打开，空项目已移入可恢复的画布回收目录。");}Refresh();}catch(Exception error){status("新建画布未完成："+error.Message);}}
   public void HandleKey(KeyEventArgs e){if(e.Key==Key.F5){Refresh();e.Handled=true;}else if(e.Key==Key.N&&Keyboard.Modifiers==ModifierKeys.Control){CreateProject();e.Handled=true;}}

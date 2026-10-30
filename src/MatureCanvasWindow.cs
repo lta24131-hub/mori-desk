@@ -294,7 +294,7 @@ namespace MoriDesk {
     EnsureCanvasContext(target,expectedSession);var images=new List<object>();foreach(string path in files){
      // Import and bounded preview decoding stay sequential on the worker;
      // only immutable dimensions and resource identity return to the UI.
-     var image=await Task.Run(()=>{lock(resourceGate){var resource=store.RegisterImage(target,path);var bitmap=store.Preview(target,resource.FileId);return new{id=resource.FileId,src=MatureCanvasStore.ResourceUrl(target.Id,resource.FileId),width=bitmap.PixelWidth,height=bitmap.PixelHeight,mimeType="image/png",name=Path.GetFileName(path)};}});EnsureCanvasContext(target,expectedSession);images.Add(image);
+     var image=await Task.Run(()=>{lock(resourceGate){int width,height;var resource=store.RegisterImage(target,path,out width,out height);return new{id=resource.FileId,src=MatureCanvasStore.ResourceUrl(target.Id,resource.FileId),width=width,height=height,mimeType="image/png",name=Path.GetFileName(path)};}});EnsureCanvasContext(target,expectedSession);images.Add(image);
     }
     // Resources are durable before the browser adds shapes. A failed canvas
     // edit can leave an unreferenced resource, never a dangling saved image.

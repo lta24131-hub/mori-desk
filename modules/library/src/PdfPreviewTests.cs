@@ -8,6 +8,7 @@ using System.Threading;
 
 namespace Mori {
  internal static class PdfPreviewTests {
+  static bool WaitUnlocked(string file){return SpinWait.SpinUntil(delegate{try{using(var stream=new FileStream(file,FileMode.Open,FileAccess.ReadWrite,FileShare.None))return true;}catch(IOException){return false;}},5000);}
   static bool Reject(Action action){try{action();return false;}catch{return true;}}
   internal static byte[] Fixture(int pages,int width=320,int height=180){
    return Fixture(Enumerable.Repeat(width,pages).ToArray(),Enumerable.Repeat(height,pages).ToArray());
@@ -73,7 +74,7 @@ namespace Mori {
     using(var canceled=new CancellationTokenSource()){canceled.Cancel();bool caught=false;try{session.RenderAsync(0,128,canceled.Token).GetAwaiter().GetResult();}catch(OperationCanceledException){caught=true;}check(caught&&session.RenderAsync(1,128,CancellationToken.None).GetAwaiter().GetResult().PageIndex==1,"canceled session page request leaves native document reusable");}
     check(mixedBytes.SequenceEqual(File.ReadAllBytes(mixed))&&mixedModified==File.GetLastWriteTimeUtc(mixed),"long-lived PDF session leaves source bytes and modified time untouched");
    }
-   using(var exclusive=new FileStream(mixed,FileMode.Open,FileAccess.ReadWrite,FileShare.None))check(exclusive.Length==mixedBytes.Length,"disposed PDF session releases its reusable source stream");
+   check(WaitUnlocked(mixed),"disposed PDF session asynchronously releases its reusable source stream without blocking UI");
    var queuedSession=PdfPreview.OpenAsync(mixed,CancellationToken.None).GetAwaiter().GetResult();workers.Wait();
    try{
     var queued=queuedSession.RenderAsync(0,512,CancellationToken.None);queuedSession.Dispose();bool canceled=false;try{queued.GetAwaiter().GetResult();}catch(OperationCanceledException){canceled=true;}

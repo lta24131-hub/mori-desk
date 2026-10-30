@@ -299,9 +299,21 @@ namespace Mori {
             }return count;
         }
         public void Backup(string output) {
-            lock(writeGate){EnsureDeletionComplete();if(File.Exists(output))throw new IOException("备份文件已存在，请换一个名称");string snapshot=Path.Combine(Root,".mori","snapshot-"+Guid.NewGuid().ToString("N")+".db");string partial=output+".partial";
-                try{Db.Exec("VACUUM INTO "+Q(snapshot));List<Asset> snapshotAssets;using(var snapshotDb=new Database(snapshot))snapshotAssets=snapshotDb.Query("SELECT * FROM assets").Select(ReadAsset).ToList();using(var archive=ZipFile.Open(partial,ZipArchiveMode.Create)){archive.CreateEntryFromFile(snapshot,".mori/library.db",CompressionLevel.Optimal);foreach(var a in snapshotAssets)archive.CreateEntryFromFile(FullPath(a),a.Relative.Replace('\\','/'),CompressionLevel.NoCompression);}File.Move(partial,output);}
-                finally{if(File.Exists(snapshot))File.Delete(snapshot);if(File.Exists(partial))File.Delete(partial);}
+            lock(writeGate){EnsureDeletionComplete();if(File.Exists(output))throw new IOException("备份文件已存在，请换一个名称");string snapshot=Path.Combine(Root,".mori","snapshot-"+Guid.NewGuid().ToString("N")+".db");string partial=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(output)),".nook-backup-"+Guid.NewGuid().ToString("N")+".partial");bool ownsPartial=false;
+                try{
+                    Db.Exec("VACUUM INTO "+Q(snapshot));List<Asset> snapshotAssets;using(var snapshotDb=new Database(snapshot))snapshotAssets=snapshotDb.Query("SELECT * FROM assets").Select(ReadAsset).ToList();
+                    // A failed/repeated backup must never remove an earlier
+                    // attempt's recovery file or another process's active ZIP.
+                    // A short sibling name also keeps long valid output names
+                    // from exceeding path limits just while staging the ZIP.
+                    using(var file=new FileStream(partial,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
+                        ownsPartial=true;
+                        using(var archive=new ZipArchive(file,ZipArchiveMode.Create,true)){archive.CreateEntryFromFile(snapshot,".mori/library.db",CompressionLevel.Optimal);foreach(var a in snapshotAssets)archive.CreateEntryFromFile(FullPath(a),a.Relative.Replace('\\','/'),CompressionLevel.NoCompression);}
+                        file.Flush(true);
+                    }
+                    File.Move(partial,output);ownsPartial=false;
+                }
+                finally{if(File.Exists(snapshot))File.Delete(snapshot);if(ownsPartial&&File.Exists(partial))File.Delete(partial);}
             }
         }
         static Dictionary<string,object> ObjectJson(string path){var json=new JavaScriptSerializer{MaxJsonLength=32*1024*1024};return json.Deserialize<Dictionary<string,object>>(File.ReadAllText(path,Encoding.UTF8));}

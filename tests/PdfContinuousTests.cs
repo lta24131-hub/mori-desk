@@ -13,6 +13,7 @@ using Mori;
 
 namespace MoriDesk {
  internal static class PdfContinuousTests {
+  static System.Collections.Generic.IEnumerable<DependencyObject> Descendants(DependencyObject parent){for(int i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++){var child=VisualTreeHelper.GetChild(parent,i);yield return child;foreach(var next in Descendants(child))yield return next;}}
   sealed class OffscreenInputSource:PresentationSource {
    public override Visual RootVisual {get;set;}
    public override bool IsDisposed {get{return false;}}
@@ -58,11 +59,11 @@ namespace MoriDesk {
     Theme.Set(theme);var window=new DocumentPreviewWindow(null,Path.Combine(Path.GetTempPath(),"not-opened.pdf"),"Theme check",false);
     try{
      var panel=(System.Windows.Controls.DockPanel)window.Content;panel.Measure(new Size(520,360));panel.Arrange(new Rect(0,0,520,360));panel.UpdateLayout();
-     var bar=panel.Children.OfType<System.Windows.Controls.WrapPanel>().Single();var buttons=bar.Children.OfType<System.Windows.Controls.Button>().ToArray();
-     check(buttons.Length==8&&buttons.All(b=>((SolidColorBrush)b.Foreground).Color==((SolidColorBrush)Theme.Brush("Text")).Color&&((SolidColorBrush)b.Background).Color==((SolidColorBrush)Theme.Brush("Control")).Color),theme+" direct PDF/AI toolbar remains theme-aware without a main-window owner");
+     var bar=panel.Children.OfType<System.Windows.Controls.Border>().Single();var buttons=Descendants(bar).OfType<System.Windows.Controls.Button>().ToArray();
+     check(buttons.Length==10&&buttons.All(b=>((SolidColorBrush)b.Foreground).Color==((SolidColorBrush)Theme.Brush("Text")).Color),theme+" direct PDF/AI icon toolbar remains theme-aware without a main-window owner");
      check(((SolidColorBrush)panel.Background).Color==((SolidColorBrush)Theme.Brush("Canvas")).Color,theme+" document surface has an explicit opaque theme background");
-     check(bar.DesiredSize.Width<=500&&bar.ActualHeight>=30,theme+" document toolbar stays within the minimum window content width");
-     bar.Measure(new Size(300,1000));check(bar.DesiredSize.Width<=300&&bar.DesiredSize.Height>30,theme+" compact document toolbar wraps when its available width is constrained");
+     check(bar.DesiredSize.Width<=520&&bar.ActualHeight<=46,theme+" document toolbar remains a single compact row at the minimum content width");
+     check(buttons.All(b=>b.TranslatePoint(new Point(0,0),bar).X>=0&&b.TranslatePoint(new Point(b.ActualWidth,0),bar).X<=bar.ActualWidth),theme+" page and zoom controls do not extend beyond the narrow toolbar");
      var view=(PdfContinuousView)typeof(DocumentPreviewWindow).GetField("document",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(window);
      view.Scroller.Content=new System.Windows.Controls.Border{Width=1600,Height=2200};Arrange(view,320,240);
      var pan=(MiddleDragPan)typeof(PdfContinuousView).GetField("middlePan",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(view);
@@ -107,7 +108,7 @@ namespace MoriDesk {
      }
      view.SetZoom(1);view.GoTo(0);view.UpdateLayout();Arrange(view,400,520);Until(()=>view.CachedPages>0,"narrow continuous layout did not render");
      check(view.VisibleTiles>0&&view.CachedBytes<=PdfRasterCache.Budget&&view.Scroller.ScrollableWidth<1,"narrow fit-width viewport stays usable without unnecessary horizontal scrolling");
-     view.SetZoom(99);check(view.ZoomFactor==4,"continuous zoom maximum bounded");view.SetZoom(.001);check(view.ZoomFactor==.5,"continuous zoom minimum bounded");
+     view.SetZoom(99);check(view.ZoomFactor==4,"continuous zoom maximum bounded");view.SetZoom(.001);check(view.ZoomFactor==.05,"continuous zoom minimum supports whole tall pages and remains bounded");
     }
     Until(()=>Unlocked(path),"closed continuous source stayed locked");check(true,"closing continuous viewer releases source PDF/AI lock");
    }

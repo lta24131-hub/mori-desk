@@ -14,6 +14,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Mori;
 
 namespace MoriDesk {
  // Offscreen WPF controls only. No Window/Application construction, HWND,
@@ -46,7 +47,7 @@ namespace MoriDesk {
   static HttpResponseMessage Response(byte[] bytes){return new HttpResponseMessage(HttpStatusCode.OK){Content=new ByteArrayContent(bytes)};}
   static HttpResponseMessage ReleaseResponse(){return Response(Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(new[]{new{tag_name="v99.2.3-preview",draft=false,prerelease=true,body="Synthetic notes",assets=new[]{new{name="Nook-Setup.exe",id=1001,size=Bytes.Length,digest="sha256:"+Hash()}}}})));}
   static Task<string> NoHandoff(Window owner,string path,Version version,string hash,CancellationToken token){throw new Exception("This scenario must not invoke an installer handoff");}
-  static AppUpdatePanel Panel(string root,bool preview,Func<AppUpdateService> factory,Func<Window,string,Version,string,CancellationToken,Task<string>> handoff=null,bool managed=true){return new AppUpdatePanel(null,preview,factory,handoff??NoHandoff,root,()=>managed);}
+  static AppUpdatePanel Panel(string root,bool preview,Func<AppUpdateService> factory,Func<Window,string,Version,string,CancellationToken,Task<string>> handoff=null,bool managed=true,Settings initial=null,Action<Settings> persist=null){return new AppUpdatePanel(null,preview,factory,handoff??NoHandoff,root,()=>managed,initial??new Settings(),persist??(settings=>{}));}
   static void Pump(Task task){
    DateTime deadline=DateTime.UtcNow.AddSeconds(8);
    while(!task.IsCompleted){if(DateTime.UtcNow>deadline)throw new TimeoutException("Offscreen update test did not finish");Drain();Thread.Sleep(1);}
@@ -63,7 +64,7 @@ namespace MoriDesk {
    string fixtures=Path.Combine(root,"app-update-panel-fixtures");Directory.CreateDirectory(fixtures);
    var previous=SynchronizationContext.Current;
    SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
-   try{Preview(fixtures,check);ManualUpgrade(fixtures,check);CheckLifecycle(fixtures,check);CheckCancellation(fixtures,check);InstallLifecycle(fixtures,check);HandoffCancellation(fixtures,check);StaleProgress(fixtures,check);}
+   try{Preview(fixtures,check);PreviewPreference(fixtures,check);ManualUpgrade(fixtures,check);CheckLifecycle(fixtures,check);CheckCancellation(fixtures,check);InstallLifecycle(fixtures,check);HandoffCancellation(fixtures,check);StaleProgress(fixtures,check);}
    finally{SynchronizationContext.SetSynchronizationContext(previous);}
   }
   static void Preview(string root,Action<bool,string> check){
@@ -86,6 +87,41 @@ namespace MoriDesk {
     check(panel.IsDisposed&&!panel.Check.IsEnabled&&!panel.Install.IsEnabled&&factories==0,"disposed preview is idempotent and cannot revive update operations");
    }
    check(AppUpdatePanel.SizeLabel(0)=="1 KB"&&AppUpdatePanel.SizeLabel(1024)=="1 KB"&&AppUpdatePanel.SizeLabel(1572864)=="1.5 MB","installer size labels are compact and do not confuse bytes with megabytes");
+  }
+  static void PreviewPreference(string root,Action<bool,string> check){
+   string settingsPath=Path.Combine(root,"update-preference.json"),library=Path.Combine(root,"preference-library");
+   File.WriteAllText(settingsPath,new JavaScriptSerializer().Serialize(new{LibraryPath=library}));
+   var initial=Settings.LoadFrom(settingsPath);check(initial.IncludePreviewUpdates,"existing settings keep the established preview-release default");
+   initial.IncludePreviewUpdates=false;initial.SaveTo(settingsPath);initial=Settings.LoadFrom(settingsPath);
+   int factories=0,saves=0;Func<AppUpdateService> noNetwork=()=>{factories++;throw new Exception("Preference editing must remain offline");};
+   using(var panel=Panel(root,false,noNetwork,initial:initial,persist:value=>{saves++;value.SaveTo(settingsPath);} )){
+    check(panel.Previews.IsChecked==false&&factories==0&&saves==0,"opening update settings restores the saved release range without writes or network");
+    var current=Settings.LoadFrom(settingsPath);current.LibraryPath=Path.Combine(root,"new-preference-library");current.Theme="light";current.SaveTo(settingsPath);
+    panel.ApplyRelease(Release());panel.Previews.IsChecked=true;panel.Previews.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    var saved=Settings.LoadFrom(settingsPath);
+    check(saved.IncludePreviewUpdates&&saved.LibraryPath==current.LibraryPath&&saved.Theme=="light"&&saves==1&&factories==0,"changing release range preserves a concurrent library route and theme change");
+    check(panel.AvailableRelease==null&&panel.Status.Text.Contains("已保存"),"a committed range change invalidates the old release choice");
+   }
+   using(var reopened=Panel(root,false,noNetwork,initial:Settings.LoadFrom(settingsPath)))check(reopened.Previews.IsChecked==true,"reopening update settings restores the last committed choice");
+   var draft=Settings.LoadFrom(settingsPath);bool fail=true;int attempts=0;
+   using(var panel=Panel(root,false,noNetwork,initial:draft,persist:value=>{attempts++;if(fail)throw new IOException("synthetic settings lock");value.SaveTo(settingsPath);} )){
+    var release=Release();panel.ApplyRelease(release);panel.Previews.IsChecked=false;panel.Previews.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    check(draft.IncludePreviewUpdates&&panel.Previews.IsChecked==true&&Settings.LoadFrom(settingsPath).IncludePreviewUpdates&&panel.AvailableRelease==release&&panel.Status.Text.Contains("未保存"),"failed preference write restores the control and draft while retaining the valid release choice");
+    fail=false;panel.Previews.IsChecked=false;panel.Previews.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    check(attempts==2&&!Settings.LoadFrom(settingsPath).IncludePreviewUpdates&&panel.AvailableRelease==null,"a failed preference write can be retried and persists the user's new choice");
+    panel.Dispose();panel.Previews.IsChecked=true;panel.Previews.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    check(attempts==2&&panel.Previews.IsChecked==false,"disposed settings cannot save a later programmatic range change");
+   }
+   using(var panel=Panel(root,true,noNetwork,initial:new Settings{IncludePreviewUpdates=false},persist:value=>{throw new Exception("Preview cannot save settings");})){
+    panel.Previews.IsChecked=true;panel.Previews.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    check(panel.Previews.IsChecked==false&&factories==0,"preview restores its injected choice and never reads or writes personal settings");
+   }
+   var pending=new TaskCompletionSource<HttpResponseMessage>();var handler=new Handler();handler.Replies.Enqueue(token=>pending.Task);int busySaves=0;
+   using(var panel=Panel(root,false,()=>new AppUpdateService(handler),persist:value=>busySaves++)){
+    Task task=panel.CheckNowAsync();panel.Previews.IsChecked=false;panel.Previews.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    check(busySaves==0&&panel.Previews.IsChecked==true,"an in-flight check keeps the committed range even under programmatic input");
+    pending.SetResult(ReleaseResponse());Pump(task);check(panel.AvailableRelease!=null,"the active check completes with its unchanged release range");
+   }
   }
   static void ManualUpgrade(string root,Action<bool,string> check){
    string programs=@"C:\Generated\Programs\MoriDesk",installed=Path.Combine(programs,"0.1.24-fixture","Mori.exe");

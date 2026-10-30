@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace Mori {
@@ -60,15 +61,30 @@ namespace Mori {
   internal static readonly DecodedThumbnailCache DecodedCache=new DecodedThumbnailCache();
   public static Library CurrentLibrary {get{return Volatile.Read(ref currentLibrary);}set{if(!object.ReferenceEquals(Interlocked.Exchange(ref currentLibrary,value),value))DecodedCache.Clear();}}
   static readonly ThumbnailLoadScheduler Gate=new ThumbnailLoadScheduler(3);
-  // Call/await/dispose from the UI thread. Rebuild gallery rows after disposal
-  // so images skipped during the pause receive Loaded/DataContextChanged again.
+  // Call/await/dispose from the UI thread. Rebuilt rows receive Loaded again;
+  // retained inspector/collection previews need ResumeVisible after disposal.
   public static async Task<IDisposable> PauseAndDrainAsync(){var pause=await Gate.PauseAndDrainAsync().ConfigureAwait(false);DecodedCache.Clear();return pause;}
+  internal static void ResumeVisible(DependencyObject root){
+   if(root==null||Gate.IsPaused)return;root.Dispatcher.VerifyAccess();
+   var element=root as UIElement;if(element!=null&&!element.IsVisible)return;
+   var image=root as ThumbnailImage;
+   if(image!=null&&image.IsLoaded&&image.Source==null&&image.PreviewState=="idle"&&image.admission==null)image.Load();
+   for(int n=0;n<VisualTreeHelper.GetChildrenCount(root);n++)ResumeVisible(VisualTreeHelper.GetChild(root,n));
+  }
   internal static void RetryFailedThumbnails(){DecodedCache.Clear();ThumbnailBuildGate.ClearDecodeFailures();VideoThumbnail.ClearFailures();SvgRaster.ClearFailures();}
   int generation;CancellationTokenSource admission;
   void CancelLoad(){generation++;var previous=admission;admission=null;if(previous!=null)previous.Cancel();}
-  public ThumbnailImage(){Loaded+=delegate{Load();};Unloaded+=delegate{CancelLoad();Source=null;PreviewState="idle";};DataContextChanged+=delegate{CancelLoad();Source=null;PreviewState="idle";if(IsLoaded)Load();};}
-  bool IsCurrent(int version,Library library){return !Gate.IsPaused&&version==generation&&IsLoaded&&object.ReferenceEquals(library,CurrentLibrary);}
-  async void Load(){CancelLoad();var a=DataContext as Asset;var library=CurrentLibrary;if(a==null||library==null||Gate.IsPaused||!MediaTypes.CanThumbnail(a))return;int version=generation;IDisposable lease=null;var cancellation=new CancellationTokenSource();admission=cancellation;
+  void ResetLoad(){CancelLoad();Source=null;PreviewState="idle";}
+  public ThumbnailImage(){
+   Loaded+=delegate{if(admission==null)Load();};Unloaded+=delegate{ResetLoad();};
+   DataContextChanged+=delegate{ResetLoad();Load();};
+   // Switching to Projects/Browser collapses the gallery without unloading its
+   // rows. Cancel queued admissions then; an active decoder finishes safely,
+   // but its old generation cannot repopulate hidden or rebound controls.
+   IsVisibleChanged+=delegate{if(!IsVisible)ResetLoad();else if(admission==null)Load();};
+  }
+  bool IsCurrent(int version,Library library){return !Gate.IsPaused&&version==generation&&IsLoaded&&IsVisible&&object.ReferenceEquals(library,CurrentLibrary);}
+  async void Load(){if(!IsLoaded||!IsVisible)return;CancelLoad();var a=DataContext as Asset;var library=CurrentLibrary;if(a==null||library==null||Gate.IsPaused||!MediaTypes.CanThumbnail(a))return;int version=generation;IDisposable lease=null;var cancellation=new CancellationTokenSource();admission=cancellation;
    PreviewState="loading";
    try{
     int previousWidth=a.Width,previousHeight=a.Height;

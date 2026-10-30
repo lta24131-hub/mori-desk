@@ -19,7 +19,7 @@ namespace MoriDesk {
   internal static bool IsExempt(string[] args,string alternateData){
    if(!string.IsNullOrEmpty(alternateData))return true;
    if(args==null||args.Length==0)return false;string first=args[0];
-   return first.StartsWith("--ocr-worker=",StringComparison.Ordinal)||new[]{"--image-codec","--video-thumbnail","--pdf-text-worker","--svg-render","--suite-test","--self-test","--video-self-test","--benchmark","--native-test","--ui-test","--mature-canvas-test","--mature-canvas-preview","--desktop-drop-fixture","--integration-test","--browser-bridge-test","--browser-update-host-test"}.Contains(first);
+   return first.StartsWith("--ocr-worker=",StringComparison.Ordinal)||new[]{"--image-codec","--video-thumbnail","--pdf-text-worker","--pdf-render-worker","--svg-render","--suite-test","--self-test","--video-self-test","--benchmark","--native-test","--ui-test","--mature-canvas-test","--mature-canvas-preview","--desktop-drop-fixture","--integration-test","--browser-bridge-test","--browser-update-host-test"}.Contains(first);
   }
   internal static bool SamePath(string first,string second){return string.Equals(Path.GetFullPath(first),Path.GetFullPath(second),StringComparison.OrdinalIgnoreCase);}
   internal static bool ManagedPayload(string executable,string root){

@@ -150,8 +150,11 @@ static class CaptureInputUsabilityTests {
             f.Window.CancelFromPointer();check(f.Window.SelectedTool=="select"&&f.Surface.Selection==f.Crop,"next right click returns from drawing tool to selection before clearing crop");
             f.Window.BeginPointer(f.Crop.TopLeft);f.Window.ContinuePointer(f.Crop.TopLeft+new Vector(15,12));f.Window.CancelFromPointer();
             check(f.Surface.Selection==f.Crop&&f.Surface.Marks.Single()==mark&&History(f.Window)==history,"right click during crop resize restores original crop and earlier annotations");
-            f.Tool("text");f.Window.BeginPointer(new Point(300,200));Field<TextBox>(f.Window,"textEditor").Text="cancel me";f.Window.CancelFromPointer();
-            check(Field<TextBox>(f.Window,"textEditor")==null&&f.Surface.Marks.Single()==mark&&f.Surface.Selection==f.Crop,"right click cancels uncommitted text rather than unexpectedly exporting or ending capture");
+            f.Tool("text");f.Window.BeginPointer(new Point(300,200));Field<TextBox>(f.Window,"textEditor").Text="keep me";f.Window.CancelFromPointer();
+            check(Field<TextBox>(f.Window,"textEditor")==null&&f.Surface.Marks.Count==2&&f.Surface.SelectedText!=null&&f.Surface.SelectedText.Text=="keep me"&&f.Surface.Selection==f.Crop&&f.Window.SelectedTool=="select"&&History(f.Window)==history+1,"right click completes new text and selects it without losing content or ending capture");
+            f.Window.HandleCaptureKey(Key.Z,ModifierKeys.Control);check(f.Surface.Marks.Single()==mark&&f.Surface.Selection==f.Crop,"right-click text completion is one reversible addition");
+            f.Tool("text");f.Window.BeginPointer(new Point(300,200));f.Window.CancelFromPointer();
+            check(f.Surface.Marks.Single()==mark&&History(f.Window)==history&&f.Window.SelectedTool=="select","right click exits an empty caption without a blank mark or phantom undo entry");
         }
     }
     static void EscapeOnce(Action<bool,string> check){

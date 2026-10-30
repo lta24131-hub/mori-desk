@@ -12,6 +12,11 @@ using System.Web.Script.Serialization;
 using MoriDeskInstaller;
 
 namespace MoriDesk {
+ internal sealed class InstalledMaintenanceAttempt {
+  internal readonly string State,Reason;
+  internal readonly InstalledCleanupResult Result;
+  internal InstalledMaintenanceAttempt(string state,string reason,InstalledCleanupResult result=null){State=state;Reason=reason;Result=result;}
+ }
  // Successful real-main rendering is the only caller. Portable/test/native
  // processes never invoke this service. Cleanup cannot authorize an upgrade.
  internal static class InstalledVersionMaintenance {
@@ -86,6 +91,46 @@ namespace MoriDesk {
    // bidirectional overlap check, not the executable-reference snapshot.
    return new InstalledCleanupGate{StartupReady=ready,ReadyExecutable=executable,EntrypointsSwitched=state.EntrypointsSwitched,SnapshotComplete=state.Complete,RunningExecutables=state.RunningExecutables,ReferencedExecutables=state.ReferencedExecutables,ProtectedPaths=(string[])protectedPaths.Clone()};
   }
+  internal static bool CanRetry(InstalledMaintenanceAttempt attempt){
+   if(attempt==null)return false;
+   if(attempt.Result==null)return attempt.State=="deferred"&&(attempt.Reason=="integration-not-ready"||attempt.Reason=="maintenance-busy"||attempt.Reason=="file-occupation");
+   return (attempt.State=="deferred"||attempt.State=="partial")&&attempt.Reason=="entries-pending"&&attempt.Result.Pending.Count>0&&attempt.Result.Skipped.Count==0&&attempt.Result.Pending.All(item=>item.Retry==InstalledCleanupRetry.FileInUse);
+  }
+  internal static async Task<InstalledMaintenanceAttempt> RunWithOneRetryAsync(Func<InstalledMaintenanceAttempt> attempt,Func<Task> delay){
+   if(attempt==null||delay==null)throw new ArgumentNullException();
+   // The synchronous attempt owns and releases all leases/handles. There is
+   // deliberately no retry loop and nothing remains locked during the delay.
+   var first=attempt();if(first==null)throw new InvalidOperationException("cleanup-result-unavailable");if(!CanRetry(first))return first;
+   await delay().ConfigureAwait(false);
+   var last=attempt();if(last==null)throw new InvalidOperationException("cleanup-result-unavailable");
+   if(first.Result==null||first.Result.Deleted.Count==0)return last;
+   // Keep successful deletions in the final report even if the follow-up is
+   // deferred, or finds that the first pass already removed all other entries.
+   var combined=new InstalledCleanupResult();var latest=last.Result??first.Result;
+   combined.Pending.AddRange(latest.Pending);combined.Skipped.AddRange(latest.Skipped);
+   foreach(var item in first.Result.Deleted.Concat(latest.Deleted))if(!combined.Deleted.Any(other=>string.Equals(other.Directory,item.Directory,StringComparison.OrdinalIgnoreCase)))combined.Deleted.Add(item);
+   return new InstalledMaintenanceAttempt(StateFor(combined),last.Result==null?last.Reason:ReasonFor(combined),combined);
+  }
+  internal static string RevalidationFailure(ref string expectedIdentity,Func<string> identity,Func<bool> committed,Func<bool> cancelled,Func<bool> ready){
+   if(identity==null||committed==null||cancelled==null||ready==null)throw new ArgumentNullException();
+   // The first successful physical identity read establishes the baseline.
+   // A sharing violation must consume the same two-attempt budget without
+   // treating an unread/partial identity as evidence that permits deletion.
+   string observed=identity();if(string.IsNullOrWhiteSpace(observed))throw new InvalidDataException("cleanup-identity-unavailable");
+   if(expectedIdentity==null)expectedIdentity=observed;
+   else if(observed!=expectedIdentity)return "installation-changed";
+   if(cancelled())return "update-cancelled";
+   if(!committed())return "update-not-committed";
+   return ready()?null:"integration-not-ready";
+  }
+  static string InstallationIdentity(string root,string executable){
+   PhysicalUserContext.RequireDefault();
+   if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA"))||!OpenWithRegistration.ManagedPath(executable,root))throw new InvalidDataException("unmanaged-cleanup-context");
+   string ownership=InstalledVersionCleanup.ReadOwnershipIdentity(Path.GetDirectoryName(executable));
+   var active=InstalledApplicationState.Read(root);if(active==null)return "legacy|"+ownership;
+   if(!string.Equals(InstalledApplicationState.ResolveExecutable(root,active),executable,StringComparison.OrdinalIgnoreCase)||!ExpectedVersionMatches(active.version,typeof(Entry).Assembly.GetName().Version))throw new InvalidDataException("running-installation-changed");
+   return active.generation+"|"+active.executable+"|"+active.version+"|"+active.sha256+"|"+active.payloadSha256+"|"+ownership;
+  }
   internal static void Queue(string updateRequest,string expectedVersion,string libraryPath,Action<string> notify,Func<bool> integrationReady=null){
    if(!Entry.InteractiveShell||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA"))||Interlocked.CompareExchange(ref scheduled,1,0)!=0)return;
    // Low-priority maintenance must never hide/terminate the user's main window.
@@ -107,35 +152,52 @@ namespace MoriDesk {
      if(!await WaitForCommitAsync(updateLaunch,read,expectedVersion,cancelled,()=>Task.Delay(500),80).ConfigureAwait(false)){
       Publish(local,"deferred",cancelled()?"update-cancelled":"update-not-committed",null,notify);return;
      }
+     string expectedIdentity=null;
+     Func<bool> committed=()=>!updateLaunch||CommittedUpdate(read(),expectedVersion);
+     Func<bool> ready=()=>integrationReady==null||integrationReady();
      // A rendered library is not proof that a configured browser bridge works.
      // Keep the old payload if postcommit connection recovery has not completed.
      if(integrationReady!=null){
       for(int attempt=0;attempt<40&&!integrationReady();attempt++)await Task.Delay(500).ConfigureAwait(false);
-      if(!integrationReady()){Publish(local,"deferred","integration-not-ready",null,notify);return;}
      }
      // Explorer components are installed only after the real main window and
      // the committed installation are ready. Failure must not block the app
      // or authorize deleting any additional payload.
-     try{ShellVisualRegistration.RepairCommittedInstallation(executable);}
-     catch(Exception visualError){Trace.WriteLine("Nook file previews deferred: "+visualError.GetType().Name);}
+     bool visualRepairAttempted=false;
      string sid;using(var identity=WindowsIdentity.GetCurrent())sid=identity.User.Value;
-     using(var mutex=new Mutex(false,"Local\\Nook.VersionCleanup."+sid)){
-      bool held=false;try{
-       try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}
-       if(!held){Publish(local,"deferred","maintenance-busy",null,notify);return;}
-       var result=InstalledVersionCleanup.Cleanup(root,executable,old=>{
-        // Re-read saved routes before EVERY deletion pass. Missing evidence
-        // must fail closed, never become an empty protection list.
-        string dataRoot=Entry.DataRoot;
-        string saved=InstalledCleanupState.ReadPhysicalText(Path.Combine(dataRoot,"settings.json"),1024*1024);
-        var paths=ProtectedRoutes(dataRoot,libraryPath,saved,Mori.Settings.DefaultConversionOutputPath,
-         new[]{Path.Combine(local,"Nook","ConversionComponents")},ValidateProtectedPath);
-        var state=InstalledCleanupState.Capture(executable,root,paths);
-        return CleanupGate(executable,state,!cancelled()&&(integrationReady==null||integrationReady()),paths);
-       },InstalledLegacyPayloadCatalog.TryCertify);
-       Publish(local,StateFor(result),ReasonFor(result),result,notify);
-      }finally{if(held)mutex.ReleaseMutex();}
-     }
+     var outcome=await RunWithOneRetryAsync(()=>{
+      try{
+       // A second update must not switch the active version during a deletion
+       // pass. Never wait for this lease; the one delayed retry is outside it.
+       using(InstalledApplicationState.AcquireLease(root,0)){
+        string failure=RevalidationFailure(ref expectedIdentity,()=>InstallationIdentity(root,executable),committed,cancelled,ready);
+        if(failure!=null)return new InstalledMaintenanceAttempt("deferred",failure);
+        if(!visualRepairAttempted){visualRepairAttempted=true;
+         try{ShellVisualRegistration.RepairCommittedInstallation(executable);}
+         catch(Exception visualError){Trace.WriteLine("Nook file previews deferred: "+visualError.GetType().Name);}
+        }
+        using(var mutex=new Mutex(false,"Local\\Nook.VersionCleanup."+sid)){
+         bool held=false;try{
+          try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}
+          if(!held)return new InstalledMaintenanceAttempt("deferred","maintenance-busy");
+          var result=InstalledVersionCleanup.Cleanup(root,executable,old=>{
+           // Re-read routes, commit/cancellation and browser evidence before
+           // EVERY deletion pass, including after the delayed second attempt.
+           string dataRoot=Entry.DataRoot;
+           string saved=InstalledCleanupState.ReadPhysicalText(Path.Combine(dataRoot,"settings.json"),1024*1024);
+           var paths=ProtectedRoutes(dataRoot,libraryPath,saved,Mori.Settings.DefaultConversionOutputPath,
+            new[]{Path.Combine(local,"Nook","ConversionComponents")},ValidateProtectedPath);
+           var state=InstalledCleanupState.Capture(executable,root,paths);
+           return CleanupGate(executable,state,!cancelled()&&committed()&&ready(),paths);
+          },InstalledLegacyPayloadCatalog.TryCertify);
+          return new InstalledMaintenanceAttempt(StateFor(result),ReasonFor(result),result);
+         }finally{if(held)mutex.ReleaseMutex();}
+        }
+       }
+      }catch(BusyInstallationException){return new InstalledMaintenanceAttempt("deferred","maintenance-busy");}
+      catch(Exception error){if(InstalledVersionCleanup.RetryFor(error)==InstalledCleanupRetry.FileInUse)return new InstalledMaintenanceAttempt("deferred","file-occupation");throw;}
+     },()=>Task.Delay(30000)).ConfigureAwait(false);
+     Publish(local,outcome.State,outcome.Reason,outcome.Result,notify);
     }catch(Exception error){
      // No raw exception message, credential, document or full path in reports.
      Trace.WriteLine("Nook version cleanup deferred: "+error.GetType().Name);
@@ -173,14 +235,14 @@ namespace MoriDesk {
     if(report==null||!report.TryGetValue("schemaVersion",out schema)||!(schema is int)||(int)schema!=1||!report.TryGetValue("state",out state)||!(state is string)||!report.TryGetValue("reason",out reason)||!(reason is string)||!report.TryGetValue("deletedCount",out deleted)||!Count(deleted)||!report.TryGetValue("pendingCount",out pending)||!Count(pending)||!report.TryGetValue("skippedCount",out skipped)||!Count(skipped)||!report.TryGetValue("complete",out complete)||!(complete is bool))return invalid;
     int removed=(int)deleted,waiting=(int)pending,review=(int)skipped;
     if((bool)complete!=((string)state=="complete"))return invalid;
-    if(!new[]{"unmanaged-install","current-without-manifest","incomplete-update-session","running-version-mismatch","update-cancelled","update-not-committed","integration-not-ready","maintenance-busy","maintenance-error","legacy-version-without-manifest","entries-pending","entries-skipped","verified-old-versions-removed","no-old-versions"}.Contains((string)reason,StringComparer.Ordinal))return invalid;
+    if(!new[]{"unmanaged-install","current-without-manifest","incomplete-update-session","running-version-mismatch","installation-changed","update-cancelled","update-not-committed","integration-not-ready","maintenance-busy","file-occupation","maintenance-error","legacy-version-without-manifest","entries-pending","entries-skipped","verified-old-versions-removed","no-old-versions"}.Contains((string)reason,StringComparer.Ordinal))return invalid;
     if((string)state!="complete"&&(string)state!="partial"&&removed!=0)return invalid;
     if((string)state=="complete")return waiting!=0||review!=0?invalid:removed>0?"上次已清理 "+removed+" 个已核验的旧版本；资料未改动。":"已检查，无需清理旧版本。";
     if((string)state=="partial"&&removed>0&&(waiting>0||review>0))return "已清理 "+removed+" 个旧版本；其余版本仍在使用或待核对，已保留。";
     if((string)state=="review-required")return (string)reason=="current-without-manifest"?"当前安装缺少可核验清单，旧版本已保留，需核对后清理。":"部分历史版本缺少归属证明或需核对，已保留，不会直接删除。";
     if((string)state=="deferred"){
-     if((string)reason=="integration-not-ready")return "浏览器连接尚未恢复，旧版本暂时保留；连接确认后再清理。";
-     if((string)reason=="update-not-committed"||(string)reason=="incomplete-update-session"||(string)reason=="update-cancelled"||(string)reason=="running-version-mismatch")return "本次更新尚未确认完成，旧版本已保留，未执行清理。";
+     if((string)reason=="integration-not-ready")return "浏览器连接尚未恢复，已延后复查一次；旧版本保留，下次启动再检查。";
+     if((string)reason=="update-not-committed"||(string)reason=="incomplete-update-session"||(string)reason=="update-cancelled"||(string)reason=="running-version-mismatch"||(string)reason=="installation-changed")return "本次更新尚未确认完成或当前安装已改变，旧版本已保留，未执行清理。";
      return "旧版本清理暂缓，可能仍被使用或无法核验；已保留待核对。";
     }
     if((string)state=="failed")return "上次旧版本清理未完成，需核对后处理；当前版本仍可使用。";

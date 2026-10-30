@@ -53,11 +53,19 @@ namespace Mori {
    lock(sync){
     Task<BitmapSource> existing;if(pending.TryGetValue(key,out existing))return existing;
     if(pending.Count>=48)return Task.FromResult<BitmapSource>(null);
-    var task=new Task<BitmapSource>(delegate{
-     workers.Wait();try{return Load(root,address,NetworkEnabled?(Func<Uri,byte[]>)Download:null);}catch{return null;}
-     finally{workers.Release();lock(sync)pending.Remove(key);}
-    });pending.Add(key,task);task.Start(TaskScheduler.Default);return task;
+    var task=LoadQueuedAsync(root,address);pending.Add(key,task);
+    // Register after insertion, under the same lock: even an immediately
+    // completed cache read cannot leave a completed task in the pending map.
+    task.ContinueWith(completed=>{lock(sync)pending.Remove(key);},TaskScheduler.Default);return task;
    }
+  }
+  static async Task<BitmapSource> LoadQueuedAsync(string root,string address){
+   // Only the two active reads use pool threads. Queued favicon requests must
+   // not occupy threads needed by image previews, conversions or DNS replies.
+   await workers.WaitAsync().ConfigureAwait(false);
+   try{return await Task.Run(()=>Load(root,address,NetworkEnabled?(Func<Uri,byte[]>)Download:null)).ConfigureAwait(false);}
+   catch{return null;}
+   finally{workers.Release();}
   }
   internal static BitmapSource Load(string root,string address,Func<Uri,byte[]> fetch){
    string stem=PathFor(root,address),png=stem+".png",hint=stem+".hint",miss=stem+".miss2";BitmapSource cached=null;

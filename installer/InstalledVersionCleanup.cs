@@ -27,8 +27,12 @@ namespace MoriDeskInstaller {
   internal string ActiveExecutable,ExpectedManifestSha256,ExpectedExecutableSha256;
   internal string[] RunningExecutables,ReferencedExecutables,ProtectedPaths;
  }
+ internal enum InstalledCleanupRetry { None, FileInUse }
  internal sealed class InstalledCleanupItem {
   internal string Directory, Reason;
+  // Deliberately separate from localized diagnostics. Only a known operating
+  // system sharing/lock violation is eligible for an automatic later attempt.
+  internal InstalledCleanupRetry Retry;
   internal InstalledCleanupItem(string directory,string reason){Directory=directory;Reason=reason;}
  }
  internal sealed class InstalledCleanupResult {
@@ -67,6 +71,17 @@ namespace MoriDeskInstaller {
   [DllImport("kernel32.dll",SetLastError=true)]static extern bool SetFileInformationByHandle(SafeFileHandle handle,int type,ref Disposition info,uint bytes);
   [StructLayout(LayoutKind.Sequential)]struct Disposition {public int DeleteFile;}
   static Exception WinError(string operation){return new IOException(operation,new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()));}
+  internal static InstalledCleanupRetry RetryFor(Exception error){
+   var native=error as System.ComponentModel.Win32Exception;
+   if(native!=null)return native.NativeErrorCode==32||native.NativeErrorCode==33?InstalledCleanupRetry.FileInUse:InstalledCleanupRetry.None;
+   // Do not unwrap validation/ownership errors that happen to carry an inner
+   // I/O error. Unknown paths, bad records and access denied stay preserved.
+   if(error==null||error.GetType()!=typeof(IOException))return InstalledCleanupRetry.None;
+   if(error.HResult==unchecked((int)0x80070020)||error.HResult==unchecked((int)0x80070021))return InstalledCleanupRetry.FileInUse;
+   native=error.InnerException as System.ComponentModel.Win32Exception;
+   return native!=null&&(native.NativeErrorCode==32||native.NativeErrorCode==33)?InstalledCleanupRetry.FileInUse:InstalledCleanupRetry.None;
+  }
+  static InstalledCleanupItem Pending(string path,Exception error){return new InstalledCleanupItem(path,error.Message){Retry=RetryFor(error)};}
   static string Full(string path){
    if(string.IsNullOrWhiteSpace(path)||path.Length<4||!char.IsLetter(path[0])||path[1]!=':'||(path[2]!='\\'&&path[2]!='/')||path.Substring(2).IndexOf(':')>=0||path.IndexOfAny(new[]{'"','\0','\r','\n'})>=0)throw new InvalidDataException("仅允许完整本地安装路径。");
    return Path.GetFullPath(path).TrimEnd('\\','/');
@@ -80,7 +95,7 @@ namespace MoriDeskInstaller {
    // Exclusive old-file handles also prevent a new old-version process from
    // loading between the final process snapshot and deletion.
    Plain(path);var handle=CreateFile(path,(directory?ReadAttributes:GenericRead)|(deletion?DeleteAccess:0),directory?ShareRead|ShareWrite:((deletion||exclusive)?0:ShareRead),IntPtr.Zero,OpenExisting,OpenReparsePoint|(directory?BackupSemantics:0),IntPtr.Zero);
-   if(handle.IsInvalid){handle.Dispose();throw WinError("文件正在使用或无法读取，旧版本稍后重试。");}
+   if(handle.IsInvalid){var error=WinError("文件正在使用或无法读取，旧版本稍后重试。");handle.Dispose();throw error;}
    try{if(!Names.Equals(Full(path),Full(Final(handle))))throw new IOException("文件实际位置与安装目录不同，未清理。");Plain(path);return handle;}catch{handle.Dispose();throw;}
   }
   static string Hash(Stream input){input.Position=0;using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(input)).Replace("-","");}
@@ -123,6 +138,19 @@ namespace MoriDeskInstaller {
    public void Dispose(){foreach(var file in Files.Values)file.Dispose();foreach(var directory in Directories)directory.Value.Dispose();}
   }
   internal static void WriteManifest(string folder){WriteManifestCore(folder,null,null);}
+  internal static string ReadOwnershipIdentity(string folder){
+   // Maintenance needs a stable identity across its delay, not another full
+   // payload scan. Validate the existing manifest and main executable using
+   // the same physical-path locks and ownership parser as normal cleanup.
+   folder=Full(folder);Version version=FolderVersion(folder);
+   using(var marker=new FileStream(OpenLocked(Path.Combine(folder,ManifestName),false,false),FileAccess.Read))
+   using(var executable=new FileStream(OpenLocked(Path.Combine(folder,"Mori.exe"),false,false),FileAccess.Read)){
+    byte[] bytes=Read(marker,MaximumRecordBytes);var manifest=ValidateManifest(bytes,folder);
+    Identity(Path.Combine(folder,"Mori.exe"),version);
+    if(Hash(executable)!=manifest.files.First(file=>Names.Equals(file.Key,"Mori.exe")).Value)throw new InvalidDataException("当前程序与安装清单不同，未清理旧版本。");
+    return Hash(bytes);
+   }
+  }
   internal static void VerifyReadOnly(string folder){
    // A healthy main executable is insufficient: a missing runtime, browser
    // resource or empty directory can still make the installed build unusable.
@@ -331,7 +359,7 @@ namespace MoriDeskInstaller {
        if(!certifyLegacy(folder)){result.Skipped.Add(new InstalledCleanupItem(folder,"legacy-version-without-manifest"));continue;}
       }
       DeleteOne(root,folder,()=>Gate(gate(folder),current,folder));result.Deleted.Add(new InstalledCleanupItem(folder,"deleted"));
-     }catch(Exception error){if(error is IOException||error is InvalidDataException||error is UnauthorizedAccessException||error is ArgumentException||error is System.ComponentModel.Win32Exception)result.Pending.Add(new InstalledCleanupItem(folder,error.Message));else throw;}
+     }catch(Exception error){if(error is IOException||error is InvalidDataException||error is UnauthorizedAccessException||error is ArgumentException||error is System.ComponentModel.Win32Exception)result.Pending.Add(Pending(folder,error));else throw;}
     }
     // A crash after directory removal but before journal removal is completed
     // separately. The journal never authorizes deleting unknown directory data.
@@ -342,7 +370,7 @@ namespace MoriDeskInstaller {
       if(!ConfirmedMissing(folder))continue;
       if(FolderVersion(folder)>currentVersion||(FolderVersion(folder)==currentVersion&&string.Compare(Path.GetFileName(folder),Path.GetFileName(currentFolder),StringComparison.OrdinalIgnoreCase)>=0))throw new InvalidDataException("清理记录指向当前或较新版本。");
       Gate(gate(folder),current,folder);MarkDelete(journal.SafeFileHandle);result.Deleted.Add(new InstalledCleanupItem(folder,"completed-cleanup-journal"));
-     }}catch(Exception error){if(error is IOException||error is InvalidDataException||error is UnauthorizedAccessException||error is ArgumentException||error is System.ComponentModel.Win32Exception)result.Pending.Add(new InstalledCleanupItem(journalPath,error.Message));else throw;}
+     }}catch(Exception error){if(error is IOException||error is InvalidDataException||error is UnauthorizedAccessException||error is ArgumentException||error is System.ComponentModel.Win32Exception)result.Pending.Add(Pending(journalPath,error));else throw;}
     }
    }
    return result;

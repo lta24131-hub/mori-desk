@@ -14,10 +14,11 @@ using Drawing=System.Drawing;
 namespace Mori {
  sealed class PreviewCanvas : Forms.Panel {
   internal Action CopyImage;
+  internal Func<Forms.Keys,bool> Shortcut;
   public PreviewCanvas(){SetStyle(Forms.ControlStyles.Selectable|Forms.ControlStyles.OptimizedDoubleBuffer|Forms.ControlStyles.AllPaintingInWmPaint,true);TabStop=true;}
   internal bool TryCopyShortcut(Forms.Keys keys){if(keys!=(Forms.Keys.Control|Forms.Keys.C)||CopyImage==null)return false;CopyImage();return true;}
-  protected override bool ProcessCmdKey(ref Forms.Message message,Forms.Keys keys){return TryCopyShortcut(keys)||base.ProcessCmdKey(ref message,keys);}
-  protected override void Dispose(bool disposing){if(disposing)CopyImage=null;base.Dispose(disposing);}
+  protected override bool ProcessCmdKey(ref Forms.Message message,Forms.Keys keys){return (Shortcut!=null&&Shortcut(keys))||TryCopyShortcut(keys)||base.ProcessCmdKey(ref message,keys);}
+  protected override void Dispose(bool disposing){if(disposing){CopyImage=null;Shortcut=null;}base.Dispose(disposing);}
  }
  sealed class PreviewDragController : IDisposable {
   readonly Forms.Control surface,picture;readonly PreviewViewport viewport;readonly Action changed;readonly bool captureMouse;
@@ -66,7 +67,7 @@ namespace Mori {
   public override Drawing.Color SeparatorLight {get{return surface;}}
  }
  sealed class PreviewPicture : Forms.Control {
-  readonly Drawing.Image image;readonly PreviewViewport viewport;readonly EventHandler frameChanged;readonly Action repaint;readonly bool animateImages;bool animating,playbackVisible=true;
+  readonly Drawing.Image image;readonly PreviewViewport viewport;readonly EventHandler frameChanged;readonly Action repaint;readonly bool animateImages;bool animating,playbackVisible=true;int repaintPending;
   readonly bool mayHaveAlpha;readonly Forms.ContextMenuStrip backgroundMenu;Drawing.TextureBrush lightChecker,darkChecker;PreviewBackground backgroundMode;
   internal event Action PreviewBackgroundChanged;
   internal PreviewBackground BackgroundMode {get{return backgroundMode;}set{if(!Enum.IsDefined(typeof(PreviewBackground),value))throw new ArgumentOutOfRangeException("value");if(backgroundMode==value)return;backgroundMode=value;UpdateBackgroundChecks();Invalidate();if(PreviewBackgroundChanged!=null)PreviewBackgroundChanged();}}
@@ -74,7 +75,7 @@ namespace Mori {
   // Background and animation are defaults for this preview, not live global state.
   internal PreviewPicture(Drawing.Image image,PreviewViewport viewport,Settings preferences){
    if(preferences==null)throw new ArgumentNullException("preferences");
-   this.image=image;this.viewport=viewport;animateImages=preferences.AnimateImages;backgroundMode=DefaultBackground(preferences.PreviewBackdrop);mayHaveAlpha=PreviewBackgrounds.MayHaveAlpha(image);frameChanged=FrameChanged;repaint=delegate{if(!IsDisposed)Invalidate();};
+   this.image=image;this.viewport=viewport;animateImages=preferences.AnimateImages;backgroundMode=DefaultBackground(preferences.PreviewBackdrop);mayHaveAlpha=PreviewBackgrounds.MayHaveAlpha(image);frameChanged=FrameChanged;repaint=delegate{Interlocked.Exchange(ref repaintPending,0);if(!IsDisposed&&IsHandleCreated&&playbackVisible&&Visible)Invalidate();};
    SetStyle(Forms.ControlStyles.UserPaint|Forms.ControlStyles.AllPaintingInWmPaint|Forms.ControlStyles.OptimizedDoubleBuffer|Forms.ControlStyles.ResizeRedraw|Forms.ControlStyles.StandardClick|Forms.ControlStyles.StandardDoubleClick,true);Dock=Forms.DockStyle.Fill;
    AccessibleName="图片预览";AccessibleDescription="滚轮缩放，拖动查看细节，右键切换图片背景。";
    backgroundMenu=new Forms.ContextMenuStrip{AccessibleName="图片背景"};foreach(PreviewBackground value in Enum.GetValues(typeof(PreviewBackground))){var choice=value;var item=new Forms.ToolStripMenuItem(PreviewBackgrounds.Label(choice)){Tag=choice,Checked=choice==backgroundMode};item.Click+=delegate{BackgroundMode=choice;};backgroundMenu.Items.Add(item);}
@@ -94,13 +95,15 @@ namespace Mori {
    item.Click+=async delegate{if(!item.Enabled)return;item.Enabled=false;try{await pin();}finally{if(!item.IsDisposed)item.Enabled=true;}};
    EnsureActionSeparator();backgroundMenu.Items.Insert(backgroundMenu.Items.ContainsKey("CopyImage")?1:0,item);UpdateMenuTheme();
   }
-  static PreviewBackground DefaultBackground(string value){switch(value){case "light-checker":return PreviewBackground.LightChecker;case "dark-checker":return PreviewBackground.DarkChecker;case "white":return PreviewBackground.White;case "dark":return PreviewBackground.Dark;default:return PreviewBackground.Automatic;}}
+  internal static PreviewBackground DefaultBackground(string value){switch(value){case "light-checker":return PreviewBackground.LightChecker;case "dark-checker":return PreviewBackground.DarkChecker;case "white":return PreviewBackground.White;case "dark":return PreviewBackground.Dark;default:return PreviewBackground.Automatic;}}
   void UpdateMenuTheme(){if(IsDisposed||Disposing||Application.Current==null||string.IsNullOrEmpty(Theme.Current))return;backgroundMenu.BackColor=Theme.DrawingColor("Surface");backgroundMenu.ForeColor=Theme.DrawingColor("Text");backgroundMenu.Renderer=new Forms.ToolStripProfessionalRenderer(new PreviewMenuColors());foreach(Forms.ToolStripItem item in backgroundMenu.Items){item.BackColor=backgroundMenu.BackColor;item.ForeColor=backgroundMenu.ForeColor;}}
   void Animation(bool enabled){enabled=enabled&&animateImages;if(enabled&&!animating&&Drawing.ImageAnimator.CanAnimate(image)){Drawing.ImageAnimator.Animate(image,frameChanged);animating=true;}else if(!enabled&&animating){Drawing.ImageAnimator.StopAnimate(image,frameChanged);animating=false;}}
-  void FrameChanged(object sender,EventArgs e){if(IsDisposed||!IsHandleCreated)return;try{BeginInvoke(repaint);}catch(InvalidOperationException){}}
+  // Animation callbacks arrive off-thread. Keep at most one UI notification
+  // while painting is busy, then paint the latest frame rather than a backlog.
+  void FrameChanged(object sender,EventArgs e){if(IsDisposed||!IsHandleCreated||Interlocked.CompareExchange(ref repaintPending,1,0)!=0)return;try{BeginInvoke(repaint);}catch(InvalidOperationException){Interlocked.Exchange(ref repaintPending,0);}}
   internal void SetPlaybackVisible(bool value){if(IsDisposed||Disposing)return;playbackVisible=value;Animation(playbackVisible&&Visible&&IsHandleCreated);}
   protected override void OnHandleCreated(EventArgs e){base.OnHandleCreated(e);Animation(playbackVisible&&Visible);}
-  protected override void OnHandleDestroyed(EventArgs e){Animation(false);base.OnHandleDestroyed(e);}
+  protected override void OnHandleDestroyed(EventArgs e){Animation(false);Interlocked.Exchange(ref repaintPending,0);base.OnHandleDestroyed(e);}
   protected override void OnVisibleChanged(EventArgs e){base.OnVisibleChanged(e);Animation(playbackVisible&&Visible&&IsHandleCreated);}
   protected override void OnPaint(Forms.PaintEventArgs e){
    // Only the viewport is double-buffered; zooming never creates a giant

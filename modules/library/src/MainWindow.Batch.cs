@@ -11,7 +11,7 @@ namespace Mori {
   void InitializeBatch(){
    B("MultiSelect").Click+=delegate{SetBatchSelecting(!batchSelecting);};
    B("BatchAll").Click+=delegate{SelectAllVisible();};B("BatchClear").Click+=delegate{ClearGallerySelection();};
-   B("BatchMove").Click+=delegate{ChooseCategory(true);};B("MoveCategory").Click+=delegate{ChooseCategory(true);};
+   B("BatchMove").Click+=delegate{ShowHomeMenu(B("BatchMove"),CreateSelectionCategoryMenu());};B("MoveCategory").Click+=delegate{ChooseCategory(true);};
    B("BatchDelete").Click+=delegate{Trash();};B("BatchRestore").Click+=delegate{RestoreTrash();};
   }
   internal void SetBatchSelecting(bool enabled){
@@ -52,6 +52,7 @@ namespace Mori {
    B("BatchMove").ToolTip=LocalCollectionsActive?"把选中的快捷方式移到本页分类文件夹；不移动原文件":"把选中内容移到一个分类，替换原有分类归属；可 Ctrl+Z 撤销";
    B("MoveCategory").Content=LocalCollectionsActive?"移到分类文件夹…":"移动到分类…";
    B("MoveCategory").Visibility=trash||bookmarkMode?Visibility.Collapsed:Visibility.Visible;B("MoveCategory").IsEnabled=!busy&&count>0;
+   UpdateHomeSelection();
   }
   internal void ApplyCategory(string[] ids,string folder,bool move,bool bookmarks){
    if(canvasProjectsMode||busy||view=="trash"||ids==null||ids.Length==0)return;

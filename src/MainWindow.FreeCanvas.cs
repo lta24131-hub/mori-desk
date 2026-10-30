@@ -82,18 +82,20 @@ namespace Mori {
    catch(Exception error){Status("图片未能全部加入画布："+error.Message);return false;}
    finally{RefreshCanvasProjects();}
   }
-  void CoverForCanvasProjects(UIElement element){if(element==null)return;if(!canvasProjectsCovered.ContainsKey(element))canvasProjectsCovered[element]=element.Visibility;element.Visibility=Visibility.Collapsed;}
+  void CoverForCanvasProjects(UIElement element,Visibility hidden=Visibility.Collapsed){if(element==null)return;if(!canvasProjectsCovered.ContainsKey(element))canvasProjectsCovered[element]=element.Visibility;element.Visibility=hidden;}
   bool PrepareNewCanvasProject(){if(busy||!CanvasEngineCanOpen()||!PrepareLibraryChange())return false;if(matureCanvas!=null&&!matureCanvas.CanImportImages){Status("当前画布正在保存，请稍后再新建。");return false;}if(freeCanvas!=null&&!freeCanvas.PrepareExit()){Status("当前画布还未能保存，新建未开始；请先保存或另存当前画布。");return false;}return true;}
   void ApplyCanvasProjectsPresentation(){
    if(!canvasProjectsMode)return;
    foreach(UIElement child in Find<Grid>("Workspace").Children)if(child!=canvasProjectsPage&&Grid.GetColumn(child)>=2)CoverForCanvasProjects(child);
-   foreach(string name in new[]{"Import","Paste","AddBookmark","Export"})CoverForCanvasProjects(B(name));
+   foreach(string name in new[]{"Import","Paste","AddBookmark","Export","HomeAdd"})CoverForCanvasProjects(B(name));
    CoverForCanvasProjects((UIElement)T("Search").Parent);CoverForCanvasProjects((UIElement)Find<Slider>("ThumbnailSize").Parent);CoverForCanvasProjects(Find<TreeView>("Folders"));CoverForCanvasProjects(Find<Grid>("MediaFolderHeading"));CoverForCanvasProjects(Find<StackPanel>("SidebarGuide"));
    foreach(string name in new[]{"All","Pictures","Videos","Audio","Bookmarks","Documents","Unfiled","Favorites","Trash"})B(name).SetResourceReference(Button.BackgroundProperty,"Panel");
    // These act on the last material/website scope, never on canvas projects.
    // Hide them here, then restore their exact visibility when leaving Projects.
    foreach(string name in new[]{"Unfiled","Favorites"})CoverForCanvasProjects(B(name));
-   CoverForCanvasProjects(Find<Border>("SidebarFooter"));CoverForCanvasProjects(Find<Border>("SidebarScopeDivider"));
+   // Keep the footer's natural size so the toolbox/settings above it never
+   // move when a page has no recycle bin. Hidden also removes hit testing.
+   CoverForCanvasProjects(Find<Border>("SidebarFooter"),Visibility.Hidden);CoverForCanvasProjects(Find<Border>("SidebarScopeDivider"));
    if(referenceNav!=null)referenceNav.SetResourceReference(Button.BackgroundProperty,"Panel");if(canvasNav!=null)canvasNav.SetResourceReference(Button.BackgroundProperty,"AccentSoft");
   }
   internal bool ShowCanvasProjects(bool dragging=false){

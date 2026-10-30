@@ -9,6 +9,7 @@ namespace Mori {
   double canvasZoomSpeed=1;
   public string ThemeAccent {get{return themeAccent;}set{themeAccent=Mori.Theme.NormalizeAccent(value);}}
   public bool CloseToTray {get;set;}
+  public bool IncludePreviewUpdates {get;set;}
   public bool ConfirmTrash {get;set;}
   public bool BookmarkOpenInApp {get;set;}
   public bool AnimateImages {get;set;}
@@ -27,13 +28,15 @@ namespace Mori {
   public string CanvasDash {get{return canvasDash;}set{canvasDash=NormalizeCanvasChoice(value,new[]{"solid","dashed","dotted","draw"},"solid");}}
   public string CanvasSize {get{return canvasSize;}set{canvasSize=NormalizeCanvasChoice(value,new[]{"s","m","l","xl"},"m");}}
   static string NormalizeCanvasChoice(string value,string[] choices,string fallback){string candidate=(value??"").Trim().ToLowerInvariant();return Array.IndexOf(choices,candidate)>=0?candidate:fallback;}
-  void DefaultCustomization(){CloseToTray=BookmarkOpenInApp=AnimateImages=MediaAutoPlay=MediaLoop=CanvasShowTools=true;}
+  void DefaultCustomization(){CloseToTray=BookmarkOpenInApp=AnimateImages=MediaAutoPlay=MediaLoop=CanvasShowTools=IncludePreviewUpdates=true;}
   void AddCustomization(Dictionary<string,object> values){
+   values["IncludePreviewUpdates"]=IncludePreviewUpdates;
    values["ThemeAccent"]=ThemeAccent;values["CloseToTray"]=CloseToTray;values["ConfirmTrash"]=ConfirmTrash;values["BookmarkOpenInApp"]=BookmarkOpenInApp;values["AnimateImages"]=AnimateImages;values["PreviewBackdrop"]=PreviewBackdrop;values["MediaVolume"]=MediaVolume;values["MediaMuted"]=MediaMuted;values["MediaAutoPlay"]=MediaAutoPlay;values["MediaLoop"]=MediaLoop;values["CanvasDefaultTopmost"]=CanvasDefaultTopmost;values["CanvasSaveDelay"]=CanvasSaveDelay;values["CanvasCacheMB"]=CanvasCacheMB;
    values["CanvasGrid"]=CanvasGrid;values["CanvasShowTools"]=CanvasShowTools;values["CanvasSnap"]=CanvasSnap;values["CanvasZoomSpeed"]=CanvasZoomSpeed;values["CanvasDash"]=CanvasDash;values["CanvasSize"]=CanvasSize;
   }
   void ReadCustomization(Dictionary<string,object> values){
    object value;int number;double decimalNumber;
+   if(values.TryGetValue("IncludePreviewUpdates",out value)&&value is bool)IncludePreviewUpdates=(bool)value;
    if(values.TryGetValue("ThemeAccent",out value))ThemeAccent=value as string;
    if(values.TryGetValue("PreviewBackdrop",out value))PreviewBackdrop=value as string;
    if(values.TryGetValue("MediaVolume",out value)&&value!=null&&int.TryParse(Convert.ToString(value),out number))MediaVolume=number;

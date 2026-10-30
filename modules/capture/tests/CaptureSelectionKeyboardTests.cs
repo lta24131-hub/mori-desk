@@ -96,10 +96,10 @@ static class CaptureSelectionKeyboardTests {
             check(f.Surface.Selection.Left==79&&f.Surface.Marks.Single()==line,"a crop may expand visibility of an annotation that already extends beyond its edge");
         }
         using(var f=new Fixture()){
-            // The short arrow's head reaches well beyond its endpoint rectangle.
+            // Short arrows now cap their heads; crop protection still includes the round stroke cap.
             var arrow=new Annotation {Kind="arrow",Start=new Point(300,150),End=new Point(295,150),Width=12};f.Surface.Marks.Add(arrow);
             for(int i=0;i<30;i++)f.Key(Key.Left,ModifierKeys.Control|ModifierKeys.Shift);
-            check(f.Surface.Selection.Right>337&&f.Surface.Selection.Right<338&&arrow.End==new Point(295,150),"crop shrink protects arrowhead ink beyond the arrow's endpoint bounds");
+            check(f.Surface.Selection.Right>305&&f.Surface.Selection.Right<=306.1&&arrow.End==new Point(295,150),"crop shrink protects short-arrow stroke ink without retaining an oversized backward head");
         }
         using(var f=new Fixture()){
             var pen=new Annotation {Kind="pen",Start=new Point(200,130),End=new Point(210,140),Width=10};pen.Points.Add(new Point(120,100));pen.Points.Add(new Point(250,210));f.Surface.Marks.Add(pen);

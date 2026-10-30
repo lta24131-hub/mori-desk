@@ -24,6 +24,8 @@ namespace MoriDesk {
   readonly Window owner;
   readonly bool preview;
   readonly bool autoUpdateAvailable;
+  readonly Settings loadedSettings;
+  readonly Action<Settings> persist;
   const string ManualUpdateHint="当前从便携版或非标准安装位置运行，请手动升级。先正常退出 Nook，再运行 GitHub 安装包，或把完整便携包解压到新文件夹；不要只替换 Mori.exe。";
   readonly Version current;
   readonly string downloadRoot;
@@ -33,8 +35,10 @@ namespace MoriDesk {
   UpdateRelease release;
   bool disposed,busy;long generation;
 
-  internal AppUpdatePanel(Window owner,bool preview,Func<AppUpdateService> serviceFactory=null,Func<Window,string,Version,string,CancellationToken,Task<string>> handoff=null,string downloadRoot=null,Func<bool> autoUpdateAvailable=null){
+  internal AppUpdatePanel(Window owner,bool preview,Func<AppUpdateService> serviceFactory=null,Func<Window,string,Version,string,CancellationToken,Task<string>> handoff=null,string downloadRoot=null,Func<bool> autoUpdateAvailable=null,Settings initial=null,Action<Settings> persist=null){
    this.owner=owner;this.preview=preview;this.serviceFactory=serviceFactory??(()=>new AppUpdateService());this.handoff=handoff??AppUpdateCoordinator.BeginAsync;
+   loadedSettings=initial??(preview?new Settings():Settings.Load());this.persist=persist??(settings=>settings.Save());
+   Previews.IsChecked=loadedSettings.IncludePreviewUpdates;
    this.autoUpdateAvailable=!preview&&(autoUpdateAvailable??CanAutoUpdateHere)();
    this.downloadRoot=downloadRoot??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MoriDesk","updates","downloads");
    current=AppUpdateService.NumericVersion(Assembly.GetExecutingAssembly().GetName().Version);
@@ -66,7 +70,7 @@ namespace MoriDesk {
    string projectUrl="https://github.com/"+AppUpdateService.Repository+(this.autoUpdateAvailable||preview?"":"/releases");
    project.Click+=(s,e)=>{try{Process.Start(new ProcessStartInfo(projectUrl){UseShellExecute=true});}catch{Status.Text="无法打开浏览器，请访问 "+projectUrl;}};body.Children.Add(project);
    Check.Click+=async(s,e)=>await CheckNowAsync();Install.Click+=async(s,e)=>await InstallNowAsync();Cancel.Click+=(s,e)=>CancelOperation();
-   Previews.Click+=(s,e)=>{ApplyRelease(null);Status.Text="版本范围已改变，请重新检查。";};
+   Previews.Click+=(s,e)=>SavePreviewPreference();
    Status.Text=preview?"测试预览：不会联网、安装或更改个人设置。":this.autoUpdateAvailable?"点击“检查更新”获取最新发布。":"可以检查最新版本；当前运行位置仅支持手动升级。";
    SetBusy(false);
   }
@@ -74,6 +78,21 @@ namespace MoriDesk {
   internal bool IsBusy {get{return busy;}}
   internal bool IsDisposed {get{return disposed;}}
   internal UpdateRelease AvailableRelease {get{return release;}}
+  void SavePreviewPreference(){
+   bool previous=loadedSettings.IncludePreviewUpdates;
+   if(preview||disposed||busy){Previews.IsChecked=previous;return;}
+   bool selected=Previews.IsChecked==true;if(selected==previous)return;
+   try{
+    loadedSettings.IncludePreviewUpdates=selected;persist(loadedSettings);
+   }catch(Exception error){
+    loadedSettings.IncludePreviewUpdates=previous;Previews.IsChecked=previous;
+    Status.Text="版本范围未保存，已恢复原选择。\n"+error.Message;return;
+   }
+   // Settings merges only edited fields, retaining a library switch or other
+   // preference changes made while this page was open.
+   Previews.IsChecked=loadedSettings.IncludePreviewUpdates;
+   ApplyRelease(null);Status.Text="版本范围已保存，请重新检查。";
+  }
   internal static bool IsManagedUpdateLocation(string executable,string programRoot){
    try{return !string.IsNullOrWhiteSpace(programRoot)&&AppUpdateCoordinator.ManagedStartupExecutable(executable,programRoot);}
    catch(ArgumentException){return false;}catch(IOException){return false;}catch(InvalidDataException){return false;}catch(NotSupportedException){return false;}

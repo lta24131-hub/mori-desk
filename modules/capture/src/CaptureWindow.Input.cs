@@ -83,6 +83,10 @@ namespace QingJie {
             // Preparing is not another editing step: do not clear the frozen
             // crop or marks while an external session still owns their copy.
             if(scrollingCapture!=null||scrollingPreparationUi){Close();return;}
+            // A right click beside a caption means finish typing. Keep the text
+            // selected for immediate adjustment; Undo can reverse the whole edit.
+            // Escape remains the explicit one-press exit for the capture.
+            if(CanEditCapture&&textEditor!=null){SetTool("select");return;}
             if(CanEditCapture)CancelCaptureStep();
         }
         static bool HasDrawingContent(Annotation mark){

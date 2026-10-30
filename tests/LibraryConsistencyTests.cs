@@ -12,6 +12,8 @@ namespace MoriDesk {
  public static class LibraryConsistencyTests {
   static Exception Failure(Action action){try{action();return null;}catch(Exception ex){return ex;}}
   static string Snapshot(Library library){return string.Join("|",library.Folders().OrderBy(f=>f.Id).Select(f=>f.Id+":"+f.Parent+":"+f.Name));}
+  static Dictionary<string,byte[]> Partials(string root){return Directory.GetFiles(root,"*.partial").ToDictionary(path=>path,File.ReadAllBytes,StringComparer.OrdinalIgnoreCase);}
+  static bool SamePartials(string root,Dictionary<string,byte[]> before){var after=Partials(root);return after.Count==before.Count&&before.All(pair=>after.ContainsKey(pair.Key)&&after[pair.Key].SequenceEqual(pair.Value));}
   // A WAL reader sees the old target while the other connection owns the write
   // lock. Hold it until this connection has reached its BEGIN IMMEDIATE wait.
   // This reproduces a stale pre-transaction validation without timing a click.
@@ -94,6 +96,35 @@ namespace MoriDesk {
     check(error is ArgumentException&&library.LocalCollections().Single(f=>f.Id==rename).Name=="并发重命名目标","rename rechecks concurrent duplicate names and preserves the old name");
     check(library.Db.Query("PRAGMA foreign_key_check").Count==0,"all consistency scenarios preserve database relationships");
     check(File.Exists(source)&&File.ReadAllText(source).Contains("originals must remain"),"classification and rejected undo never alter original files");
+
+    // Another attempt's interrupted archive is not this backup's temporary
+    // file. A new backup must leave it intact on both success and failure.
+    string backup=Path.Combine(root,"ownership-backup.mori.zip"),leftover=backup+".partial";
+    File.WriteAllText(leftover,"previous interrupted archive: retain for recovery");
+    string originalLeftover=File.ReadAllText(leftover);
+    File.WriteAllText(Path.Combine(root,".nook-backup-"+Guid.NewGuid().ToString("N")+".partial"),"another attempt's GUID archive: retain every byte");
+    var beforePartials=Partials(root);
+    var backupError=Failure(()=>library.Backup(backup));
+    check(backupError==null&&File.Exists(backup),"backup succeeds alongside an older partial archive");
+    check(SamePartials(root,beforePartials),"successful backup preserves every preexisting partial archive and removes only its own staging file");
+    if(backupError==null){
+     string restored=Path.Combine(root,"ownership-backup-restored");Library.Restore(backup,restored);
+     using(var copy=new Library(restored))check(copy.All().Count==library.All().Count(a=>!a.IsReference)&&copy.Folders().Count==library.Folders().Count,"uniquely staged backup restores its complete snapshot");
+    }
+    string blocked=Path.Combine(root,"ownership-blocked.mori.zip");Directory.CreateDirectory(blocked);
+    File.WriteAllText(blocked+".partial",originalLeftover);
+    beforePartials=Partials(root);
+    check(Failure(()=>library.Backup(blocked)) is IOException,"backup reports a destination occupied by a folder");
+    check(Directory.Exists(blocked)&&SamePartials(root,beforePartials),"failed backup preserves destination and every preexisting partial archive without leaking its own staging file");
+    // The target itself is valid even when appending a GUID to its entire
+    // basename would make the temporary path exceed the framework path limit.
+    int stemLength=240-Path.GetFullPath(root).TrimEnd('\\').Length-1-".mori.zip".Length;
+    check(stemLength>0,"long-name backup fixture has room for a valid target basename");
+    string longBackup=Path.Combine(root,new string('x',stemLength)+".mori.zip");File.WriteAllText(longBackup,"prove target path is valid");File.Delete(longBackup);
+    backupError=Failure(()=>library.Backup(longBackup));
+    check(backupError==null&&File.Exists(longBackup),"backup supports a long valid destination without extending its basename for staging");
+    check(SamePartials(root,beforePartials),"long-name backup preserves all unrelated partial bytes and removes only its staging file");
+    if(backupError==null){string restored=Path.Combine(root,"long-backup-restored");Library.Restore(longBackup,restored);using(var copy=new Library(restored))check(copy.All().Count==library.All().Count(a=>!a.IsReference),"long-name backup is complete and can be restored normally");}
    }
   }
  }

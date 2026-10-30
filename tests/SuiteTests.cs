@@ -29,17 +29,23 @@ namespace MoriDesk {
    AppUpdateServiceTests.Run(Path.Combine(root,"app-update-service"),Check);
    AppUpdatePanelTests.Run(Path.Combine(root,"app-update-panel"),Check);
    AppUpdateCoordinatorTests.Run(Path.Combine(root,"app-update-coordinator"),Check);
+   InstalledVersionMaintenanceTests.Run(Check);
+   InstalledTaskbarIdentityTests.Run(Path.Combine(root,"installed-taskbar"),Check);
    ReferenceEagleMetadataTests.Run(Path.Combine(root,"reference-eagle"),Check);
    ExportNamingTests.Run(Path.Combine(root,"export-naming"),Check);
    ImageBrowserLifecycleTests.Run(Path.Combine(root,"image-browser-lifecycle"),Check);
+   ImageViewerExperienceTests.Run(Path.Combine(root,"image-viewer-experience"),Check);
+   ImageViewerDetailTests.Run(Path.Combine(root,"image-viewer-details"),Check);
+   GalleryNavigationTests.Run(Path.Combine(root,"gallery-navigation"),Check);
    HomepageUsabilityTests.Run(root,Check);
+   HomepageRedesignTests.Run(root,Check);
    OpenWithRegistrationTests.Run(Path.Combine(root,"open-with"),Check);
    ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
    EmbeddedThemeTests.Run(Check);
    CaptureThemeTests.Run(Path.Combine(root,"capture-theme"),Check);
    BrowseSettingsTests.Run(root,Check);ThumbnailBuildGateTests.Run(root,Check);VideoControlsTests.Run(Check);MissingReferenceTests.Run(root,Check);ScreenColorTests.Run(Check);MediaBadgeTests.Run(Path.Combine(root,"media-badges"),Check);
    DocumentContentTests.Run(Path.Combine(root,"document-content"),Check);PsdCompositeTests.Run(Path.Combine(root,"psd-composite"),Check);PsdEmbeddedThumbnailTests.Run(Path.Combine(root,"psd-embedded"),Check);PdfPreviewTests.Run(Path.Combine(root,"pdf-preview"),Check);FormatPreviewTests.Run(Path.Combine(root,"format-preview"),Check);PdfContinuousTests.Run(Path.Combine(root,"pdf-continuous"),Check);
-   PreviewBundleTests.Run(Check);ImageCodecTests.Run(Path.Combine(root,"image-codec"),Check);PdfTextTests.Run(Path.Combine(root,"pdf-text"),Check);
+   PreviewBundleTests.Run(Check);ImageCodecTests.Run(Path.Combine(root,"image-codec"),Check);PdfTextTests.Run(Path.Combine(root,"pdf-text"),Check);PdfIsolationTests.Run(Path.Combine(root,"pdf-isolation"),Check);
    WallpaperTests.Run(Path.Combine(root,"wallpaper"),Check);
    SimpleBrowserTests.Run(Check);BrowserWorkspaceTests.Run(Path.Combine(root,"browser-workspace"),Check);
    FreeCanvasTests.Run(Path.Combine(root,"free-canvas"),Check);
@@ -50,6 +56,9 @@ namespace MoriDesk {
    CanvasProjectGalleryTests.Run(Path.Combine(root,"canvas-gallery"),Check);
    CanvasFallbackSafetyTests.Run(Path.Combine(root,"canvas-fallback-safety"),Check);
    CanvasProjectRefreshTests.Run(Path.Combine(root,"project-refresh"),Check);
+   GeneralPerformanceTests.Run(Path.Combine(root,"general-performance"),Check);
+   ThumbnailThroughputTests.Scheduling(Path.Combine(root,"thumbnail-scheduling"),Check);ThumbnailThroughputTests.Raster(Check);
+   WorkerStartupTests.Run(Path.Combine(root,"worker-startup"),Check);
    CanvasTextLayoutTests.Run(Path.Combine(root,"canvas-text-layout"),Check);
    CanvasLineSelectionTests.Run(Path.Combine(root,"canvas-line-selection"),Check);
    CanvasStyleEditingTests.Run(Path.Combine(root,"canvas-style-editing"),Check);
@@ -63,6 +72,8 @@ namespace MoriDesk {
    PreviewClipboardTests.Run(Path.Combine(root,"preview-clipboard"),Check);
    PinLifecycleTests.Run(Path.Combine(root,"pin-lifecycle"),Check);
    PinRuntimeTests.Run(Path.Combine(root,"pin-runtime"),Check);
+   PinHistoryIndexTests.Run(Path.Combine(root,"pin-history-index"),Check);
+   TextWindowPinOutputTests.Run(Path.Combine(root,"text-window-pin-output"),Check);
    MiddleDragPanTests.Run(Check);
    File.WriteAllText(log,"PASS "+checks+" checks\r\nFixtures: "+root+"\r\n"+DateTime.Now.ToString("O"),Encoding.UTF8);return 0;
   }catch(Exception ex){File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\nFixtures: "+root,Encoding.UTF8);return 1;}}

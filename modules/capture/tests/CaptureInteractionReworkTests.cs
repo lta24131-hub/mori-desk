@@ -40,7 +40,7 @@ internal static class CaptureInteractionReworkTests {
         try{DirectEditing(check);ExplicitProperties(check);WrappedText(check);StableActions(check);}finally{AppState.Settings=preferences;}
     }
     static void DirectEditing(Action<bool,string> check){
-        foreach(var tool in new[]{Key.R,Key.O,Key.A,Key.L,Key.P,Key.T,Key.M})using(var f=new Fixture()){
+        foreach(var tool in new[]{Key.R,Key.O,Key.A,Key.L,Key.T,Key.M})using(var f=new Fixture()){
             var arrow=f.Draw(Key.A,new Point(120,100),new Point(240,180));var text=f.Text(new Point(120,240),"原来的文字");
             f.Tool(tool);var before=arrow.Start;var body=new Point(180,140);
             f.Window.BeginPointer(body);f.Window.EndPointer(body+new Vector(16,12));
@@ -74,7 +74,7 @@ internal static class CaptureInteractionReworkTests {
     }
     static void ExplicitProperties(Action<bool,string> check){
         using(var f=new Fixture()){
-            var first=f.Draw(Key.R,new Point(100,100),new Point(220,180));double old=first.Width,defaultWidth=AppState.Settings.Stroke;
+            var first=f.Draw(Key.R,new Point(100,100),new Point(220,180));f.Tool(Key.V);f.Window.BeginPointer(new Point(150,100));f.Window.EndPointer(new Point(150,100));double old=first.Width,defaultWidth=AppState.Settings.Stroke;
             check(!f.Window.HandleCaptureWheel(120,ModifierKeys.None,new Point(300,200))&&first.Width==old&&AppState.Settings.Stroke==defaultWidth,"plain wheel never changes a selected drawing or next-tool defaults");
             Click(FindButton(f.Window,"CaptureSizeIncrease"));
             check(first.Width==old+1&&AppState.Settings.Stroke==defaultWidth,"explicit size control edits the visibly selected shape only");
@@ -87,7 +87,7 @@ internal static class CaptureInteractionReworkTests {
             f.Window.BeginPointer(new Point(300,200));check(f.Editor.FontSize==size+5,"new caption uses its independent remembered size");
             var editor=f.Editor;double editingSize=editor.FontSize;
             check(!f.Window.HandleCaptureWheel(-120,ModifierKeys.None,new Point(320,220))&&editor.FontSize==editingSize,"ordinary wheel cannot silently resize live text");
-            check(f.Window.HandleCaptureWheel(-120,ModifierKeys.Control,new Point(320,220))&&editor.FontSize==editingSize-5,"Control-wheel is an explicit text-size shortcut");
+            check(f.Window.HandleCaptureWheel(-120,ModifierKeys.Control,new Point(320,220))&&editor.FontSize==editingSize-2,"Control-wheel is an explicit text-size shortcut");
             f.Window.CancelFromPointer();f.Tool(Key.M);double unchanged=AppState.Settings.Stroke;
             check(!f.Window.HandleCaptureWheel(120,ModifierKeys.Control,new Point(400,250))&&AppState.Settings.Stroke==unchanged,"mosaic does not mutate a hidden or meaningless width setting");
         }

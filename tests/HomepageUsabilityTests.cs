@@ -19,12 +19,14 @@ namespace MoriDesk {
   static object Call(MainWindow main,string name,params object[] args){return typeof(MainWindow).GetMethod(name,Flags,null,args.Select(a=>a.GetType()).ToArray(),null).Invoke(main,args);}
   static T Find<T>(MainWindow main,string name)where T:class{return main.Window.FindName(name)as T;}
   static void Click(MainWindow main,string name){Find<Button>(main,name).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));}
+  static void ChooseType(MainWindow main,string label){main.CreateHomeTypeMenu().Items.OfType<MenuItem>().Single(item=>Convert.ToString(item.Header)==label).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));}
   static List<Asset> All(MainWindow main){return Field<List<Asset>>(main,"all");}
   static List<Asset> Visible(MainWindow main){return Field<List<Asset>>(main,"visible");}
   static void Select(MainWindow main,string id){var selected=Field<HashSet<string>>(main,"selection");selected.Clear();selected.Add(id);Call(main,"UpdateInspector");}
   static void StopTimers(MainWindow main){foreach(string name in new[]{"externalTimer","searchTimer","layoutTimer","sizeSaveTimer","sidebarSaveTimer"})Field<DispatcherTimer>(main,name).Stop();}
   static void WaitIdle(MainWindow main){var timeout=DateTime.UtcNow.AddSeconds(15);while(Field<bool>(main,"busy")&&DateTime.UtcNow<timeout){var frame=new DispatcherFrame();Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,new Action(()=>frame.Continue=false));Dispatcher.PushFrame(frame);System.Threading.Thread.Sleep(5);}if(Field<bool>(main,"busy"))throw new Exception("isolated image index did not finish");}
   static Rect Bounds(FrameworkElement element,FrameworkElement root){return new Rect(element.TranslatePoint(new Point(),root),new Size(element.ActualWidth,element.ActualHeight));}
+  static bool Displayed(DependencyObject element){for(var node=element;node!=null;node=MainWindow.SelectionParent(node)){var ui=node as UIElement;if(ui!=null&&ui.Visibility!=Visibility.Visible)return false;}return true;}
   static bool Hit(FrameworkElement root,Button button){
    // InputHitTest rejects the entire tree while its real Window is hidden.
    // Apply the same local visibility/hit policy to geometric hit testing,
@@ -48,7 +50,7 @@ namespace MoriDesk {
     try{
      foreach(string theme in new[]{"dark","light"})foreach(int width in new[]{1040,1366})foreach(string mode in new[]{"materials","category-search-type","websites","website-search"})foreach(bool selected in new[]{false,true}){
       Theme.Set(theme);foreach(object key in Application.Current.Resources.Keys)content.Resources[key]=Application.Current.Resources[key];content.SetResourceReference(Panel.BackgroundProperty,"Canvas");
-      sidebars.SetPreferred(true,width==1040?296:208);sidebars.SetPreferred(false,252);
+      sidebars.SetPreferred(true,width==1040?296:208);sidebars.SetPreferred(false,252);sidebars.SetVisible(false,true);Set(main,"homeInspectorExplicit",false);
       bool web=mode=="websites"||mode=="website-search",filtered=mode=="category-search-type"||mode=="website-search";
       main.SetSection(web?"bookmarks":"assets");if(mode=="category-search-type")main.RequestNavigate(folder);
       Find<TextBox>(main,"Search").Text=filtered?"Layout":"";Find<ComboBox>(main,"MediaFilter").SelectedIndex=mode=="category-search-type"?1:0;main.RefreshView();
@@ -56,21 +58,22 @@ namespace MoriDesk {
       Measure(main,content,width);
       string label=theme+" / "+width+" / "+mode+" / selected "+selected+": ";
       var header=Find<Grid>(main,"GalleryHeader");var heading=Find<Grid>(main,"GalleryHeading");var toolbar=Find<StackPanel>(main,"GalleryToolbar");var title=Find<TextBlock>(main,"ViewTitle");var count=Find<TextBlock>(main,"ViewCount");var multi=Find<Button>(main,"MultiSelect");var toggle=Find<Button>(main,"ToggleInspector");var center=Find<Grid>(main,"Center");
-      double expectedCenter=width-(width==1040?296:208)-6-252-6;
+      double expectedCenter=width-(width==1040?296:208)-6-(sidebars.RightDisplayed?258:0);
       check(VisualTreeHelper.GetParent(content)==null&&Math.Abs(content.ActualWidth-width)<.5&&Math.Abs(center.ActualWidth-expectedCenter)<.5&&Math.Abs(header.ActualWidth-(expectedCenter-header.Margin.Left-header.Margin.Right))<.5,label+"actual full-page layout honors the requested window and center widths (root="+content.ActualWidth+", center="+center.ActualWidth+", header="+header.ActualWidth+")");
       bool headingFits=Bounds(heading,content).Right<=Bounds(toggle,content).Left+.1&&Bounds(heading,content).Bottom<=Bounds(toolbar,content).Top+.1&&Bounds(title,content).Right<=Bounds(count,content).Left+.1&&Bounds(count,content).Right<=Bounds(heading,content).Right+.1&&title.ActualWidth>20&&title.ActualWidth<=200.1;
       check(headingFits,label+"title and count stay beside details toggle, above the separate action row even with a long filtered category"+(headingFits?"":" (heading="+Bounds(heading,content)+", title="+Bounds(title,content)+", count="+Bounds(count,content)+", toggle="+Bounds(toggle,content)+", toolbar="+Bounds(toolbar,content)+")"));
       check(title.TextTrimming==TextTrimming.CharacterEllipsis&&Convert.ToString(title.ToolTip)==title.Text,label+"long names remain ellipsized with the full name accessible in a tooltip");
-      var controls=new FrameworkElement[]{multi,Find<Button>(main,"ClearFilter"),Find<ComboBox>(main,"MediaFilter"),Find<ComboBox>(main,"Sort")}.Where(e=>e.Visibility==Visibility.Visible).ToArray();
+      var controls=new FrameworkElement[]{Find<Button>(main,"HomeTypePicker"),Find<ComboBox>(main,"Sort"),multi,Find<Button>(main,"ClearFilter"),Find<Button>(main,"HomeView")}.Where(Displayed).ToArray();
       bool separated=true;for(int i=1;i<controls.Length;i++)separated&=Bounds(controls[i-1],content).Right<=Bounds(controls[i],content).Left+.1;
       bool contained=controls.All(e=>Bounds(e,content).Left>=Bounds(toolbar,content).Left-.1&&Bounds(e,content).Right<=Bounds(header,content).Right+.1&&Bounds(e,content).Top>=Bounds(toolbar,content).Top-.1&&Bounds(e,content).Bottom<=Bounds(toolbar,content).Bottom+.1);
       check(separated&&contained&&Bounds(toggle,content).Right<Bounds(center,content).Right&&toggle.ActualWidth==30&&toggle.ActualHeight==30&&toggle.IsEnabled&&Hit(content,toggle),label+"second-row controls are separated and contained; complete 30px details toggle is hit-testable (separated="+separated+", contained="+contained+", toggle="+Bounds(toggle,content)+", center="+Bounds(center,content)+", enabled="+toggle.IsEnabled+", hit="+Hit(content,toggle)+")");
-      check(Find<TextBox>(main,"Search").ActualWidth>=140&&Bounds(Find<Button>(main,"More"),content).Right<=width&&Find<Button>(main,"Export").Visibility==(selected?Visibility.Visible:Visibility.Collapsed)&&Find<Button>(main,"AddBookmark").Visibility==(web?Visibility.Visible:Visibility.Collapsed),label+"real selection and website toolbar states fit the minimum window without clipping");
-      check(Find<Button>(main,"ClearFilter").Visibility==(filtered?Visibility.Visible:Visibility.Collapsed)&&Find<ComboBox>(main,"MediaFilter").Visibility==(mode=="category-search-type"?Visibility.Visible:Visibility.Collapsed),label+"category and website filter visibility follows the real navigation state");
+      check(Find<TextBox>(main,"Search").ActualWidth>=220&&Bounds(Find<Button>(main,"More"),content).Right<=width&&!Displayed(Find<Button>(main,"Export"))&&!Displayed(Find<Button>(main,"AddBookmark"))&&Displayed(Find<Button>(main,"HomeAdd"))&&Hit(content,Find<Button>(main,"HomeAdd"))&&Displayed(Find<Border>(main,"BatchBar"))==selected,label+"one stable Add entry and selection-only action bar fit without competing legacy toolbar commands");
+      check(Find<Button>(main,"ClearFilter").Visibility==(filtered?Visibility.Visible:Visibility.Collapsed)&&Find<ComboBox>(main,"MediaFilter").Visibility==Visibility.Collapsed&&Displayed(Find<Button>(main,"HomeTypePicker"))==!web,label+"the unified visible type selector follows gallery navigation while website mode omits irrelevant type filtering");
+      check(sidebars.RightVisible&&sidebars.RightDisplayed==selected,label+"unselected browsing temporarily reclaims details width without changing the user's saved visibility preference");
       Click(main,"ToggleInspector");Measure(main,content,width);
-      check(!sidebars.RightVisible&&Hit(content,toggle)&&AutomationProperties.GetName(toggle)=="显示详情栏",label+"details can collapse from the visible header button and remain accessible to restore");
+      check(sidebars.RightDisplayed==!selected&&Hit(content,toggle)&&AutomationProperties.GetName(toggle)==(selected?"显示详情栏":"收起详情栏"),label+"details button acts on the panel actually displayed, including automatic empty-state collapse");
       Click(main,"ToggleInspector");Measure(main,content,width);
-      check(sidebars.RightVisible&&sidebars.Right==252&&Field<HashSet<string>>(main,"selection").Count==(selected?1:0)&&Hit(content,toggle),label+"restoring details retains selection and the preferred sidebar width");
+      check(sidebars.RightDisplayed==selected&&sidebars.Right==252&&Field<HashSet<string>>(main,"selection").Count==(selected?1:0)&&Hit(content,toggle),label+"a second details toggle retains selection and the preferred sidebar width");
       if(width==1040&&((mode=="category-search-type"&&!selected)||(mode=="websites"&&selected)))Render(content,Path.Combine(output,theme+"-"+mode+"-1040.png"),width);
      }
      main.PublishQuickConversionResults(library,new[]{image});Measure(main,content,1040);
@@ -152,6 +155,18 @@ namespace MoriDesk {
       check(Visible(main).Count==0&&Find<Button>(main,"EmptyClearFilter").Visibility==Visibility.Visible,"type-only empty results also offer filter recovery");
       Set(main,"similarId",id);Set(main,"colorId",id);Click(main,"EmptyClearFilter");
       check(Find<ComboBox>(main,"MediaFilter").SelectedIndex==0&&Field<string>(main,"similarId")==""&&Field<string>(main,"colorId")==""&&Visible(main).Count==1,"recovery clears every transient gallery filter without changing collection membership");
+      main.SetSection("assets");
+      foreach(string type in new[]{"视频","音频","文档"}){
+       ChooseType(main,type);
+       check(Visible(main).Count==0&&Find<TextBlock>(main,"EmptyTitle").Text=="没有匹配的素材"&&Find<Button>(main,"EmptyClearFilter").Visibility==Visibility.Visible&&Find<Button>(main,"ClearFilter").Visibility==Visibility.Visible&&Find<Button>(main,"EmptyImport").Visibility==Visibility.Collapsed,"whole-library "+type+" choice offers filter recovery instead of presenting existing image collections as empty");
+       Click(main,"EmptyClearFilter");
+       check(Field<string>(main,"view")=="all"&&Field<string>(main,"mediaSection")=="assets"&&Visible(main).Single().Id==id&&Convert.ToString(Find<Button>(main,"HomeTypePicker").Content)=="全部类型 ▾"&&Find<Button>(main,"ClearFilter").Visibility==Visibility.Collapsed,"empty-state recovery from "+type+" resets the visible type picker and restores saved materials in one click");
+      }
+      ChooseType(main,"图片（含动图）");
+      check(Visible(main).Single().Id==id&&Find<Button>(main,"ClearFilter").Visibility==Visibility.Visible&&Find<Button>(main,"EmptyClearFilter").Visibility==Visibility.Collapsed,"a matching whole-library type remains a visible clearable filter without an empty-state action");
+      Click(main,"ClearFilter");check(Field<string>(main,"mediaSection")=="assets"&&Visible(main).Single().Id==id,"the toolbar clear action resets whole-library type filters even when results exist");
+      Find<TextBox>(main,"Search").Text="no such picture";main.RefreshView();ChooseType(main,"视频");Click(main,"EmptyClearFilter");
+      check(Find<TextBox>(main,"Search").Text==""&&Field<string>(main,"mediaSection")=="assets"&&Visible(main).Single().Id==id&&!Field<DispatcherTimer>(main,"searchTimer").IsEnabled,"combined query and top-level type recover together without a redundant delayed list refresh");
       main.SetSection("bookmarks");Find<TextBox>(main,"Search").Text="no such website";main.RefreshView();
       check(Find<TextBlock>(main,"EmptyTitle").Text=="没有匹配的网址"&&Find<Button>(main,"EmptyClearFilter").Visibility==Visibility.Visible,"bookmark empty search uses the same unambiguous recovery");Click(main,"EmptyClearFilter");
       check(Visible(main).Single().Id==web&&Field<bool>(main,"bookmarkMode")&&Find<Button>(main,"EmptyImport").Visibility==Visibility.Visible,"bookmark recovery retains website mode and restores normal import affordance");
@@ -161,9 +176,10 @@ namespace MoriDesk {
       main.SetSection("assets");main.RequestNavigate("trash");Find<TextBox>(main,"Search").Text="no such deleted file";main.RefreshView();Click(main,"EmptyClearFilter");
       check(Field<string>(main,"view")=="trash"&&Find<Button>(main,"EmptyImport").Visibility==Visibility.Collapsed&&Find<Button>(main,"EmptyClearFilter").Visibility==Visibility.Collapsed,"trash recovery does not expose import or navigate outside the recycle bin");
 
-      main.SetSection("assets");var sidebars=Field<SidebarLayout>(main,"sidebars");sidebars.SetPreferred(false,370);int size=Field<int>(main,"thumbnailSize");string config=Path.Combine(Settings.ConfigDir,"settings.json");byte[] before=File.Exists(config)?File.ReadAllBytes(config):null;bool shown=sidebars.RightVisible;
-      Click(main,"ToggleInspector");check(sidebars.RightVisible!=shown&&AutomationProperties.GetName(Find<Button>(main,"ToggleInspector"))==(shown?"显示详情栏":"收起详情栏"),"direct detail toggle exposes synchronized accessible action");
-      main.ToggleSidebar(false);check(sidebars.RightVisible==shown&&sidebars.Right==370&&Field<int>(main,"thumbnailSize")==size,"keyboard/menu detail toggle restores preferred width without changing thumbnail density");
+      main.SetSection("assets");var sidebars=Field<SidebarLayout>(main,"sidebars");sidebars.SetPreferred(false,370);int size=Field<int>(main,"thumbnailSize");string config=Path.Combine(Settings.ConfigDir,"settings.json");byte[] before=File.Exists(config)?File.ReadAllBytes(config):null;bool shown=sidebars.RightDisplayed;
+      Click(main,"ToggleInspector");check(sidebars.RightDisplayed!=shown&&AutomationProperties.GetName(Find<Button>(main,"ToggleInspector"))==(shown?"显示详情栏":"收起详情栏"),"direct detail toggle exposes synchronized accessible action");
+      Call(main,"UpdateInspector");check(sidebars.RightDisplayed!=shown,"explicit details visibility survives a passive inspector refresh");
+      main.ToggleSidebar(false);check(sidebars.RightDisplayed==shown&&sidebars.Right==370&&Field<int>(main,"thumbnailSize")==size,"keyboard/menu detail toggle restores preferred width without changing thumbnail density");
       var preferences=Settings.Load();preferences.RightSidebarVisible=false;preferences.RightSidebarWidth=390;preferences.ThumbnailSize=size;main.ApplyBrowsePreferences(preferences);
       check(!sidebars.RightVisible&&sidebars.Right==390&&AutomationProperties.GetName(Find<Button>(main,"ToggleInspector"))=="显示详情栏","browse settings update the direct details toggle together with sidebar visibility");Click(main,"ToggleInspector");
       check(before==null?!File.Exists(config):File.ReadAllBytes(config).SequenceEqual(before),"preview-only detail toggles never persist personal settings");

@@ -5,8 +5,8 @@ using System.Reflection;
 using System.Windows;
 [assembly: AssemblyTitle("Nook")]
 [assembly: AssemblyProduct("Nook")]
-[assembly: AssemblyVersion("0.1.33.0")]
-[assembly: AssemblyFileVersion("0.1.33.0")]
+[assembly: AssemblyVersion("0.1.35.0")]
+[assembly: AssemblyFileVersion("0.1.35.0")]
 namespace MoriDesk {
  public static class Entry {
   public static bool InteractiveShell;
@@ -14,11 +14,19 @@ namespace MoriDesk {
   public static bool ClassicEnabled;
   public static string DataRoot {get{return PhysicalUserContext.DataRoot();}}
   [STAThread] public static int Main(string[] args){
+   if(args.Length>0&&args[0]=="--svg-render")return Mori.SvgRaster.Worker(args);
    if(args.Length>0&&args[0]=="--image-codec")return Mori.ImageCodec.Worker(args);
    if(args.Length>0&&args[0]=="--video-thumbnail")return Mori.VideoThumbnail.Worker(args);
    if(args.Length>0&&args[0]=="--pdf-text-worker")return Mori.PdfTextWorker.Run(args);
+   if(args.Length>0&&args[0]=="--pdf-render-worker")return Mori.PdfRenderWorker.Run(args);
    var worker=args.FirstOrDefault(a=>a.StartsWith("--ocr-worker=",StringComparison.Ordinal));
    if(worker!=null)return QingJie.OcrWorker.Execute(worker.Substring(13));
+   return RunApplication(args);
+  }
+  // Media workers use only their explicit input/output. Keep shell/configuration
+  // probes and WPF application startup out of their short-lived processes.
+  [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+  static int RunApplication(string[] args){
    if(args.Length>0&&args[0]=="--suite-test")return SuiteTests.Run();
    if(args.Length==2&&args[0]=="--mature-canvas-test")return MatureCanvasFixture.Run(args[1]);
    if(args.Length==2&&args[0]=="--mature-canvas-preview"){

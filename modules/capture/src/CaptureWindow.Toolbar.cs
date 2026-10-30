@@ -161,6 +161,22 @@ namespace QingJie {
         }
 
         static Button CaptureAction(string name,Button button){button.Name="Capture"+name;return button;}
+        Button CapturePinButton(){
+            var button=CaptureAction("Pin",Ui.Tool("pin","钉到屏幕 · 保持置顶，可移动和缩放",Pin));
+            // Keep the familiar pin silhouette, but emphasize this frequent
+            // output only here; pin-window controls retain their own styling.
+            var icon=new System.Windows.Shapes.Path {
+                Data=System.Windows.Media.Geometry.Parse("M7,3 L13,3 M8,3 L7,9 L4,12 L16,12 L13,9 L12,3 M10,12 L10,18"),
+                Width=20,Height=20,Stretch=Stretch.None,StrokeThickness=1.8,
+                StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round,IsHitTestVisible=false
+            };
+            Ui.Theme(icon,System.Windows.Shapes.Shape.StrokeProperty,"Accent");button.Content=icon;
+            // Ui.Tool normally clears a hover background. This action keeps a
+            // small accent tile without pretending to be a selected draw tool.
+            button.Tag="capture-pin-output";Ui.Theme(button,Control.BackgroundProperty,"AccentSoft");
+            button.IsEnabledChanged+=(sender,args)=>button.Opacity=button.IsEnabled?1:.35;
+            return button;
+        }
         Button CaptureSizeButton(bool increase){
             var button=Ui.TextButton(increase?"+":"−",()=>ChangeStroke(increase?1:-1));button.Name=increase?"CaptureSizeIncrease":"CaptureSizeDecrease";button.Width=26;button.Height=26;button.MinWidth=0;button.Padding=new Thickness(0);button.Margin=new Thickness(2,0,2,0);button.ToolTip=increase?"增大粗细 / 字号":"减小粗细 / 字号";AutomationProperties.SetName(button,button.ToolTip.ToString());
             if(increase)captureSizeIncrease=button;else captureSizeDecrease=button;return button;
@@ -210,33 +226,37 @@ namespace QingJie {
             var button=child as Button;if(button==null)return 4;
             if(button.Name=="CaptureUndo"||button.Name=="CaptureRedo")return 2;
             if(button.Name=="CaptureOcr"||button==translateButton||button.ContextMenu!=null)return 3;
-            if(button.Name=="CaptureCancel"||button.Name=="CaptureCopy")return 5;
+            if(button.Name=="CapturePin"||button.Name=="CaptureCancel"||button.Name=="CaptureCopy")return 5;
             return 4;
         }
         string CapturePropertyKind {
             get{return textEditor!=null||surface.SelectedText!=null?"text":surface.SelectedAnnotation!=null?surface.SelectedAnnotation.Kind:tool;}
         }
         bool HasCaptureProperties {get{string kind=CapturePropertyKind;return captureFeatures.HasAnnotations&&captureFeatures.AllowsTool(kind)&&kind!="select"&&kind!="mosaic";}}
-        void SetCaptureLineMode(string kind){
-            if(!CanEditCapture||!captureFeatures.Lines||(kind!="arrow"&&kind!="line"))return;
+        string CurrentLineMode {get{return lineKind=="line"?"line":arrowStyle=="filled"?"arrowFilled":arrowStyle=="double"?"arrowDouble":"arrow";}}
+        static string CaptureLineTitle(string mode){return mode=="line"?"直线":mode=="arrowFilled"?"实心箭头":mode=="arrowDouble"?"双向箭头":"线条箭头";}
+        void SetCaptureLineMode(string mode){
+            string kind=mode=="line"?"line":"arrow",style=mode=="arrowFilled"?"filled":mode=="arrowDouble"?"double":"open";
+            if(!CanEditCapture||!captureFeatures.Lines||!lineModeButtons.ContainsKey(mode))return;
             var selected=surface.SelectedAnnotation;
-            if(selected==null||!CaptureAnnotationGeometry.Linear(selected)){SetTool(kind);return;}
-            var before=CopyAnnotation(selected);selected.Kind=kind;RecordAnnotationEdit(selected,before);UpdateWidth();PositionTools();surface.InvalidateVisual();
+            if(selected==null||!CaptureAnnotationGeometry.Linear(selected)){arrowStyle=style;SetTool(kind);return;}
+            var before=CopyAnnotation(selected);selected.Kind=kind;selected.ArrowStyle=style;RecordAnnotationEdit(selected,before);UpdateWidth();PositionTools();surface.InvalidateVisual();
         }
         void UpdateCapturePropertyPresentation(){
             string kind=CapturePropertyKind;bool text=kind=="text",visible=HasCaptureProperties;
             lineModes.Visibility=captureFeatures.Lines&&(kind=="arrow"||kind=="line")?Visibility.Visible:Visibility.Collapsed;
-            foreach(var entry in lineModeButtons)Ui.SetActive(entry.Value,entry.Key==kind);
+            string mode=surface.SelectedAnnotation!=null?(kind=="line"?"line":surface.SelectedAnnotation.ArrowStyle=="filled"?"arrowFilled":surface.SelectedAnnotation.ArrowStyle=="double"?"arrowDouble":"arrow"):CurrentLineMode;
+            foreach(var entry in lineModeButtons)Ui.SetActive(entry.Value,entry.Key==mode);
             // Text Width stores one fifth of its rendered font size. Show the
             // actual text size even before the first label is created. These
             // are logical sizes; physical export pixels vary by monitor scale.
             double value=textEditor!=null?textEditor.FontSize:surface.SelectedText!=null?surface.SelectedText.TextFontSize:surface.SelectedAnnotation!=null?surface.SelectedAnnotation.Width:text?AppState.Settings.TextSize:AppState.Settings.Stroke;
-            widthLabel.Text=(text?"字号 ":"粗细 ")+value.ToString("0");
+            widthLabel.Text=(text?"字号 ":"粗细 ")+value.ToString("0.#");
             AutomationProperties.SetName(widthLabel,widthLabel.Text);
             widthLabel.Visibility=visible?Visibility.Visible:Visibility.Collapsed;
             foreach(var color in captureColorButtons)color.Visibility=visible?Visibility.Visible:Visibility.Collapsed;
             if(captureSizeDecrease!=null){captureSizeDecrease.Visibility=captureSizeIncrease.Visibility=visible?Visibility.Visible:Visibility.Collapsed;captureSizeDecrease.IsEnabled=CanEditCapture&&value>(text?16:1);captureSizeIncrease.IsEnabled=CanEditCapture&&value<(text?250:25);}
-            if(capturePropertyHint!=null){capturePropertyHint.Text=text?"Ctrl+滚轮调字号":"Ctrl+滚轮调粗细";capturePropertyHint.Visibility=visible?Visibility.Visible:Visibility.Collapsed;}
+            if(capturePropertyHint!=null){capturePropertyHint.Text=text?"Ctrl+滚轮调字号":"Ctrl+滚轮调粗细";capturePropertyHint.ToolTip="Ctrl+Shift+滚轮细调 · 右键 / V 调整旧标注";capturePropertyHint.Visibility=visible?Visibility.Visible:Visibility.Collapsed;}
         }
         void RefreshCaptureToolbarHistory(){
             SetCaptureHistoryAvailability(captureUndoButton,CanEditCapture&&annotationUndo.Count>0);

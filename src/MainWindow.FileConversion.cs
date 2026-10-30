@@ -174,8 +174,7 @@ namespace Mori {
      var sourcePaths=selected.ToDictionary(item=>item.Id,item=>library.FullPath(item),StringComparer.Ordinal);
      string[] paths=sourcePaths.Values.ToArray();
      if(paths.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=paths.Length)reason="同一原文件被重复选中，请只选择其中一个收藏";
-     else snapshot=new QuickConversionSnapshot{Library=library,Ids=selected.Select(item=>item.Id).ToArray(),Paths=paths,SourcePaths=sourcePaths,
-      Origin=new FileConversionCollectionSession(library,selected,true)};
+     else snapshot=new QuickConversionSnapshot{Library=library,Ids=selected.Select(item=>item.Id).ToArray(),Paths=paths,SourcePaths=sourcePaths};
     }
    }catch(Exception error){reason="无法读取原文件："+error.Message;}
    if(snapshot==null){ShowQuickConversionNotice(menu,reason??"请选择文件");return menu;}
@@ -198,7 +197,7 @@ namespace Mori {
        try{
         menu.IsSubmenuOpen=false;
         if(await ConversionComponentsWindow.OpenAsync(Window,needed)){
-         checkedFiles=false;Status("组件已变更；右键“转为”即可查看新的转换格式。");
+         checkedFiles=false;Status("组件已变更；重新打开“转为”菜单即可查看新的转换格式。");
         }
        }catch(Exception error){Status("无法管理转换组件："+error.Message);}
       };menu.Items.Add(install);
@@ -223,15 +222,21 @@ namespace Mori {
   bool ValidateQuickConversionSnapshot(QuickConversionSnapshot snapshot){
    if(snapshot==null||!ReferenceEquals(library,snapshot.Library)||!QuickConversionSelectionMatches(snapshot.Ids,Selected())||
       !ConversionSelectionAllowed(Selected(),visible,canvasProjectsMode||browserMode||boardMode||referenceMode||bookmarkMode,view)){
-    Status("所选文件已变化，请重新右键选择转换格式。");return false;
+    Status("所选文件已变化，请重新打开“转为”菜单选择格式。");return false;
    }
-   var ids=new HashSet<string>(snapshot.Ids,StringComparer.Ordinal);
-   var records=library.All().Where(item=>ids.Contains(item.Id)).ToArray();
-   if(!QuickConversionSelectionMatches(snapshot.Ids,records)||records.Any(item=>
-      !string.Equals(library.FullPath(item),snapshot.SourcePaths[item.Id],StringComparison.OrdinalIgnoreCase))){
-    Status("原素材已移动、删除或更换文件，未开始转换。请重新选择。");return false;
-   }
+   // A persistent toolbar menu can outlive saved metadata/category edits.
+   // Freeze metadata only at the conversion click, never merely on selection.
+   snapshot.Origin=CaptureQuickConversionOrigin(library,snapshot.Ids,snapshot.SourcePaths);
    return true;
+  }
+  internal static FileConversionCollectionSession CaptureQuickConversionOrigin(Library origin,string[] capturedIds,IDictionary<string,string> sourcePaths){
+   if(origin==null||capturedIds==null||sourcePaths==null)throw new ArgumentException("转换来源不完整。");
+   var ids=new HashSet<string>(capturedIds,StringComparer.Ordinal);
+   var records=origin.All().Where(item=>ids.Contains(item.Id)).ToArray();
+   if(sourcePaths.Count!=capturedIds.Length||!QuickConversionSelectionMatches(capturedIds,records)||records.Any(item=>
+      !sourcePaths.ContainsKey(item.Id)||!string.Equals(origin.FullPath(item),sourcePaths[item.Id],StringComparison.OrdinalIgnoreCase)))
+    throw new IOException("原素材已移动、删除或更换文件，未开始转换。请重新选择。");
+   return new FileConversionCollectionSession(origin,records,true);
   }
   async void StartQuickConversion(QuickConversionSnapshot snapshot,string target){
    if(busy||FileConversionWorking){Status("请等待当前操作完成后再转换。");return;}
@@ -241,6 +246,7 @@ namespace Mori {
    var cancellation=quickConversionCancellation;
    FileStream[] inputLocks=null;
    try{
+    UpdateHomeSelection();
     var client=new FileConversionClient();
     client.SourceName=path=>ConversionSourceStem(snapshot.Origin.FindSource(path));
     string folder=Path.Combine(snapshot.Library.Root,".mori","conversions");
@@ -252,7 +258,7 @@ namespace Mori {
     var formats=ValidateQuickConversionCapabilities(snapshot.Paths,target,capabilities);
     string shownStamp;
     if(snapshot.CapabilityStamps==null||!snapshot.CapabilityStamps.TryGetValue(target,out shownStamp)||shownStamp!=QuickConversionCapabilityStamp(capabilities,target))
-     throw new IOException("原文件的转换方式或内容提示已变化，请重新右键查看格式后再转换");
+     throw new IOException("原文件的转换方式或内容提示已变化，请重新打开“转为”菜单查看后再转换");
     var progress=new Progress<ConversionProgress>(value=>{
      if(!quickConversionRunning||!ReferenceEquals(quickConversionCancellation,cancellation)||cancellation.IsCancellationRequested)return;
      Status("正在转换 "+Math.Min(value.Completed+1,value.Total)+" / "+value.Total+" 为 "+ConversionFormats.Label(target)+" · 原文件保留");
@@ -267,12 +273,15 @@ namespace Mori {
     Status(outcome.Message);
    }catch(OperationCanceledException){Status("已取消转换；原文件保留。");}
    catch(Exception error){Status("转换未完成："+error.Message+"；原文件保留，已生成副本保留在图库 .mori\\conversions。");}
-   finally{if(inputLocks!=null)foreach(var input in inputLocks)input.Dispose();quickConversionRunning=false;quickConversionCancellation=null;cancellation.Dispose();}
+   finally{
+    try{if(inputLocks!=null)foreach(var input in inputLocks)input.Dispose();}
+    finally{quickConversionRunning=false;quickConversionCancellation=null;cancellation.Dispose();UpdateHomeSelection();}
+   }
   }
   internal static Dictionary<string,string> ValidateQuickConversionCapabilities(string[] paths,string target,ConversionCapabilities capabilities){
    if(paths==null||paths.Length==0||paths.Any(string.IsNullOrWhiteSpace)||paths.Distinct(StringComparer.OrdinalIgnoreCase).Count()!=paths.Length||
       !ConversionFormats.IsTarget(target)||capabilities==null||capabilities.Files==null||capabilities.Files.Length!=paths.Length)
-    throw new IOException("文件或可转换格式已变化，请重新右键选择格式。");
+    throw new IOException("文件或可转换格式已变化，请重新打开“转为”菜单选择格式。");
    var expected=new HashSet<string>(paths,StringComparer.OrdinalIgnoreCase);
    var result=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
    foreach(var file in capabilities.Files){
@@ -286,7 +295,7 @@ namespace Mori {
     result.Add(file.Source,format);
    }
    if(result.Values.Any(format=>format!=target)&&!(capabilities.Targets??new ConversionTarget[0]).Any(item=>item!=null&&item.Id==target))
-    throw new IOException("目标格式已不可用，请重新右键选择。");
+    throw new IOException("目标格式已不可用，请重新打开“转为”菜单选择。");
    return result;
   }
   internal static string QuickConversionCapabilityStamp(ConversionCapabilities capabilities,string target){
@@ -417,12 +426,14 @@ namespace Mori {
    sidebars.SetTemporaryRightWidth(Math.Max(336,sidebars.Right));
    sidebars.SetVisible(false,true);UpdateDetailsToggle();
    fileConversionVisible=true;fileConversionDetails.Visibility=Visibility.Collapsed;fileConversionScroll.Visibility=Visibility.Visible;
+   UpdateHomeInspector();
    UpdateFileConversionTask();
   }
   internal void CollapseFileConversion(){
    if(fileConversionPanel==null)return;
    fileConversionVisible=false;fileConversionScroll.Visibility=Visibility.Collapsed;fileConversionDetails.Visibility=Visibility.Visible;
    sidebars.SetTemporaryRightWidth(null);
+   UpdateHomeInspector();
    UpdateFileConversionTask();Status(FileConversionWorking?"已收起；转换仍在继续，可从顶部“转换中”返回。":"已返回素材详情；可从顶部“转换”继续查看结果。");
   }
   void UpdateFileConversionTask(){

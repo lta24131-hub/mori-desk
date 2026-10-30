@@ -24,6 +24,9 @@ namespace MoriDesk {
    Add("plus","M5 12h14 M12 5v14");
    Add("image","M4 3h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z M21 15l-5-5L3 21 M6.5 7h.01");
    Add("more","M5 12h.01 M12 12h.01 M19 12h.01");
+   Add("previous","m15 18-6-6 6-6");Add("next","m9 18 6-6-6-6");
+   Add("folder-open","m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2");
+   Add("gallery","M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M4 21h1 M9 21h1 M14 21h1 M19 21h1");
    Add("eye","M2 12c4-9 16-9 20 0-4 9-16 9-20 0z M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0");
    Add("minimize","M5 12h14");Add("maximize","M5 5h14v14H5z");
    Add("restore","M8 3h13v13 M3 8h13v13H3z");Add("close","M6 6l12 12 M6 18L18 6");

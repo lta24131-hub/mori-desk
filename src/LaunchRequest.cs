@@ -25,7 +25,7 @@ namespace MoriDesk {
    // Browser native messaging and existing isolated media/test workers keep
    // their original dispatch path; they must not initialize screenshot tools.
    if(first.StartsWith("chrome-extension://",StringComparison.Ordinal))return ModeOnly("worker");
-   if(new[]{"--svg-render","--video-thumbnail","--video-self-test","--benchmark","--native-test","--image-codec","--pdf-text-worker"}.Contains(first)){
+   if(new[]{"--svg-render","--video-thumbnail","--video-self-test","--benchmark","--native-test","--image-codec","--pdf-text-worker","--pdf-render-worker"}.Contains(first)){
     if(args.Length<2)throw new ArgumentException("后台任务缺少参数。");
     return ModeOnly("worker");
    }

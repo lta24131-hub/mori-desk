@@ -23,8 +23,7 @@ namespace QingJie {
             if(Linear(mark)){
                 if(SegmentDistance(p,mark.Start,mark.End)<=tolerance)return true;
                 if(mark.Kind=="line")return false;
-                double angle=Math.Atan2(mark.End.Y-mark.Start.Y,mark.End.X-mark.Start.X),length=Math.Max(10,mark.Width*3.5);
-                return SegmentDistance(p,mark.End,new Point(mark.End.X-length*Math.Cos(angle-.5),mark.End.Y-length*Math.Sin(angle-.5)))<=tolerance||SegmentDistance(p,mark.End,new Point(mark.End.X-length*Math.Cos(angle+.5),mark.End.Y-length*Math.Sin(angle+.5)))<=tolerance;
+                return CaptureArrowGeometry.Hit(mark,p,tolerance);
             }
             if(mark.Kind=="pen"){
                 for(int i=1;i<mark.Points.Count;i++)if(SegmentDistance(p,mark.Points[i-1],mark.Points[i])<=tolerance)return true;

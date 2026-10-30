@@ -14,7 +14,7 @@ $sources=@(
  'installer\Setup.cs','installer\InstallerProgress.cs','installer\ReplacementInstall.cs',
  'installer\ReplacementStaging.cs','installer\InstalledVersionCleanup.cs','installer\ManualMetadataBackup.cs',
  'src\AppUpdateMetadataBackup.cs','src\InstalledApplicationState.cs','src\InstalledCleanupState.cs',
- 'src\OpenWithRegistration.cs','src\ShellVisualRegistration.cs','src\FileFormats.cs','src\PhysicalUserContext.cs',
+ 'src\OpenWithRegistration.cs','src\ShellVisualRegistration.cs','src\ShellTaskbarProperties.cs','src\FileFormats.cs','src\PhysicalUserContext.cs',
  'tests\installer-safety\Tests.cs'
 ) | ForEach-Object {Join-Path $suiteRoot $_}
 & "$framework\csc.exe" /nologo /target:exe /main:MoriDeskInstaller.InstallerSafetyTests /platform:x64 /codepage:65001 ('/out:'+$testExecutable) @refs @sources

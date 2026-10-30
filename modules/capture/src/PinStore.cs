@@ -38,12 +38,16 @@ namespace QingJie {
         public string TranslationPath(PinRecord pin){return Path.ChangeExtension(ImagePath(pin),"translated.png");}
         public void SaveTranslation(PinRecord pin,BitmapSource image,string provider=null){var path=TranslationPath(pin);ImageFiles.Write(image,path+".tmp");if(File.Exists(path))File.Replace(path+".tmp",path,null);else File.Move(path+".tmp",path);pin.ShowTranslation=true;pin.TranslationPolicy=ImageTranslation.LayoutPolicy;pin.TranslationProvider=provider;Save();}
         void Load(){
+            // History can contain thousands of closed pins. Preserve manifest
+            // order and exact ID comparison without rescanning the growing list
+            // for every record and every recoverable PNG during startup.
+            var known=new HashSet<string>(StringComparer.Ordinal);
             foreach(var path in new[]{Manifest,Manifest+".bak"}){try{if(!File.Exists(path))continue;var rows=new JavaScriptSerializer().Deserialize<List<PinRecord>>(File.ReadAllText(path));if(rows==null)continue;
-                foreach(var p in rows){try{if(p!=null&&File.Exists(ImagePath(p))&&!Records.Any(r=>r.Id==p.Id)){p.Left=Geometry.Clamp(p.Left,-100000,100000);p.Top=Geometry.Clamp(p.Top,-100000,100000);p.Width=Geometry.Clamp(p.Width,1,2500);p.Opacity=Geometry.Clamp(p.Opacity,.15,1);Records.Add(p);}}catch(InvalidDataException){}}
+                foreach(var p in rows){try{if(p!=null&&File.Exists(ImagePath(p))&&known.Add(p.Id)){p.Left=Geometry.Clamp(p.Left,-100000,100000);p.Top=Geometry.Clamp(p.Top,-100000,100000);p.Width=Geometry.Clamp(p.Width,1,2500);p.Opacity=Geometry.Clamp(p.Opacity,.15,1);Records.Add(p);}}catch(InvalidDataException){}}
                 loadedBackup=path!=Manifest;break;
             }catch{}}
             // If a power loss interrupted the index update, keep its PNG recoverable with F3.
-            foreach(var path in Directory.GetFiles(Folder,"*.png")){Guid id;string name=Path.GetFileNameWithoutExtension(path);if(Guid.TryParseExact(name,"N",out id)&&!Records.Any(p=>p.Id==name))Records.Add(new PinRecord{Id=name,Active=false,ClosedAt=File.GetLastWriteTimeUtc(path).Ticks});}
+            foreach(var path in Directory.GetFiles(Folder,"*.png")){Guid id;string name=Path.GetFileNameWithoutExtension(path);if(Guid.TryParseExact(name,"N",out id)&&known.Add(name))Records.Add(new PinRecord{Id=name,Active=false,ClosedAt=File.GetLastWriteTimeUtc(path).Ticks});}
         }
         public void Save(){var temp=Manifest+".tmp";using(var stream=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)){using(var writer=new StreamWriter(stream,System.Text.Encoding.UTF8,1024,true)){writer.Write(new JavaScriptSerializer().Serialize(Records));writer.Flush();}stream.Flush(true);}if(File.Exists(Manifest))File.Replace(temp,Manifest,loadedBackup?null:Manifest+".bak");else File.Move(temp,Manifest);loadedBackup=false;}
         public PinRecord Add(BitmapSource image){var record=new PinRecord{Id=Guid.NewGuid().ToString("N"),Width=Math.Min(720,image.PixelWidth)};var target=ImagePath(record);var temp=target+".tmp";ImageFiles.Write(image,temp);File.Move(temp,target);Records.Add(record);Save();return record;}
@@ -130,7 +134,9 @@ namespace QingJie {
         readonly Image picture=new Image {Name="PinPicture",Stretch=Stretch.Uniform};
         readonly TextBlock translationStatus=new TextBlock {Foreground=Brushes.White,FontSize=12,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(8)};
         Border statusCard;
-        Button translationButton;
+        MenuItem translationAction;
+        internal Action<BitmapSource> CopyImageForTests,SaveImageForTests;
+        internal Action OpenTextForTests;
         bool translating,closed,discarded;
         readonly System.Threading.CancellationTokenSource cancel=new System.Threading.CancellationTokenSource();
         readonly DispatcherTimer saveTimer=new DispatcherTimer {Interval=TimeSpan.FromMilliseconds(350)};
@@ -146,34 +152,43 @@ namespace QingJie {
             Left=pin.Left-PinFrame.Inset;Top=pin.Top-PinFrame.Inset;
             bool visible=System.Windows.Forms.Screen.AllScreens.Any(s=>s.WorkingArea.IntersectsWith(new System.Drawing.Rectangle((int)Left,(int)Top,(int)Width,(int)Height)));
             if(!visible){Left=100-PinFrame.Inset;Top=100-PinFrame.Inset;}
-            var root=new Grid();picture.Source=displayed;root.Children.Add(picture);
-            var frame=new PinFrame(root);Content=frame;var toolbar=new PinToolbar(root,frame.SetHovered);var tools=toolbar.Tools;
-            if(pin.IsTranslation){translationButton=PinToolbar.Button("translate","原图 / 译图 · 未完成时点击重试",()=>{if(translated==null)StartTranslation();else{pin.ShowTranslation=!pin.ShowTranslation;RefreshImage(false);TranslationResultStatus();}});tools.Children.Add(translationButton);}
-            tools.Children.Add(PinToolbar.Button("ocr","打开图片 / 全部文字",OpenText));
-            var transforms=Ui.Menu(this);
-            Action<string,Action> add=(title,action)=>{var item=new MenuItem {Header=title};item.Click+=(s,e)=>Try(()=>{action();Activate();});transforms.Items.Add(item);};
-            add("顺时针旋转 90°",()=>{PinTransforms.Rotate(pin,1);RefreshImage(true);});add("逆时针旋转 90°",()=>{PinTransforms.Rotate(pin,-1);RefreshImage(true);});
-            add("水平翻转",()=>{pin.FlipHorizontal=!pin.FlipHorizontal;RefreshImage(false);});add("垂直翻转",()=>{pin.FlipVertical=!pin.FlipVertical;RefreshImage(false);});
-            transforms.Items.Add(new Separator());add("恢复原始方向",()=>{pin.QuarterTurns=0;pin.FlipHorizontal=pin.FlipVertical=false;RefreshImage(true);});
-            var transformButton=PinToolbar.Button("rotate","旋转 / 翻转",()=>{});transformButton.ContextMenu=transforms;transformButton.Click+=(s,e)=>{toolbar.MenuOpen=true;transforms.PlacementTarget=transformButton;transforms.IsOpen=true;};
-            transforms.Closed+=(s,e)=>{toolbar.MenuOpen=false;toolbar.ScheduleHide();};tools.Children.Add(transformButton);
-            tools.Children.Add(PinToolbar.Button("copy","复制贴图",()=>Try(()=>ImageFiles.Copy(displayed))));tools.Children.Add(PinToolbar.Button("save","另存为",()=>Try(()=>ImageFiles.Save(displayed,this))));tools.Children.Add(PinToolbar.Button("close","收起贴图 · F3 找回",Close));
+            var root=new Grid {Name="PinSurface"};picture.Source=displayed;root.Children.Add(picture);
+            var frame=new PinFrame(root);Content=frame;
+            // A pin is a quiet image surface. Actions appear only on an explicit
+            // right-click, never on hover or at the end of a drag.
+            var menu=Ui.Menu(this);ContextMenu=menu;
+            if(pin.IsTranslation){translationAction=PinAction("PinTranslation","翻译图片",()=>{if(translated==null)StartTranslation();else{pin.ShowTranslation=!pin.ShowTranslation;RefreshImage(false);TranslationResultStatus();}RefreshTranslationAction();});menu.Items.Add(translationAction);RefreshTranslationAction();}
+            menu.Items.Add(PinAction("PinOpenText","打开图片 / 全部文字",OpenText));
+            var transforms=new MenuItem {Name="PinTransforms",Header="旋转 / 翻转"};
+            transforms.Items.Add(PinAction("PinRotateClockwise","顺时针旋转 90°",()=>{PinTransforms.Rotate(pin,1);RefreshImage(true);}));
+            transforms.Items.Add(PinAction("PinRotateCounterclockwise","逆时针旋转 90°",()=>{PinTransforms.Rotate(pin,-1);RefreshImage(true);}));
+            transforms.Items.Add(PinAction("PinFlipHorizontal","水平翻转",()=>{pin.FlipHorizontal=!pin.FlipHorizontal;RefreshImage(false);}));
+            transforms.Items.Add(PinAction("PinFlipVertical","垂直翻转",()=>{pin.FlipVertical=!pin.FlipVertical;RefreshImage(false);}));
+            transforms.Items.Add(new Separator());transforms.Items.Add(PinAction("PinResetOrientation","恢复原始方向",()=>{pin.QuarterTurns=0;pin.FlipHorizontal=pin.FlipVertical=false;RefreshImage(true);}));menu.Items.Add(transforms);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(PinAction("PinCopy","复制图片",()=>{if(CopyImageForTests!=null)CopyImageForTests(displayed);else ImageFiles.Copy(displayed);}));
+            menu.Items.Add(PinAction("PinSave","另存为…",()=>{if(SaveImageForTests!=null)SaveImageForTests(displayed);else ImageFiles.Save(displayed,this);}));
+            menu.Items.Add(new Separator());var close=PinAction("PinClose","关闭贴图",Close);close.InputGestureText="Esc";close.ToolTip="保留在贴图历史，可以找回";menu.Items.Add(close);
+            menu.Opened+=(s,e)=>RefreshTranslationAction();
             statusCard=new Border {Name="PinTranslationStatus",Child=translationStatus,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(4),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Bottom,Margin=new Thickness(6),MaxWidth=340,Visibility=Visibility.Collapsed};Ui.Theme(translationStatus,TextBlock.ForegroundProperty,"Text");Ui.Theme(statusCard,Border.BackgroundProperty,"Surface");Ui.Theme(statusCard,Border.BorderBrushProperty,"Border");root.Children.Add(statusCard);
-            if(oldTranslation)Status("翻译规则已更新，原图保留。点击翻译可重新生成。");
-            root.MouseLeftButtonDown+=(s,e)=>{Activate();toolbar.Hide();try{DragMove();}catch{}if(root.IsMouseOver)toolbar.Show();};
+            if(oldTranslation)Status("翻译规则已更新，原图保留。右键选择「翻译图片」可重新生成。");
+            root.MouseLeftButtonDown+=(s,e)=>{menu.IsOpen=false;Activate();try{DragMove();}catch{}};
             PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape){e.Handled=true;Close();}};
             MouseWheel+=(s,e)=>{if((Keyboard.Modifiers&ModifierKeys.Control)!=0)Opacity=Geometry.Clamp(Opacity+(e.Delta>0?.05:-.05),.15,1);else{double width=Geometry.Clamp((Width-2*PinFrame.Inset)*(e.Delta>0?1.1:1/1.1),1,2500);Width=width+2*PinFrame.Inset;Height=width*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;}Changed();e.Handled=true;};
-            LocationChanged+=(s,e)=>{Changed();toolbar.Reposition();};SizeChanged+=(s,e)=>{Changed();toolbar.Reposition();};
+            LocationChanged+=(s,e)=>Changed();SizeChanged+=(s,e)=>Changed();
             Loaded+=(s,e)=>{if(bounds.HasValue){var b=bounds.Value;var dpi=VisualTreeHelper.GetDpi(this);int px=(int)Math.Round(PinFrame.Inset*dpi.DpiScaleX),py=(int)Math.Round(PinFrame.Inset*dpi.DpiScaleY);Native.SetWindowPos(new System.Windows.Interop.WindowInteropHelper(this).Handle,Native.Topmost,b.X-px,b.Y-py,b.Width+2*px,b.Height+2*py,0x0040);}initialized=true;Changed();if(ShowActivated){Activate();Focus();}};
-            IsVisibleChanged+=(s,e)=>{if(!IsVisible){toolbar.MenuOpen=false;transforms.IsOpen=false;toolbar.Hide();}};
+            IsVisibleChanged+=(s,e)=>{if(!IsVisible)menu.IsOpen=false;};
             saveTimer.Tick+=(s,e)=>{saveTimer.Stop();Try(()=>{UpdateRecord();store.Save();});};
             Closing+=(s,e)=>{saveTimer.Stop();if(discarded)return;UpdateRecord();if(!AppState.Quitting){pin.Active=false;pin.ClosedAt=DateTime.UtcNow.Ticks;}try{store.Save();}catch{pin.Active=true;e.Cancel=true;MessageBox.Show(this,"贴图状态暂时无法保存，已保留这张贴图。请检查磁盘空间。","Nook");}};
             AppState.TranslationProviderChanged+=RefreshTranslationProvider;
-            Closed+=(s,e)=>{closed=true;AppState.TranslationProviderChanged-=RefreshTranslationProvider;toolbar.Dispose();transforms.IsOpen=false;cancel.Cancel();translatedPage=null;translationResult=null;store.Removed(pin.Id);};
+            Closed+=(s,e)=>{closed=true;AppState.TranslationProviderChanged-=RefreshTranslationProvider;menu.IsOpen=false;cancel.Cancel();translatedPage=null;translationResult=null;store.Removed(pin.Id);};
         }
+        MenuItem PinAction(string name,string title,Action action){var item=new MenuItem {Name=name,Header=title};item.Click+=(s,e)=>Try(action);return item;}
+        void RefreshTranslationAction(){if(translationAction==null)return;translationAction.IsEnabled=!translating;translationAction.Header=translating?"正在翻译…":translated==null?"翻译图片":pin.ShowTranslation?"显示原图":"显示译图";}
         void Status(string text){translationStatus.Text=OcrService.WithNotice(text,ocrNotice);statusCard.Visibility=string.IsNullOrEmpty(translationStatus.Text)?Visibility.Collapsed:Visibility.Visible;}
         void OpenText(){
             Try(()=>{
+                if(OpenTextForTests!=null){OpenTextForTests();return;}
                 if(translationResult!=null&&translatedPage!=null&&translatedProvider==Translation.Provider)new TextWindow(image,"zh",translatedPage,translationResult,translatedProvider).Show();
                 else new TextWindow(PinTransforms.Apply(image,pin.QuarterTurns,pin.FlipHorizontal,pin.FlipVertical)).Show();
             });
@@ -186,10 +201,10 @@ namespace QingJie {
         void RefreshTranslationProvider(){
             if(closed||!pin.IsTranslation)return;if(translationRequest!=null){translationRequest.Cancel();translationRequest=null;}
             translating=false;translationResult=null;translatedPage=null;translated=null;translatedProvider=null;cacheWarning=null;ocrNotice=null;pin.ShowTranslation=false;
-            if(translationButton!=null)translationButton.IsEnabled=true;RefreshImage(false);Status("翻译服务已改变，点击翻译重新生成。");
+            RefreshTranslationAction();RefreshImage(false);Status("翻译服务已改变，右键选择「翻译图片」重新生成。");
         }
         public async void StartTranslation(){
-            if(translating||closed)return;var request=System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);translationRequest=request;string provider=Translation.Provider;translating=true;cacheWarning=null;ocrNotice=null;if(translationButton!=null)translationButton.IsEnabled=false;Status("正在本机识别图片文字…");
+            if(translating||closed)return;var request=System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);translationRequest=request;string provider=Translation.Provider;translating=true;cacheWarning=null;ocrNotice=null;RefreshTranslationAction();Status("正在本机识别图片文字…");
             try{var page=await OcrService.Read(image,request.Token);request.Token.ThrowIfCancellationRequested();if(closed||translationRequest!=request)return;ocrNotice=page.Notice;var regions=ImageTranslation.Regions(page);if(regions.Count==0){Status("未识别到文字，原图已保留。");return;}
                 Status("正在翻译 · 只发送文字，不上传截图…");var texts=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),request.Token,"zh",provider);request.Token.ThrowIfCancellationRequested();if(closed||translationRequest!=request||provider!=Translation.Provider)return;
                 translationResult=ImageTranslation.RenderWithStatus(image,regions,texts);translatedPage=page;translatedProvider=provider;translated=translationResult.Image;
@@ -198,8 +213,8 @@ namespace QingJie {
                 pin.ShowTranslation=true;
                 if(translationResult.UnplacedCount==0){try{store.SaveTranslation(pin,translated,provider);}catch(Exception error){cacheWarning="本次译图可用，但未能保存；重启后需重新翻译。 "+error.Message;}}
                 RefreshImage(false);TranslationResultStatus();
-            }catch(OperationCanceledException){if(!closed&&translationRequest==request&&!request.IsCancellationRequested)Status("翻译超时，点上方翻译按钮重试。原图已保留。");}catch(Exception ex){if(!closed&&translationRequest==request)Status(ex.Message+" 点击上方翻译按钮可重试。");}
-            finally{if(translationRequest==request){translationRequest=null;translating=false;if(!closed&&translationButton!=null)translationButton.IsEnabled=true;}request.Dispose();}
+            }catch(OperationCanceledException){if(!closed&&translationRequest==request&&!request.IsCancellationRequested)Status("翻译超时，右键选择「翻译图片」重试。原图已保留。");}catch(Exception ex){if(!closed&&translationRequest==request)Status(ex.Message+" 右键选择「翻译图片」可重试。");}
+            finally{if(translationRequest==request){translationRequest=null;translating=false;if(!closed)RefreshTranslationAction();}request.Dispose();}
         }
         void Try(Action action){try{action();}catch(Exception ex){MessageBox.Show(this,ex.Message,"Nook");}}
         void RefreshImage(bool maintainScale){double scale=(Width-2*PinFrame.Inset)/displayed.PixelWidth;displayed=PinTransforms.Apply(pin.ShowTranslation&&translated!=null?translated:image,pin.QuarterTurns,pin.FlipHorizontal,pin.FlipVertical);picture.Source=displayed;if(maintainScale)Width=Geometry.Clamp(displayed.PixelWidth*scale,1,2500)+2*PinFrame.Inset;Height=(Width-2*PinFrame.Inset)*displayed.PixelHeight/displayed.PixelWidth+2*PinFrame.Inset;Changed();}

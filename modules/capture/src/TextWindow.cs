@@ -31,7 +31,8 @@ namespace QingJie {
         readonly ColumnDefinition sidebarColumn=new ColumnDefinition {Width=new GridLength(284)};
         readonly Border sidebar;
         readonly Button translateSelection,translatePicture,showText,copyResult;
-        readonly Button captureReturn,captionClose,copyImage,saveImage;
+        readonly Button captureReturn,captionClose,copyImage,saveImage,pinImage;
+        internal Func<BitmapSource,CancellationToken,Task> PinOutput=(source,token)=>AppState.Pins.NewAsync(source,token);
         Action exitCapture;
         bool outputBusy;
         readonly CancellationTokenSource cancel=new CancellationTokenSource();
@@ -73,7 +74,7 @@ namespace QingJie {
             captureReturn=ActionButton("返回截图",Close);captureReturn.Name="ReturnToCapture";captureReturn.ToolTip="返回原截图继续标注；Esc 退出整个截图";captureReturn.Visibility=Visibility.Collapsed;bar.Children.Add(captureReturn);
             // Standalone image viewers do not own the shared pin store. Only the
             // main suite process writes pin history, avoiding competing writers.
-            if(allowPin&&AppState.Pins!=null){bar.Children.Add(Symbol("\uE718","贴到屏幕",PinImage));Separator(bar);}
+            if(allowPin&&AppState.Pins!=null){pinImage=Symbol("\uE718","贴到屏幕",PinImage);bar.Children.Add(pinImage);Separator(bar);}
             bar.Children.Add(Symbol("\uE8A3","放大",()=>ChangeZoom(zoom*1.2)));bar.Children.Add(Symbol("\uE71F","缩小",()=>ChangeZoom(zoom/1.2)));
             bar.Children.Add(Symbol("\uE9A6","适应窗口",()=>{fitMode=true;Fit();}));bar.Children.Add(Symbol("\uE740","实际大小 1:1",()=>ChangeZoom(1)));Separator(bar);
             copyImage=Symbol("\uE8C8","复制图片",async()=>await CopyImageAsync());bar.Children.Add(copyImage);
@@ -113,15 +114,22 @@ namespace QingJie {
             captionClose.ToolTip="返回截图继续标注";System.Windows.Automation.AutomationProperties.SetName(captionClose,"返回截图继续标注");
         }
         internal void ExitTextView(){var exit=exitCapture;exitCapture=null;if(exit!=null)exit();if(!closed)Close();}
-        void PinImage(){if(closed||!allowPin||AppState.Pins==null)return;Try(()=>AppState.Pins.New(Displayed));}
+        async void PinImage(){await PinImageAsync();}
+        internal Task PinImageAsync(){
+            if(closed||!allowPin||AppState.Pins==null)return Task.FromResult(false);
+            // Use the same cancellable, atomic path as screenshot/library pins.
+            // A long image must not encode PNG on the viewer's dispatcher.
+            return RunImageOutput(async()=>{await PinOutput(Displayed,cancel.Token);return true;},"已贴到屏幕。","正在贴到屏幕…");
+        }
         async Task CopyImageAsync(){await RunImageOutput(async()=>{await ImageFiles.CopyAsync(Displayed,cancel.Token);return true;},"图片已复制。");}
         async Task SaveImageAsync(){await RunImageOutput(()=>ImageFiles.SaveAsync(Displayed,this,cancel.Token),"图片已保存。");}
-        async Task RunImageOutput(Func<Task<bool>> action,string success){
-            if(closed||outputBusy)return;outputBusy=true;copyImage.IsEnabled=false;saveImage.IsEnabled=false;
+        async Task RunImageOutput(Func<Task<bool>> action,string success,string pending=null){
+            if(closed||outputBusy)return;outputBusy=true;copyImage.IsEnabled=false;saveImage.IsEnabled=false;if(pinImage!=null)pinImage.IsEnabled=false;
+            if(!string.IsNullOrEmpty(pending))Status(pending);
             try{bool done=await action();if(!closed)Status(done?success:"保存已取消，图片已保留。");}
             catch(OperationCanceledException){if(!closed)Status("操作已取消，图片已保留。");}
             catch(Exception error){if(!closed)Status("未完成，图片已保留："+error.Message);}
-            finally{outputBusy=false;if(!closed){copyImage.IsEnabled=true;saveImage.IsEnabled=true;}}
+            finally{outputBusy=false;if(!closed){copyImage.IsEnabled=true;saveImage.IsEnabled=true;if(pinImage!=null)pinImage.IsEnabled=true;}}
         }
         BitmapSource Displayed {get{return showTranslated&&translatedImage!=null?translatedImage:image;}}
         // Segoe MDL2 Assets is Windows' installed UI icon library; no image assets or web runtime.

@@ -30,7 +30,7 @@ namespace Mori {
     }
    });bookmarkMode=true;mediaSection="bookmarks";view=root==""?"home":root;similarId=colorId="";T("Search").Clear();selection.Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;ReloadFolders();Refresh(true);Status((cancel?"已停止":"导入完成")+" · 新增 "+added+" · 已有 "+reused+" · 跳过 "+skipped+"。按原文件夹浏览，浏览器原书签未改变。");
    }catch(Exception error){ReloadFolders();Refresh(true);MessageBox.Show(Window,"已完成的书签会保留，重试不会重复添加。\n"+error.Message,"导入未完成");}
-   finally{busy=false;B("Cancel").Visibility=Visibility.Collapsed;}
+   finally{busy=false;B("Cancel").Visibility=Visibility.Collapsed;UpdateBatchActions();}
   }
  }
 }

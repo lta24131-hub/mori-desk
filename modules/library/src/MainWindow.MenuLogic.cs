@@ -48,19 +48,13 @@ namespace Mori {
    if(browserMode){var browsing=Theme.Menu(Window);browsing.Items.Add(ActionItem("返回收藏",HideBrowser));browsing.Items.Add(ActionItem("设置",ShowDeskSettings));browsing.Items.Add(new Separator());browsing.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(browsing);}
    if(boardMode){var desktop=Theme.Menu(Window);desktop.Items.Add(ActionItem("设置",ShowDeskSettings));desktop.Items.Add(ActionItem("图库高级管理",()=>{HideBoard();Navigate("all");}));desktop.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));desktop.Items.Add(new Separator());desktop.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(desktop);}
    if(referenceMode){var local=Theme.Menu(Window);local.Items.Add(ActionItem("返回素材库",HideReferences));local.Items.Add(ActionItem("设置",ShowDeskSettings));local.Items.Add(new Separator());local.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(local);}
-   var menu=Theme.Menu(Window);AddUndoMenu(menu);menu.Items.Add(ActionItem("收藏网址…",()=>AddBookmark(""),"",!busy));
-   var import=new MenuItem{Header="导入",IsEnabled=!busy};
-   import.Items.Add(ActionItem("素材文件…",ChooseMediaFiles));
-   import.Items.Add(ActionItem("整个文件夹…",delegate{var dir=FolderPicker("导入文件夹 · 原文件保持不动");if(dir!=null)ImportPaths(new[]{dir},null);}));
-   import.Items.Add(ActionItem("浏览器书签…",ShowBookmarkImport));
-   import.Items.Add(ActionItem("Eagle 图库…",Migrate));menu.Items.Add(import);
+   var menu=Theme.Menu(Window);AddUndoMenu(menu);
    var manage=new MenuItem{Header="图库管理",IsEnabled=!busy};
    manage.Items.Add(ActionItem("打开图库文件夹",delegate{Process.Start("explorer.exe",library.Root);}));
    manage.Items.Add(ActionItem("查看存储说明",delegate{MessageBox.Show(Window,library.Root+"\n\n原图：普通文件，按月份存放。\n分类、标签和备注：.mori\\library.db\n\n更改位置请用“设置 → 默认保存位置”整体迁移。","图库存储");}));
    manage.Items.Add(new Separator());manage.Items.Add(ActionItem("备份整个图库…",Backup));manage.Items.Add(ActionItem("从备份恢复到新文件夹…",Restore));
+   manage.Items.Add(ActionItem("从 Eagle 图库迁移…",Migrate));
    manage.Items.Add(new Separator());manage.Items.Add(ActionItem("选择 / 创建另一个图库…",SwitchLibrary));menu.Items.Add(manage);
-   var display=new MenuItem{Header="显示"};var viewMenu=CreateGalleryMenu();
-   while(viewMenu.Items.Count>0){var entry=viewMenu.Items[0];viewMenu.Items.RemoveAt(0);display.Items.Add(entry);}menu.Items.Add(display);
    menu.Items.Add(new Separator());menu.Items.Add(ActionItem("浏览器收藏插件…",ShowBrowserExtension));
    menu.Items.Add(ActionItem("操作说明",delegate{MessageBox.Show(Window,"全部素材汇总图片（含动图 / SVG / PSD / PDF 兼容 AI）、视频和音频；也可分别浏览。\n网址、文档单独显示，不混入全部素材。\n现有素材分类、星标和回收站仍包含所有本地类型，可筛选；网址文件夹独立管理。\n音视频双击播放，可调节音量和拖动进度；视频 F11 全屏，Esc 先退出全屏。\nPDF 可翻页，Office 文件仅预览文字内容，不保留原版式。\n\nCtrl+F：搜索当前页面    Ctrl+O：导入\nCtrl+C：复制素材 / 网址    Ctrl+V：粘贴收藏\nSpace：预览 / 打开    Esc：取消选择\nCtrl+Z：撤销可恢复操作    F5：刷新\n\n删除分类保留内容；移到回收站可以恢复；永久删除会确认。\n搜索支持名称、标签、备注；相似图片不是 AI 语义搜索。","Nook · 操作说明");}));
    menu.Items.Add(new Separator());menu.Items.Add(ActionItem("退出 Nook",ExitApplication,"",!busy));return WithQuickConversionCancel(menu);

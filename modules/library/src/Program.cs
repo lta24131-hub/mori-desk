@@ -87,6 +87,7 @@ namespace Mori {
  public static class Program {
   [STAThread] public static int Main(string[] args) {
    if(args.Length>0&&args[0]=="--svg-render")return SvgRaster.Worker(args);
+   if(args.Length>0&&args[0]=="--pdf-render-worker")return PdfRenderWorker.Run(args);
    if(args.Length>0&&args[0]=="--video-thumbnail")return VideoThumbnail.Worker(args);
    if(args.Length>1&&args[0]=="--video-self-test")return Tests.Media(args[1]);
    if(args.Length>0&&args[0]=="--self-test")return Tests.Run(args.Length>1?args[1]:Path.Combine(Path.GetTempPath(),"Mori-tests-"+Guid.NewGuid().ToString("N")));

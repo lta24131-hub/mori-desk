@@ -55,7 +55,7 @@ namespace Mori {
     bool shown=true;try{HideBoard();HideReferences();RevealImported(new[]{result.Item.Id},folder);Refresh(true);}catch(Exception refreshError){shown=false;DesktopDropLog.Write(library.Root,"refresh-failed",null,refreshError);}
     DesktopDropNotice(!shown?"图片已保存，但列表刷新失败，请手动刷新。":result.KeptCopy?"已另存一份图片":result.Duplicate?"已使用图库中的已有图片":"图片已收藏到素材库 · 已保存独立副本");
    }catch(Exception ex){DesktopDropLog.Write(library.Root,phase+"-failed",null,ex);DesktopDropNotice("图片未收藏："+(ex is OperationCanceledException?"下载超时，请复制图片后在 Nook 粘贴。":ex.Message),true);}
-   finally{DesktopImageDrop.Cleanup(file);busy=false;}
+   finally{DesktopImageDrop.Cleanup(file);busy=false;UpdateBatchActions();}
   }
  }
 }

@@ -7,6 +7,7 @@ namespace Mori {
  public partial class MainWindow {
   bool waterfallLayout,showAssetNames=true,showAssetDetails=true;
   void InitializeGalleryView(Settings settings){
+   InitializeGalleryNavigation();
    waterfallLayout=settings.WaterfallLayout;showAssetNames=settings.ShowAssetNames;showAssetDetails=settings.ShowAssetDetails;
    sidebars.SetVisible(true,settings.LeftSidebarVisible);sidebars.SetVisible(false,settings.RightSidebarVisible);
    B("ToggleInspector").Click+=delegate{ToggleSidebar(false);};UpdateDetailsToggle();
@@ -23,14 +24,15 @@ namespace Mori {
   internal void SetGalleryInformation(bool name,bool details){showAssetNames=name;showAssetDetails=details;BuildRows(true);SaveGalleryView();}
   internal void ApplyBrowsePreferences(Settings settings){
    waterfallLayout=settings.WaterfallLayout;showAssetNames=settings.ShowAssetNames;showAssetDetails=settings.ShowAssetDetails;
+   homeInspectorExplicit=settings.RightSidebarVisible;
    sidebars.SetVisible(true,settings.LeftSidebarVisible);sidebars.SetVisible(false,settings.RightSidebarVisible);
    sidebars.SetPreferred(true,settings.LeftSidebarWidth);sidebars.SetPreferred(false,settings.RightSidebarWidth);
    UpdateDetailsToggle();
    Find<Slider>("ThumbnailSize").Value=settings.ThumbnailSize;Find<ComboBox>("Sort").SelectedIndex=settings.DefaultSort;
    Refresh(false);BuildRows(true);if(canvasProjectsMode)ApplyCanvasProjectsPresentation();
   }
-  void UpdateDetailsToggle(){var button=B("ToggleInspector");bool visible=sidebars.RightVisible;string label=visible?"收起详情栏":"显示详情栏";button.Content=visible?"\uE89F":"\uE8A0";button.ToolTip=label+" · Ctrl+Alt+2";System.Windows.Automation.AutomationProperties.SetName(button,label);}
-  internal void ToggleSidebar(bool left){sidebars.SetVisible(left,left?!sidebars.LeftVisible:!sidebars.RightVisible);UpdateDetailsToggle();SaveGalleryView();QueueLayout();}
+  void UpdateDetailsToggle(){var button=B("ToggleInspector");bool visible=sidebars.RightDisplayed;string label=visible?"收起详情栏":"显示详情栏";button.Content=visible?"\uE89F":"\uE8A0";button.ToolTip=label+" · Ctrl+Alt+2";System.Windows.Automation.AutomationProperties.SetName(button,label);}
+  internal void ToggleSidebar(bool left){if(left)sidebars.SetVisible(true,!sidebars.LeftVisible);else{bool show=!sidebars.RightDisplayed;homeInspectorExplicit=show;sidebars.SetTemporaryRightHidden(false);sidebars.SetVisible(false,show);}UpdateHomeInspector();UpdateHomeNavigation();UpdateDetailsToggle();SaveGalleryView();QueueLayout();}
   internal void RefreshGallery(){
    if(canvasProjectsMode){RefreshCanvasProjects();ApplyCanvasProjectsPresentation();return;}
    if(busy){Status("正在处理素材，请完成后再刷新。");return;}
@@ -49,7 +51,7 @@ namespace Mori {
    info.Items.Add(ViewChoice("尺寸 / 格式","",showAssetDetails,delegate{SetGalleryInformation(showAssetNames,!showAssetDetails);}));if(!bookmarkMode)menu.Items.Add(info);menu.Items.Add(new Separator());
    if(!bookmarkMode){menu.Items.Add(ViewChoice("瀑布布局","Alt+1",waterfallLayout,delegate{SetGalleryLayout(true);}));menu.Items.Add(ViewChoice("自适应布局","Alt+2",!waterfallLayout,delegate{SetGalleryLayout(false);}));menu.Items.Add(new Separator());}
    menu.Items.Add(ViewChoice("显示左栏","Ctrl+Alt+1",sidebars.LeftVisible,delegate{ToggleSidebar(true);}));
-   menu.Items.Add(ViewChoice("显示右栏","Ctrl+Alt+2",sidebars.RightVisible,delegate{ToggleSidebar(false);}));menu.Items.Add(new Separator());
+   menu.Items.Add(ViewChoice("显示右栏","Ctrl+Alt+2",sidebars.RightDisplayed,delegate{ToggleSidebar(false);}));menu.Items.Add(new Separator());
    var refresh=new MenuItem{Header="刷新",InputGestureText="F5",IsEnabled=!busy};refresh.Click+=delegate{RefreshGallery();};menu.Items.Add(refresh);
    return menu;
   }

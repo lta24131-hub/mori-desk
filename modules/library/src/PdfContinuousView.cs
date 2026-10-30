@@ -76,6 +76,24 @@ namespace Mori {
   PdfTextSession textSession;CancellationTokenSource openingText,extracting;string sourcePath,selectedText="";bool selectText,textPumping,textRefreshPending;int extractingPage=-1,selectedPage=-1;
   bool closed,pumping,arranging,refreshPending;int[] wanted=new int[0];int renderingPage=-1,renderingDimension,currentPage;
   double zoom=1,lastViewportWidth;string idleNotice;
+  bool fitPage;
+  int[] thumbnailPages=new int[0];
+  readonly Dictionary<int,BitmapSource> thumbnails=new Dictionary<int,BitmapSource>();
+  readonly HashSet<int> thumbnailFailures=new HashSet<int>();
+  internal event Action ThumbnailChanged;
+  internal event Action ZoomChanged;
+  internal int ThumbnailCount {get{return thumbnails.Count;}}
+  internal BitmapSource Thumbnail(int page){BitmapSource value;return thumbnails.TryGetValue(page,out value)?value:null;}
+  internal void SetThumbnailPages(int[] pages){
+   if(closed)return;var next=pages.Where(p=>p>=0&&p<PageCount).Distinct().Take(12).ToArray();if(thumbnailPages.SequenceEqual(next))return;
+   thumbnailPages=next;foreach(int p in thumbnails.Keys.ToArray())if(!next.Contains(p))thumbnails.Remove(p);thumbnailFailures.IntersectWith(next);
+   refreshPending=true;settle.Stop();settle.Start();
+  }
+  // Windows.Data.Pdf already reports page dimensions in 96-DPI DIPs.
+  internal double DisplayZoom {get{return sizes==null||layout==null?1:layout.Widths[currentPage]/sizes[currentPage].Width;}}
+  internal void SetDisplayZoom(double value){if(sizes==null||layout==null)return;SetZoom(zoom*value/DisplayZoom);}
+  internal void FitWidth(){fitPage=false;SetZoom(1);}
+  internal void FitPage(){fitPage=true;ArrangePages(true);RefreshViewport();}
   internal event Action<int,int> PageChanged;
   internal event Action<string> StatusChanged;
   internal event Action<string> SelectionChanged;
@@ -99,7 +117,7 @@ namespace Mori {
   internal void EndMiddleDrag(){middlePan.End();}
   internal PdfContinuousView(bool captureMiddleMouse=true){
    SetResourceReference(BackgroundProperty,"Canvas");scroll.Content=canvas;Children.Add(scroll);middlePan=new MiddleDragPan(scroll,captureMiddleMouse);
-   scroll.ScrollChanged+=delegate(object sender,ScrollChangedEventArgs e){if(closed||arranging)return;if(e.ViewportWidthChange!=0&&Math.Abs(scroll.ViewportWidth-lastViewportWidth)>1)ArrangePages(true);RefreshViewport();};
+   scroll.ScrollChanged+=delegate(object sender,ScrollChangedEventArgs e){if(closed||arranging)return;if((e.ViewportWidthChange!=0&&Math.Abs(scroll.ViewportWidth-lastViewportWidth)>1)||(fitPage&&e.ViewportHeightChange!=0))ArrangePages(true);RefreshViewport();};
    settle.Tick+=delegate{settle.Stop();Pump();PumpText();};
    PreviewMouseWheel+=delegate(object sender,MouseWheelEventArgs e){middlePan.End();if((Keyboard.Modifiers&ModifierKeys.Control)==0)return;SetZoom(zoom*(e.Delta>0?1.15:1/1.15));e.Handled=true;};
    // Native ScrollViewer keyboard navigation also changes its offset. End a
@@ -140,18 +158,20 @@ namespace Mori {
    return page.Words.Length==0?"此页没有可选文字层（可能是扫描件或文字轮廓）· 请用截图翻译":"拖动选择本页文字 · Ctrl+C 复制 · 选中后可翻译";
   }
   internal void Move(int delta){if(layout==null)return;GoTo(Math.Max(0,Math.Min(PageCount-1,currentPage+delta)));}
-  internal void GoTo(int page){if(layout==null||page<0||page>=PageCount)return;middlePan.End();scroll.ScrollToVerticalOffset(Math.Max(0,layout.Tops[page]-PdfContinuousLayout.Inset));RefreshViewport();}
-  internal void SetZoom(double value){if(closed)return;double next=Math.Max(.5,Math.Min(4,value));if(Math.Abs(next-zoom)<.001)return;zoom=next;RetryMemoryLimitedText();ArrangePages(true);RefreshViewport();}
+  internal void GoTo(int page){if(layout==null||page<0||page>=PageCount)return;middlePan.End();if(fitPage)ArrangePages(false,page);scroll.ScrollToVerticalOffset(Math.Max(0,layout.Tops[page]-PdfContinuousLayout.Inset));RefreshViewport();}
+  internal void SetZoom(double value){if(closed||double.IsNaN(value)||double.IsInfinity(value))return;fitPage=false;double next=Math.Max(.05,Math.Min(4,value));if(Math.Abs(next-zoom)<.001)return;zoom=next;RetryMemoryLimitedText();ArrangePages(true);RefreshViewport();}
   void RetryMemoryLimitedText(){foreach(int page in memoryLimitedText)textFailures.Remove(page);memoryLimitedText.Clear();}
-  void ArrangePages(bool preserve){
+  void ArrangePages(bool preserve,int fitTarget=-1){
    if(sizes==null||closed)return;middlePan.End();int page=layout==null?0:layout.PageAt(scroll.VerticalOffset);double fraction=layout==null?0:layout.FractionAt(page,scroll.VerticalOffset);
    double horizontal=layout==null?0:(scroll.HorizontalOffset+scroll.ViewportWidth/2)/Math.Max(1,layout.Width);
    double width=scroll.ViewportWidth>1?scroll.ViewportWidth:Math.Max(300,ActualWidth-18);lastViewportWidth=width;
+   int fitted=fitTarget>=0?fitTarget:page;
+   if(fitPage&&sizes.Length>0)zoom=Math.Max(.05,Math.Min(1,(Math.Max(80,scroll.ViewportHeight)-2*PdfContinuousLayout.Inset)/(Math.Max(120,width-2*PdfContinuousLayout.Inset)*sizes[fitted].Height/sizes[fitted].Width)));
    layout=new PdfContinuousLayout(sizes,width,zoom);arranging=true;
    canvas.Width=layout.Width;canvas.Height=layout.Height;
    foreach(var pair in tiles)Place(pair.Key,pair.Value);
    if(preserve){scroll.ScrollToVerticalOffset(layout.OffsetAt(page,fraction));scroll.ScrollToHorizontalOffset(Math.Max(0,horizontal*layout.Width-scroll.ViewportWidth/2));}
-   arranging=false;
+   arranging=false;if(ZoomChanged!=null)ZoomChanged();
   }
   Tile CreateTile(int page){
    var image=new Image{Stretch=Stretch.Fill};RenderOptions.SetBitmapScalingMode(image,BitmapScalingMode.HighQuality);
@@ -186,6 +206,7 @@ namespace Mori {
    cache.TrimPerPage((long)(PdfRasterCache.Budget*.75/Math.Max(3,wanted.Length)));
    foreach(int page in wanted){Tile tile;if(!tiles.TryGetValue(page,out tile)){tile=CreateTile(page);tiles.Add(page,tile);}Place(page,tile);ApplyCached(page,tile);}
    int before=currentPage;currentPage=layout.PageAt(scroll.VerticalOffset+Math.Min(48,scroll.ViewportHeight/4));if(currentPage!=before)RetryMemoryLimitedText();if(PageChanged!=null)PageChanged(currentPage,PageCount);
+   if(currentPage!=before&&ZoomChanged!=null)ZoomChanged();
    int[] textWanted=TextWanted();textCache.Retain(textWanted);foreach(int key in textFailures.Keys.ToArray())if(!textWanted.Contains(key))textFailures.Remove(key);memoryLimitedText.IntersectWith(textWanted);
    foreach(var pair in tiles)if(!textWanted.Contains(pair.Key))pair.Value.Text.SetPage(null,false);
    if(extracting!=null&&(!selectText||!textWanted.Contains(extractingPage)))extracting.Cancel();textRefreshPending=true;
@@ -198,7 +219,16 @@ namespace Mori {
     while(!closed){
      int page=-1,dimension=0;
      foreach(int candidate in wanted.OrderBy(x=>Math.Abs(x-currentPage))){if(failures.ContainsKey(candidate))continue;var stored=cache.Get(candidate);int target=Dimension(candidate);if(stored==null||stored.Dimension<target){page=candidate;dimension=target;break;}}
-     if(page<0){Status(failures.Count==0?TextNotice():"部分页面无法预览，可用默认程序检查原文件。 · "+TextNotice());break;}
+     if(page<0){
+      Status(failures.Count==0?TextNotice():"部分页面无法预览，可用默认程序检查原文件。 · "+TextNotice());
+      // Thumbnails share the already-open worker, after visible full pages.
+      // At most twelve small rasters exist; hidden sidebars request none.
+      int small=-1;foreach(int candidate in thumbnailPages)if(!thumbnails.ContainsKey(candidate)&&!thumbnailFailures.Contains(candidate)){small=candidate;break;}
+      if(small<0)break;
+      try{var result=await session.RenderAsync(small,160,lifetime.Token);if(closed)break;if(thumbnailPages.Contains(small)){thumbnails[small]=result.Bitmap;if(ThumbnailChanged!=null)ThumbnailChanged();}}
+      catch(OperationCanceledException){}catch{if(!closed)thumbnailFailures.Add(small);}
+      if(refreshPending)break;continue;
+     }
      renderingPage=page;renderingDimension=dimension;var pending=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);rendering=pending;
      try{
       var result=await session.RenderAsync(page,dimension,pending.Token);
@@ -240,6 +270,6 @@ namespace Mori {
    }catch(OperationCanceledException){}catch(Exception error){if(!closed&&selectText){foreach(int page in TextWanted())textFailures[page]="文字层无法读取："+PreviewWindow.FailureText(error)+" · 仍可使用截图翻译";Status(TextNotice());}}
    finally{textPumping=false;if(!closed&&selectText&&textRefreshPending){settle.Stop();settle.Start();}}
   }
-  public void Dispose(){if(closed)return;closed=true;middlePan.Dispose();settle.Stop();lifetime.Cancel();if(rendering!=null)rendering.Cancel();if(openingText!=null)openingText.Cancel();if(extracting!=null)extracting.Cancel();foreach(var tile in tiles.Values){tile.Text.SetPage(null,false);tile.Image.Source=null;}tiles.Clear();canvas.Children.Clear();cache.Clear();textCache.Clear();failures.Clear();textFailures.Clear();memoryLimitedText.Clear();selectedText="";if(textSession!=null){textSession.Dispose();textSession=null;}if(session!=null){session.Dispose();session=null;}sizes=null;layout=null;}
+  public void Dispose(){if(closed)return;closed=true;middlePan.Dispose();settle.Stop();lifetime.Cancel();if(rendering!=null)rendering.Cancel();if(openingText!=null)openingText.Cancel();if(extracting!=null)extracting.Cancel();foreach(var tile in tiles.Values){tile.Text.SetPage(null,false);tile.Image.Source=null;}tiles.Clear();canvas.Children.Clear();cache.Clear();thumbnails.Clear();thumbnailFailures.Clear();thumbnailPages=new int[0];textCache.Clear();failures.Clear();textFailures.Clear();memoryLimitedText.Clear();selectedText="";if(textSession!=null){textSession.Dispose();textSession=null;}if(session!=null){session.Dispose();session=null;}sizes=null;layout=null;}
  }
 }

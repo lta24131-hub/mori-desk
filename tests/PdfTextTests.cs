@@ -76,7 +76,7 @@ namespace MoriDesk {
    int ink=0;for(int y=top;y<bottom;y++)for(int x=left;x<right;x++){int at=(y*width+x)*4;if(bytes[at]<160&&bytes[at+1]<160&&bytes[at+2]<160)ink++;}return ink>10;
   }
   internal static void Run(string root,Action<bool,string> check){
-   WorkerDiagnosticsTests.Run(check);Directory.CreateDirectory(root);GeometryAndExtraction(root,check);Selection(check);Cache(check);Lifecycle(root,check);View(root,check);DenseView(root,check);
+   WorkerDiagnosticsTests.Run(check);PdfTextCodecTests.Run(check);Directory.CreateDirectory(root);GeometryAndExtraction(root,check);Selection(check);Cache(check);Lifecycle(root,check);View(root,check);DenseView(root,check);
    check(!AppDomain.CurrentDomain.GetAssemblies().Any(a=>a.GetName().Name.StartsWith("UglyToad.PdfPig",StringComparison.Ordinal)),"PDF text extraction keeps PdfPig assemblies outside the gallery process");
   }
   static void GeometryAndExtraction(string root,Action<bool,string> check){

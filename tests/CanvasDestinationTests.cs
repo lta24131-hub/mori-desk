@@ -71,7 +71,7 @@ namespace MoriDesk {
      File.WriteAllBytes(manifest,intact);check(canvas.SaveForTests(),"restoring only the synthetic conflict fixture permits explicit save without losing current work");canvas.SaveFailureForTests=null;
 
      var pickerFiles=Files(store.Root);foreach(string theme in new[]{"light","dark"}){
-      Theme.Set(theme);var picker=new CanvasDestinationWindow(main.Window,store,null,2);
+      Theme.Set(theme);var picker=new CanvasDestinationWindow(main.Window,store,null,2);CanvasPageTestSupport.Wait(picker.Projects);
       try{
        Render(picker,Path.Combine(root,"canvas-destination-"+theme+".png"),640,520);
        check(!picker.IsVisible&&picker.Result==null&&SameFiles(store.Root,pickerFiles),"constructing/rendering the "+theme+" destination chooser reads project metadata without creating or choosing a canvas");
@@ -81,7 +81,7 @@ namespace MoriDesk {
        check(Within(picker,picker.ProjectName,640,520)&&Within(picker,picker.ConfirmNew,640,520),"new-project name and commit action fit the narrow supported "+theme+" picker");
        picker.ChooseNew();check(picker.Result!=null&&picker.Result.IsNew&&picker.Result.NewName=="明确的新项目"&&SameFiles(store.Root,pickerFiles),"confirming New returns only a named destination decision, never creates project files inside the "+theme+" picker");
       }finally{picker.Close();}
-      var existingPicker=new CanvasDestinationWindow(main.Window,store,null,2);try{existingPicker.Projects.ProjectButtonForTests(first).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));check(existingPicker.Result!=null&&!existingPicker.Result.IsNew&&existingPicker.Result.ProjectId==first&&SameFiles(store.Root,pickerFiles),"existing picker decision uses the clicked exact project ID without adding or opening images in "+theme);}finally{existingPicker.Close();}
+      var existingPicker=new CanvasDestinationWindow(main.Window,store,null,2);try{CanvasPageTestSupport.Wait(existingPicker.Projects);existingPicker.Projects.ProjectButtonForTests(first).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));check(existingPicker.Result!=null&&!existingPicker.Result.IsNew&&existingPicker.Result.ProjectId==first&&SameFiles(store.Root,pickerFiles),"existing picker decision uses the clicked exact project ID without adding or opening images in "+theme);}finally{existingPicker.Close();}
      }
      check(prompts==6,"each real inspector activation requests an explicit destination, including cancel and reopened canvas");
      check(Rows(library)==rows&&SameFiles(originals,sourceBytes)&&SameFiles(Path.Combine(libraryRoot,"原图"),managedBytes)&&times.All(p=>File.GetLastWriteTimeUtc(p.Key)==p.Value)&&File.ReadAllBytes(Path.Combine(Entry.DataRoot,"settings.json")).SequenceEqual(settings),"all destination cases preserve library metadata/categories/preferences, managed files and original source bytes/times");

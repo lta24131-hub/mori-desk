@@ -15,8 +15,8 @@ using Microsoft.Win32;
 using MoriDesk;
 [assembly: AssemblyTitle("Nook Installer")]
 [assembly: AssemblyProduct("Nook Installer")]
-[assembly: AssemblyVersion("0.1.33.0")]
-[assembly: AssemblyFileVersion("0.1.33.0")]
+[assembly: AssemblyVersion("0.1.35.0")]
+[assembly: AssemblyFileVersion("0.1.35.0")]
 namespace MoriDeskInstaller {
  internal sealed class UpdateRequest {
   internal string RequestPath,SessionDirectory,ParentExecutable,ExpectedVersion;
@@ -90,7 +90,7 @@ namespace MoriDeskInstaller {
   static void GuardShortcut(string location){if(File.Exists(location)&&!OwnsShortcut(location))throw new IOException("已有同名快捷方式不属于本软件，未覆盖：\n"+location+"\n请先改名保留该快捷方式，再重新安装。");}
   static void RemoveOwnedLegacyShortcut(string location){if(File.Exists(location)&&OwnsShortcut(location)){try{File.Delete(location);}catch(IOException){}catch(UnauthorizedAccessException){}}}
   static void Shortcut(string location,string exe){PublishShortcut(location,exe,WriteShortcutFile,ShortcutTarget,GuardShortcut);}
-  static void WriteShortcutFile(string location,string exe){object shell=null,link=null;try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));link=((dynamic)shell).CreateShortcut(location);dynamic shortcut=link;shortcut.TargetPath=exe;shortcut.WorkingDirectory=Path.GetDirectoryName(exe);shortcut.Description="Nook · 素材、截图、翻译与看图";shortcut.IconLocation=exe+",0";shortcut.Save();}finally{if(link!=null)Marshal.FinalReleaseComObject(link);if(shell!=null)Marshal.FinalReleaseComObject(shell);}}
+  internal static void WriteShortcutFile(string location,string exe){object shell=null,link=null;try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));link=((dynamic)shell).CreateShortcut(location);dynamic shortcut=link;shortcut.TargetPath=exe;shortcut.WorkingDirectory=Path.GetDirectoryName(exe);shortcut.Description="Nook · 素材、截图、翻译与看图";shortcut.IconLocation=exe+",0";shortcut.Save();}finally{if(link!=null)Marshal.FinalReleaseComObject(link);if(shell!=null)Marshal.FinalReleaseComObject(shell);}ShellTaskbarProperties.SetShortcutAppId(location);}
   // Never let Shell.Save truncate a live entry point. A crash before the final
   // atomic publication leaves the previous complete shortcut available.
   internal static void PublishShortcut(string location,string exe,Action<string,string> write,Func<string,string> read,Action<string> guard){
@@ -274,6 +274,7 @@ namespace MoriDeskInstaller {
   static int Update(string requestFile){
    UpdateRequest request=null;Process parent=null;bool parentExited=false;
    try{
+    InstallerProgress.SetOperation(InstallerOperation.Update,Version);
     InstallerProgress.Report("正在检查更新请求和安装包…");
     MoriDesk.PhysicalUserContext.RequireInstalledContext();
     int currentId,currentSession;using(var current=Process.GetCurrentProcess()){currentId=current.Id;currentSession=current.SessionId;}
@@ -312,14 +313,26 @@ namespace MoriDeskInstaller {
   }
   static int Verify(){try{string temp=Path.Combine(Path.GetTempPath(),"MoriDesk-install-check-"+Guid.NewGuid().ToString("N"));string exe=Extract(temp);var start=VerificationStart(exe,temp);Directory.CreateDirectory(start.EnvironmentVariables["TEMP"]);Directory.CreateDirectory(start.EnvironmentVariables["MORI_DESK_DATA"]);using(var process=Process.Start(start)){process.WaitForExit();return process.ExitCode;}}catch{return 1;}}
   static string pendingMessage,pendingTitle;static MessageBoxIcon pendingIcon;
+  internal const int ManualNeedsExit=3;
   static void QueueInstallerMessage(string text,string title,MessageBoxIcon icon){pendingMessage=text;pendingTitle=title;pendingIcon=icon;}
   static void ShowInstallerMessage(){if(pendingMessage!=null)MessageBox.Show(pendingMessage,pendingTitle,MessageBoxButtons.OK,pendingIcon);}
+  // Each attempt includes progress-window shutdown and lease disposal. Human
+  // waits must remain outside both: browser collections and normal app saves
+  // still need the public launcher while the user prepares to exit Nook.
+  internal static int RunManualInstallation(Func<int> attempt,Func<bool> retryAfterExit){
+   if(attempt==null||retryAfterExit==null)throw new ArgumentNullException();
+   while(true){int result=attempt();if(result!=ManualNeedsExit)return result;if(!retryAfterExit())return 2;}
+  }
+  internal static InstallerOperation ManualOperation(bool hasInstalled,bool repair,bool apply){return !apply?InstallerOperation.VerifyEntrypoints:repair?InstallerOperation.Repair:hasInstalled?InstallerOperation.Update:InstallerOperation.Install;}
+  static bool RetryManualAfterExit(){
+   return MessageBox.Show("Nook 仍在运行，本次尚未替换程序。\n\n请先完成收藏并保存编辑内容，再通过 Nook 菜单或托盘中的“退出 Nook”完全退出（旧版名称为 Mori Desk）。右上角 × 可能只是收进托盘。\n\n退出后点击“重试”继续，无需重新打开安装包；也可以取消，稍后再更新。安装器不会强制结束程序。","Nook · 等待退出",MessageBoxButtons.RetryCancel,MessageBoxIcon.Information)==DialogResult.Retry;
+  }
   static int ConfirmManualInstallation(){
    // Never hold the installation lease while waiting for a human. Otherwise
    // a forgotten confirmation/result dialog blocks browser collections and
    // the public launcher even though no replacement is in progress.
-   if(MessageBox.Show("安装或更新 Nook？\n\n只保留一个正式启动入口。新版确认可以启动后替换当前版本，再清理已核验的旧程序。\n保留素材、分类、贴图、画布、保存位置和设置；不会修改 Windows 默认应用选择。\n请先保存工作并完全退出 Nook。","Nook",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK)return 0;
-   return InstallerProgress.Run(()=>WithReplacementLease(Install));
+   if(MessageBox.Show("准备安装 Nook "+Version+"。\n\n已安装时会自动识别为更新或修复；无需更新且程序完好时只核对启动入口，不另装一套。\n新版确认可以启动后替换当前版本，再清理已核验的旧程序。\n素材、分类、贴图、画布、保存位置和设置均保留，Windows 默认应用选择保持不变。\n如果需要退出正在运行的 Nook，安装器会提示你保存并退出。","Nook · 安装与维护",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK)return 0;
+   return RunManualInstallation(()=>{pendingMessage=pendingTitle=null;return InstallerProgress.Run(()=>WithReplacementLease(Install));},RetryManualAfterExit);
   }
   [STAThread] static int Main(string[] args){Application.EnableVisualStyles();
    try{int result=Dispatch(args,MoriDesk.PhysicalUserContext.RequireInstalledContext,Verify,
@@ -327,15 +340,16 @@ namespace MoriDeskInstaller {
    catch(Exception error){MessageBox.Show("安装未开始。\n"+error.Message,"Nook · 安装未完成",MessageBoxButtons.OK,MessageBoxIcon.Error);return 1;}
   }
   static int Install(){
-   UpdateRequest request=null;
+   UpdateRequest request=null;InstallerOperation operation=InstallerOperation.Install;
    try{
     InstallerProgress.Report("正在检查现有版本和安装包…");
     bool repair;var previous=ExistingApplicationForRepair(out repair);string digest=PayloadDigest();
     bool apply=ShouldReplace(previous==null?null:new Version(previous.version),new Version(Version+".0"),previous==null?null:previous.payloadSha256,digest,repair);
+    operation=ManualOperation(previous!=null,repair,apply);InstallerProgress.SetOperation(operation,Version);
     TryCleanupAbandonedStages();
     if(!apply){ValidateManualExistingLibrary();RepairPublicEntrypoints();QueueInstallerMessage("当前已是这一版本，启动入口已核对并修复。\n未新建另一套 Nook，也未关闭正在运行的窗口或改动素材和设置。","Nook · 已是当前版本",MessageBoxIcon.Information);return 0;}
     RequireStableLauncher();RequireDiskSpace();
-    if(HasRunningMoriDesk()){QueueInstallerMessage("Mori Desk / Nook 仍在运行，本次尚未安装。\n\n请先完成当前收藏并保存正在编辑的信息，通过“更多 → 退出 Mori Desk”（新版为“退出 Nook”）或托盘菜单完全退出，再重新运行安装包。右上角 × 只会收进托盘。\n\n安装器不会强制结束程序，也不会更改素材、贴图或开机启动设置。","请先退出 Mori Desk / Nook",MessageBoxIcon.Information);return 1;}
+    if(HasRunningMoriDesk())return ManualNeedsExit;
     string candidate=PlannedCandidate();request=ManualRequest(candidate,previous==null?null:InstalledApplicationState.ResolveExecutable(ProgramRoot,previous));
     StageReplacement(request,digest,candidate);UpdateRecord(request,"ready.json","ready","");
     // Back up the configured real data after all existing app processes exit,
@@ -343,8 +357,8 @@ namespace MoriDeskInstaller {
     InstallerProgress.Report("正在备份设置和项目记录…");
     if(CreateManualMetadataBackup(request.SessionDirectory,previous!=null))RequireMetadataBackup(request.SessionDirectory);
     ActivateReplacement(request,candidate,digest,previous,repair);return 0;
-   }catch(Exception ex){if(request!=null)try{UpdateRecord(request,"result.json","error",ex.Message);}catch{}QueueInstallerMessage("更新未完成，素材和设置未删除。\n"+ex.Message,"Nook",MessageBoxIcon.Error);return 1;}
-   finally{InstallerProgress.Report("正在完成安装收尾检查…");TryCleanupAbandonedStages();}
+   }catch(Exception ex){if(request!=null)try{UpdateRecord(request,"result.json","error",ex.Message);}catch{}string action=InstallerProgress.OperationText(operation);QueueInstallerMessage(action+"未完成，素材和设置未删除。\n"+ex.Message,"Nook · "+action+"未完成",MessageBoxIcon.Error);return 1;}
+   finally{InstallerProgress.Report("正在完成收尾检查…");TryCleanupAbandonedStages();}
   }
  }
 }
