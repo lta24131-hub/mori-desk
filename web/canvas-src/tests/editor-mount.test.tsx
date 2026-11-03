@@ -251,20 +251,37 @@ describe('actual mounted SDK', () => {
     await waitFor(() => expect(view.queryByTestId('style-panel.align-left')).toBeNull());
   });
 
-  it('Alt wheel zooms around the cursor while Ctrl/normal wheel only pan and readonly blocks camera input', async () => {
-    const { editor } = await mount();
+  it('ordinary wheel zooms at the cursor, Shift pans horizontally, and zoom limits do not drift', async () => {
+    const { editor, view } = await mount();
     await act(async () => { editor.focus(); editor.setCamera({ x: 0, y: 0, z: 1 }); });
     const point = { x: 350, y: 250 };
     const beforePoint = editor.screenToPage(point);
-    await act(async () => { applyCanvasWheel(editor, new WheelEvent('wheel', { altKey: true, deltaY: -80, clientX: point.x, clientY: point.y, cancelable: true })); });
-    expect(editor.getCamera().z).toBeGreaterThan(1);
+    const wheel = new WheelEvent('wheel', { deltaY: -80, clientX: point.x, clientY: point.y, bubbles: true, cancelable: true });
+    await act(async () => { view.container.querySelector('.tl-canvas')!.dispatchEvent(wheel); });
+    expect(wheel.defaultPrevented).toBe(true);
+    expect(editor.getCamera().z).toBeCloseTo(1.1, 5); // Once, not again in SDK bubbling.
     expect(editor.screenToPage(point).x).toBeCloseTo(beforePoint.x, 5);
     expect(editor.screenToPage(point).y).toBeCloseTo(beforePoint.y, 5);
     const zoomed = editor.getCamera();
-    await act(async () => { applyCanvasWheel(editor, new WheelEvent('wheel', { ctrlKey: true, deltaY: 70, cancelable: true })); });
-    expect(editor.getCamera().z).toBe(zoomed.z); expect(editor.getCamera().y).not.toBe(zoomed.y);
+    await act(async () => { applyCanvasWheel(editor, new WheelEvent('wheel', { shiftKey: true, deltaY: 70, cancelable: true })); });
+    expect(editor.getCamera().z).toBe(zoomed.z); expect(editor.getCamera().x).not.toBe(zoomed.x); expect(editor.getCamera().y).toBe(zoomed.y);
+    for (const modifier of [{}, { altKey: true }, { ctrlKey: true }]) {
+      const before = editor.getCamera().z;
+      const anchor = editor.screenToPage(point);
+      await act(async () => { applyCanvasWheel(editor, new WheelEvent('wheel', { ...modifier, deltaY: 70, clientX: point.x, clientY: point.y, cancelable: true })); });
+      expect(editor.getCamera().z).toBeLessThan(before);
+      expect(editor.screenToPage(point).x).toBeCloseTo(anchor.x, 5);
+      expect(editor.screenToPage(point).y).toBeCloseTo(anchor.y, 5);
+    }
+    const steps = editor.getCameraOptions().zoomSteps;
+    for (const [limit, deltaY] of [[steps[0], 80], [steps[steps.length - 1], -80]]) {
+      await act(async () => { editor.setCamera({ x: 23, y: 45, z: limit }); });
+      const limited = editor.getCamera();
+      await act(async () => { applyCanvasWheel(editor, new WheelEvent('wheel', { deltaY, clientX: point.x, clientY: point.y, cancelable: true })); });
+      expect(editor.getCamera()).toEqual(limited);
+    }
     const panned = editor.getCamera();
-    await act(async () => { editor.updateInstanceState({ isReadonly: true }); applyCanvasWheel(editor, new WheelEvent('wheel', { altKey: true, deltaY: -50, cancelable: true })); });
+    await act(async () => { editor.updateInstanceState({ isReadonly: true }); applyCanvasWheel(editor, new WheelEvent('wheel', { deltaY: 50, cancelable: true })); });
     expect(editor.getCamera()).toEqual(panned);
   });
 

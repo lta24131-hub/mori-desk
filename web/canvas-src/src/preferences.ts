@@ -22,7 +22,7 @@ export function applyCanvasPreferences(editor: Editor, value: CanvasPreferences 
   }
   editor.user.updateUserPreferences({ isSnapMode: preferences.snapMode === true });
   editor.setCameraOptions({
-    wheelBehavior: 'pan',
+    wheelBehavior: 'zoom',
     zoomSpeed: Number.isFinite(preferences.zoomSpeed) ? Math.min(2, Math.max(0.5, preferences.zoomSpeed!)) : 1,
   });
   const dash = ['solid', 'draw', 'dashed', 'dotted'].includes(preferences.defaultDash!) ? preferences.defaultDash! : 'solid';

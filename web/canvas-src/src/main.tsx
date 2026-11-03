@@ -315,7 +315,7 @@ export function NookCanvas() {
   const labels: Record<string, string> = { loading: '正在加载', dirty: '待保存', saving: '正在保存', saved: '已保存', error: '保存失败', preview: '预览 · 不保存到图库' };
   return <main className="nook-canvas" aria-label={name}>
     <Tldraw onMount={onMount} user={user} assetUrls={assetUrls} components={components} overrides={overrides} autoFocus inferDarkMode={false} options={EDITOR_OPTIONS} acceptedImageMimeTypes={SUPPORTED_IMAGE_MIME_TYPES} acceptedVideoMimeTypes={NO_VIDEO_MIME_TYPES} />
-    {empty && <div className="nook-empty" aria-hidden="true"><span>拖入图片，开始整理想法</span><small>中键 / 空格拖动画布 · Alt＋滚轮缩放 · 双击写字</small></div>}
+    {empty && <div className="nook-empty" aria-hidden="true"><span>拖入图片，开始整理想法</span><small>滚轮缩放 · 中键 / 空格拖动画布 · 双击写字</small></div>}
     <div className={`nook-save-state nook-save-state--${saveState}`} role="status">{labels[saveState] || saveState}{saveState === 'error' && <button onClick={() => void bridgeRef.current?.save(undefined, true)}>重试</button>}</div>
     {message && <div className="nook-message" role="alert"><span>{message.text}</span><button aria-label="关闭提示" onClick={() => setMessage(null)}>×</button></div>}
   </main>;

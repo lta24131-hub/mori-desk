@@ -10,24 +10,26 @@ export function applyCanvasWheel(editor: Editor, event: WheelEvent) {
   event.stopImmediatePropagation();
   if (editor.getInstanceState().isReadonly || editor.getIsMenuOpen() || editor.getCameraOptions().isLocked) return true;
 
-  // Ctrl is intentionally not a zoom modifier. Applying the public constrained
-  // camera API also avoids altering SDK inputs.ctrlKey (which is delayed by
-  // 150ms on release and is shared with shape constraints and selection).
+  // Ordinary wheel zooms immediately; Shift keeps horizontal navigation.
+  // Applying the public camera API avoids changing SDK modifier state, which
+  // is also used by drawing constraints and selection.
+  const panHorizontally = event.shiftKey && !event.altKey && !event.ctrlKey;
   const delta = {
-    x: -(event.shiftKey && !event.altKey ? event.deltaY : event.deltaX),
-    y: event.shiftKey && !event.altKey ? 0 : -event.deltaY,
+    x: -(panHorizontally ? event.deltaY : event.deltaX),
     z: -Math.max(-10, Math.min(10, event.deltaY)) / 100,
   };
   const camera = editor.getCamera();
   const options = editor.getCameraOptions();
-  if (event.altKey) {
+  if (!panHorizontally && event.deltaY !== 0) {
     if (!delta.z) return true;
-    const zoom = camera.z + delta.z * options.zoomSpeed * camera.z;
+    const baseZoom = editor.getBaseZoom();
+    const zoom = Math.max(options.zoomSteps[0] * baseZoom, Math.min(options.zoomSteps[options.zoomSteps.length - 1] * baseZoom, camera.z + delta.z * options.zoomSpeed * camera.z));
+    if (zoom === camera.z) return true;
     const bounds = editor.getViewportScreenBounds();
     const x = event.clientX - bounds.x, y = event.clientY - bounds.y;
     editor.setCamera({ x: camera.x + x / zoom - x / camera.z, y: camera.y + y / zoom - y / camera.z, z: zoom }, { immediate: true });
   } else {
-    editor.setCamera({ x: camera.x + delta.x * options.panSpeed / camera.z, y: camera.y + delta.y * options.panSpeed / camera.z, z: camera.z }, { immediate: true });
+    editor.setCamera({ x: camera.x + delta.x * options.panSpeed / camera.z, y: camera.y, z: camera.z }, { immediate: true });
   }
   return true;
 }
