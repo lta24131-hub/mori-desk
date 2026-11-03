@@ -13,6 +13,8 @@ namespace MoriDesk {
     Directory.CreateDirectory(root);var app=Application.Current??new Application();app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
     Action<bool,string> check=(ok,message)=>{checks++;if(!ok)throw new Exception(message);};
     MatureCanvasStoreTests.Run(Path.Combine(root,"store"),check);
+    MatureCanvasImageMetadataTests.Run(Path.Combine(root,"image-metadata"),check);
+    MatureCanvasCloseFailureTests.Run(Path.Combine(root,"close-failure"),check);
     MatureCanvasHostTests.Run(Path.Combine(root,"host"),check);
     MatureCanvasInteractionTests.Run(Path.Combine(root,"interaction"),check);
     CustomizationTests.Run(Path.Combine(root,"customization"),check);

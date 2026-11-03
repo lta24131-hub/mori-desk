@@ -54,6 +54,13 @@ static class CaptureVisualPixelTests {
         LastScanDiagnostic="format=Bgr32; prepare="+result.PrepareMilliseconds+"ms; scan="+result.ScanMilliseconds+"ms; rows="+result.ProcessedRows+"; timedOut="+result.TimedOut+"; converted="+result.PixelFormatConverted+"; readFailed="+result.ReadFailed+"; preparationCompleted="+result.PreparationCompleted+"; regions="+result.Count;
         check(result.PreparationCompleted&&!result.PixelFormatConverted&&!result.ReadFailed&&result.PrepareMilliseconds>=0&&result.ScanMilliseconds>=0&&result.ProcessedRows>=0&&result.ProcessedRows<=47,"visual scan exposes bounded per-result diagnostics without changing the wall-clock budget");
         Console.WriteLine("visual Bgr32 diagnostics: "+LastScanDiagnostic);
+        var expired=CaptureVisualRegions.ReadWithBudget(source,new System.Drawing.Rectangle(0,0,64,48),System.Threading.CancellationToken.None,0);
+        check(expired.TimedOut&&expired.ProcessedRows==0&&expired.Count==0,"expired visual-analysis budget stops before scanning instead of extending capture startup");
+        using(var cancel=new System.Threading.CancellationTokenSource()){
+            cancel.Cancel();bool stopped=false;
+            try{CaptureVisualRegions.ReadWithBudget(source,new System.Drawing.Rectangle(0,0,64,48),cancel.Token,2000);}catch(OperationCanceledException){stopped=true;}
+            check(stopped,"cancelled visual analysis never starts even with a generous geometry-test budget");
+        }
     }
 }
 
@@ -103,10 +110,11 @@ static class CaptureVisualRegionTests {
         }
         var image=new RenderTargetBitmap(640,height,96,96,PixelFormats.Pbgra32);image.Render(drawing);image.Freeze();return image;
     }
+    static CaptureVisualRegions ReadGeometry(BitmapSource image,System.Drawing.Rectangle screen){return CaptureVisualRegions.ReadWithBudget(image,screen,System.Threading.CancellationToken.None,2000);}
     internal static void Run(Action<bool,string> check){
         var bounds=new System.Drawing.Rectangle(-600,-100,600,400);var screen=new Rect(bounds.X,bounds.Y,bounds.Width,bounds.Height);
         foreach(bool dark in new[]{false,true}){
-            var image=Boxes(600,400,dark);var regions=CaptureVisualRegions.Read(image,bounds);var point=new Point(-450,20);var hits=regions.At(point,screen).ToList();
+            var image=Boxes(600,400,dark);var regions=ReadGeometry(image,bounds);var point=new Point(-450,20);var hits=regions.At(point,screen).ToList();
             string scanEvidence="; prepare="+regions.PrepareMilliseconds+"ms, scan="+regions.ScanMilliseconds+"ms, rows="+regions.ProcessedRows+", timedOut="+regions.TimedOut+", converted="+regions.PixelFormatConverted+", failed="+regions.ReadFailed+", regions="+regions.Count;
             check(hits.Any(r=>Near(r,new Rect(-500,-20,180,130),3)),"visible custom card has a candidate without any native child HWND; dark="+dark+scanEvidence);
             check(hits.Any(r=>Near(r,new Rect(-560,-70,520,340),3)),"large custom panel remains an outward selection choice; dark="+dark);
@@ -117,31 +125,31 @@ static class CaptureVisualRegionTests {
             check(choices.Zip(choices.Skip(1),(a,b)=>a.Width*a.Height<=b.Width*b.Height).All(v=>v),"wheel choices expand from smaller card to larger window; dark="+dark);
             var obscuring=new CaptureTarget(new Rect(-460,0,70,70));var foreground=new CaptureTargets(new System.Collections.Generic.List<CaptureTarget>{obscuring,native});
             check(!foreground.At(point,screen,regions).Any(r=>Near(r,new Rect(-500,-20,180,130),3)),"screenshot rectangle cannot snap outside a foreground obscuring window; dark="+dark);
-            var rounded=CaptureVisualRegions.Read(Rounded(dark),bounds);check(rounded.At(new Point(-400,50),screen).Any(r=>Near(r,new Rect(-520,-30,340,230),4)),"low-contrast rounded custom panel retains its full outline; dark="+dark);
+            var rounded=ReadGeometry(Rounded(dark),bounds);check(rounded.At(new Point(-400,50),screen).Any(r=>Near(r,new Rect(-520,-30,340,230),4)),"low-contrast rounded custom panel retains its full outline; dark="+dark);
             foreach(var shape in new[]{new[]{40,12},new[]{48,20},new[]{180,32}}){
-                var roundedButton=CaptureVisualRegions.Read(RoundedButton(shape[0],shape[1],dark),new System.Drawing.Rectangle(0,0,600,400));
+                var roundedButton=ReadGeometry(RoundedButton(shape[0],shape[1],dark),new System.Drawing.Rectangle(0,0,600,400));
                 check(roundedButton.At(new Point(200,80+shape[0]/2),new Rect(0,0,600,400)).Any(r=>Near(r,new Rect(100,80,240,shape[0]),3)),"short/large-radius rounded control retains full bounds: height="+shape[0]+", radius="+shape[1]+", dark="+dark);
             }
         }
-        var rows=CaptureVisualRegions.Read(Rows(6,false),new System.Drawing.Rectangle(0,0,640,400));var rowHits=rows.At(new Point(150,65),new Rect(0,0,640,400)).ToArray();
+        var rows=ReadGeometry(Rows(6,false),new System.Drawing.Rectangle(0,0,640,400));var rowHits=rows.At(new Point(150,65),new Rect(0,0,640,400)).ToArray();
         check(rows.Count<=8&&rowHits.Any(r=>Near(r,new Rect(100,40,300,300),3)),"six-row list retains atomic rows and outer container without 21 cross-row combinations");
         check(rowHits.All(r=>r.Height<=55||Near(r,new Rect(100,40,300,300),3)),"intermediate multi-row prefixes do not clutter list hover choices");
-        var denseWatch=Stopwatch.StartNew();var dense=CaptureVisualRegions.Read(Rows(26,true),new System.Drawing.Rectangle(0,0,640,1000));denseWatch.Stop();
+        var denseWatch=Stopwatch.StartNew();var dense=ReadGeometry(Rows(26,true),new System.Drawing.Rectangle(0,0,640,1000));denseWatch.Stop();
         check(dense.Count<=32,"26-row list stays linear in real regions rather than filling the 256-candidate budget");
         check(dense.At(new Point(480,775),new Rect(0,0,640,1000)).Any(r=>Near(r,new Rect(380,740,220,80),4)),"real card after a dense separator list remains available");
         Console.WriteLine("dense 26-row list plus later card: "+denseWatch.ElapsedMilliseconds+" ms including fixture generation, "+dense.Count+" regions");
-        var blank=new RenderTargetBitmap(600,400,96,96,PixelFormats.Pbgra32);blank.Freeze();check(CaptureVisualRegions.Read(blank,bounds).Count==0,"blank screenshot produces no invented visual rectangle");
-        check(CaptureVisualRegions.Read(null,bounds).Count==0&&CaptureVisualRegions.Read(blank,new System.Drawing.Rectangle()).Count==0,"missing screenshot or monitor keeps native and manual selection available");
+        var blank=new RenderTargetBitmap(600,400,96,96,PixelFormats.Pbgra32);blank.Freeze();check(ReadGeometry(blank,bounds).Count==0,"blank screenshot produces no invented visual rectangle");
+        check(ReadGeometry(null,bounds).Count==0&&ReadGeometry(blank,new System.Drawing.Rectangle()).Count==0,"missing screenshot or monitor keeps native and manual selection available");
         var noise=new byte[600*400*4];new Random(99).NextBytes(noise);for(int i=3;i<noise.Length;i+=4)noise[i]=255;
-        var random=BitmapSource.Create(600,400,96,96,PixelFormats.Bgra32,null,noise,2400);random.Freeze();check(CaptureVisualRegions.Read(random,bounds).Count==0,"photo-like random gradients cannot manufacture full-sided cards");
-        var large=Boxes(3840,2160,true);var watch=Stopwatch.StartNew();var largeRegions=CaptureVisualRegions.Read(large,new System.Drawing.Rectangle(0,0,3840,2160));watch.Stop();
+        var random=BitmapSource.Create(600,400,96,96,PixelFormats.Bgra32,null,noise,2400);random.Freeze();check(ReadGeometry(random,bounds).Count==0,"photo-like random gradients cannot manufacture full-sided cards");
+        var large=Boxes(3840,2160,true);var watch=Stopwatch.StartNew();var largeRegions=ReadGeometry(large,new System.Drawing.Rectangle(0,0,3840,2160));watch.Stop();
         check(largeRegions.Count<=256,"4K screenshot keeps a bounded rectangle-only snapshot");Console.WriteLine("4K visual region read: "+watch.ElapsedMilliseconds+" ms, "+largeRegions.Count+" regions");
-        var thinWatch=Stopwatch.StartNew();var thin=CaptureVisualRegions.Read(Thin4k(),new System.Drawing.Rectangle(2560,-100,3840,2160));thinWatch.Stop();var secondScreen=new Rect(2560,-100,3840,2160);
+        var thinWatch=Stopwatch.StartNew();var thin=ReadGeometry(Thin4k(),new System.Drawing.Rectangle(2560,-100,3840,2160));thinWatch.Stop();var secondScreen=new Rect(2560,-100,3840,2160);
         check(thin.At(new Point(3300,700),secondScreen).Any(r=>Near(r,new Rect(3060,500,720,500),6)),"one-pixel rounded outline survives 4K downsampling on a second monitor");
         check(thin.At(new Point(4600,1400),secondScreen).Any(r=>Near(r,new Rect(4360,1100,800,650),6)),"weak filled border near screen bottom remains selectable on a second monitor");
         check(thin.At(new Point(3300,700),secondScreen).Count()==1,"4K sampling-scale duplicate outlines collapse to one card candidate");
         check(!thin.At(new Point(2560,0),secondScreen).Any(),"rectangles on another monitor cannot appear under unrelated cursor coordinates");
         Console.WriteLine("4K weak/thin region read including fixture generation: "+thinWatch.ElapsedMilliseconds+" ms, "+thin.Count+" regions");
-        var perf=Stopwatch.StartNew();var steady=CaptureVisualRegions.Read(Boxes(600,400,false),bounds);for(int i=0;i<10000;i++)steady.At(new Point(-450,20),screen).ToArray();perf.Stop();Console.WriteLine("visual 10,000 geometry lookups including scan: "+perf.ElapsedMilliseconds+" ms");
+        var perf=Stopwatch.StartNew();var steady=ReadGeometry(Boxes(600,400,false),bounds);for(int i=0;i<10000;i++)steady.At(new Point(-450,20),screen).ToArray();perf.Stop();Console.WriteLine("visual 10,000 geometry lookups including scan: "+perf.ElapsedMilliseconds+" ms");
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -365,28 +365,30 @@ internal static class CaptureOutputLifecycleTests {
         }
     }
     static TextWindow OpenReader(Fixture f){
-        f.Window.PresentTextViewer=viewer=>{};
+        TextWindow opened=null;f.Window.PresentTextViewer=viewer=>opened=viewer;
         var ocr=(Button)LogicalTreeHelper.FindLogicalNode(f.Window,"CaptureOcr");
         ocr.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        return Field<TextWindow>(f.Window,"captureTextViewer");
+        return opened;
     }
     static void ReaderReturn(Action<bool,string> check){
-        using(var f=new Fixture()){
-            var annotation=f.Surface.Marks.Single();var reader=OpenReader(f);
-            check(reader!=null&&!Closed(f.Window)&&f.Window.IsCaptureOverlaySuspended&&f.Surface.Marks.Single()==annotation,"actual OCR toolbar action opens an auxiliary view without destroying annotations");
+        using(var f=new Fixture())using(var other=new Fixture()){
+            AppState.Captures.Add(f.Window);AppState.Captures.Add(other.Window);
+            var reader=OpenReader(f);
+            check(AppState.Captures.Count==0&&Closed(f.Window)&&Closed(other.Window),"opening an OCR result immediately completes every old monitor overlay");
+            check(!Field<bool>(reader,"closed")&&Field<Image>(reader,"picture").Source!=null,"new capture request retains the previous OCR image and result window");
             var back=(Button)LogicalTreeHelper.FindLogicalNode(reader,"ReturnToCapture");
-            check(back!=null&&back.Visibility==Visibility.Visible,"OCR exposes a visible return-to-screenshot action");
-            back.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            check(!Closed(f.Window)&&!f.Window.IsCaptureOverlaySuspended&&f.Surface.Selection==f.Crop&&f.Surface.Marks.Single()==annotation,"return action resumes the exact old selection and editable object");
-            check(f.Window.HandleCaptureKey(Key.Z,ModifierKeys.Control)&&f.Surface.Marks.Count==0,"return from OCR preserves the existing undo history");
+            check(back.Visibility==Visibility.Collapsed&&System.Windows.Automation.AutomationProperties.GetName(Field<Button>(reader,"captionClose"))=="关闭","independent result removes stale return action and restores a normal close button");
+            using(var current=new Fixture()){
+                AppState.Captures.Add(current.Window);reader.ExitTextView();
+                check(Field<bool>(reader,"closed")&&!Closed(current.Window)&&AppState.Captures.Contains(current.Window),"closing the old result cannot cancel a subsequent screenshot");
+                check(!AppState.ReleaseTextViewerCapture()&&!Closed(current.Window),"repeated capture request during active selection keeps the existing capture");
+            }
         }
         using(var f=new Fixture()){
-            var reader=OpenReader(f);reader.ExitTextView();
-            check(Closed(f.Window)&&Field<bool>(reader,"closed")&&f.Surface.Image==null,"one reader Escape ends the entire capture rather than revealing another overlay");
-        }
-        using(var f=new Fixture()){
-            var reader=OpenReader(f);f.Window.Close();
-            check(Field<bool>(reader,"closed")&&Closed(f.Window)&&Field<TextWindow>(f.Window,"captureTextViewer")==null,"closing a source screenshot also closes its OCR view without resurrecting either window");
+            var reader=OpenReader(f);
+            check(reader!=null&&Closed(f.Window)&&f.Surface.Image==null,"OCR output releases the full-screen capture bitmap and input ownership immediately");
+            check(!Field<bool>(reader,"closed")&&Field<Image>(reader,"picture").Source!=null,"the independent reader retains its own complete output image");
+            reader.ExitTextView();check(Field<bool>(reader,"closed"),"one Escape closes the independent OCR result without revealing an old screenshot");
         }
         using(var f=new Fixture()){
             f.Window.PresentTextViewer=unused=>{throw new IOException("synthetic reader launch failed");};

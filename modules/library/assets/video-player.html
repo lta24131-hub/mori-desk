@@ -34,7 +34,7 @@ function captureThumbnail(){
  if(video.requestVideoFrameCallback)callback=video.requestVideoFrameCallback(()=>{callback=null;frame();});
  // Chromium may defer decoding a paused background video after metadata. A
  // short muted play supplies an actual frame; capture pauses immediately.
- // The containing worker still owns the unchanged 12 s deadline.
+ // The containing worker owns a bounded decode deadline after engine startup.
  video.play().then(()=>{if(!complete){thumbnailStatus('decoding');frame();}}).catch(error=>{if(!complete&&error.name!=='AbortError'){cleanup();send('error',{code:0});}});
 }
 window.chrome.webview.addEventListener('message',event=>{const command=event.data;

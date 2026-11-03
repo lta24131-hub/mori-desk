@@ -27,7 +27,7 @@ namespace Mori {
    var nav=new Button{Name="ReferenceNav",Content="本地收藏",ToolTip="电脑文件拖入默认在这里 · 只存位置，不复制文件",Style=B("All").Style};referenceNav=nav;UiIcons.SetGlyph(nav,"\uE8B7");navigation.Children.Insert(2,nav);Window.RegisterName("ReferenceNav",nav);nav.Click+=delegate{ShowReferences();};
    InitializeHomeLayout();
    Window.Loaded+=delegate{deskLoaded=true;if(!deskDeferred)StartDeskServices();Application.Current.ShutdownMode=ShutdownMode.OnMainWindowClose;};
-   Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(e.Cancel)return;if(matureCanvas!=null&&!matureCanvas.PreparedForExit){e.Cancel=true;matureCanvas.SaveAndRun(delegate{exitRequested=true;Window.Close();});return;}if(freeCanvas!=null&&!freeCanvas.PrepareExit()){e.Cancel=true;return;}if(!DeskRuntime.PrepareExit(Window)){e.Cancel=true;return;}CloseFreeCanvasForExit(s,e);if(e.Cancel&&!DeskRuntime.SessionEnding)QingJie.AppState.Quitting=false;};
+   Window.Closing+=delegate(object s,System.ComponentModel.CancelEventArgs e){if(e.Cancel)return;if(matureCanvas!=null&&!matureCanvas.PreparedForExit){e.Cancel=true;matureCanvas.CloseAndRun(delegate{exitRequested=true;Window.Close();});return;}if(freeCanvas!=null&&!freeCanvas.PrepareExit()){e.Cancel=true;return;}if(!DeskRuntime.PrepareExit(Window)){e.Cancel=true;return;}CloseFreeCanvasForExit(s,e);if(e.Cancel&&!DeskRuntime.SessionEnding)QingJie.AppState.Quitting=false;};
    InitializeAppUpdate();
    // Keep the capture lease until pin windows have finished saving on shutdown.
    Application.Current.Exit+=delegate{BrowserConnection.StopLocal();DeskRuntime.Stop();};

@@ -47,9 +47,12 @@ static class ScrollCapturePreviewTests {
         var args = new KeyEventArgs(Keyboard.PrimaryDevice, new TestSource(), Environment.TickCount, Key.Escape) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
         window.RaiseEvent(args); return args;
     }
-    static void Arrange(ScrollCapturePreviewWindow window, double width, double height) {
-        var root = (FrameworkElement)window.Content;
-        root.Measure(new Size(width, height)); root.Arrange(new Rect(0, 0, width, height)); root.UpdateLayout(); Drain(); root.UpdateLayout();
+    static void Arrange(FrameworkElement root, double width, double height) {
+        // Measure an independent visual tree. A never-shown Window is Collapsed;
+        // a ScrollChanged-induced second layout would otherwise measure its
+        // entire subtree at zero, unlike the visible production preview.
+        root.Measure(new Size(width, height)); root.Arrange(new Rect(0, 0, width, height)); root.UpdateLayout(); Drain();
+        root.Measure(new Size(width, height)); root.Arrange(new Rect(0, 0, width, height)); root.UpdateLayout();
     }
     internal static void Run(Action<bool, string> check) {
         var collect = DeskRuntime.CollectImage; var pins = AppState.Pins; var context = SynchronizationContext.Current;
@@ -79,18 +82,19 @@ static class ScrollCapturePreviewTests {
         var image = Image(); var window = new ScrollCapturePreviewWindow(image);
         try {
             var preview = Field<System.Windows.Controls.Image>(window, "preview"); var viewport = Viewport(window);
+            var layoutRoot=(FrameworkElement)window.Content;window.Content=null;
             check(Inert(window) && ReferenceEquals(preview.Source, image) && ReferenceEquals(Field<BitmapSource>(window, "image"), image),
                 "long screenshot preview retains its frozen source without constructing a native or visible window");
             check(Field<TextBlock>(window, "status").Text.Contains("1200 × 3200") && Field<StackPanel>(window, "actions").Children.Count == 2,
                 "unconnected preview exposes dimensions and local output actions without a fake collection or desktop-pin action");
             check(viewport.VerticalScrollBarVisibility == ScrollBarVisibility.Auto && viewport.HorizontalScrollBarVisibility == ScrollBarVisibility.Auto && !viewport.CanContentScroll,
                 "long screenshot viewport supports continuous pixel scrolling with overflow scrollbars rather than truncating the image");
-            Arrange(window, 800, 580);
+            Arrange(layoutRoot, 800, 580);
             check(preview.ActualWidth > 0 && preview.ActualWidth <= viewport.ViewportWidth && viewport.ExtentHeight > viewport.ViewportHeight,
                 "wide long image fits available preview width while its complete height remains vertically scrollable (image=" + preview.ActualWidth + "x" + preview.ActualHeight + ", viewport=" + viewport.ViewportWidth + "x" + viewport.ViewportHeight + ", extent=" + viewport.ExtentWidth + "x" + viewport.ExtentHeight + ")");
             check(Math.Abs(preview.ActualHeight / preview.ActualWidth - (double)image.PixelHeight / image.PixelWidth) < .001,
                 "responsive long screenshot preview preserves image aspect ratio without squeezing document text");
-            double wide = preview.ActualWidth; Arrange(window, 470, 360);
+            double wide = preview.ActualWidth; Arrange(layoutRoot, 470, 360);
             check(preview.ActualWidth > 0 && preview.ActualWidth < wide && preview.ActualWidth <= viewport.ViewportWidth,
                 "narrowing the unshown preview recomputes width instead of keeping a desktop-sized horizontal canvas");
             viewport.ScrollToVerticalOffset(viewport.ExtentHeight); viewport.UpdateLayout(); Drain(); viewport.UpdateLayout();
@@ -104,8 +108,8 @@ static class ScrollCapturePreviewTests {
         } finally { if (!Closed(window)) window.Close(); }
         var small = new ScrollCapturePreviewWindow(Image(100, 1800));
         try {
-            Arrange(small, 800, 580);
-            check(Field<System.Windows.Controls.Image>(small, "preview").ActualWidth <= 100 && Viewport(small).ExtentHeight > Viewport(small).ViewportHeight,
+            var viewport=Viewport(small);var layoutRoot=(FrameworkElement)small.Content;small.Content=null;Arrange(layoutRoot, 800, 580);
+            check(Field<System.Windows.Controls.Image>(small, "preview").ActualWidth <= 100 && viewport.ExtentHeight > viewport.ViewportHeight,
                 "narrow long screenshots are not blurred by upscaling and still keep their full scrollable height");
         } finally { small.Close(); }
         var existing = Application.Current.Windows.Cast<Window>().ToArray(); bool rejected = false;

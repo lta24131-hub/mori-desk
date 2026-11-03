@@ -18,11 +18,20 @@ namespace MoriDesk {
   static T Field<T>(ImageBrowser w,string key){return (T)typeof(ImageBrowser).GetField(key,Hidden).GetValue(w);}
   static object Call(ImageBrowser w,string key,params object[] args){return typeof(ImageBrowser).GetMethod(key,Hidden).Invoke(w,args);}
   static void Pump(int ms){var frame=new DispatcherFrame();var timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(ms)};timer.Tick+=delegate{timer.Stop();frame.Continue=false;};timer.Start();Dispatcher.PushFrame(frame);}
-  static bool Until(Func<bool> predicate){var clock=System.Diagnostics.Stopwatch.StartNew();while(!predicate()&&clock.ElapsedMilliseconds<12000)Pump(20);return predicate();}
+  internal static int WaitBudgetMilliseconds=12000;
+  static bool Until(Func<bool> predicate){var clock=System.Diagnostics.Stopwatch.StartNew();while(!predicate()&&clock.ElapsedMilliseconds<WaitBudgetMilliseconds)Pump(20);return predicate();}
   static bool Ready(ImageBrowser w){return Field<PreviewImage>(w,"image")!=null&&!Field<bool>(w,"loading")&&!Field<bool>(w,"scanning");}
   [System.Runtime.InteropServices.DllImport("dwmapi.dll")]static extern int DwmFlush();
   static void Shot(ImageBrowser w,string name,List<object> shots){w.UpdateLayout();Pump(600);DwmFlush();using(var bmp=new Bitmap((int)w.ActualWidth,(int)w.ActualHeight))using(var g=Graphics.FromImage(bmp))using(var stream=new MemoryStream()){g.CopyFromScreen((int)w.Left,(int)w.Top,0,0,bmp.Size);bmp.Save(stream,ImageFormat.Jpeg);var shot=new{name=name,imageBase64=Convert.ToBase64String(stream.ToArray())};shots.Add(shot);File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,name+".json"),new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(shot));}}
   internal static void Run(string root,Action<bool,string> check){
+   // Reflection-driven actions are outside Application.Run's normal event
+   // dispatch. Always give their async continuations the same WPF context as
+   // real UI actions; a disposed WinForms test host must not capture them.
+   var before=System.Threading.SynchronizationContext.Current;
+   System.Threading.SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+   try{RunCore(root,check);}finally{System.Threading.SynchronizationContext.SetSynchronizationContext(before);}
+  }
+  static void RunCore(string root,Action<bool,string> check){
    Directory.CreateDirectory(root);var shots=new List<object>();string oldTheme=Theme.Current;var main=Application.Current.MainWindow;
    // Synthetic detail target. No personal files or host desktop are accessed.
    for(int i=0;i<14;i++)using(var bmp=new Bitmap(1600,1000))using(var g=Graphics.FromImage(bmp))using(var font=new Font("Arial",36)){
@@ -56,7 +65,7 @@ namespace MoriDesk {
     typeof(Forms.Control).GetMethod("OnMouseDoubleClick",Hidden).Invoke(picture,new object[]{new Forms.MouseEventArgs(Forms.MouseButtons.Left,2,200,200,0)});check(viewport.IsFit,"second double-click restores complete-image fit");
     var slots=(System.Threading.SemaphoreSlim)typeof(PreviewImage).GetField("DecodeSlots",BindingFlags.Static|BindingFlags.NonPublic).GetValue(null);slots.Wait();slots.Wait();
     try{Call(w,"Step",1);Call(w,"Step",1);Call(w,"Step",1);check(Field<PreviewPicture>(w,"picture")==picture&&!picture.IsDisposed&&Field<string>(w,"currentPath").EndsWith("image-06.png"),"rapid navigation preserves the last picture while latest requested target waits");}finally{slots.Release(2);}
-    check(Until(()=>Ready(w))&&w.Title=="image-06.png · Nook","rapid navigation settles on the last requested image");
+    check(Until(()=>Ready(w))&&w.Title=="image-06.png · Nook","rapid navigation settles on the last requested image / "+w.Title+" / "+Field<TextBlock>(w,"label").Text+" / loading="+Field<bool>(w,"loading")+" / scanning="+Field<bool>(w,"scanning"));
     Call(w,"HandleNativeKey",Forms.Keys.Left);check(Until(()=>Ready(w))&&w.Title=="image-05.png · Nook","keyboard navigation still works after rapid cancellation");
     Theme.Set("light");Pump(80);Shot(w,"viewer-light",shots);w.Width=650;Pump(80);Shot(w,"viewer-narrow",shots);
     check(Field<FrameworkElement>(w,"toolbar").ActualHeight<55,"small window retains one compact toolbar row");

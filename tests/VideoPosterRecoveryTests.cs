@@ -31,7 +31,8 @@ namespace Mori {
    using(var input=new MemoryStream(new byte[17]))check(VideoThumbnail.ReadBounded(input,17).Length==17,"video worker reads exact output budget without truncation");
    bool exceeded=false;try{using(var input=new MemoryStream(new byte[18]))VideoThumbnail.ReadBounded(input,17);}catch(InvalidDataException){exceeded=true;}
    check(exceeded,"video worker rejects excess stdout or diagnostic bytes rather than retaining an unbounded stream");
-   check(VideoThumbnail.MaximumOutput==3*1024*1024&&VideoThumbnail.MaximumDiagnostic==64*1024&&VideoThumbnail.MaximumMilliseconds==15000&&VideoThumbnail.MaximumPrivateMemory==256L*1024*1024,"video worker keeps original output, time and private-memory limits, with bounded diagnostics");
+   check(VideoThumbnail.MaximumOutput==3*1024*1024&&VideoThumbnail.MaximumDiagnostic==64*1024&&VideoThumbnail.MaximumMilliseconds==25000&&VideoThumbnail.MaximumPrivateMemory==256L*1024*1024,"video worker bounds the complete attempt to 25 seconds, preserving output and private-memory caps");
+   check(BrowserVideoPoster.StartupMilliseconds==15000&&BrowserVideoPoster.DecodeMilliseconds==8000,"cold engine startup has its own 15-second deadline and media loading/decoding has an 8-second deadline");
    int width,height;byte[] valid=Payload();var image=VideoThumbnail.DecodeOutput(valid,out width,out height);
    check(width==320&&height==240&&image.PixelWidth==16&&image.PixelHeight==8&&image.IsFrozen,"video PNG parser preserves native dimensions and a frozen bounded bitmap");
    check(Rejected(null)&&Rejected(new byte[8])&&Rejected(new byte[VideoThumbnail.MaximumOutput+1]),"video parser rejects absent, truncated and over-budget results");

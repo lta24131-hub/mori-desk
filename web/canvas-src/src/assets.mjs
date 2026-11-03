@@ -23,7 +23,10 @@ export function assetSourceUpdates(payload, capturedScene, getAsset, baseHref) {
     if (savedAsset?.typeName !== 'asset' || savedAsset.type !== 'image' || currentAsset?.type !== 'image') continue;
     const source = savedAsset.props?.src;
     if (typeof source !== 'string' || !source.startsWith('data:') || currentAsset.props?.src !== source) continue;
-    result.push({ id: currentAsset.id, type: 'image', props: { src: candidate.src } });
+    // SDK 2.4.6 updateAssets merges records shallowly, replacing all of props.
+    // Preserve CURRENT metadata (including edits made since this save began),
+    // otherwise updating src alone drops w/h and crashes the mounted editor.
+    result.push({ id: currentAsset.id, type: 'image', props: { ...currentAsset.props, src: candidate.src } });
   }
   return result;
 }

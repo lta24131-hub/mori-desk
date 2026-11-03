@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +28,7 @@ namespace QingJie {
         internal static string TextCacheKey(string text,string target,string provider=null){return "text:"+ProviderCacheKey(provider)+":"+TargetLanguage(target)+":"+SourceLanguage(text)+":"+text;}
         // Image terminology policy is part of the result, not just the provider.
         // Old cached mistranslations must not bypass an updated context policy.
-        const string ImageContextVersion="device-context-v3";
+        const string ImageContextVersion="indexed-regions-v8-softwraps";
         internal static string ImageCacheKey(IList<string> texts,string target,string provider=null){return "image:"+ImageContextVersion+":"+ProviderCacheKey(provider)+":"+TargetLanguage(target)+":"+new JavaScriptSerializer().Serialize(texts);}
         public static async Task<string> Translate(string text,CancellationToken cancel,string targetLanguage="zh",string provider=null) {
             cancel.ThrowIfCancellationRequested();if(string.IsNullOrWhiteSpace(text))throw new InvalidOperationException("请先选择要翻译的文字。");
@@ -43,22 +43,24 @@ namespace QingJie {
             if(text.Count(c=>OcrLanguagePacks.IsScript(c,"tha"))>=2)return "th";
             return "auto";
         }
-        public static string[] ParseImageContext(string text,int count){
-            var matches=Regex.Matches(text,@"\[{1,3}(\d{4})\]{1,3}");
-            if(matches.Count!=count)throw new InvalidOperationException("译文区域对应失败，已保留原图，请重试。");
-            var result=new string[count];
-            for(int i=0;i<count;i++){
-                if(matches[i].Groups[1].Value!=i.ToString("D4"))throw new InvalidOperationException("译文区域顺序异常，已保留原图。");
-                int start=matches[i].Index+matches[i].Length,end=i+1<count?matches[i+1].Index:text.Length;
-                result[i]=text.Substring(start,end-start).Trim();if(string.IsNullOrWhiteSpace(result[i]))throw new InvalidOperationException("译文不完整，已保留原图。");
-            }return result;
-        }
         public static async Task<string[]> TranslateImage(IList<string> texts,CancellationToken cancel,string targetLanguage="zh",string provider=null){
             cancel.ThrowIfCancellationRequested();ValidateImage(texts);
+            TargetLanguage(targetLanguage);
+            if(texts.All(t=>PreserveImageRegion(t,targetLanguage)))return texts.ToArray();
             provider=ResolveProvider(provider);string key=ImageCacheKey(texts,targetLanguage,provider);var saved=cache.Get(key);if(saved!=null)return saved;
-            var result=provider=="offline"?await OfflineTranslation.Translate(texts,targetLanguage,cancel):await TranslateImageCore(texts,cancel,async(text,token)=>(await TranslateMany(new[]{text},token,SourceLanguage(text),targetLanguage,provider))[0],targetLanguage,CreateImageEchoRetry(provider,targetLanguage));
-            if(provider=="offline"&&targetLanguage=="zh")result=DeviceTerms(texts,result);
+            var result=await TranslateImageCore(texts,cancel,(batch,language,token)=>TranslateMany(batch,token,language,targetLanguage,provider),targetLanguage,CreateImageEchoRetry(provider,targetLanguage));
             cancel.ThrowIfCancellationRequested();if(CanCacheImageTranslation(texts,result,targetLanguage))cache.Put(key,result);return result;
+        }
+        internal static bool PreserveImageRegion(string text,string target){
+            // Translating a Chinese-only UI label back into Chinese can corrupt
+            // dates, version punctuation and OCR's uncertain button outlines.
+            // Keep genuine foreign-language content on the normal route.
+            return !text.Any(c=>char.IsLetter(c)&&(target!="zh"||c<'\u3400'||c>'\u9fff'))||
+                Regex.IsMatch(text.Trim(),@"^(?:GitHub|GitLab|OpenAI|ChatGPT|macOS|Windows|Linux|FreeBSD|Discord)(?:\s+\S)?$",RegexOptions.IgnoreCase)||
+                Regex.IsMatch(text.Trim(),@"^[A-Z][a-z]+(?:[A-Z][a-z]+)+$");
+        }
+        static string[] RestoreImageRegions(IList<string> source,IList<string> translated,string target){
+            return translated.Select((text,i)=>PreserveImageRegion(source[i],target)?source[i]:text).ToArray();
         }
         static void ValidateImage(IList<string> texts){
             if(texts==null||texts.Count==0||texts.Count>500||texts.Any(string.IsNullOrWhiteSpace))throw new InvalidOperationException("没有可翻译的文字区域。");
@@ -70,24 +72,84 @@ namespace QingJie {
             if(provider!="tencent"||targetLanguage!="zh")return null;
             return async(text,source,token)=>(await TranslateMany(new[]{text},token,source,targetLanguage,provider))[0];
         }
-        internal static async Task<string[]> TranslateImageCore(IList<string> texts,CancellationToken cancel,Func<string,CancellationToken,Task<string>> translate,string targetLanguage="zh",Func<string,string,CancellationToken,Task<string>> retryUntranslated=null){
+        // Provider arrays preserve region identity. Text, punctuation and literal
+        // bracketed numbers are content, never control markers sent to a translator.
+        internal static async Task<string[]> TranslateImageCore(IList<string> texts,CancellationToken cancel,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,string targetLanguage="zh",Func<string,string,CancellationToken,Task<string>> retryUntranslated=null){
             cancel.ThrowIfCancellationRequested();ValidateImage(texts);TargetLanguage(targetLanguage);
-            var blocks=new List<Tuple<string,int>>();
-            for(int offset=0;offset<texts.Count;){var block=new StringBuilder();int count=0;string language=SourceLanguage(texts[offset]);
-                while(offset<texts.Count&&SourceLanguage(texts[offset])==language&&(count==0||block.Length+texts[offset].Length+20<9500)){block.Append("[[[").Append(count.ToString("D4")).Append("]]]\n").Append(texts[offset++]).Append("\n\n");count++;}
-                // Keep neighbouring headings and descriptions together. Isolated words
-                // like Fold otherwise lose context, e.g. become the poker term.
-                blocks.Add(Tuple.Create(block.ToString(),count));
+            // Links are literal data. Keep them locally rather than trusting a
+            // provider to preserve placeholder markers or URL spelling. Only
+            // prose segments go through the same indexed, bounded batching.
+            var pieces=new List<string>();var joins=new List<int[]>();var literal=new HashSet<int>();
+            foreach(string source in texts){
+                var indices=new List<int>();int end=0;
+                foreach(Match match in Regex.Matches(source,@"(?i:https?://|www\.)[^\s<>\[\]()""]+(?:\r?\n[^\s<>\[\]()""]*/[^\s<>\[\]()""]*)?|(?<![\p{L}\p{N}_])(?:GitHub|GitLab|OpenAI|ChatGPT|Discord|macOS|FreeBSD|[A-Z][a-z]+(?:[A-Z][a-z]+)+)(?![\p{L}\p{N}_])",RegexOptions.CultureInvariant)){
+                    if(match.Index>end){indices.Add(pieces.Count);pieces.Add(source.Substring(end,match.Index-end));}
+                    indices.Add(pieces.Count);literal.Add(pieces.Count);pieces.Add(match.Value);end=match.Index+match.Length;
+                }
+                if(end<source.Length){indices.Add(pieces.Count);pieces.Add(source.Substring(end));}
+                joins.Add(indices.ToArray());
             }
-            // Preserve each context block verbatim, but do not wait for one
-            // language to finish before requesting the next. At most two in flight.
+            if(literal.Count>0){
+                var result=pieces.ToArray();var prose=Enumerable.Range(0,pieces.Count).Where(i=>!literal.Contains(i)&&!string.IsNullOrWhiteSpace(pieces[i])).ToArray();
+                // 500 is the public region limit; splitting links may produce
+                // more segments, so process bounded groups without truncation.
+                for(int start=0;start<prose.Length;start+=500){
+                    var group=prose.Skip(start).Take(500).ToArray();
+                    var values=await TranslateImageCore(group.Select(i=>pieces[i].Trim()).ToArray(),cancel,translate,targetLanguage,retryUntranslated);
+                    for(int j=0;j<group.Length;j++){
+                        string source=pieces[group[j]];
+                        result[group[j]]=source.Substring(0,source.Length-source.TrimStart().Length)+values[j]+source.Substring(source.TrimEnd().Length);
+                    }
+                }
+                cancel.ThrowIfCancellationRequested();return joins.Select(indices=>string.Concat(indices.Select(i=>result[i]))).ToArray();
+            }
+            var translated=texts.ToArray();var batches=new List<int[]>();var current=new List<int>();int length=0;string language=null;
+            for(int i=0;i<texts.Count;i++){
+                if(PreserveImageRegion(texts[i],targetLanguage))continue;
+                string next=SourceLanguage(texts[i]);
+                if(current.Count>0&&(next!=language||current.Count==40||length+texts[i].Length>9500)){
+                    batches.Add(current.ToArray());current.Clear();length=0;
+                }
+                current.Add(i);length+=texts[i].Length;language=next;
+            }
+            if(current.Count>0)batches.Add(current.ToArray());
             using(var stop=CancellationTokenSource.CreateLinkedTokenSource(cancel))using(var slots=new SemaphoreSlim(2,2)){
-                var tasks=blocks.Select(block=>TranslateBlock(block,translate,slots,stop)).ToArray();
-                var results=await Task.WhenAll(tasks);cancel.ThrowIfCancellationRequested();
-                var translated=results.SelectMany(r=>r).ToArray();
-                if(targetLanguage=="zh"&&retryUntranslated!=null)translated=await RetryUntranslatedEnglish(texts,translated,cancel,retryUntranslated);
-                cancel.ThrowIfCancellationRequested();return targetLanguage=="zh"?DeviceTerms(texts,translated):translated;
+                await Task.WhenAll(batches.Select(indices=>TranslateIndexedBatch(texts,translated,indices,translate,slots,stop)));
             }
+            cancel.ThrowIfCancellationRequested();
+            if(targetLanguage=="zh"&&retryUntranslated!=null)translated=await RetryUntranslatedEnglish(texts,translated,cancel,retryUntranslated);
+            cancel.ThrowIfCancellationRequested();return RestoreImageRegions(texts,targetLanguage=="zh"?DeviceTerms(texts,translated):translated,targetLanguage);
+        }
+        static async Task TranslateIndexedBatch(IList<string> sources,string[] destination,int[] indices,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,SemaphoreSlim slots,CancellationTokenSource stop){
+            await slots.WaitAsync(stop.Token);
+            try{
+                var input=indices.Select(i=>ImageProse(sources[i])).ToArray();
+                var output=await translate(input,SourceLanguage(input[0]),stop.Token);stop.Token.ThrowIfCancellationRequested();
+                if(output==null||output.Length!=indices.Length||output.Any(string.IsNullOrWhiteSpace))throw new InvalidOperationException("译文不完整，已保留原图，请重试。");
+                for(int i=0;i<indices.Length;i++)destination[indices[i]]=output[i];
+            }catch{stop.Cancel();throw;}finally{slots.Release();}
+        }
+        internal static string ImageProse(string source){
+            // OCR rows describe screen geometry, not sentence boundaries. Feed
+            // a complete paragraph to the provider; retain genuine list items,
+            // blank paragraphs and code/table rows. Literal URLs have already
+            // been separated locally, and the original OCR text is untouched.
+            var lines=source.Replace("\r\n","\n").Replace('\r','\n').Split('\n');
+            if(lines.Length==1)return source;
+            var result=new StringBuilder(lines[0]);
+            for(int i=1;i<lines.Length;i++){
+                string previous=lines[i-1].TrimEnd(),next=lines[i].TrimStart();
+                bool boundary=previous.Length==0||next.Length==0||
+                    Regex.IsMatch(next,@"^(?:[-*•]\s|\d+[.)]\s|#{1,6}\s|```|\|)")||
+                    Regex.IsMatch(previous,@"^(?:```|\|)");
+                if(boundary){result.Append('\n').Append(lines[i]);continue;}
+                while(result.Length>0&&(result[result.Length-1]==' '||result[result.Length-1]=='\t'))result.Length--;
+                char a=previous[previous.Length-1],b=next[0];
+                bool compact=(a>='\u3400'&&a<='\u9fff'&&b>='\u3400'&&b<='\u9fff')||
+                    (a=='-'&&previous.Length>1&&char.IsLetter(previous[previous.Length-2])&&char.IsLetter(b));
+                if(!compact)result.Append(' ');result.Append(next);
+            }
+            return result.ToString();
         }
         static string EnglishPhraseKey(string text){return Regex.Replace(text.Replace('\u2019','\''),@"\s+"," ").Trim().Trim('.','!','?',':',';').ToLowerInvariant();}
         internal static bool IsUntranslatedEnglishPhrase(string source,string translated){
@@ -126,11 +188,6 @@ namespace QingJie {
             }catch(OperationCanceledException){cancel.ThrowIfCancellationRequested();}
             catch(HttpRequestException){}catch(InvalidOperationException){}
             return previous;
-        }
-        static async Task<string[]> TranslateBlock(Tuple<string,int> block,Func<string,CancellationToken,Task<string>> translate,SemaphoreSlim slots,CancellationTokenSource stop){
-            await slots.WaitAsync(stop.Token);
-            try{return ParseImageContext(await translate(block.Item1,stop.Token),block.Item2);}
-            catch{stop.Cancel();throw;}finally{slots.Release();}
         }
         public static string[] DeviceTerms(IList<string> texts,IList<string> translated){
             string context=string.Join("\n",texts);

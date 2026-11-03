@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -80,16 +80,12 @@ namespace QingJie {
             if(viewer==null)throw new ArgumentNullException("viewer");
             if(!CanEditCapture||captureTextViewer!=null){viewer.Close();return;}
             captureTextViewer=viewer;
-            viewer.AttachCaptureReturn(()=>{if(!closed)Close();});
-            viewer.Closed+=(sender,args)=>{
-                if(captureTextViewer!=viewer)return;
-                captureTextViewer=null;
-                if(closed||AppState.Quitting)return;
-                ResumeCaptureOverlay();FocusCaptureOverlay();
-            };
             SuspendCaptureOverlay();
             try{
                 if(PresentTextViewer!=null)PresentTextViewer(viewer);else ShowCaptureTextViewer(viewer);
+                // The output owns a frozen image now. Completing OCR ends this
+                // screenshot on every monitor; F1 can immediately start anew.
+                DetachCaptureTextViewer();Close();
             }catch{
                 captureTextViewer=null;viewer.Close();
                 if(!closed){ResumeCaptureOverlay();FocusCaptureOverlay();}
@@ -120,6 +116,11 @@ namespace QingJie {
             if(captureTextViewer==null||!captureTextViewer.IsVisible)return false;
             if(captureTextViewer.WindowState==WindowState.Minimized)captureTextViewer.WindowState=WindowState.Normal;
             captureTextViewer.Activate();return true;
+        }
+        internal bool HasCaptureTextViewer {get{return captureTextViewer!=null;}}
+        internal void DetachCaptureTextViewer(){
+            var viewer=captureTextViewer;captureTextViewer=null;
+            if(viewer!=null)viewer.DetachCaptureReturn();
         }
         void DisposeCaptureOutput(){
             outputLifetime.Cancel();outputLifetime.Dispose();

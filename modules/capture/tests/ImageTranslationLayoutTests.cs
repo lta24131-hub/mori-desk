@@ -1,4 +1,4 @@
-#if IMAGE_TRANSLATION_LAYOUT_TESTS
+﻿#if IMAGE_TRANSLATION_LAYOUT_TESTS
 // Standalone off-screen layout tests. Compile with real ImageTranslation.cs
 // only; adapters below expose no OCR, network, settings, AppState or UI entry.
 using System;
@@ -151,13 +151,23 @@ internal static class ImageTranslationLayoutTests {
             Unchanged(source,result.Image,"conflicting boxes");
             var allowed=box;allowed.Inflate(2,2);OutsideUnchanged(source,result.Image,new[]{allowed},"conflicting boxes");
         });
+        Run("Unequal paragraphs with slightly overlapping OCR edges",()=>{
+            var stripe=new Rect(200,99,30,4);
+            var source=Source(320,200,Tuple.Create(stripe,Colors.Black));
+            var regions=new[]{Region(new Rect(20,20,250,100)),Region(new Rect(20,118,250,42))};
+            var result=ImageTranslation.RenderWithStatus(source,regions,new[]{"one","two"});
+            Check(result.UnplacedCount==0,"both unequal-height paragraphs remain readable");
+            var pixels=Pixels(result.Image);bool cleared=true;
+            for(int y=99;y<103;y++)for(int x=200;x<230;x++)for(int c=0;c<3;c++)if(pixels[(y*320+x)*4+c]!=255)cleared=false;
+            Check(cleared,"near-overlap does not leave the preceding paragraph's last source line behind");
+        });
         Run("Padded paint conflict across three-pixel source gap",()=>{
             var source=Source(320,180,Tuple.Create(new Rect(20,20,100,24),Colors.DarkRed),Tuple.Create(new Rect(123,20,100,24),Colors.DarkBlue));
             var regions=new[]{Region(new Rect(20,20,100,24)),Region(new Rect(123,20,100,24))};var text=new[]{"one","two"};
             Check(ImageTranslation.RenderWithStatus(source,new[]{regions[0]},new[]{text[0]}).UnplacedCount==0&&ImageTranslation.RenderWithStatus(source,new[]{regions[1]},new[]{text[1]}).UnplacedCount==0,"both three-pixel-separated labels fit when isolated");
             var result=ImageTranslation.RenderWithStatus(source,regions,text);Common(source,result,"padded paint conflict");
-            Check(result.UnplacedCount==2&&result.Transcript=="one\n\ntwo","overlapping padded paint masks reject both even when original source boxes do not overlap");
-            Unchanged(source,result.Image,"padded paint conflict");
+            Check(result.UnplacedCount==0&&result.Transcript=="one\n\ntwo","three-pixel gap is partitioned so both labels remain visible");
+            Check(!Pixels(source).SequenceEqual(Pixels(result.Image)),"both adjacent labels are actually rendered");
         });
         Run("Merely touching padded paint footprints are not overlap",()=>{
             var source=Source();var regions=new[]{Region(new Rect(20,20,100,24)),Region(new Rect(124,20,100,24))};
@@ -183,14 +193,31 @@ internal static class ImageTranslationLayoutTests {
             for(int y=0;y<height;y++)for(int x=0;x<width;x++){int n=(y*width+x)*4;byte c=(byte)(((x/8+y/8)%2==0)?255:0);pixels[n]=pixels[n+1]=pixels[n+2]=c;pixels[n+3]=255;}
             var source=BitmapSource.Create(width,height,96,96,PixelFormats.Bgra32,null,pixels,width*4);source.Freeze();string text="完整译文仍在，图片不应被纯色覆盖。";
             var result=ImageTranslation.RenderWithStatus(source,new[]{Region(new Rect(20,20,160,36))},new[]{text});Common(source,result,"checkerboard background");
-            Check(result.UnplacedCount==1&&result.Transcript==text,"visibly mixed checkerboard boundary falls back with complete translated text");
-            Unchanged(source,result.Image,"checkerboard background");
+            Check(result.UnplacedCount==0&&result.Transcript==text,"mixed checkerboard background receives a complete readable caption");
+            Check(!Pixels(source).SequenceEqual(Pixels(result.Image)),"mixed-background text is visible rather than silently skipped");
         });
         Run("High-contrast detail crossing source boundary stays untouched",()=>{
             var source=Source(320,180,Tuple.Create(new Rect(85,0,60,180),Colors.Black));string text="请保留穿过文字区域的物体。";
             var result=ImageTranslation.RenderWithStatus(source,new[]{Region(new Rect(20,30,160,32))},new[]{text});Common(source,result,"cross-boundary object");
-            Check(result.UnplacedCount==1&&result.Transcript==text,"high-contrast object across text-box boundary is not flattened into a dominant color");
-            Unchanged(source,result.Image,"cross-boundary object");
+            Check(result.UnplacedCount==0&&result.Transcript==text,"high-contrast background uses an explicit readable overlay");
+            OutsideUnchanged(source,result.Image,new[]{new Rect(18,28,164,36)},"cross-boundary object");
+        });
+        Run("Ordinary wrapped paragraphs use uniform layout and clear their whole area",()=>{
+            var first=new Rect(20,20,180,20);var second=new Rect(20,44,80,20);
+            var region=Region(new Rect(20,20,180,44));region.Lines=2;
+            region.SourceLines.Add(new TranslationSourceLine{Text="long source line",Box=first});
+            region.SourceLines.Add(new TranslationSourceLine{Text="short source",Box=second});
+            // Simulates an original glyph outside an undersized line box but
+            // inside the full detected paragraph. It must not survive repaint.
+            var remnant=new Rect(160,50,10,5);var source=Source(320,180,Tuple.Create(remnant,Colors.Black));
+            string text="这是第一句很长的译文，需要自然换行。\n短句。";
+            var result=ImageTranslation.RenderWithStatus(source,new[]{region},new[]{text});
+            var uniform=ImageTranslation.RenderWithStatus(source,new[]{region},new[]{text.Replace('\n',' ')});
+            Check(result.UnplacedCount==0&&result.Transcript==text,"physical OCR wraps preserve the complete transcript");
+            Check(Pixels(result.Image).SequenceEqual(Pixels(uniform.Image)),"source wraps do not give the short line a different font size or independent paint box");
+            var pixels=Pixels(result.Image);bool clear=true;
+            for(int y=50;y<55;y++)for(int x=160;x<170;x++)for(int c=0;c<3;c++)if(pixels[(y*320+x)*4+c]!=255)clear=false;
+            Check(clear,"ordinary paragraph repaint removes stray source glyphs beyond short line bounds");
         });
         Run("Per-source-line foreground colors",()=>{
             var page=new OcrPage();page.Words.AddRange(new[]{Word("red source",0,20,20,170,22),Word("blue source",1,20,45,170,22)});
@@ -235,7 +262,7 @@ internal static class ImageTranslationLayoutTests {
 
 namespace QingJie {
     public sealed class WordBox{public string Text;public Rect Box;public int Line,TextStart;}
-    public sealed class OcrPage{public string Text;public List<WordBox> Words=new List<WordBox>();}
+    public sealed class OcrPage{public string Text;public List<WordBox> Words=new List<WordBox>();public List<TranslationRegion> TranslationRegions=new List<TranslationRegion>();}
     public static class Ui{public static Brush Ink{get{return Brushes.Black;}}}
     public static class Geometry {
         public static bool IsHangul(char c){return (c>='\uac00'&&c<='\ud7a3')||(c>='\u1100'&&c<='\u11ff')||(c>='\u3130'&&c<='\u318f');}

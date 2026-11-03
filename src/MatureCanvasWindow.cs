@@ -49,6 +49,11 @@ namespace MoriDesk {
   string session=Guid.NewGuid().ToString("N");
   int revision;
   bool ready,loaded,disposed,initializing,transitioning,startingImagesApplied,toolsVisible=true,defaultsPending;
+  string failedScene;
+  bool closing;
+  internal enum FailedCloseChoice { KeepOpen, ExportRecovery, Discard }
+  internal Func<bool,FailedCloseChoice> FailedCloseChoiceForTests {get;set;}
+  internal Func<Task<bool>> ExportRecoveryForTests {get;set;}
   public bool PreparedForExit {get;private set;}
   public bool CanImportImages {get{return ready&&loaded&&!transitioning&&!disposed&&!PreparedForExit;}}
   public string ProjectId {get{return document.Id;}}
@@ -58,6 +63,7 @@ namespace MoriDesk {
   internal MatureCanvasDocument DocumentForTests {get{return document;}}
   internal Action<string> PostForTests {get;set;}
   internal Func<Task> LoadNoticeDelayForTests {get;set;}
+  internal Func<CoreWebView2,Task> BeforeNavigationForTests {get;set;}
   public static bool IsAvailable {get{return File.Exists(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"web","canvas","index.html"));}}
   static JavaScriptSerializer Json(){return new JavaScriptSerializer{MaxJsonLength=128*1024*1024,RecursionLimit=64};}
   static Dictionary<string,object> Map(object value){var map=value as Dictionary<string,object>;if(map==null)throw new InvalidDataException("画布消息格式无效。");return map;}
@@ -127,6 +133,8 @@ namespace MoriDesk {
     var environment=await CoreWebView2Environment.CreateAsync(null,Path.Combine(dataRoot,"canvas-webview-profile"),options);
     if(disposed)return;await web.EnsureCoreWebView2Async(environment);if(disposed)return;
     Configure(web.CoreWebView2);
+    if(BeforeNavigationForTests!=null)await BeforeNavigationForTests(web.CoreWebView2);
+    if(disposed)return;
     // Do not also install a virtual-folder mapping for this host. WebView2
     // resolves mapped hosts before WebResourceRequested, which would turn the
     // dynamic /resource/... URLs into nonexistent files and hide every image.
@@ -234,7 +242,7 @@ namespace MoriDesk {
     }
     if(type=="save"){
      if(requestId==null)throw new InvalidDataException("保存消息缺少编号。");
-     var target=document;await operations.WaitAsync();try{if(disposed||messageSession!=session||!Object.ReferenceEquals(target,document))return;if(!loaded)throw new IOException("画布尚未载入，请稍后保存。");await SaveMessage(payload,requestId,target,messageSession);}finally{operations.Release();}return;
+     var target=document;await operations.WaitAsync();try{if(disposed||messageSession!=session||!Object.ReferenceEquals(target,document))return;if(!loaded)throw new IOException("画布尚未载入，请稍后保存。");Exception saveError=null;try{await SaveMessage(payload,requestId,target,messageSession);failedScene=null;}catch(Exception error){saveError=error;}if(saveError!=null){object failed;failedScene=null;if(payload.TryGetValue("scene",out failed))try{failedScene=await Task.Run(()=>Json().Serialize(failed));}catch{/* Export must never replace the original save error. */}System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(saveError).Throw();}}finally{operations.Release();}return;
     }
     if(type=="error"){string detail=Text(payload,"message")??"画布操作没有完成。";if(!loaded)EngineFailed("画布未载入："+detail+" 原项目完整保留；可以关闭后重新打开。");else Status(detail+" 当前内容仍在窗口中。");TaskCompletionSource<bool> failed;if(requestId!=null&&flushes.TryGetValue(requestId,out failed))failed.TrySetResult(false);TaskCompletionSource<int> imported;if(requestId!=null&&imageImports.TryGetValue(requestId,out imported))imported.TrySetResult(-1);return;}
     if(type=="dirty"){Status("正在编辑 · 自动保存");return;}
@@ -318,7 +326,41 @@ namespace MoriDesk {
   async void DropIntoCanvas(object sender,DragEventArgs e){if(!CanImportImages){e.Handled=true;e.Effects=DragDropEffects.None;return;}string[] paths=null;DesktopImageDrop captured=null;string staged=null;try{if(DesktopImageDrop.CanRead(e.Data))captured=DesktopImageDrop.Capture(e.Data);else paths=CanvasProjectsPage.ImageFiles(e.Data.GetData(DataFormats.FileDrop) as string[]);e.Handled=true;e.Effects=DragDropEffects.Copy;if(captured!=null){staged=await captured.Stage();paths=new[]{staged};}await ImportImagesAsync(paths);}catch(Exception error){Status("图片未能添加："+error.Message);}finally{DesktopImageDrop.Cleanup(staged);}}
   void ThemeChanged(){if(ready)Post("theme",null,new{theme=Theme.Current=="light"?"light":"dark"});}
   public async void SaveAndRun(Action action){if(transitioning||disposed)return;Transition(true);try{if(!ready||!loaded){PreparedForExit=true;action();return;}if(await Flush()){PreparedForExit=true;action();}}catch(Exception error){Status("退出前保存未完成："+error.Message+" 窗口保持打开。");}finally{if(!disposed)PreparedForExit=false;Transition(false);}}
-  void ClosingCanvas(object sender,CancelEventArgs e){if(PreparedForExit||!ready||!loaded||(!firstLoad.Task.IsCompleted&&startingPaths.Length>0))return;e.Cancel=true;if(transitioning){Status("画布正在切换 / 保存，请稍后关闭。");return;}SaveAndRun(Close);}
+  // Closing is deliberately separate from SaveAndRun: delete/project switches
+  // must still require a successful save, while a failed save cannot trap a window.
+  internal async Task<bool> PrepareCloseAsync(){
+   if(disposed||closing||transitioning)return false;closing=true;Transition(true);
+   try{
+    bool saved=false;failedScene=null;
+    try{saved=!ready||!loaded||await Flush();}catch(Exception error){Status("退出前保存未完成："+error.Message);}
+    if(!saved){
+     var choice=FailedCloseChoiceForTests==null?ChooseFailedClose():FailedCloseChoiceForTests(failedScene!=null);
+     if(choice==FailedCloseChoice.KeepOpen)return false;
+     if(choice==FailedCloseChoice.ExportRecovery){try{if(!await ExportRecoveryAsync())return false;}catch(Exception error){Status("恢复副本未导出："+error.Message+" 窗口保持打开。");return false;}}
+    }
+    PreparedForExit=true;return true;
+   }finally{closing=false;if(!PreparedForExit)Transition(false);}
+  }
+  public async void CloseAndRun(Action action){
+   try{if(await PrepareCloseAsync())action();}
+   catch(Exception error){Status("退出未完成："+error.Message+" 窗口保持打开。");}
+   finally{if(!disposed&&PreparedForExit){PreparedForExit=false;Transition(false);}}
+  }
+  FailedCloseChoice ChooseFailedClose(){
+   var result=FailedCloseChoice.KeepOpen;
+   var dialog=new Window{Title="画布尚未保存",Width=460,SizeToContent=SizeToContent.Height,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner,Owner=this,ShowInTaskbar=false};Theme.Attach(dialog,this);
+   var panel=new StackPanel{Margin=new Thickness(20)};
+   panel.Children.Add(new TextBlock{Text="本次修改未能保存。已保存的画布不会被删除。",TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,14)});
+   Action<string,FailedCloseChoice,bool> add=(label,choice,enabled)=>{var button=new Button{Content=label,IsEnabled=enabled,Margin=new Thickness(0,4,0,0),Padding=new Thickness(14,8,14,8),IsCancel=choice==FailedCloseChoice.KeepOpen,IsDefault=choice==FailedCloseChoice.KeepOpen};button.Click+=(s,e)=>{result=choice;dialog.DialogResult=true;};panel.Children.Add(button);};
+   add("返回画布",FailedCloseChoice.KeepOpen,true);add("导出恢复副本并关闭…",FailedCloseChoice.ExportRecovery,failedScene!=null);add("放弃本次修改并关闭",FailedCloseChoice.Discard,true);
+   dialog.Content=panel;dialog.ShowDialog();return result;
+  }
+  async Task<bool> ExportRecoveryAsync(){
+   if(ExportRecoveryForTests!=null)return await ExportRecoveryForTests();if(failedScene==null)return false;
+   var picker=new Microsoft.Win32.SaveFileDialog{Title="导出画布恢复副本",Filter="画布恢复副本 (*.zip)|*.zip",DefaultExt=".zip",FileName="Nook-画布恢复-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".zip",OverwritePrompt=true};if(picker.ShowDialog(this)!=true)return false;
+   string snapshot=failedScene;var target=document;await operations.WaitAsync();try{await Task.Run(()=>{lock(resourceGate){store.ExportRecovery(target,snapshot,picker.FileName);}});}finally{operations.Release();}return true;
+  }
+  async void ClosingCanvas(object sender,CancelEventArgs e){if(PreparedForExit||!ready||!loaded||(!firstLoad.Task.IsCompleted&&startingPaths.Length>0))return;e.Cancel=true;if(transitioning||closing){Status("画布正在切换 / 保存，请稍后关闭。");return;}if(await PrepareCloseAsync())Close();}
   void DisposeCanvas(){disposed=true;ready=false;loaded=false;firstLoad.TrySetResult(false);if(loadCompletion!=null)loadCompletion.TrySetResult(false);Theme.Changed-=ThemeChanged;foreach(var waiter in flushes.Values)waiter.TrySetResult(false);foreach(var waiter in imageImports.Values)waiter.TrySetResult(-1);if(web!=null){web.Dispose();web=null;}}
  }
 }

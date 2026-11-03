@@ -98,7 +98,7 @@ namespace Mori {
    var info=PdfTextWorker.Source(path);if(info.Length!=length||info.LastWriteTimeUtc!=modified)throw new IOException("原文件已发生变化，请重新打开预览后选字。");
    var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--pdf-text-worker \""+path+"\" "+page){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
    using(var process=Process.Start(start)){
-    var reading=Task.Run(delegate{using(var output=new MemoryStream()){var buffer=new byte[16384];int read;while((read=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(output.Length+read>PdfTextWorker.MaximumOutput)throw new InvalidDataException("PDF 文字输出过大。");output.Write(buffer,0,read);}return output.ToArray();}});
+    var reading=WorkerIo.Run(delegate{using(var output=new MemoryStream()){var buffer=new byte[16384];int read;while((read=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(output.Length+read>PdfTextWorker.MaximumOutput)throw new InvalidDataException("PDF 文字输出过大。");output.Write(buffer,0,read);}return output.ToArray();}});
     var watch=Stopwatch.StartNew();var diagnostic=new WorkerFailureDiagnostic("pdf-text");Exception failure=null;
     try{
      while(!process.WaitForExit(40)){

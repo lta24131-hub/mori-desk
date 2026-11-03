@@ -30,6 +30,11 @@ namespace MoriDesk {
   }}
   static void Shot(ImageBrowser w,string name){w.UpdateLayout();Pump(500);using(var bmp=new Bitmap((int)w.ActualWidth,(int)w.ActualHeight))using(var g=Graphics.FromImage(bmp))using(var stream=new MemoryStream()){g.CopyFromScreen((int)w.Left,(int)w.Top,0,0,bmp.Size);bmp.Save(stream,ImageFormat.Jpeg);File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,name+".json"),new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(new{name=name,imageBase64=Convert.ToBase64String(stream.ToArray())}));}}
   internal static void Run(string root,Action<bool,string> check){
+   var previous=SynchronizationContext.Current;
+   SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(Dispatcher.CurrentDispatcher));
+   try{RunCore(root,check);}finally{SynchronizationContext.SetSynchronizationContext(previous);}
+  }
+  static void RunCore(string root,Action<bool,string> check){
    Directory.CreateDirectory(root);string[] paths=Enumerable.Range(0,4).Select(i=>Path.Combine(root,i+".png")).ToArray();Fixture(paths[0],480,360,true);Fixture(paths[1],600,3000,false);Fixture(paths[2],3000,400,false);Fixture(paths[3],1000,1400,false);
    var preferences=new Settings{PreviewBackdrop="dark",AnimateImages=false};var w=new ImageBrowser(paths[0],preferences){Width=900,Height=480,Left=0,Top=0,WindowStartupLocation=WindowStartupLocation.Manual};
    try{

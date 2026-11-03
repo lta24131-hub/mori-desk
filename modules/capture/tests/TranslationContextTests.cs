@@ -1,4 +1,4 @@
-#if TRANSLATION_CONTEXT_TESTS
+﻿#if TRANSLATION_CONTEXT_TESTS
 // Isolated deterministic tests of production Translation.cs and
 // TranslationCache.cs. No application, windows, network, images or models.
 // Run only through tests/run-translation-context.ps1; normal capture builds
@@ -17,7 +17,7 @@ internal static class TranslationContextTests {
     static void Unchanged(string[] source,string[] translated,string message){Check(Terms(source,translated).SequenceEqual(translated),message);}
     static string Response(string[] values){return string.Join("\n\n",values.Select((value,i)=>"[[["+i.ToString("D4")+"]]]\n"+value));}
     static string[] Core(string[] source,string[] translated,Func<string,string,CancellationToken,Task<string>> retry,string target="zh",CancellationToken cancel=default(CancellationToken)){
-        return Translation.TranslateImageCore(source,cancel,(request,token)=>Task.FromResult(Response(translated)),target,retry).GetAwaiter().GetResult();
+        return Translation.TranslateImageCore(source,cancel,(request,language,token)=>Task.FromResult(request.Select(value=>translated[Array.IndexOf(source,value)]).ToArray()),target,retry).GetAwaiter().GetResult();
     }
     static Task<string> Failed(Exception error){var result=new TaskCompletionSource<string>();result.SetException(error);return result.Task;}
     static void RetryTests(){
@@ -30,8 +30,11 @@ internal static class TranslationContextTests {
         var source=new[]{"Choose your path","Please open your camera","This is your frame","Follow","Keep this file"};
         var originalSource=(string[])source.Clone();
         var initial=new[]{source[0],source[1],source[2],source[3],"\u4fdd\u7559\u6b64\u6587\u4ef6"};
-        var result=Core(source,initial,async(text,language,token)=>{lock(gate){calls++;active++;peak=Math.Max(peak,active);languages.Add(language);queries.Add(text);}try{await Task.Delay(20,token);return text==source[0]+"."?"\u9009\u62e9\u4f60\u7684\u8def\u5f84":"\u8bf7\u6253\u5f00\u76f8\u673a";}finally{lock(gate)active--;}});
-        Check(calls==2&&peak==2&&languages.All(language=>language=="en"),"real image-core retry route is capped at two concurrent forced-English requests");
+        // Hold the first request until the second has actually entered. A short
+        // delay can finish before the second request starts on an emulated CPU.
+        var bothEntered=new TaskCompletionSource<bool>();
+        var result=Core(source,initial,async(text,language,token)=>{lock(gate){calls++;active++;peak=Math.Max(peak,active);languages.Add(language);queries.Add(text);if(calls==2)bothEntered.TrySetResult(true);}try{using(token.Register(()=>bothEntered.TrySetCanceled()))await bothEntered.Task;return text==source[0]+"."?"\u9009\u62e9\u4f60\u7684\u8def\u5f84":"\u8bf7\u6253\u5f00\u76f8\u673a";}finally{lock(gate)active--;}});
+        Check(calls==2&&peak==2&&languages.All(language=>language=="en"),"real image-core retry route is capped at two concurrent forced-English requests (calls="+calls+", peak="+peak+")");
         Check(queries.SequenceEqual(new[]{source[0]+".",source[1]+"."}),"only the provider retry payload gains a terminal period for echoed unpunctuated phrases");
         Check(result.SequenceEqual(new[]{"\u9009\u62e9\u4f60\u7684\u8def\u5f84","\u8bf7\u6253\u5f00\u76f8\u673a",source[2],"Follow","\u4fdd\u7559\u6b64\u6587\u4ef6"}),"only bounded failed phrases change; success single labels ordering and excess failures survive");
         Check(initial.SequenceEqual(new[]{source[0],source[1],source[2],source[3],"\u4fdd\u7559\u6b64\u6587\u4ef6"}),"retry never mutates first-pass response storage");
@@ -107,14 +110,14 @@ internal static class TranslationContextTests {
         Unchanged(new[]{"camera framing", "Your shot."},new[]{"相机构图","这是你的机会和你的选择。"},"longer legitimate Chinese sentence is never broadly replaced by shot policy");
         foreach(var intentional in new[]{"你的机会。","你的射门。"})Unchanged(new[]{"camera framing", "Your shot."},new[]{"相机构图",intentional},"potential advertising pun or sports meaning is not silently rewritten: "+intentional);
         foreach(var domain in new[]{"game","games","sport","sports","soccer","football","basketball","hockey","golf","tennis"})Unchanged(new[]{"camera framing",domain,"Your shot."},new[]{"相机构图",domain,"该你了。"},"competing sports or game domain blocks shot-only correction: "+domain);
-        var targetEnglish=Translation.TranslateImageCore(new[]{"camera gimbal Fold next shoot","Follow","Orbit"},CancellationToken.None,(request,token)=>Task.FromResult("[[[0000]]]\ngimbal Fold shot\n\n[[[0001]]]\nFollow\n\n[[[0002]]]\nOrbit"),"en").GetAwaiter().GetResult();
+        var targetEnglish=Translation.TranslateImageCore(new[]{"camera gimbal Fold next shoot","Follow","Orbit"},CancellationToken.None,(request,language,token)=>Task.FromResult(new[]{"gimbal Fold shot","Follow","Orbit"}),"en").GetAwaiter().GetResult();
         Check(targetEnglish.SequenceEqual(new[]{"gimbal Fold shot","Follow","Orbit"}),"English target bypasses all Chinese device corrections in the real core pipeline");
-        var targetChinese=Translation.TranslateImageCore(new[]{"camera Fold next shoot","Follow","Orbit"},CancellationToken.None,(request,token)=>Task.FromResult("[[[0000]]]\n盖牌 下一次射击\n\n[[[0001]]]\n遵循\n\n[[[0002]]]\n轨道"),"zh").GetAwaiter().GetResult();
-        Check(targetChinese.SequenceEqual(new[]{"折叠 下一次拍摄","跟随","环绕"}),"Chinese target applies policy only after complete marker-aligned injected response");
+        var targetChinese=Translation.TranslateImageCore(new[]{"camera Fold next shoot","Follow","Orbit"},CancellationToken.None,(request,language,token)=>Task.FromResult(new[]{"盖牌 下一次射击","遵循","轨道"}),"zh").GetAwaiter().GetResult();
+        Check(targetChinese.SequenceEqual(new[]{"折叠 下一次拍摄","跟随","环绕"}),"Chinese target applies policy only after complete index-aligned injected response");
         var serializer=new JavaScriptSerializer();
         string oldKey="image:device-context-v2:tencent:zh:"+serializer.Serialize(source);
         string newKey=Translation.ImageCacheKey(source,"zh","tencent");
-        Check(newKey.StartsWith("image:device-context-v3:",StringComparison.Ordinal)&&newKey!=oldKey,"image cache identity changes for bounded retry and revised photography policy");
+        Check(newKey.StartsWith("image:indexed-regions-v8-softwraps:",StringComparison.Ordinal)&&newKey!=oldKey,"image cache identity invalidates results from before paragraph soft-wrap normalization");
         var cache=new TranslationCache();cache.Put(oldKey,output);
         Check(cache.Get(newKey)==null,"old wrong cached translation cannot satisfy the new policy key");
         cache.Put(newKey,result);Check(cache.Get(newKey).SequenceEqual(result),"new-policy result remains cacheable");

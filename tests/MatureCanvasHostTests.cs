@@ -270,6 +270,7 @@ namespace MoriDesk {
    }finally{Dispose(failedHost);}
 
    string untouchedData=Path.Combine(root,"close-before-dirty-notification");var untouchedHost=new MatureCanvasWindow(untouchedData);int untouchedFlushes=0;var untouchedReplies=new List<Task>();
+   untouchedHost.FailedCloseChoiceForTests=available=>MatureCanvasWindow.FailedCloseChoice.KeepOpen;
    try{
     untouchedHost.PostForTests=json=>{var output=Obj(Json().DeserializeObject(json));if(output["type"].ToString()!="flush")return;untouchedFlushes++;untouchedReplies.Add(Send(untouchedHost,"error",output["requestId"].ToString(),Map("message","fixture unavailable capture before deferred dirty notification")));};Load(untouchedHost);
     string file=Manifest(untouchedData,untouchedHost.ProjectId);byte[] before=File.ReadAllBytes(file);
@@ -278,6 +279,7 @@ namespace MoriDesk {
    }finally{Dispose(untouchedHost);}
 
    string closeDirtyData=Path.Combine(root,"dirty-close-retry");var closeDirtyHost=new MatureCanvasWindow(closeDirtyData);var dirtyReplies=new List<Task>();bool dirtyFail=true;int dirtyFlushes=0;
+   closeDirtyHost.FailedCloseChoiceForTests=available=>MatureCanvasWindow.FailedCloseChoice.KeepOpen;
    try{
     closeDirtyHost.PostForTests=json=>{var output=Obj(Json().DeserializeObject(json));if(output["type"].ToString()!="flush")return;dirtyFlushes++;dirtyReplies.Add(dirtyFail?Send(closeDirtyHost,"error",output["requestId"].ToString(),Map("message","fixture capture failed")):Send(closeDirtyHost,"save",output["requestId"].ToString(),Map("scene",Scene(closeDirtyHost),"revision",closeDirtyHost.RevisionForTests)));};Load(closeDirtyHost);
     string file=Manifest(closeDirtyData,closeDirtyHost.ProjectId);byte[] before=File.ReadAllBytes(file);Wait(Send(closeDirtyHost,"dirty","userEdit"));

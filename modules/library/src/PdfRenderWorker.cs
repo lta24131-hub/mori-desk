@@ -56,7 +56,7 @@ namespace Mori {
    if(width<1||height<1||width>dimension||height>dimension)throw new InvalidDataException("PDF 预览超出安全尺寸。");
   }
   T Run<T>(Func<T> action,CancellationToken cancellation){
-   if(disposed)throw new ObjectDisposedException("PdfRenderConnection");cancellation.ThrowIfCancellationRequested();var pending=Task.Run(action);var watch=Stopwatch.StartNew();
+   if(disposed)throw new ObjectDisposedException("PdfRenderConnection");cancellation.ThrowIfCancellationRequested();var pending=WorkerIo.Run(action);var watch=Stopwatch.StartNew();
    try{
     while(!pending.Wait(25)){
      cancellation.ThrowIfCancellationRequested();if(process.HasExited){if(!pending.Wait(2000))throw new IOException("PDF 预览进程已退出，请重新打开文档。");break;}

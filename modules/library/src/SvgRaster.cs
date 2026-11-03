@@ -55,7 +55,7 @@ namespace Mori {
     var info=new FileInfo(path);if(!info.Exists||info.Length>MaximumInput)throw new NotSupportedException("SVG 文件过大，内置预览上限为 8 MB。");
     var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--svg-render \""+info.FullName+"\" "+Math.Max(1,Math.Min(2048,longest))){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
     using(var process=Process.Start(start)){
-     var bytes=Task.Run(delegate{using(var data=new MemoryStream()){byte[] buffer=new byte[16384];int n;while((n=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(data.Length+n>20*1024*1024)throw new InvalidDataException("SVG 预览输出过大。");data.Write(buffer,0,n);}return data.ToArray();}});
+     var bytes=WorkerIo.Run(delegate{using(var data=new MemoryStream()){byte[] buffer=new byte[16384];int n;while((n=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(data.Length+n>20*1024*1024)throw new InvalidDataException("SVG 预览输出过大。");data.Write(buffer,0,n);}return data.ToArray();}});
      bool stopped=false;var clock=Stopwatch.StartNew();var diagnostic=new WorkerFailureDiagnostic("svg");Exception failure=null;
      try{
       while(!process.WaitForExit(50)){

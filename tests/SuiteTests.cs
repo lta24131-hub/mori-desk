@@ -6,9 +6,11 @@ using Mori;
 namespace MoriDesk {
  public static class SuiteTests {
   static int checks;
-  static void Check(bool ok,string message){checks++;if(!ok)throw new Exception(message);}
+  static StreamWriter progress;
+  static void Stage(string name){if(progress!=null)progress.WriteLine(DateTime.UtcNow.ToString("O")+" START "+name+" after "+checks+" checks");}
+  static void Check(bool ok,string message){checks++;if(progress!=null)progress.WriteLine((ok?"PASS ":"FAIL ")+checks+" "+message);if(!ok)throw new Exception(message);}
   static void Reject(Action action,string message){bool rejected=false;try{action();}catch{rejected=true;}Check(rejected,message);}
-  public static int Run(){string root=Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\')).FullName,"fixtures",Guid.NewGuid().ToString("N").Substring(0,12));Directory.CreateDirectory(root);string log=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"suite-tests.txt");try{
+  public static int Run(){checks=0;string root=Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory.TrimEnd('\\')).FullName,"fixtures",Guid.NewGuid().ToString("N").Substring(0,12));Directory.CreateDirectory(root);string log=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"suite-tests.txt");progress=new StreamWriter(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"suite-progress.txt"),false,Encoding.UTF8){AutoFlush=true};try{
    string source=Path.Combine(root,"原始文件");Directory.CreateDirectory(source);string a=Path.Combine(source,"装配.step"),b=Path.Combine(source,"图纸'B.stl");File.WriteAllText(a,"REFERENCE FILE CONTENT; NEVER COPY",Encoding.UTF8);File.WriteAllText(b,"solid test\nendsolid test");var time=File.GetLastWriteTimeUtc(a);byte[] bytes=File.ReadAllBytes(a);string library=Path.Combine(root,"library");
    using(var lib=new Library(library)){
     var refs=new ReferenceStore(lib.Db);Check(refs.All().Count==0,"empty store");string f=refs.AddFolder("项目 A"),g=refs.AddFolder("另一个项目");Check(refs.Folders().Count==2,"create folders");Check(refs.Add(new[]{a,b},f)==2,"batch add");Check(refs.Add(new[]{a.ToUpperInvariant()},g)==0,"case-insensitive duplicate");Check(refs.All().All(r=>r.Folder==f),"duplicate doesn't move silently");Check(lib.All().Count==0,"refs aren't library assets");Check(Directory.GetFiles(Path.Combine(library,"原图"),"*",SearchOption.AllDirectories).Length==0,"no copies created");var first=refs.All().First(r=>r.Path==a);Check(first.Exists&&!first.Directory&&first.Kind=="STEP","file metadata");
@@ -20,62 +22,65 @@ namespace MoriDesk {
    }
    Check(Settings.ConfigDir.EndsWith("MoriDesk"),"independent settings");Check(new Settings().LibraryPath.StartsWith(Settings.ConfigDir),"independent library");Check(QingJie.OcrLanguagePacks.Folder.StartsWith(Settings.ConfigDir),"independent languages");Check(QingJie.OfflinePacks.Folder.StartsWith(Settings.ConfigDir),"independent offline packs");Check(StartupRegistration.ValueName=="MoriDesk","independent startup");foreach(string ext in FileRouter.Models)Check(FileRouter.Kind("test"+ext)=="model","route "+ext);foreach(string ext in FileRouter.Pictures)Check(FileRouter.Kind("test"+ext)=="image","route "+ext);Check(FileRouter.Kind("document.pdf")=="preview","built-in PDF route");
    var testApp=System.Windows.Application.Current??new System.Windows.Application();testApp.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
-   IterationTests.Run(root,Check);BrowserLocalBridgeTests.Run(root,Check);BrowserExtensionManagerTests.Run(root,Check);ScreenshotCollectionTests.Run(root,Check);LaunchTests.Run(root,Check);ReferenceTests.Run(root,Check);LibraryConsistencyTests.Run(root,Check);ReferenceThumbnailFreshnessTests.Run(root,Check);MetadataRefreshCacheTests.Run(root,Check);InspectorDraftTests.Run(root,Check);BoardTests.Run(root,Check);ClassicTests.Run(root,Check);LocalCollectionTests.Run(root,Check);OverviewVisibilityTests.Run(root,Check);DesktopDropTests.Run(root,Check);DeskSettingsTests.Run(root,Check);
-   LibraryRestoreTests.Run(root,Check);
-   InitialWindowPlacementTests.Run(Check);
-   InspectorConcurrentMetadataTests.Run(Path.Combine(root,"inspector-concurrent"),Check);
-   ImageWorkRegressionTests.Run(Path.Combine(root,"image-work-regressions"),Check);
-   BrandingTests.Run(Path.Combine(root,"branding"),Check);
-   AppUpdateServiceTests.Run(Path.Combine(root,"app-update-service"),Check);
-   AppUpdatePanelTests.Run(Path.Combine(root,"app-update-panel"),Check);
-   AppUpdateCoordinatorTests.Run(Path.Combine(root,"app-update-coordinator"),Check);
-   InstalledVersionMaintenanceTests.Run(Check);
-   InstalledTaskbarIdentityTests.Run(Path.Combine(root,"installed-taskbar"),Check);
-   ReferenceEagleMetadataTests.Run(Path.Combine(root,"reference-eagle"),Check);
-   ExportNamingTests.Run(Path.Combine(root,"export-naming"),Check);
-   ImageBrowserLifecycleTests.Run(Path.Combine(root,"image-browser-lifecycle"),Check);
-   ImageViewerExperienceTests.Run(Path.Combine(root,"image-viewer-experience"),Check);
-   ImageViewerDetailTests.Run(Path.Combine(root,"image-viewer-details"),Check);
-   GalleryNavigationTests.Run(Path.Combine(root,"gallery-navigation"),Check);
-   HomepageUsabilityTests.Run(root,Check);
-   HomepageRedesignTests.Run(root,Check);
-   OpenWithRegistrationTests.Run(Path.Combine(root,"open-with"),Check);
-   ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
-   EmbeddedThemeTests.Run(Check);
-   CaptureThemeTests.Run(Path.Combine(root,"capture-theme"),Check);
-   BrowseSettingsTests.Run(root,Check);ThumbnailBuildGateTests.Run(root,Check);VideoControlsTests.Run(Check);MissingReferenceTests.Run(root,Check);ScreenColorTests.Run(Check);MediaBadgeTests.Run(Path.Combine(root,"media-badges"),Check);
-   DocumentContentTests.Run(Path.Combine(root,"document-content"),Check);PsdCompositeTests.Run(Path.Combine(root,"psd-composite"),Check);PsdEmbeddedThumbnailTests.Run(Path.Combine(root,"psd-embedded"),Check);PdfPreviewTests.Run(Path.Combine(root,"pdf-preview"),Check);FormatPreviewTests.Run(Path.Combine(root,"format-preview"),Check);PdfContinuousTests.Run(Path.Combine(root,"pdf-continuous"),Check);
-   PreviewBundleTests.Run(Check);ImageCodecTests.Run(Path.Combine(root,"image-codec"),Check);PdfTextTests.Run(Path.Combine(root,"pdf-text"),Check);PdfIsolationTests.Run(Path.Combine(root,"pdf-isolation"),Check);
-   WallpaperTests.Run(Path.Combine(root,"wallpaper"),Check);
-   SimpleBrowserTests.Run(Check);BrowserWorkspaceTests.Run(Path.Combine(root,"browser-workspace"),Check);
-   FreeCanvasTests.Run(Path.Combine(root,"free-canvas"),Check);
-   CanvasProjectMemoryTests.Run(Path.Combine(root,"canvas-memory"),Check);
-   CanvasToolbarTests.Run(Path.Combine(root,"canvas-toolbar"),Check);
-   CanvasProjectsPageTests.Run(Path.Combine(root,"canvas-projects"),Check);
-   CanvasDestinationTests.Run(Path.Combine(root,"canvas-destinations"),Check);
-   CanvasProjectGalleryTests.Run(Path.Combine(root,"canvas-gallery"),Check);
-   CanvasFallbackSafetyTests.Run(Path.Combine(root,"canvas-fallback-safety"),Check);
-   CanvasProjectRefreshTests.Run(Path.Combine(root,"project-refresh"),Check);
-   GeneralPerformanceTests.Run(Path.Combine(root,"general-performance"),Check);
-   ThumbnailThroughputTests.Scheduling(Path.Combine(root,"thumbnail-scheduling"),Check);ThumbnailThroughputTests.Raster(Check);
-   WorkerStartupTests.Run(Path.Combine(root,"worker-startup"),Check);
-   CanvasTextLayoutTests.Run(Path.Combine(root,"canvas-text-layout"),Check);
-   CanvasLineSelectionTests.Run(Path.Combine(root,"canvas-line-selection"),Check);
-   CanvasStyleEditingTests.Run(Path.Combine(root,"canvas-style-editing"),Check);
-   MatureCanvasStoreTests.Run(Path.Combine(root,"mature-canvas-store"),Check);
-   MatureCanvasHostTests.Run(Path.Combine(root,"mature-canvas-host"),Check);
-   MatureCanvasInteractionTests.Run(Path.Combine(root,"mature-canvas-interaction"),Check);
-   AppearanceSettingsTests.Run(Path.Combine(root,"appearance-settings"),Check);
-   CustomizationTests.Run(Path.Combine(root,"customization"),Check);
-   PreviewPreferencesTests.Run(Path.Combine(root,"preview-preferences"),Check);
-   DesktopImagePinTests.Run(Path.Combine(root,"desktop-image-pins"),Check);
-   PreviewClipboardTests.Run(Path.Combine(root,"preview-clipboard"),Check);
-   PinLifecycleTests.Run(Path.Combine(root,"pin-lifecycle"),Check);
-   PinRuntimeTests.Run(Path.Combine(root,"pin-runtime"),Check);
-   PinHistoryIndexTests.Run(Path.Combine(root,"pin-history-index"),Check);
-   TextWindowPinOutputTests.Run(Path.Combine(root,"text-window-pin-output"),Check);
-   MiddleDragPanTests.Run(Check);
+   Stage("IterationTests.Run");IterationTests.Run(root,Check);Stage("BrowserLocalBridgeTests.Run");BrowserLocalBridgeTests.Run(root,Check);Stage("BrowserExtensionManagerTests.Run");BrowserExtensionManagerTests.Run(root,Check);Stage("ScreenshotCollectionTests.Run");ScreenshotCollectionTests.Run(root,Check);Stage("LaunchTests.Run");LaunchTests.Run(root,Check);Stage("ReferenceTests.Run");ReferenceTests.Run(root,Check);Stage("LibraryConsistencyTests.Run");LibraryConsistencyTests.Run(root,Check);Stage("ReferenceThumbnailFreshnessTests.Run");ReferenceThumbnailFreshnessTests.Run(root,Check);Stage("MetadataRefreshCacheTests.Run");MetadataRefreshCacheTests.Run(root,Check);Stage("InspectorDraftTests.Run");InspectorDraftTests.Run(root,Check);Stage("BoardTests.Run");BoardTests.Run(root,Check);Stage("ClassicTests.Run");ClassicTests.Run(root,Check);Stage("LocalCollectionTests.Run");LocalCollectionTests.Run(root,Check);Stage("OverviewVisibilityTests.Run");OverviewVisibilityTests.Run(root,Check);Stage("DesktopDropTests.Run");DesktopDropTests.Run(root,Check);Stage("DeskSettingsTests.Run");DeskSettingsTests.Run(root,Check);
+   Stage("LibraryRestoreTests.Run");LibraryRestoreTests.Run(root,Check);
+   Stage("InitialWindowPlacementTests.Run");InitialWindowPlacementTests.Run(Check);
+   Stage("InspectorConcurrentMetadataTests.Run");InspectorConcurrentMetadataTests.Run(Path.Combine(root,"inspector-concurrent"),Check);
+   Stage("ImageWorkRegressionTests.Run");ImageWorkRegressionTests.Run(Path.Combine(root,"image-work-regressions"),Check);
+   Stage("BrandingTests.Run");BrandingTests.Run(Path.Combine(root,"branding"),Check);
+   Stage("AppUpdateServiceTests.Run");AppUpdateServiceTests.Run(Path.Combine(root,"app-update-service"),Check);
+   Stage("AppUpdatePanelTests.Run");AppUpdatePanelTests.Run(Path.Combine(root,"app-update-panel"),Check);
+   Stage("AppUpdateCoordinatorTests.Run");AppUpdateCoordinatorTests.Run(Path.Combine(root,"app-update-coordinator"),Check);
+   Stage("InstalledVersionMaintenanceTests.Run");InstalledVersionMaintenanceTests.Run(Check);
+   Stage("InstalledTaskbarIdentityTests.Run");InstalledTaskbarIdentityTests.Run(Path.Combine(root,"installed-taskbar"),Check);
+   Stage("ReferenceEagleMetadataTests.Run");ReferenceEagleMetadataTests.Run(Path.Combine(root,"reference-eagle"),Check);
+   Stage("ExportNamingTests.Run");ExportNamingTests.Run(Path.Combine(root,"export-naming"),Check);
+   Stage("ImageBrowserLifecycleTests.Run");ImageBrowserLifecycleTests.Run(Path.Combine(root,"image-browser-lifecycle"),Check);
+   Stage("ImageViewerExperienceTests.Run");ImageViewerExperienceTests.Run(Path.Combine(root,"image-viewer-experience"),Check);
+   Stage("ImageViewerDetailTests.Run");ImageViewerDetailTests.Run(Path.Combine(root,"image-viewer-details"),Check);
+   Stage("GalleryNavigationTests.Run");GalleryNavigationTests.Run(Path.Combine(root,"gallery-navigation"),Check);
+   Stage("HomepageUsabilityTests.Run");HomepageUsabilityTests.Run(root,Check);
+   Stage("HomepageRedesignTests.Run");HomepageRedesignTests.Run(root,Check);
+   Stage("OpenWithRegistrationTests.Run");OpenWithRegistrationTests.Run(Path.Combine(root,"open-with"),Check);
+   Stage("ThemePaletteTests.Run");ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
+   Stage("EmbeddedThemeTests.Run");EmbeddedThemeTests.Run(Check);
+   Stage("CaptureThemeTests.Run");CaptureThemeTests.Run(Path.Combine(root,"capture-theme"),Check);
+   Stage("BrowseSettingsTests.Run");BrowseSettingsTests.Run(root,Check);Stage("ThumbnailBuildGateTests.Run");ThumbnailBuildGateTests.Run(root,Check);Stage("VideoControlsTests.Run");VideoControlsTests.Run(Check);Stage("MissingReferenceTests.Run");MissingReferenceTests.Run(root,Check);Stage("ScreenColorTests.Run");ScreenColorTests.Run(Check);Stage("MediaBadgeTests.Run");MediaBadgeTests.Run(Path.Combine(root,"media-badges"),Check);
+   Stage("DocumentContentTests.Run");DocumentContentTests.Run(Path.Combine(root,"document-content"),Check);Stage("PsdCompositeTests.Run");PsdCompositeTests.Run(Path.Combine(root,"psd-composite"),Check);Stage("PsdEmbeddedThumbnailTests.Run");PsdEmbeddedThumbnailTests.Run(Path.Combine(root,"psd-embedded"),Check);Stage("PdfPreviewTests.Run");PdfPreviewTests.Run(Path.Combine(root,"pdf-preview"),Check);Stage("FormatPreviewTests.Run");FormatPreviewTests.Run(Path.Combine(root,"format-preview"),Check);Stage("PdfContinuousTests.Run");PdfContinuousTests.Run(Path.Combine(root,"pdf-continuous"),Check);
+   Stage("PreviewBundleTests.Run");PreviewBundleTests.Run(Check);Stage("ImageCodecTests.Run");ImageCodecTests.Run(Path.Combine(root,"image-codec"),Check);Stage("PdfTextTests.Run");PdfTextTests.Run(Path.Combine(root,"pdf-text"),Check);Stage("PdfIsolationTests.Run");PdfIsolationTests.Run(Path.Combine(root,"pdf-isolation"),Check);
+   Stage("WallpaperTests.Run");WallpaperTests.Run(Path.Combine(root,"wallpaper"),Check);
+   Stage("SimpleBrowserTests.Run");SimpleBrowserTests.Run(Check);Stage("BrowserWorkspaceTests.Run");BrowserWorkspaceTests.Run(Path.Combine(root,"browser-workspace"),Check);
+   Stage("FreeCanvasTests.Run");FreeCanvasTests.Run(Path.Combine(root,"free-canvas"),Check);
+   Stage("CanvasProjectMemoryTests.Run");CanvasProjectMemoryTests.Run(Path.Combine(root,"canvas-memory"),Check);
+   Stage("CanvasToolbarTests.Run");CanvasToolbarTests.Run(Path.Combine(root,"canvas-toolbar"),Check);
+   Stage("CanvasProjectsPageTests.Run");CanvasProjectsPageTests.Run(Path.Combine(root,"canvas-projects"),Check);
+   Stage("CanvasDestinationTests.Run");CanvasDestinationTests.Run(Path.Combine(root,"canvas-destinations"),Check);
+   Stage("CanvasProjectGalleryTests.Run");CanvasProjectGalleryTests.Run(Path.Combine(root,"canvas-gallery"),Check);
+   Stage("CanvasFallbackSafetyTests.Run");CanvasFallbackSafetyTests.Run(Path.Combine(root,"canvas-fallback-safety"),Check);
+   Stage("CanvasProjectRefreshTests.Run");CanvasProjectRefreshTests.Run(Path.Combine(root,"project-refresh"),Check);
+   Stage("GeneralPerformanceTests.Run");GeneralPerformanceTests.Run(Path.Combine(root,"general-performance"),Check);
+   Stage("ThumbnailThroughputTests.Scheduling");ThumbnailThroughputTests.Scheduling(Path.Combine(root,"thumbnail-scheduling"),Check);Stage("ThumbnailThroughputTests.Raster");ThumbnailThroughputTests.Raster(Check);
+   Stage("WorkerStartupTests.Run");WorkerStartupTests.Run(Path.Combine(root,"worker-startup"),Check);
+   Stage("PreviewWorkerSchedulingTests.Run");PreviewWorkerSchedulingTests.Run(Path.Combine(root,"worker-scheduling"),Check);
+   Stage("CanvasTextLayoutTests.Run");CanvasTextLayoutTests.Run(Path.Combine(root,"canvas-text-layout"),Check);
+   Stage("CanvasLineSelectionTests.Run");CanvasLineSelectionTests.Run(Path.Combine(root,"canvas-line-selection"),Check);
+   Stage("CanvasStyleEditingTests.Run");CanvasStyleEditingTests.Run(Path.Combine(root,"canvas-style-editing"),Check);
+   Stage("MatureCanvasStoreTests.Run");MatureCanvasStoreTests.Run(Path.Combine(root,"mature-canvas-store"),Check);
+   Stage("MatureCanvasImageMetadataTests.Run");MatureCanvasImageMetadataTests.Run(Path.Combine(root,"mature-canvas-image-metadata"),Check);
+   Stage("MatureCanvasCloseFailureTests.Run");MatureCanvasCloseFailureTests.Run(Path.Combine(root,"mature-canvas-close-failure"),Check);
+   Stage("MatureCanvasHostTests.Run");MatureCanvasHostTests.Run(Path.Combine(root,"mature-canvas-host"),Check);
+   Stage("MatureCanvasInteractionTests.Run");MatureCanvasInteractionTests.Run(Path.Combine(root,"mature-canvas-interaction"),Check);
+   Stage("AppearanceSettingsTests.Run");AppearanceSettingsTests.Run(Path.Combine(root,"appearance-settings"),Check);
+   Stage("CustomizationTests.Run");CustomizationTests.Run(Path.Combine(root,"customization"),Check);
+   Stage("PreviewPreferencesTests.Run");PreviewPreferencesTests.Run(Path.Combine(root,"preview-preferences"),Check);
+   Stage("DesktopImagePinTests.Run");DesktopImagePinTests.Run(Path.Combine(root,"desktop-image-pins"),Check);
+   Stage("PreviewClipboardTests.Run");PreviewClipboardTests.Run(Path.Combine(root,"preview-clipboard"),Check);
+   Stage("PinLifecycleTests.Run");PinLifecycleTests.Run(Path.Combine(root,"pin-lifecycle"),Check);
+   Stage("PinRuntimeTests.Run");PinRuntimeTests.Run(Path.Combine(root,"pin-runtime"),Check);
+   Stage("PinHistoryIndexTests.Run");PinHistoryIndexTests.Run(Path.Combine(root,"pin-history-index"),Check);
+   Stage("TextWindowPinOutputTests.Run");TextWindowPinOutputTests.Run(Path.Combine(root,"text-window-pin-output"),Check);
+   Stage("MiddleDragPanTests.Run");MiddleDragPanTests.Run(Check);
    File.WriteAllText(log,"PASS "+checks+" checks\r\nFixtures: "+root+"\r\n"+DateTime.Now.ToString("O"),Encoding.UTF8);return 0;
-  }catch(Exception ex){File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\nFixtures: "+root,Encoding.UTF8);return 1;}}
+  }catch(Exception ex){var diagnostic=new System.Text.StringBuilder();for(var cause=ex;cause!=null;cause=cause.InnerException)foreach(System.Collections.DictionaryEntry entry in cause.Data)if(Convert.ToString(entry.Key).StartsWith("Nook.Worker.",StringComparison.Ordinal))diagnostic.Append(entry.Key).Append('=').Append(entry.Value).AppendLine();File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\n"+diagnostic+"Fixtures: "+root,Encoding.UTF8);return 1;}finally{progress.Dispose();progress=null;}}
  }
 }

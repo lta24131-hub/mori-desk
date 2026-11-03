@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -291,7 +291,7 @@ namespace QingJie {
         void ViewFullTranslation(){
             if(!CanEditCapture||!captureFeatures.Translation)return;
             if(imageTranslationResult==null||imageTranslationPage==null||imageTranslationSource==null||imageTranslationTarget!=translationTarget||imageTranslationProvider!=Translation.Provider)return;
-            // The reader is an auxiliary view; keep the editable capture alive.
+            // Transfer the completed image/result into an independent window.
             var source=imageTranslationSource;var page=imageTranslationPage;var translated=imageTranslationResult;string target=imageTranslationTarget,provider=imageTranslationProvider;
             Guard(()=>OpenCaptureTextViewer(new TextWindow(source,target,page,translated,provider,allowTranslation:captureFeatures.Translation,allowPin:captureFeatures.Pin)));
         }

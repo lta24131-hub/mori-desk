@@ -15,6 +15,8 @@ if($launcherIdentity.ProductName -ne 'Nook' -or $launcherIdentity.OriginalFilena
 $buildPath=if([IO.Path]::IsPathRooted($BuildDirectory)){$BuildDirectory}else{Join-Path $suiteRoot $BuildDirectory}
 . (Join-Path $suiteRoot 'modules\shell-preview\Validate-Component.ps1')
 Assert-ShellPreviewComponent (Join-Path $buildPath 'shell-preview')
+. (Join-Path $suiteRoot 'modules\ocr-engine\Validate-Component.ps1')
+Assert-OcrComponent (Join-Path $buildPath 'ocr-engine')
 function Assert-NoMachineSecrets([string]$PathToCheck){
  $privateFiles=@(Get-ChildItem -LiteralPath $PathToCheck -Force -File -Recurse | Where-Object { $_.Name -like 'local-connection.js*' -or $_.Name -like 'local-key.txt*' -or $_.Name -eq 'github-token.dat' -or $_.Name -eq 'pairing.json' })
  if($privateFiles.Count -gt 0){throw 'This build contains a machine pairing key or a pairing temporary file. Use a fresh build directory to package a release.'}
@@ -85,6 +87,8 @@ $files+=@('Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dl
 foreach($file in $files){Copy-Item -LiteralPath (Join-Path $buildPath $file) -Destination $payload}
 foreach($folder in @('x64','tessdata','web','browser-extension','svg-licenses','webview2-licenses','model-licenses','image-codecs','pdf-text','preview-support','scroll-capture','shell-preview')){Copy-Item -LiteralPath (Join-Path $buildPath $folder) -Destination $payload -Recurse}
 Assert-ShellPreviewComponent (Join-Path $payload 'shell-preview')
+Copy-OcrComponent (Join-Path $buildPath 'ocr-engine') (Join-Path $payload 'ocr-engine')
+Assert-OcrComponent (Join-Path $payload 'ocr-engine')
 if($IncludeExperimentalFileConversion){
  $conversionPayload=Join-Path $payload 'file-conversion'
  Copy-Item -LiteralPath $conversionSource -Destination $conversionPayload -Recurse

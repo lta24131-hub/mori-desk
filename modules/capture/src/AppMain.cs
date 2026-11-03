@@ -105,6 +105,11 @@ namespace QingJie {
         }
         static void StopCaptureDisplayWatch(){if(captureDisplayChanged==null)return;Microsoft.Win32.SystemEvents.DisplaySettingsChanged-=captureDisplayChanged;captureDisplayChanged=null;}
         public static void CancelCapture(){captureStart.Cancel();if(captureDelay!=null){captureDelay.Stop();captureDelay=null;}EndCaptureWindows();}
+        internal static bool ReleaseTextViewerCapture(){
+            if(!Captures.Any(w=>w.HasCaptureTextViewer))return false;
+            foreach(var window in Captures.ToList())window.DetachCaptureTextViewer();
+            CancelCapture();return true;
+        }
         // Keep the optional native enumeration behind the same gate used by
         // the visual detector. The provider seam tests this without inspecting
         // the user's desktop or constructing a native screenshot window.
@@ -115,6 +120,7 @@ namespace QingJie {
         public static void BeginCapture(string testImage=null,bool directHotkey=false){
             long timingOrigin=System.Diagnostics.Stopwatch.GetTimestamp();
             if(Quitting)return;
+            ReleaseTextViewerCapture();
             if(Captures.Count>0){FocusCurrentCapture();return;}
             long ticket;if(!captureStart.TryQueue(out ticket))return;
             var features=(Settings.CaptureFeatures??new CaptureFeatures()).Copy();

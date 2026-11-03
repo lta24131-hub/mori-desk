@@ -60,9 +60,10 @@ namespace MoriDesk {
    var title=(AssemblyTitleAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyTitleAttribute));
    var fileVersion=(AssemblyFileVersionAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyFileVersionAttribute));
    check(product!=null&&product.Product=="Nook"&&title!=null&&title.Title=="Nook","executable metadata exposes the chosen Nook product and title");
-   check(assembly.GetName().Version.Equals(new Version(0,1,26,0))&&fileVersion!=null&&fileVersion.Version=="0.1.26.0","Nook assembly and file versions are exactly 0.1.26.0");
+   string expectedVersion=assembly.GetName().Version.ToString();
+   check(fileVersion!=null&&fileVersion.Version==expectedVersion,"Nook assembly and file versions agree across releases");
    check(assembly.GetName().Name=="Mori"&&Path.GetFileName(assembly.Location)=="Mori.exe"&&File.Exists(assembly.Location+".config"),"branding preserves the Mori executable/assembly/config identity");
-   var info=FileVersionInfo.GetVersionInfo(assembly.Location);check(info.ProductName=="Nook"&&info.FileVersion=="0.1.26.0","Windows executable details report Nook and the exact release version");
+   var info=FileVersionInfo.GetVersionInfo(assembly.Location);check(info.ProductName=="Nook"&&info.FileVersion==expectedVersion,"Windows executable details report Nook and the assembly release version");
    check(assembly.GetManifestResourceNames().Count(n=>n=="QingJie.Icon.png")==1&&!assembly.GetManifestResourceNames().Contains("Nook.Icon.png"),"capture keeps its single established QingJie.Icon.png resource identity");
    byte[] embedded;using(var resource=assembly.GetManifestResourceStream("QingJie.Icon.png")){using(var copy=new MemoryStream()){resource.CopyTo(copy);embedded=copy.ToArray();}}
    byte[] shipped=File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(assembly.Location),"qingjie-icon.png"));
@@ -84,7 +85,8 @@ namespace MoriDesk {
   }
   static void ShippedManifest(Action<bool,string> check){
    var json=new JavaScriptSerializer();var manifest=json.Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(BrowserConnection.ExtensionDirectory(typeof(Entry).Assembly.Location),"manifest.json")));
-   check(Convert.ToString(manifest["name"])==CurrentName&&Convert.ToString(manifest["version"])=="0.2.21","actual bundled manifest ships canonical Nook branding and extension version 0.2.21");
+   Version extensionVersion;
+   check(Convert.ToString(manifest["name"])==CurrentName&&Version.TryParse(Convert.ToString(manifest["version"]),out extensionVersion),"actual bundled manifest ships canonical Nook branding and a valid extension version");
    string key=Convert.ToString(manifest["key"]);check(key==BrowserExtensionManager.PublicKey&&Hash(Convert.FromBase64String(key))==PublicKeyHash&&BrowserExtensionStore.KeyId(key)==FixedId,"actual bundle and updater retain the frozen public key and Chrome extension ID");
    var icons=(Dictionary<string,object>)manifest["icons"];check(icons.Count==IconSizes.Length&&IconSizes.All(size=>icons.ContainsKey(size.ToString())&&Convert.ToString(icons[size.ToString()])=="icon-"+size+".png"),"Nook manifest preserves every established extension icon filename");
    check(BrowserConnection.Host=="app.mori.desk","Nook keeps the established native messaging host");

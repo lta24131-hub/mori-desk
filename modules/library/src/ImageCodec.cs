@@ -71,8 +71,8 @@ namespace Mori {
    var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--image-codec \""+path+"\" "+longest){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true,RedirectStandardError=true};
    using(var process=Process.Start(start)){
     if(process==null)throw new NotSupportedException("无法启动图像增强预览。");
-    var output=Task.Run(()=>ReadOutput(process.StandardOutput.BaseStream));
-    var errors=Task.Run(delegate{byte[] buffer=new byte[4096];int read,total=0;while((read=process.StandardError.BaseStream.Read(buffer,0,buffer.Length))>0){total+=read;if(total>65536)throw new InvalidDataException("图像增强错误输出过大。");} });
+    var output=WorkerIo.Run(()=>ReadOutput(process.StandardOutput.BaseStream));
+    var errors=WorkerIo.Run(delegate{byte[] buffer=new byte[4096];int read,total=0;while((read=process.StandardError.BaseStream.Read(buffer,0,buffer.Length))>0){total+=read;if(total>65536)throw new InvalidDataException("图像增强错误输出过大。");} });
     Interlocked.Exchange(ref activeWorkerId,process.Id);
     // The UI may cancel while closing its window. All process killing and
     // waits stay on this background decode thread; Cancel() never waits on it.

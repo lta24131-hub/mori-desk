@@ -1,4 +1,4 @@
-param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory,[string]$FileConversionDirectory,[string]$ShellPreviewDirectory)
+param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory,[string]$FileConversionDirectory,[string]$ShellPreviewDirectory,[string]$OcrEngineDirectory)
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
@@ -95,6 +95,18 @@ if($ShellPreviewDirectory){
  Copy-Item -LiteralPath $shellSource -Destination $shellTarget -Recurse
  Assert-ShellPreviewComponent $shellTarget
 }else{Write-Warning 'Shell previews omitted from this development build. Release packaging requires -ShellPreviewDirectory.'}
+if($OcrEngineDirectory){
+ . (Join-Path $suiteRoot 'modules\ocr-engine\Validate-Component.ps1')
+ $ocrSource=[IO.Path]::GetFullPath($OcrEngineDirectory)
+ Assert-OcrComponent $ocrSource
+ $ocrTarget=Join-Path $output 'ocr-engine'
+ if(Test-Path -LiteralPath $ocrTarget){throw 'Use a fresh output directory for OCR.'}
+ Copy-OcrComponent $ocrSource $ocrTarget
+ Assert-OcrComponent $ocrTarget
+}else{
+ if(Test-Path -LiteralPath (Join-Path $output 'ocr-engine')){throw 'An old OCR engine is present. Use a fresh output directory.'}
+ Write-Warning 'Modern OCR omitted from this development build. Release packaging requires -OcrEngineDirectory.'
+}
 if($Test){$testProcess=Start-Process "$output\Mori.exe" -ArgumentList '--suite-test' -Wait -PassThru -WindowStyle Hidden;if($testProcess.ExitCode -ne 0){throw 'Suite tests failed'}}
 if($CaptureTests){
  $captureTestSources=Get-ChildItem "$suiteRoot\modules\capture\tests\*.cs" | ForEach-Object FullName

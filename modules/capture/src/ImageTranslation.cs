@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -15,7 +15,7 @@ namespace QingJie {
         public string Text;
         public Rect Box;
         public int Lines=1;
-        public readonly List<TranslationSourceLine> SourceLines=new List<TranslationSourceLine>();
+        public List<TranslationSourceLine> SourceLines=new List<TranslationSourceLine>();
     }
     public sealed class ImageTranslationResult {
         public BitmapSource Image;
@@ -23,21 +23,37 @@ namespace QingJie {
         public int UnplacedCount;
     }
     public static class ImageTranslation {
-        public const string LayoutPolicy="complete-layout-device-context-v3";
+        public const string LayoutPolicy="readable-overlays-v6";
         static TranslationRegion Line(IList<WordBox> words,Rect box){
             var text=Geometry.JoinWords(words);var line=new TranslationRegion{Text=text,Box=box};
             line.SourceLines.Add(new TranslationSourceLine{Text=text,Box=box});return line;
         }
         static bool Finite(double value){return !double.IsNaN(value)&&!double.IsInfinity(value);}
         static bool Valid(Rect box){return !box.IsEmpty&&Finite(box.X)&&Finite(box.Y)&&Finite(box.Width)&&Finite(box.Height)&&box.Width>0&&box.Height>0;}
+        static string RegionLanguage(string text){
+            int han=text.Count(c=>c>='\u3400'&&c<='\u9fff'),latin=text.Count(c=>(c>='a'&&c<='z')||(c>='A'&&c<='Z'));
+            return han>=2&&han>=latin?"zh":Translation.SourceLanguage(text);
+        }
+        static bool DetachedSymbol(WordBox word,IList<WordBox> line){
+            if(word.Text.Any(char.IsLetterOrDigit))return false;
+            // A detached icon can share an OCR line with its title, but its
+            // taller bounds must not erase the adjacent description. Ordinary
+            // inline punctuation and operators stay in the sentence.
+            var neighbours=line.Where(w=>w!=word&&Valid(w.Box)&&w.Text.Any(char.IsLetterOrDigit)).ToList();
+            if(neighbours.Count==0)return true;
+            return neighbours.All(w=>Math.Max(w.Box.Left-word.Box.Right,word.Box.Left-w.Box.Right)>Math.Max(12,Math.Min(word.Box.Height,w.Box.Height)));
+        }
         public static List<TranslationRegion> Regions(OcrPage page){
             if(page==null)throw new ArgumentNullException("page");
+            if(page.TranslationRegions.Count>0)return page.TranslationRegions.Select(r=>new TranslationRegion{Text=r.Text,Box=r.Box,Lines=r.Lines,SourceLines=r.SourceLines.Select(l=>new TranslationSourceLine{Text=l.Text,Box=l.Box}).ToList()}).ToList();
             var lines=new List<TranslationRegion>();
             foreach(var group in page.Words.GroupBy(w=>w.Line)){
+                var sourceWords=group.Where(w=>Valid(w.Box)&&!string.IsNullOrWhiteSpace(w.Text)).ToList();
                 var words=new List<WordBox>();Rect box=Rect.Empty;
                 // Keep the recognizer's logical word order, including RTL text.
-                foreach(var word in group){
+                foreach(var word in sourceWords){
                     if(!Valid(word.Box)||string.IsNullOrWhiteSpace(word.Text))continue;
+                    if(DetachedSymbol(word,sourceWords))continue;
                     double gap=words.Count==0?0:Math.Max(word.Box.Left-box.Right,box.Left-word.Box.Right);
                     if(words.Count>0&&gap>Math.Max(24,box.Height*2.5)){lines.Add(Line(words,box));words.Clear();box=Rect.Empty;}
                     words.Add(word);box.Union(word.Box);
@@ -46,7 +62,7 @@ namespace QingJie {
             }
             var result=new List<TranslationRegion>();var active=new List<TranslationRegion>();
             foreach(var line in lines.OrderBy(l=>l.Box.Top).ThenBy(l=>l.Box.Left)){
-                TranslationRegion previous=null;double nearest=double.MaxValue;string language=Translation.SourceLanguage(line.Text);
+                TranslationRegion previous=null;double nearest=double.MaxValue;string language=RegionLanguage(line.Text);
                 // Only recent line ends are candidates. Another column interleaved
                 // by top coordinate must not split an otherwise adjacent paragraph.
                 for(int i=active.Count-1;i>=0;i--){
@@ -58,7 +74,7 @@ namespace QingJie {
                     double smaller=Math.Min(height,line.Box.Height),larger=Math.Max(height,line.Box.Height);
                     if(gap< -smaller*.35||line.Box.Top-last.Box.Top<height*.45||
                         Math.Abs(last.Box.Left-line.Box.Left)>=smaller*.7||larger>=smaller*1.9||
-                        Translation.SourceLanguage(last.Text)!=language)continue;
+                        RegionLanguage(last.Text)!=language)continue;
                     double distance=Math.Abs(gap)+Math.Abs(last.Box.Left-line.Box.Left);
                     if(distance<nearest){nearest=distance;previous=candidate;}
                 }
@@ -111,15 +127,43 @@ namespace QingJie {
             if(!bounds.IsEmpty){bounds.Offset(origin.X,origin.Y);if(!rect.Contains(bounds))return false;}
             return true;
         }
-        static PaintLine PlanLine(string value,Rect sourceBox,double sourceHeight,Rect image,byte[] pixels,int width,int height,Rect colorBox){
-            if(string.IsNullOrWhiteSpace(value)||!Valid(sourceBox)||!image.Contains(sourceBox))return null;
-            var rect=sourceBox;rect.Inflate(2,2);rect.Intersect(image);if(rect.Width<4||rect.Height<4)return null;
-            bool simple;var color=Background(pixels,width,height,sourceBox,out simple);if(!simple)return null;
-            var ink=Foreground(pixels,width,height,colorBox,color);
-            // Do not force arbitrarily long translations into a six-pixel label.
-            // Small source captions may retain a similarly small font; larger
-            // text has a ten-image-pixel floor and always has a full transcript.
-            double floor=Math.Max(8,Math.Min(10,sourceHeight*.85)),ceiling=Math.Max(floor,sourceHeight*1.05);
+        // Layout follows STranslate's measured overlay approach (MIT): fit the
+        // complete text, use compact line height, then expand into nearby space.
+        // Nook additionally partitions adjacent OCR boxes so padding/ascenders
+        // cannot cause two otherwise-readable labels to reject one another.
+        static Rect Available(int index,IList<TranslationRegion> regions,Rect image,bool expand){
+            var source=regions[index].Box;var rect=source;
+            rect.Inflate(expand?Math.Min(160,source.Width*.4):2,expand?Math.Min(40,source.Height*.6):2);rect.Intersect(image);
+            if(!Valid(rect))return Rect.Empty;
+            double left=rect.Left,right=rect.Right,top=rect.Top,bottom=rect.Bottom;
+            double cx=source.Left+source.Width/2,cy=source.Top+source.Height/2;
+            for(int n=0;n<regions.Count;n++){
+                if(n==index||regions[n]==null||!Valid(regions[n].Box))continue;var other=regions[n].Box;
+                var protectedOther=other;protectedOther.Inflate(2,2);
+                if(!Overlap(rect,protectedOther))continue;
+                double ox=other.Left+other.Width/2,oy=other.Top+other.Height/2;
+                double horizontal=Math.Min(source.Right,other.Right)-Math.Max(source.Left,other.Left);
+                if(horizontal>Math.Min(source.Width,other.Width)*.15&&Math.Abs(cy-oy)>Math.Min(source.Height,other.Height)*.25){
+                    // OCR rows can overlap slightly. Partition their touching
+                    // edges, not their centres: unequal paragraph heights would
+                    // otherwise leave a whole source line unerased.
+                    if(cy<oy)bottom=Math.Min(bottom,(source.Bottom+other.Top)/2);
+                    else top=Math.Max(top,(other.Bottom+source.Top)/2);
+                }else if(Math.Abs(cx-ox)>Math.Min(source.Width,other.Width)*.25){
+                    if(cx<ox)right=Math.Min(right,(source.Right+other.Left)/2);
+                    else left=Math.Max(left,(other.Right+source.Left)/2);
+                }else return Rect.Empty; // truly duplicated/ambiguous geometry
+            }
+            return right>left&&bottom>top?new Rect(left,top,right-left,bottom-top):Rect.Empty;
+        }
+        static PaintLine PlanLine(string value,Rect rect,double sourceHeight,byte[] pixels,int width,int height,Rect colorBox){
+            if(string.IsNullOrWhiteSpace(value)||!Valid(rect)||rect.Width<5||rect.Height<5)return null;
+            bool simple;var color=Background(pixels,width,height,colorBox,out simple);
+            // On a photograph use a readable caption surface; never silently
+            // omit the translation merely because the source has mixed colors.
+            if(!simple)color=.2126*color.R+.7152*color.G+.0722*color.B>145?Colors.White:Color.FromRgb(28,28,30);
+            var ink=simple?Foreground(pixels,width,height,colorBox,color):new SolidColorBrush(color.R>145?Colors.Black:Colors.White);
+            double floor=Math.Max(7,Math.Min(10,sourceHeight*.65)),ceiling=Math.Max(floor,Math.Min(128,sourceHeight*.95));
             FormattedText text;Point origin;
             if(!Measure(value,rect,ceiling,ink,out text,out origin)){
                 if(!Measure(value,rect,floor,ink,out text,out origin))return null;
@@ -131,20 +175,43 @@ namespace QingJie {
             }
             return new PaintLine{Box=rect,Background=new SolidColorBrush(color),Text=text,Origin=origin};
         }
-        static PaintRegion Plan(TranslationRegion region,string value,Rect image,byte[] pixels,int width,int height){
-            var plan=new PaintRegion();if(region==null||!Valid(region.Box)||!image.Contains(region.Box)||string.IsNullOrWhiteSpace(value)){plan.Accepted=false;return plan;}
-            var translatedLines=value.Replace("\r\n","\n").Replace('\r','\n').Split('\n');
-            bool aligned=region.SourceLines.Count>1&&translatedLines.Length==region.SourceLines.Count;
-            if(aligned){
-                for(int n=0;n<translatedLines.Length;n++){
-                    var source=region.SourceLines[n];var line=PlanLine(translatedLines[n],source.Box,source.Box.Height,image,pixels,width,height,source.Box);
-                    if(line==null){plan.Accepted=false;return plan;}plan.Lines.Add(line);
+        static PaintRegion Plan(int index,IList<TranslationRegion> regions,string value,Rect image,byte[] pixels,int width,int height){
+            var region=regions[index];var plan=new PaintRegion();
+            if(region==null||!Valid(region.Box)||!image.IntersectsWith(region.Box)||region.Box.Width<4||region.Box.Height<4||string.IsNullOrWhiteSpace(value)){plan.Accepted=false;return plan;}
+            if(string.Equals(region.Text,value,StringComparison.Ordinal))return plan;
+            var lineHeights=region.SourceLines.Select(l=>l.Box.Height).OrderBy(h=>h).ToArray();
+            double lineHeight=lineHeights.Length>0?lineHeights[lineHeights.Length/2]:region.Box.Height/Math.Max(1,region.Lines);
+            var sourceBox=region.SourceLines.Count>0?region.SourceLines[0].Box:region.Box;
+            var rect=Available(index,regions,image,false);
+            var explicitLines=value.Replace("\r\n","\n").Replace('\r','\n').Split('\n');
+            bool physicalBreaks=region.SourceLines.Count>1&&explicitLines.Length==region.SourceLines.Count;
+            // OCR line breaks describe wrapping, not separate paragraphs. Fit
+            // ordinary text as one block so every line shares the same font size
+            // and its complete background is cleared. Preserve per-line color
+            // only when the source really has distinctly colored lines.
+            var colors=physicalBreaks?region.SourceLines.Select(l=>{
+                bool simple;var background=Background(pixels,width,height,l.Box,out simple);
+                return ((SolidColorBrush)Foreground(pixels,width,height,l.Box,background)).Color;
+            }).ToArray():new Color[0];
+            bool distinctColors=colors.Length>1&&colors.Any(c=>Math.Abs(c.R-colors[0].R)+Math.Abs(c.G-colors[0].G)+Math.Abs(c.B-colors[0].B)>125);
+            if(physicalBreaks&&distinctColors&&Valid(rect)){
+                for(int n=0;n<explicitLines.Length;n++){
+                    var source=region.SourceLines[n];var slot=source.Box;slot.Inflate(2,2);slot.Intersect(rect);
+                    foreach(var other in region.SourceLines.Where(l=>l!=source)){
+                        if(!Valid(slot)||!Overlap(slot,other.Box))continue;
+                        double a=source.Box.Top+source.Box.Height/2,b=other.Box.Top+other.Box.Height/2;
+                        if(a<b){double bottom=Math.Min(slot.Bottom,(source.Box.Bottom+other.Box.Top)/2);slot=bottom>slot.Top?new Rect(slot.Left,slot.Top,slot.Width,bottom-slot.Top):Rect.Empty;}
+                        else if(a>b){double top=Math.Max(slot.Top,(other.Box.Bottom+source.Box.Top)/2);slot=top<slot.Bottom?new Rect(slot.Left,top,slot.Width,slot.Bottom-top):Rect.Empty;}
+                    }
+                    var fitted=PlanLine(explicitLines[n],slot,source.Box.Height,pixels,width,height,source.Box);
+                    if(fitted==null){plan.Lines.Clear();break;}plan.Lines.Add(fitted);
                 }
-            }else{
-                var colorBox=region.SourceLines.Count>0?region.SourceLines[0].Box:region.Box;
-                var line=PlanLine(value,region.Box,region.Box.Height/Math.Max(1,region.Lines),image,pixels,width,height,colorBox);
-                if(line==null)plan.Accepted=false;else plan.Lines.Add(line);
+                if(plan.Lines.Count==explicitLines.Length)return plan;
             }
+            if(physicalBreaks)value=string.Join(" ",explicitLines.Select(l=>l.Trim()));
+            var line=PlanLine(value,rect,lineHeight,pixels,width,height,sourceBox);
+            if(line==null)line=PlanLine(value,Available(index,regions,image,true),lineHeight,pixels,width,height,sourceBox);
+            if(line==null)plan.Accepted=false;else plan.Lines.Add(line);
             return plan;
         }
         public static BitmapSource Render(BitmapSource original,IList<TranslationRegion> regions,IList<string> translations){return RenderWithStatus(original,regions,translations).Image;}
@@ -153,21 +220,17 @@ namespace QingJie {
             if(regions.Count!=translations.Count)throw new InvalidOperationException("译文与文字区域数量不一致。");
             int width=original.PixelWidth,height=original.PixelHeight;var image=new Rect(0,0,width,height);
             var source=new FormatConvertedBitmap(original,PixelFormats.Bgra32,null,0);var pixels=new byte[checked(width*height*4)];source.CopyPixels(pixels,width*4,0);
-            var plans=new List<PaintRegion>();for(int i=0;i<regions.Count;i++)plans.Add(Plan(regions[i],translations[i],image,pixels,width,height));
-            // Reject both neighbours rather than painting over a region whose
-            // original pixels we promise to keep. Include unplaced source boxes.
-            var conflicts=new bool[plans.Count];
-            for(int i=0;i<plans.Count;i++)for(int j=i+1;j<plans.Count;j++){
-                var a=regions[i];var b=regions[j];if(a==null||b==null||!Valid(a.Box)||!Valid(b.Box))continue;
-                bool overlap=plans[i].Lines.Any(l=>Overlap(l.Box,b.Box))||plans[j].Lines.Any(l=>Overlap(l.Box,a.Box))||
-                    plans[i].Lines.Any(aLine=>plans[j].Lines.Any(bLine=>Overlap(aLine.Box,bLine.Box)));
-                if(overlap){conflicts[i]=true;conflicts[j]=true;}
-            }
-            int unplaced=0;for(int i=0;i<plans.Count;i++){if(conflicts[i])plans[i].Accepted=false;if(!plans[i].Accepted)unplaced++;}
+            var plans=new List<PaintRegion>();for(int i=0;i<regions.Count;i++)plans.Add(Plan(i,regions,translations[i],image,pixels,width,height));
+            // Allocations are separated before drawing. If exceptional expanded
+            // regions still overlap, keep one readable result and show the other
+            // in the complete transcript, rather than blanking both neighbours.
+            for(int i=0;i<plans.Count;i++)if(plans[i].Accepted)for(int j=i+1;j<plans.Count;j++)
+                if(plans[j].Accepted&&plans[i].Lines.Any(a=>plans[j].Lines.Any(b=>Overlap(a.Box,b.Box))))plans[j].Accepted=false;
+            int unplaced=plans.Count(p=>!p.Accepted);
             // If nothing fits, return the exact original rather than recomposing
             // it (which can alter transparent pixels during premultiplication).
             BitmapSource bitmap=original;
-            if(plans.Any(p=>p.Accepted)){
+            if(plans.Any(p=>p.Accepted&&p.Lines.Count>0)){
                 var visual=new DrawingVisual();using(var d=visual.RenderOpen()){
                     d.DrawImage(original,image);
                     foreach(var plan in plans.Where(p=>p.Accepted))foreach(var line in plan.Lines){d.PushClip(new RectangleGeometry(line.Box));d.DrawRectangle(line.Background,null,line.Box);d.Pop();}

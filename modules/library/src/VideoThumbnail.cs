@@ -73,7 +73,9 @@ namespace Mori
 
 		internal const int MaximumDiagnostic = 65536;
 
-		internal const int MaximumMilliseconds = 15000;
+		// Includes system-thumbnail lookup, WebView cold start, decode and pipe
+		// shutdown. BrowserVideoPoster also bounds startup and decode separately.
+		internal const int MaximumMilliseconds = 25000;
 
 		internal const long MaximumPrivateMemory = 268435456L;
 
@@ -115,8 +117,8 @@ namespace Mori
 					{
 						throw new NotSupportedException("无法启动视频缩略图解码。");
 					}
-					Task<byte[]> task = Task.Run(delegate { return ReadBounded(process.StandardError.BaseStream, 65536); });
-					Task<byte[]> task2 = Task.Run(delegate { return ReadBounded(process.StandardOutput.BaseStream, 3145728); });
+					Task<byte[]> task = WorkerIo.Run(delegate { return ReadBounded(process.StandardError.BaseStream, 65536); });
+					Task<byte[]> task2 = WorkerIo.Run(delegate { return ReadBounded(process.StandardOutput.BaseStream, 3145728); });
 					Stopwatch stopwatch = Stopwatch.StartNew();
 					string text = null;
 					try
@@ -128,7 +130,7 @@ namespace Mori
 								throw new InvalidDataException("视频缩略图输出超过安全范围。");
 							}
 							process.Refresh();
-							if (stopwatch.ElapsedMilliseconds > 15000)
+							if (stopwatch.ElapsedMilliseconds > MaximumMilliseconds)
 							{
 								text = "timeout";
 								break;
@@ -321,9 +323,13 @@ namespace Mori
 			{
 				return 2;
 			}
-			if (!string.Equals(Path.GetExtension(args[1]), ".webm", StringComparison.OrdinalIgnoreCase) && ShellWorker(args) == 0)
+			if (!string.Equals(Path.GetExtension(args[1]), ".webm", StringComparison.OrdinalIgnoreCase))
 			{
-				return 0;
+				var shellClock = Stopwatch.StartNew();
+				Console.Error.WriteLine("video-worker: shell-start");
+				int shellResult = ShellWorker(args);
+				Console.Error.WriteLine("video-worker: shell-end result=" + shellResult + " elapsedMs=" + shellClock.ElapsedMilliseconds);
+				if (shellResult == 0) return 0;
 			}
 			return BrowserVideoPoster.Worker(args[1]);
 		}

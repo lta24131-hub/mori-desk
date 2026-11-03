@@ -17,8 +17,15 @@ test('only typed inline images and exact same-origin UUID resources are allowed'
 
 test('native asset ACK changes only src, with no dimensions/geometry/history replacement', () => {
   const updates = assetSourceUpdates({ assets: [{ id: asset.id, src: resource }] }, scene, () => asset, base);
-  assert.deepEqual(updates, [{ id: asset.id, type: 'image', props: { src: resource } }]);
+  assert.deepEqual(updates, [{ id: asset.id, type: 'image', props: { ...asset.props, src: resource } }]);
   assert.equal(asset.props.src, inline); assert.equal(asset.props.w, 123); assert.equal(asset.props.name, 'keep');
+});
+
+test('ACK retains current metadata rather than the captured pre-save values', () => {
+  const current = { ...asset, props: { ...asset.props, w: 234, name: 'edited', fileSize: 42 } };
+  const [update] = assetSourceUpdates({ assets: [{ id: asset.id, src: resource }] }, scene, () => current, base);
+  assert.deepEqual(update.props, { ...current.props, src: resource });
+  assert.equal(current.props.src, inline);
 });
 
 test('ACK cannot overwrite a newer inline asset or already-normalized resource', () => {

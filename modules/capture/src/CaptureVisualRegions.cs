@@ -45,6 +45,12 @@ namespace QingJie {
             return Read(image,screen,CancellationToken.None);
         }
         internal static CaptureVisualRegions Read(BitmapSource image,System.Drawing.Rectangle screen,CancellationToken cancel){
+            return ReadWithBudget(image,screen,cancel,55);
+        }
+        // Explicit budget for deterministic geometry fixtures on slow/virtual
+        // CPUs. All production entry points retain the same 55 ms deadline.
+        internal static CaptureVisualRegions ReadWithBudget(BitmapSource image,System.Drawing.Rectangle screen,CancellationToken cancel,int budgetMilliseconds){
+            if(budgetMilliseconds<0)throw new ArgumentOutOfRangeException("budgetMilliseconds");
             var result=new CaptureVisualRegions();
             cancel.ThrowIfCancellationRequested();
             if(image==null||image.PixelWidth<24||image.PixelHeight<16||screen.Width<=0||screen.Height<=0)return result;
@@ -63,7 +69,7 @@ namespace QingJie {
                 var lines=new List<EdgeRun>();
                 var buckets=new Dictionary<int,List<EdgeRun>>();
                 for(int y=1;y<height&&lines.Count<MaximumLines&&result.regions.Count<MaximumRegions;y++){
-                    cancel.ThrowIfCancellationRequested();if(watch.ElapsedMilliseconds>55){result.TimedOut=true;break;}
+                    cancel.ThrowIfCancellationRequested();if(watch.ElapsedMilliseconds>=budgetMilliseconds){result.TimedOut=true;break;}
                     result.ProcessedRows++;
                     for(int x=1;x<width-1;){
                         if(!Edge(pixels,y*stride+x*4,(y-1)*stride+x*4)){x++;continue;}
@@ -75,7 +81,7 @@ namespace QingJie {
                         // A border has a quiet strip on at least one side. Dense photo/
                         // video texture creates long gradients too, but not a flat edge.
                         if(last-left+1<minWidth||(!QuietRow(pixels,stride,y,left,last)&&!QuietRow(pixels,stride,y-1,left,last)))continue;
-                        if(watch.ElapsedMilliseconds>55){result.TimedOut=true;return result;}
+                        if(watch.ElapsedMilliseconds>=budgetMilliseconds){result.TimedOut=true;return result;}
                         var run=new EdgeRun {Left=left,Right=last,Y=y};lines.Add(run);
                         int key=left/4;Rect nearest=Rect.Empty,outer=Rect.Empty;
                         for(int k=key-1;k<=key+1;k++){
@@ -84,14 +90,14 @@ namespace QingJie {
                             // combination of table/list separator lines (O(n^2)).
                             for(int i=previous.Count-1,attempts=0;i>=0&&attempts<40;i--){
                                 if(!Matches(run,previous[i],minHeight))continue;
-                                if((attempts&7)==0&&watch.ElapsedMilliseconds>55){result.TimedOut=true;return result;}
+                                if((attempts&7)==0&&watch.ElapsedMilliseconds>=budgetMilliseconds){result.TimedOut=true;return result;}
                                 var candidate=Rectangle(pixels,width,stride,run,previous[i],minHeight,screen,height);attempts++;
                                 if(candidate.IsEmpty)continue;
                                 if(nearest.IsEmpty||candidate.Height<nearest.Height)nearest=candidate;break;
                             }
                             for(int i=0,attempts=0;i<previous.Count&&attempts<40;i++){
                                 if(!Matches(run,previous[i],minHeight))continue;
-                                if((attempts&7)==0&&watch.ElapsedMilliseconds>55){result.TimedOut=true;return result;}
+                                if((attempts&7)==0&&watch.ElapsedMilliseconds>=budgetMilliseconds){result.TimedOut=true;return result;}
                                 var candidate=Rectangle(pixels,width,stride,run,previous[i],minHeight,screen,height);attempts++;
                                 if(candidate.IsEmpty)continue;
                                 if(outer.IsEmpty||candidate.Height>outer.Height)outer=candidate;break;

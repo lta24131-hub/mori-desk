@@ -31,6 +31,39 @@ async function receive(type: string, requestId: string, payload: Record<string, 
 const image = (id: string, w = 400, h = 300) => ({ id, src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1kAAAAASUVORK5CYII=', width: w, height: h });
 
 describe('actual mounted SDK', () => {
+  it.each([false, true])('normalizes a real image ACK without crashing, losing metadata or adding undo steps (readonly=%s)', async readonly => {
+    const { editor, api } = await mount();
+    await receive('addImages', 'normalized-image', { images: [image('normalized-image', 123, 456)] });
+    const asset = editor.getAssets()[0];
+    if (asset.type !== 'image') throw new Error('Expected image');
+    await act(async () => { editor.updateAssets([{ ...asset, props: { ...asset.props, fileSize: 12345 } }]); });
+    await receive('flush', 'normalize-save');
+    const shape = editor.getCurrentPageShapes()[0];
+    // The native write can finish after the user moves the image or edits metadata.
+    await act(async () => {
+      editor.mark('move-after-save');
+      editor.updateShapes([{ id: shape.id, type: 'image', x: shape.x + 100 }]);
+      editor.updateAssets([{ ...asset, props: { ...asset.props, fileSize: 12345, name: 'new name' } }]);
+      editor.updateInstanceState({ isReadonly: readonly });
+    });
+    const resource = new URL(`/resource/${'a'.repeat(32)}/${'b'.repeat(32)}`, document.baseURI).href;
+    const before = editor.getAsset(asset.id)!;
+    await receive('saved', 'normalize-save', { revision: 1, assets: [{ id: asset.id, src: resource }] });
+    expect(window.nookCanvas?.editor).toBe(editor);
+    expect(editor.getAsset(asset.id)).toEqual({ ...before, props: { ...before.props, src: resource } });
+    expect(editor.getShape(shape.id)?.x).toBe(shape.x + 100);
+    expect(editor.getInstanceState().isReadonly).toBe(readonly);
+    expect(api.state().revision).toBe(1);
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    const change = api.state().change;
+    await receive('flush', 'normalize-clean');
+    await receive('saved', 'normalize-clean', { revision: 2, assets: [] });
+    expect(api.state()).toMatchObject({ change, savedChange: change });
+    await act(async () => { editor.updateInstanceState({ isReadonly: false }); editor.undo(); });
+    expect(editor.getShape(shape.id)?.x).toBe(shape.x);
+    expect(editor.getAsset(asset.id)?.props.src).toBe(resource);
+  });
+
   it('generates an existing project preview after loading without requiring an edit or extra save', async () => {
     const capture = vi.spyOn(thumbnail, 'captureCanvasThumbnail').mockResolvedValue(image('preview').src);
     try {

@@ -5,8 +5,8 @@ using System.Reflection;
 using System.Windows;
 [assembly: AssemblyTitle("Nook")]
 [assembly: AssemblyProduct("Nook")]
-[assembly: AssemblyVersion("0.1.35.0")]
-[assembly: AssemblyFileVersion("0.1.35.0")]
+[assembly: AssemblyVersion("0.1.36.0")]
+[assembly: AssemblyFileVersion("0.1.36.0")]
 namespace MoriDesk {
  public static class Entry {
   public static bool InteractiveShell;

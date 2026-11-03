@@ -1,0 +1,16 @@
+Nook OCR engine
+
+STranslate layout analysis: MIT License, Copyright 2022 zggsong.
+Source: https://github.com/STranslate/STranslate
+Pinned commit: 75f616a257bcf34d78d8929152fb579886d1d8e5
+STranslate/OcrLayoutAnalyzer.cs and OcrLayoutBlock.cs are unmodified upstream
+files. Adapter.cs supplies only the data types needed by the analyzer.
+The full upstream license is in STranslate/LICENSE.
+
+RapidOcrNet 4.2.0: Apache License 2.0.
+https://github.com/BobLd/RapidOcrNet
+Its locked NuGet dependencies retain their own licenses.
+
+PaddleOCR PP-OCRv5 model weights: Apache License 2.0, PaddleOCR authors.
+Converted models from RapidAI/RapidOCRCSharp; sources and checksums are
+recorded separately alongside the model files.

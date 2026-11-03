@@ -1,0 +1,26 @@
+[
+  {
+    "sha256": "4D97C44A20D30A81AAD087D6A396B08F786C4635742AFC391F6621F5C6AE78AE",
+    "name": "ch_PP-OCRv5_mobile_det.onnx",
+    "url": "https://raw.githubusercontent.com/RapidAI/RapidOCRCSharp/f03a4a2f9a7402cf8871a01516df84019df4271a/RapidOCRConsole/models/ch_PP-OCRv5_mobile_det.onnx",
+    "bytes": 4819576
+  },
+  {
+    "sha256": "5825FC7EBF84AE7A412BE049820B4D86D77620F204A041697B0494669B1742C5",
+    "name": "ch_PP-OCRv5_rec_mobile_infer.onnx",
+    "url": "https://raw.githubusercontent.com/RapidAI/RapidOCRCSharp/f03a4a2f9a7402cf8871a01516df84019df4271a/RapidOCRConsole/models/ch_PP-OCRv5_rec_mobile_infer.onnx",
+    "bytes": 16631306
+  },
+  {
+    "sha256": "E47ACEDF663230F8863FF1AB0E64DD2D82B838FCEB5957146DAB185A89D6215C",
+    "name": "ch_ppocr_mobile_v2.0_cls_infer.onnx",
+    "url": "https://raw.githubusercontent.com/RapidAI/RapidOCRCSharp/f03a4a2f9a7402cf8871a01516df84019df4271a/RapidOCRConsole/models/ch_ppocr_mobile_v2.0_cls_infer.onnx",
+    "bytes": 585532
+  },
+  {
+    "sha256": "D1979E9F794C464C0D2E0B70A7FE14DD978E9DC644C0E71F14158CDF8342AF1B",
+    "name": "ppocrv5_dict.txt",
+    "url": "https://raw.githubusercontent.com/RapidAI/RapidOCRCSharp/f03a4a2f9a7402cf8871a01516df84019df4271a/RapidOCRConsole/models/ppocrv5_dict.txt",
+    "bytes": 74012
+  }
+]

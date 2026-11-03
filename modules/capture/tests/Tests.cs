@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -147,7 +147,7 @@ class Tests {
         }
         var latinImage=new RenderTargetBitmap(1000,260,96,96,PixelFormats.Pbgra32);latinImage.Render(latinVisual);latinImage.Freeze();OcrLanguagePacks.TestSelection="fra+deu";var latin=Await(OcrService.Read(latinImage));Console.WriteLine("LATIN MULTI: "+latin.Text);
         Check(latin.Text.Contains("Save the screenshot")&&latin.Text.Contains("expérience")&&latin.Text.Contains("Möglichkeiten"),"multiple Latin language models retain English French and German accents together");
-        string folder=OcrLanguagePacks.TestFolder;try{OcrLanguagePacks.TestFolder=Path.Combine(Path.GetTempPath(),"Luma-Missing-Models-"+Guid.NewGuid().ToString("N"));OcrLanguagePacks.TestSelection="kor+jpn";Check(OcrLanguagePacks.EffectiveSelectionKey=="","missing optional files are excluded from effective OCR and cache key");Check(Await(OcrService.ReadLocal(image,"kor+jpn")).Text==baseline.Text,"missing optional files never stop base Chinese-English recognition");}finally{OcrLanguagePacks.TestFolder=folder;OcrLanguagePacks.TestSelection="";}
+        string folder=OcrLanguagePacks.TestFolder;try{OcrLanguagePacks.TestFolder=Path.Combine(Path.GetTempPath(),"Luma-Missing-Models-"+Guid.NewGuid().ToString("N"));OcrLanguagePacks.TestSelection="kor+jpn";Check(OcrLanguagePacks.EffectiveSelectionKey=="","missing optional files are excluded from effective OCR and cache key");var legacyBaseline=Await(OcrService.ReadLocal(image,""));Check(Await(OcrService.ReadLocal(image,"kor+jpn")).Text==legacyBaseline.Text,"missing optional files preserve the legacy engine's base Chinese-English recognition");}finally{OcrLanguagePacks.TestFolder=folder;OcrLanguagePacks.TestSelection="";}
     }
     static void ShortcutTests(){
         var keys=new ShortcutSet();Check(keys.Error()==null&&keys.Capture.ToString()=="F1"&&keys.Pin.ToString()=="F3"&&keys.Translate.ToString()=="Ctrl+Alt+T"&&keys.TogglePins.ToString()=="Shift+F3","default shortcuts preserve screenshot and pin behaviour with separate visibility toggle");
@@ -265,8 +265,17 @@ class Tests {
         }
     }
     [STAThread] static int Main(string[] args){try{
+        // Individual fixtures close many unshown windows. Keep one explicit
+        // application lifetime, just like the tray runtime; otherwise the first
+        // fixture restoring OnLastWindowClose shuts WPF down for later tests.
+        var testApp=Application.Current??new Application();testApp.ShutdownMode=ShutdownMode.OnExplicitShutdown;
+        // Only UI async fixtures install a dispatcher context. Transport tests
+        // deliberately block their calling thread and must not capture it.
+        SynchronizationContext.SetSynchronizationContext(null);
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
+        Finish(TranslationRegionMappingTests.Run(Check));
+        StructuredOcrTests.Run(Check);
         CaptureTests.Run(Check);
         CaptureDrawingExperienceTests.Run(Check);CaptureRenderingPerformanceTests.Run(Check);CaptureHistoryMemoryTests.Run(Check);CaptureInputUsabilityTests.Run(Check);CaptureDirectResizeTests.Run(Check);
         ScrollCaptureStitcherTests.Run(Check);ScrollCaptureSessionTests.Run(Check);ScrollCapturePreviewTests.Run(Check);ExternalScrollCaptureTests.Run(Check);
@@ -288,12 +297,12 @@ class Tests {
         if(args.Length==1&&args[0]=="--context-probe"){Console.WriteLine(Translation.Translate("[[[0000]]]\nReady. Create. Fold.\n\n[[[0001]]]\nGimbal first, then body up. Body down, then gimbal folds.\n\n[[[0002]]]\nManually adjustable mast\n\n[[[0003]]]\nSet camera height by hand, independent of wheel lifts.",CancellationToken.None).GetAwaiter().GetResult());return 0;}
         Check(Geometry.Clamp(30,1,25)==25&&Geometry.Clamp(-2,1,25)==1,"line width clamped");
         long cacheTime=0;var textCache=new TranslationCache(40,2,1,()=>cacheTime);var cacheValue=new[]{"译文"};textCache.Put("first",cacheValue);cacheValue[0]="changed";Check(textCache.Get("first")[0]=="译文","translation cache isolates caller mutations");var cacheRead=textCache.Get("first");cacheRead[0]="changed";Check(textCache.Get("first")[0]=="译文","translation cache returns a copy");textCache.Put("second",new[]{"二"});textCache.Get("first");textCache.Put("third",new[]{"三"});Check(textCache.Get("second")==null&&textCache.Count==2,"translation cache evicts least recently used entries");textCache.Put(new string('x',50),new[]{"large"});Check(textCache.CharacterCount<=40,"translation cache refuses oversized entries");cacheTime=1000;Check(textCache.Count==0&&textCache.Get("first")==null,"translation cache expires without a resident timer");
-        int translating=0,maxTranslating=0;var parallelResult=Await(Translation.TranslateImageCore(new[]{"alpha","제품 사용","omega"},CancellationToken.None,async(input,token)=>{translating++;maxTranslating=Math.Max(maxTranslating,translating);try{await Task.Delay(input.Contains("alpha")?100:10,token);return "[[[0000]]]\n"+(input.Contains("alpha")?"甲":input.Contains("omega")?"丙":"乙");}finally{translating--;}}));Check(parallelResult.SequenceEqual(new[]{"甲","乙","丙"})&&maxTranslating==2,"parallel language translation preserves order and two-request limit");
-        bool invalidBlock=false;try{Await(Translation.TranslateImageCore(new[]{"alpha"},CancellationToken.None,(input,token)=>Task.FromResult("missing marker")));}catch(InvalidOperationException){invalidBlock=true;}Check(invalidBlock,"parallel malformed translation never accepted or cached");
+        int translating=0,maxTranslating=0;var parallelResult=Await(Translation.TranslateImageCore(new[]{"alpha","제품 사용","omega"},CancellationToken.None,async(input,language,token)=>{translating++;maxTranslating=Math.Max(maxTranslating,translating);try{await Task.Delay(input.Contains("alpha")?100:10,token);return new[]{input.Contains("alpha")?"甲":input.Contains("omega")?"丙":"乙"};}finally{translating--;}}));Check(parallelResult.SequenceEqual(new[]{"甲","乙","丙"})&&maxTranslating==2,"parallel language translation preserves order and two-request limit");
+        bool invalidBlock=false;try{Await(Translation.TranslateImageCore(new[]{"alpha"},CancellationToken.None,(input,language,token)=>Task.FromResult(new string[0])));}catch(InvalidOperationException){invalidBlock=true;}Check(invalidBlock,"parallel malformed translation never accepted or cached");
         Check(Translation.TextCacheKey("hello","en")!=Translation.TextCacheKey("hello","zh")&&Translation.ImageCacheKey(new[]{"hello"},"en")!=Translation.ImageCacheKey(new[]{"hello"},"zh"),"both translation caches isolate target languages");
         var requestJson=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<System.Collections.Generic.Dictionary<string,object>>(Translation.RequestJson(new[]{"请确认交货日期"},"auto","en"));
         Check(((System.Collections.Generic.Dictionary<string,object>)requestJson["target"])["lang"].ToString()=="en"&&((System.Collections.Generic.Dictionary<string,object>)requestJson["source"])["lang"].ToString()=="auto","Chinese input request uses selected English target and automatic source");
-        var englishGlossary=Await(Translation.TranslateImageCore(new[]{"gimbal Fold"},CancellationToken.None,(input,token)=>Task.FromResult("[[[0000]]]\ngimbal Fold"),"en"));Check(englishGlossary[0]=="gimbal Fold","Chinese-only device glossary never rewrites English output");
+        var englishGlossary=Await(Translation.TranslateImageCore(new[]{"gimbal Fold"},CancellationToken.None,(input,language,token)=>Task.FromResult(new[]{"gimbal Fold"}),"en"));Check(englishGlossary[0]=="gimbal Fold","Chinese-only device glossary never rewrites English output");
         bool invalidTarget=false;try{Translation.TargetLanguage("xx");}catch(ArgumentException){invalidTarget=true;}Check(invalidTarget,"unsupported target rejected before network request");
         string screenshotLanguage=null;int targetChanges=0;var screenshotTarget=Ui.TranslationTarget("zh",language=>{screenshotLanguage=language;targetChanges++;});
         var chineseTarget=(System.Windows.Controls.MenuItem)screenshotTarget.ContextMenu.Items[0];var englishTarget=(System.Windows.Controls.MenuItem)screenshotTarget.ContextMenu.Items[1];
@@ -372,7 +381,12 @@ class Tests {
         var darkImage=new RenderTargetBitmap(960,420,96,96,PixelFormats.Pbgra32);darkImage.Render(darkVisual);darkImage.Freeze();ImageFiles.Write(darkImage,Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"english-dark-test.png"));
         var english=Await(OcrService.Read(darkImage));Check(english.Text.Contains("Ready. Create. Fold."),"small dark-background Fold recognized by local English model");Check(english.Text.Contains("Manually adjustable mast"),"small English heading no longer becomes mixed symbols");
         Check(SamePixels(LegacyPrepare(darkImage,3),OcrService.Prepare(darkImage,3)),"dark small-text preprocessing retains every grayscale pixel");
-        var inProcess=Await(OcrService.ReadLocal(darkImage));Check(english.Text==inProcess.Text&&english.Words.Zip(inProcess.Words,(a,b)=>a.Text==b.Text&&a.Line==b.Line&&a.Box==b.Box).All(v=>v)&&english.Words.Count==inProcess.Words.Count,"isolated OCR preserves text, reading order and exact word positions");
+        if(OcrWorker.UsesModernEngine(OcrLanguagePacks.EffectiveSelectionKey)){
+            var expectedLines=new[]{"Ready. Create. Fold.","Gimbal first, then body up. Body down, then gimbal folds.","Manually adjustable mast","Set camera height by hand, independent of wheel lifts."};
+            Check(expectedLines.All(line=>english.Text.IndexOf(line,StringComparison.Ordinal)>=0&&english.Text.IndexOf(line,StringComparison.Ordinal)==english.Text.LastIndexOf(line,StringComparison.Ordinal))&&english.TranslationRegions.Count>0,"modern worker preserves all four complete source lines exactly once with structured layout");
+        }else{
+            var inProcess=Await(OcrService.ReadLocal(darkImage));Check(english.Text==inProcess.Text&&english.Words.Zip(inProcess.Words,(a,b)=>a.Text==b.Text&&a.Line==b.Line&&a.Box==b.Box).All(v=>v)&&english.Words.Count==inProcess.Words.Count,"legacy isolated OCR preserves text, reading order and exact word positions");
+        }
         using(var cancelled=new CancellationTokenSource()){cancelled.Cancel();bool stopped=false;try{Await(OcrService.Read(darkImage,cancelled.Token));}catch(OperationCanceledException){stopped=true;}Check(stopped,"cancelled OCR never starts work");}
         using(var cancelled=new CancellationTokenSource()){cancelled.CancelAfter(30);bool stopped=false;try{Await(OcrService.Read(new CroppedBitmap(darkImage,new Int32Rect(0,0,959,420)),cancelled.Token));}catch(OperationCanceledException){stopped=true;}Check(stopped,"active OCR cancellation terminates worker");}
         var queued=Await(Task.WhenAll(OcrService.Read(darkImage),OcrService.Read(darkImage)));Check(queued.All(p=>p.Text==english.Text),"queued OCR requests keep identical independent results after cancellation");
@@ -387,8 +401,6 @@ class Tests {
         }
         OcrLanguagePacks.TestSelection="kor";
         var koreanImage=new RenderTargetBitmap(1100,260,96,96,PixelFormats.Pbgra32);koreanImage.Render(koreanVisual);koreanImage.Freeze();ImageFiles.Write(koreanImage,Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"korean-test.png"));var koreanText=Await(OcrService.Read(koreanImage));Console.WriteLine(koreanText.Text);Check(koreanText.Text.Contains("새로운 경험")&&koreanText.Text.Contains("제품 사용"),"faint small Korean paragraphs recognized with natural word spacing");Check(koreanText.Text.Contains("Back to Retro."),"Korean pass preserves existing English heading");Check(!Await(OcrService.Read(mixed)).Text.Any(Geometry.IsHangul),"Korean pass never replaces Chinese regression sample");Check(koreanText.Words.All(w=>w.Box.X>=0&&w.Box.Y>=0&&w.Box.Right<=1100&&w.Box.Bottom<=260),"Korean word boxes retain original coordinates");
-        Check(Translation.ParseImageContext("[[[0000]]]\n保存\n\n[[[0001]]]\n贴图",2).SequenceEqual(new[]{"保存","贴图"}),"context-aware translation maps back to source regions");
-        Check(Translation.ParseImageContext("[0000]\n保存\n\n[0001]\n贴图",2).SequenceEqual(new[]{"保存","贴图"}),"translation accepts normalized marker brackets");
         Check(Translation.SourceLanguage("새로운 경험을 위해") == "ko"&&Translation.SourceLanguage("Save the screenshot")=="auto","Korean translation explicitly selects Korean source language");
         var bilingual=new OcrPage();bilingual.Words.Add(new WordBox{Text="새로운 경험",Line=0,Box=new Rect(20,20,150,20)});bilingual.Words.Add(new WordBox{Text="New experience",Line=1,Box=new Rect(20,47,150,20)});Check(ImageTranslation.Regions(bilingual).Count==2,"adjacent Korean and English paragraphs translate separately");
         foreach(var shade in new[]{Colors.Black,Color.FromRgb(184,184,184)}){
@@ -417,7 +429,6 @@ class Tests {
             if(Environment.GetEnvironmentVariable("QINGJIE_LIVE_TEST")=="1"){Await(OcrLanguagePacks.Install("fra",null,CancellationToken.None).ContinueWith(t=>{t.GetAwaiter().GetResult();return true;}));Check(OcrLanguagePacks.Verify(OcrLanguagePacks.ModelPath("fra"),OcrLanguagePacks.Find("fra")),"live optional model download verifies pinned content");}
         }finally{OcrLanguagePacks.TestFolder=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-languages");foreach(var file in Directory.GetFiles(packTestFolder))File.Delete(file);Directory.Delete(packTestFolder);}
         Check(Translation.DeviceTerms(new[]{"Fold your poker cards."},new[]{"弃牌。"})[0]=="弃牌。","equipment glossary does not alter unrelated meanings");
-        bool wrongOrder=false;try{Translation.ParseImageContext("[[[0001]]]\n错位",1);}catch(InvalidOperationException){wrongOrder=true;}Check(wrongOrder,"incorrect translation region markers leave original intact");
         if(Environment.GetEnvironmentVariable("QINGJIE_LIVE_TEST")=="1"){var input=ImageTranslation.Regions(english);var translation=Translation.TranslateImage(input.Select(r=>r.Text).ToArray(),CancellationToken.None).GetAwaiter().GetResult();Console.WriteLine(string.Join(" | ",translation));Check(translation[0].Contains("折叠"),"Fold correctly translated to Chinese with image context via live service");Check(translation.Any(t=>t.Contains("手动")),"adjustable mast heading translated without OCR corruption");ImageFiles.Write(ImageTranslation.Render(darkImage,input,translation),Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"english-live-translation.png"));var multilingual=Translation.TranslateImage(new[]{"Back to Retro.","새로운 경험을 위해 제품을 디자인했습니다.","Save the screenshot"},CancellationToken.None).GetAwaiter().GetResult();Console.WriteLine(string.Join(" | ",multilingual));Check(multilingual.Length==3&&!multilingual.Any(t=>t.Any(Geometry.IsHangul))&&multilingual[1].Contains("产品")&&multilingual[2].Contains("截图"),"Korean-English mixed image translates each language to Chinese in order");var selected=Translation.Translate("제품 사용",CancellationToken.None).GetAwaiter().GetResult();Check(!selected.Any(Geometry.IsHangul)&&selected.Contains("产品"),"Korean selected-text translation uses explicit source");}
         if(Environment.GetEnvironmentVariable("QINGJIE_LIVE_TEST")=="1"){
             string englishReply=Translation.Translate("请确认交货日期，谢谢。",CancellationToken.None,"en").GetAwaiter().GetResult();Console.WriteLine("Chinese to English: "+englishReply);Check(System.Text.RegularExpressions.Regex.IsMatch(englishReply,"[a-zA-Z]{3}")&&!System.Text.RegularExpressions.Regex.IsMatch(englishReply,"[\\u4e00-\\u9fff]"),"live typed Chinese translates into English");

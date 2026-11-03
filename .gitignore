@@ -49,3 +49,8 @@
 # Local design explorations and machine-specific interactive diagnostics.
 /assets/brand-concepts/
 /tests/diagnostics/
+
+/modules/ocr-engine/bin/
+/modules/ocr-engine/obj/
+/modules/ocr-engine/models/
+/modules/ocr-engine/publish/

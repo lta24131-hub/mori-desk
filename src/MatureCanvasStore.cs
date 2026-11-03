@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -54,6 +55,26 @@ namespace MoriDesk {
   static byte[] ReadBounded(string file,int maximum){Safe(file);using(var input=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.Read)){if(input.Length<=0||input.Length>maximum)throw new InvalidDataException("画布文件为空或过大，原文件已保留。");var bytes=new byte[(int)input.Length];int offset=0,read;while(offset<bytes.Length&&(read=input.Read(bytes,offset,bytes.Length-offset))>0)offset+=read;if(offset!=bytes.Length||input.ReadByte()!=-1)throw new IOException("画布文件读取时发生变化。");return bytes;}}
   static void Atomic(string file,byte[] bytes,bool replace){Safe(file);Safe(file+".bak");string folder=Path.GetDirectoryName(file);Directory.CreateDirectory(folder);Safe(folder);string pending=Path.Combine(folder,"editor-write-"+Guid.NewGuid().ToString("N")+".tmp");try{using(var output=new FileStream(pending,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush(true);}Safe(file);Safe(file+".bak");if(File.Exists(file)){if(!replace)throw new IOException("画布资源已存在，不能覆盖。");File.Replace(pending,file,file+".bak",true);}else File.Move(pending,file);}finally{if(File.Exists(pending))File.Delete(pending);}}
   public bool Exists(string id){return File.Exists(Manifest(id));}
+  // Recovery is an explicit export, never an unchecked replacement of live data.
+  // Keep the rejected scene and only registered local images in a portable ZIP.
+  internal void ExportRecovery(MatureCanvasDocument document,string scene,string destination){
+   if(document==null||scene==null||scene.Length>96*1024*1024)throw new InvalidDataException("没有可导出的画布快照。");
+   destination=Path.GetFullPath(destination);Safe(destination);string live=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+   if(destination.StartsWith(live,StringComparison.OrdinalIgnoreCase))throw new IOException("请将恢复副本保存到画布数据目录以外。");
+   string folder=Path.GetDirectoryName(destination);Safe(folder);string pending=Path.Combine(folder,"nook-recovery-"+Guid.NewGuid().ToString("N")+".tmp");
+   try{
+    using(var output=new FileStream(pending,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
+     using(var zip=new ZipArchive(output,ZipArchiveMode.Create,true)){
+      var saved=Json().Deserialize<MatureCanvasDocument>(Json().Serialize(document));saved.SceneJson=scene;
+      Action<string,string> text=(name,value)=>{using(var writer=new StreamWriter(zip.CreateEntry(name).Open(),new UTF8Encoding(false)))writer.Write(value);};
+      text(ManifestName,Json().Serialize(saved));text("README.txt","Nook 画布恢复副本。包含尚未保存的快照与图片，不会修改原项目。请保留此文件以便恢复；不要直接覆盖正在使用的画布目录。");
+      var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+      foreach(var resource in document.Resources){string path=ResourcePath(document,resource),name=(resource.Legacy?"images/":"editor-images/")+resource.Image;if(!names.Add(name))continue;byte[] bytes=ReadBounded(path,resource.Legacy?256*1024*1024:MaximumResourceBytes);using(var entry=zip.CreateEntry(name,CompressionLevel.Fastest).Open())entry.Write(bytes,0,bytes.Length);}
+     }output.Flush(true);
+    }
+    Safe(destination);if(File.Exists(destination))File.Replace(pending,destination,null);else File.Move(pending,destination);
+   }finally{if(File.Exists(pending))File.Delete(pending);}
+  }
   public static string ResourceUrl(string projectId,string fileId){if(!IsId(projectId)||!Identity(fileId))throw new InvalidDataException("图片资源编号无效。");return TrustedOrigin+"/resource/"+projectId+"/"+fileId;}
   public MatureCanvasDocument Create(string name){
    // New projects get an empty compatible legacy index. Mature saves never
@@ -71,7 +92,7 @@ namespace MoriDesk {
      // A compatible discovery index must be durable before the sidecar commit.
      // Otherwise an index error would report failure after the scene was saved.
      string index=Path.Combine(Folder(document.Id),"project.json");Safe(index);if(!File.Exists(index))legacy.Save(new FreeCanvasDocument{Version=1,Id=document.Id,Name=document.Name,Zoom=1,Items=new List<FreeCanvasItem>()});
-     document.Name=Name(document.Name);document.Updated=DateTime.UtcNow.ToString("o",CultureInfo.InvariantCulture);byte[] bytes=new UTF8Encoding(false).GetBytes(Json().Serialize(document));if(bytes.Length>MaximumSceneBytes*2)throw new InvalidDataException("画布记录过大，请拆分项目。");Atomic(file,bytes,true);document.LoadedHash=Hash(bytes);
+     document.SceneJson=NormalizeScene(document.SceneJson);document.Name=Name(document.Name);document.Updated=DateTime.UtcNow.ToString("o",CultureInfo.InvariantCulture);byte[] bytes=new UTF8Encoding(false).GetBytes(Json().Serialize(document));if(bytes.Length>MaximumSceneBytes*2)throw new InvalidDataException("画布记录过大，请拆分项目。");Atomic(file,bytes,true);document.LoadedHash=Hash(bytes);
     }finally{if(owns)mutex.ReleaseMutex();}
    }
   }
@@ -132,7 +153,15 @@ namespace MoriDesk {
   static string PaletteColor(string color){if(color=="auto"||color==null)return "black";int rgb=int.Parse(color.Substring(1),NumberStyles.HexNumber,CultureInfo.InvariantCulture),r=(rgb>>16)&255,g=(rgb>>8)&255,b=rgb&255;var palette=new[]{new[]{0x1d,0x1d,0x1d},new[]{0x9f,0xa8,0xb2},new[]{0xe0,0x85,0xf4},new[]{0xae,0x3e,0xc9},new[]{0x44,0x65,0xe9},new[]{0x4b,0xa1,0xf1},new[]{0xf1,0xac,0x4b},new[]{0xe1,0x69,0x19},new[]{0x09,0x92,0x68},new[]{0x4c,0xb0,0x5e},new[]{0xf8,0x77,0x77},new[]{0xe0,0x31,0x31},new[]{0xff,0xff,0xff}};string[] names={"black","grey","light-violet","violet","blue","light-blue","yellow","orange","green","light-green","light-red","red","white"};int best=0,min=int.MaxValue;for(int i=0;i<palette.Length;i++){int distance=(r-palette[i][0])*(r-palette[i][0])+(g-palette[i][1])*(g-palette[i][1])+(b-palette[i][2])*(b-palette[i][2]);if(distance<min){best=i;min=distance;}}return names[best];}
   static string Index(int value){const string digits="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";int length=1,capacity=62;while(value>=capacity){value-=capacity;length++;capacity=checked(capacity*62);}char[] result=new char[length+1];result[0]=(char)('a'+length-1);for(int i=length;i>=1;i--){result[i]=digits[value%62];value/=62;}return new string(result);}
   static void ValidateIndex(object value){string index=String(value,"排序",256);if(index.Length<2||!Regex.IsMatch(index,"^[A-Za-z][A-Za-z0-9]+$",RegexOptions.CultureInvariant))throw new InvalidDataException("画布排序键无效。");int integerLength=index[0]>='a'&&index[0]<='z'?index[0]-'a'+2:'Z'-index[0]+2;if(index.Length<integerLength||(index.Length>integerLength&&index[index.Length-1]=='0'))throw new InvalidDataException("画布排序键无效。");}
-  public string NormalizeScene(string json){var scene=Scene(json);Keys(scene,Set("document session"),"画布快照");return Json().Serialize(scene);}
+  public string NormalizeScene(string json){
+   var scene=Scene(json);Keys(scene,Set("document session"),"画布快照");
+   // The pinned SDK adds optional fileSize on paste/drop, unlike native imports.
+   // Validate it, then omit this advisory metadata from the durable snapshot so
+   // existing readers still accept it. Actual resource byte limits stay intact.
+   foreach(var value in Records(scene).Values){var record=Object(value,"画布记录");object type;if(!record.TryGetValue("typeName",out type)||!Equals(type,"asset"))continue;var props=Object(Required(record,"props"),"资源属性");if(props.ContainsKey("fileSize")){AssetFileSize(props["fileSize"]);props.Remove("fileSize");}}
+   return Json().Serialize(scene);
+  }
+  static void AssetFileSize(object value){Number(value,"图片文件大小",double.Epsilon,double.MaxValue);}
   static Dictionary<string,object> Scene(string json){if(json==null||Encoding.UTF8.GetByteCount(json)>MaximumSceneBytes)throw new InvalidDataException("画布快照为空或过大。");try{return Object(Json().DeserializeObject(json),"画布快照");}catch(InvalidDataException){throw;}catch(Exception error){throw new InvalidDataException("画布快照 JSON 无效。",error);}}
   static Dictionary<string,object> Records(Dictionary<string,object> scene){return Object(Required(Object(Required(scene,"document"),"画布文档"),"store"),"画布记录");}
   static Dictionary<string,object> Object(object value,string label){var result=value as Dictionary<string,object>;if(result==null)throw new InvalidDataException(label+"不是对象。");return result;}
@@ -154,7 +183,7 @@ namespace MoriDesk {
    foreach(var pair in records){Id(pair.Key,null);var record=Object(pair.Value,"画布记录");if((string)Required(record,"id")!=pair.Key)throw new InvalidDataException("画布编号与记录不匹配。");string type=String(Required(record,"typeName"),"记录类型",20);Meta(Required(record,"meta"));
     if(type=="document"){Keys(record,Set("id typeName gridSize name meta"),"文档");if(pair.Key!="document:document")throw new InvalidDataException("画布文档编号无效。");Number(Required(record,"gridSize"),"网格大小",1,1000);String(Required(record,"name"),"文档名称",120);documents++;}
     else if(type=="page"){Keys(record,Set("id typeName name index meta"),"页面");Id(pair.Key,"page");String(Required(record,"name"),"页面名称",120);ValidateIndex(Required(record,"index"));pages++;}
-    else if(type=="asset"){Keys(record,Set("id typeName type props meta"),"资源");Id(pair.Key,"asset");Enum(Required(record,"type"),"资源类型","image");var props=Object(Required(record,"props"),"资源属性");Keys(props,Set("w h name mimeType src isAnimated"),"资源属性");Number(Required(props,"w"),"资源宽度",.000001);Number(Required(props,"h"),"资源高度",.000001);String(Required(props,"name"),"资源名称",1024);MimeExtension(String(Required(props,"mimeType"),"图片格式",64));Boolean(Required(props,"isAnimated"),"动图状态");string fileId=FileFromUrl(document.Id,String(Required(props,"src"),"资源地址",1024));if(!resources.Contains(fileId))throw new InvalidDataException("画布图片没有独立保存。");}
+    else if(type=="asset"){Keys(record,Set("id typeName type props meta"),"资源");Id(pair.Key,"asset");Enum(Required(record,"type"),"资源类型","image");var props=Object(Required(record,"props"),"资源属性");Keys(props,Set("w h name mimeType src isAnimated fileSize"),"资源属性");if(props.ContainsKey("fileSize"))AssetFileSize(props["fileSize"]);Number(Required(props,"w"),"资源宽度",.000001);Number(Required(props,"h"),"资源高度",.000001);String(Required(props,"name"),"资源名称",1024);MimeExtension(String(Required(props,"mimeType"),"图片格式",64));Boolean(Required(props,"isAnimated"),"动图状态");string fileId=FileFromUrl(document.Id,String(Required(props,"src"),"资源地址",1024));if(!resources.Contains(fileId))throw new InvalidDataException("画布图片没有独立保存。");}
     else if(type=="shape"){Keys(record,Set("id typeName type x y rotation index parentId isLocked opacity props meta"),"图形");Id(pair.Key,"shape");string shapeType=String(Required(record,"type"),"图形类型",20);if(!ShapeTypes.Contains(shapeType))throw new InvalidDataException("图形类型不支持；外部嵌入不能读取本地资源。");Number(Required(record,"x"),"横坐标");Number(Required(record,"y"),"纵坐标");Number(Required(record,"rotation"),"旋转",-1000,1000);ValidateIndex(Required(record,"index"));Id(Required(record,"parentId"),null);string parent=(string)record["parentId"];if(!parent.StartsWith("page:",StringComparison.Ordinal)&&!parent.StartsWith("shape:",StringComparison.Ordinal))throw new InvalidDataException("图形父对象无效。");parents.Add(pair.Key,parent);Boolean(Required(record,"isLocked"),"锁定状态");Number(Required(record,"opacity"),"透明度",0,1);ValidateProps(shapeType,Object(Required(record,"props"),"图形属性"),records,ref points);shapes++;if(shapeType=="image")images++;if(shapeType=="text")texts++;}
     else if(type=="binding"){Keys(record,Set("id typeName type fromId toId props meta"),"绑定");Id(pair.Key,"binding");Enum(Required(record,"type"),"绑定类型","arrow");Id(Required(record,"fromId"),"shape");Id(Required(record,"toId"),"shape");if(!records.ContainsKey((string)record["fromId"])||!records.ContainsKey((string)record["toId"]))throw new InvalidDataException("绑定对象缺失。");var props=Object(Required(record,"props"),"绑定属性");Keys(props,Set("terminal normalizedAnchor isExact isPrecise"),"绑定属性");Enum(Required(props,"terminal"),"绑定端点","start","end");Point(Required(props,"normalizedAnchor"),false);Boolean(Required(props,"isExact"),"精确绑定");Boolean(Required(props,"isPrecise"),"精细绑定");}
     else throw new InvalidDataException("不能持久化此类画布记录。");

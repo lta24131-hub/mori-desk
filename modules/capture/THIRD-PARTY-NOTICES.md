@@ -19,3 +19,9 @@ Downloaded only when the user requests the Chinese-English pack. Exact URLs, ver
 - Argos English→Chinese and Chinese→English 1.9 model packages: derived from OPUS-MT, CC BY 4.0. Authors Jörg Tiedemann and Santhosh Thottingal, “OPUS-MT — Building open translation services for the World,” EAMT 2020, Lisbon, Portugal. Source packages from https://argos-net.com/ (catalog https://github.com/argosopentech/argospm-index). Model weights and tokenizer are unmodified; QingJie omits unused Stanza files and uses its own sentence splitting / region batching. Attribution READMEs remain alongside both models. Full license in `licenses/Offline-models-CC-BY-4.0.txt`.
 
 Tencent and Google translation services are external services, not bundled open-source components. Their service terms and availability apply; no service guarantee or affiliation is implied.
+
+## Structured screenshot OCR and translation overlays
+
+- RapidOcrNet 4.2.0 and PaddleOCR PP-OCRv5 mobile Chinese/English models: Apache-2.0. The short-lived `ocr-engine` component carries pinned model hashes and all dependency notices.
+- STranslate layout analyzer: MIT, copyright 2022 zggsong, pinned revision `75f616a257bcf34d78d8929152fb579886d1d8e5`. https://github.com/STranslate/STranslate
+- Nook's measured overlay rendering adapts the layout approach to .NET Framework, adding bounded region expansion and an always-available transcript. Full MIT text is retained in `licenses/STranslate-MIT.txt`.

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-11-03",
+  "contractId": "nook-c33-data-v1",
+  "source": "src/MatureCanvasStore.cs",
+  "previousSha256": "88ff35b9273016ac4e6de6e1a1801da0a1804f0e0fc4e4006bd3b4e8944b8753",
+  "reviewedSha256": "d5c18593cf8a65303455c4773011b90a3ac8fe1bb743966f7c5263c1f195e9ee",
+  "decision": "Same persisted data contract; no migration or automatic metadata restore.",
+  "sourceReview": [
+    "Document schema, resource paths, engine version and atomic commit protocol are unchanged.",
+    "The optional SDK image fileSize is validated before saving, then omitted from the durable scene so older strict readers accept it. Actual resource byte limits remain enforced.",
+    "Save still validates before committing and retains optimistic-concurrency checks. Normalization does not discard unknown fields or bypass their rejection.",
+    "Recovery export is an explicit external ZIP. It cannot overwrite a path inside the live canvas store and does not alter the committed document."
+  ],
+  "vmEvidence": {
+    "report": "latest-canvas-data-rollback.json",
+    "reportSha256": "9381c867a0cdec519778a70a76eaa81ed1b390dd3ccdaa9f2ec393647cd9ce48",
+    "harness": "tests/compatibility/CanvasDataContractGuest.cs",
+    "harnessSha256": "a21d73db7dfe91fd23e3b4842c3b82fd4dc758a37eb683e249b0d884b02d3087",
+    "oldProductVersion": "0.1.33.0",
+    "oldProductSha256": "327e7ea7089a3504f0bcff8242fd296a7809be709074049525f9a04c2143c3cc",
+    "candidateVersion": "0.1.35.0",
+    "candidateSha256": "753ddc1f26f06a349a2ea69aa6c46d4334efc80068a4e9cd4d904bfba070bd71",
+    "phases": ["old seed", "candidate save", "old rollback edit and copy", "candidate reopen and save"],
+    "allPhasesPassed": true,
+    "elapsedSeconds": 44.38,
+    "verified": [
+      "Old image canvas loads unchanged in the candidate.",
+      "Candidate adds an SDK-style image carrying fileSize and saves an old-reader-compatible scene.",
+      "Real old binary reads both image resources, edits geometry and title, then copies the project.",
+      "Candidate reads the rollback edits and the copied project; final save/reopen preserves every image SHA-256 and resource identity.",
+      "Library rows and schema, categories, originals, pins, settings and nondefault storage paths survive all four phases."
+    ],
+    "hostExecuted": false,
+    "installedApplicationTouched": false,
+    "uiLaunched": false
+  },
+  "existingRollbackLimitation": "An old 0.1.33 settings save drops the newer IncludePreviewUpdates key; re-upgrade restores its default true. All prior keys and paths are preserved.",
+  "notClaimed": ["Installer upgrade acceptance", "Physical-machine acceptance", "A newly published product version"]
+}
