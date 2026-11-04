@@ -48,6 +48,21 @@ namespace MoriDesk {
    check(Find<TextBlock>(main,"BatchCount").ActualWidth>=48,label+" selection count retains readable space beside actions");
   }
   static void Render(FrameworkElement content,string path,int width){var bitmap=new RenderTargetBitmap(width,680,96,96,PixelFormats.Pbgra32);bitmap.Render(content);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var output=File.Create(path))encoder.Save(output);}
+  static void StartupPreference(Library library,Action<bool,string> check){
+   // Exercise actual saved settings and fresh windows, not an injected field.
+   // The caller has already isolated Settings.ConfigDir inside this fixture.
+   foreach(int step in new[]{0,1,2}){
+    var main=new MainWindow(library);StopTimers(main);
+    try{
+     bool shown=step!=1;var sidebars=Field<SidebarLayout>(main,"sidebars");
+     check(sidebars.RightDisplayed==shown,step==0?"first startup shows details before any image is selected":step==1?"fresh window restores manually hidden details":"fresh window restores manually opened details");
+     var asset=library.All().First();main.SelectTile(asset,ModifierKeys.None);main.FinishTileSelection(asset,false);Call(main,"ClearGallerySelection");
+     check(sidebars.RightDisplayed==shown,"startup preference survives selection and clearing, step "+step);
+     if(step<2){main.ToggleSidebar(false);check(Settings.Load().RightSidebarVisible==!shown,"manual details toggle persists for next window, step "+step);}
+     check(!main.Window.IsVisible,"startup persistence check never shows a desktop window, step "+step);
+    }finally{StopTimers(main);main.Window.Close();}
+   }
+  }
   internal static void Run(string root,Action<bool,string> check){
    root=Path.Combine(root,"selection-stability");Directory.CreateDirectory(root);string priorData=Environment.GetEnvironmentVariable("MORI_DESK_DATA"),priorTheme=Theme.Current;bool interactive=Entry.InteractiveShell;var priorLibrary=ThumbnailImage.CurrentLibrary;
    var app=Application.Current??new Application();var shutdown=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
@@ -58,6 +73,7 @@ namespace MoriDesk {
     using(var library=new Library(Path.Combine(root,"library"))){
      for(int i=0;i<48;i++)library.ImportConvertedFile(image,"参考图片 "+i,"","","",null,"keep");
      library.Db.Exec("UPDATE assets SET width=120,height=80");
+     StartupPreference(library,check);
      var main=new MainWindow(library){PreviewMode=true};main.PendingInformationChoice=()=>{throw new Exception("selection without drafts must not prompt");};StopTimers(main);
      var content=(FrameworkElement)main.Window.Content;main.Window.Content=null;content.Resources.MergedDictionaries.Add(main.Window.Resources);content.SetValue(System.Windows.Documents.TextElement.FontFamilyProperty,main.Window.FontFamily);content.SetValue(System.Windows.Documents.TextElement.FontSizeProperty,main.Window.FontSize);content.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty,"Text");
      var sidebars=Field<SidebarLayout>(main,"sidebars");var gallery=Find<ListBox>(main,"Gallery");

@@ -10,6 +10,9 @@ namespace Mori {
   bool homeLayoutReady,homeInspectorExplicit;
   string homeConversionKey;
   void InitializeHomeLayout(){
+   // Start from the saved view preference (visible by default). Selection
+   // never changes this choice, so browsing does not reflow on each click.
+   homeInspectorExplicit=sidebars.RightVisible;
    homeLayoutReady=true;
    B("HomeAdd").Click+=delegate{ShowHomeMenu(B("HomeAdd"),CreateHomeAddMenu());};
    B("HomeTypePicker").Click+=delegate{ShowHomeMenu(B("HomeTypePicker"),CreateHomeTypeMenu());};

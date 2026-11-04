@@ -15,8 +15,8 @@ using Microsoft.Win32;
 using MoriDesk;
 [assembly: AssemblyTitle("Nook Installer")]
 [assembly: AssemblyProduct("Nook Installer")]
-[assembly: AssemblyVersion("0.1.39.0")]
-[assembly: AssemblyFileVersion("0.1.39.0")]
+[assembly: AssemblyVersion("0.1.40.0")]
+[assembly: AssemblyFileVersion("0.1.40.0")]
 namespace MoriDeskInstaller {
  internal sealed class UpdateRequest {
   internal string RequestPath,SessionDirectory,ParentExecutable,ExpectedVersion;
