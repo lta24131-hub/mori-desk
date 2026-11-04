@@ -16,6 +16,7 @@ namespace Mori {
    B("HomeView").Click+=delegate{ShowHomeMenu(B("HomeView"),CreateGalleryMenu());};
    B("HomeNavigationToggle").Click+=delegate{ToggleSidebar(true);};
    B("SelectionMore").Click+=delegate{ShowHomeMenu(B("SelectionMore"),CreateSelectionActionsMenu());};
+   B("SelectionMulti").Click+=delegate{SetBatchSelecting(true);};
    Window.Closed+=delegate{homeLayoutReady=false;};
    UpdateHomeNavigation();UpdateHomeSelection();
   }
@@ -92,8 +93,13 @@ namespace Mori {
   void UpdateHomeSelection(){
    if(!homeLayoutReady)return;
    var items=Selected();bool any=items.Count>0,hidden=canvasProjectsMode||browserMode||boardMode||referenceMode,trash=view=="trash";
-   Find<Border>("BatchBar").Visibility=!hidden&&(any||batchSelecting)?Visibility.Visible:Visibility.Collapsed;
+   bool showActions=!hidden&&(any||batchSelecting);
+   // Selection commands share the existing toolbar row: selecting a tile must
+   // not insert space above it or move the next click/drag target.
+   Find<Border>("BatchBar").Visibility=showActions?Visibility.Visible:Visibility.Collapsed;
+   Find<StackPanel>("GalleryToolbar").Visibility=showActions?Visibility.Collapsed:Visibility.Visible;
    B("BatchAll").Visibility=batchSelecting?Visibility.Visible:Visibility.Collapsed;
+   B("SelectionMulti").Visibility=any&&!batchSelecting?Visibility.Visible:Visibility.Collapsed;B("SelectionMulti").IsEnabled=!busy;
    B("BatchMove").Content="分类";B("BatchMove").ToolTip=LocalCollectionsActive?"整理快捷收藏，不移动原文件":"移动到分类，或保留原分类并添加";
    B("BatchMove").Visibility=any&&!trash?Visibility.Visible:Visibility.Collapsed;
    B("SelectionMore").Visibility=any?Visibility.Visible:Visibility.Collapsed;B("SelectionMore").IsEnabled=!busy&&any;
@@ -116,7 +122,9 @@ namespace Mori {
   }
   void UpdateHomeInspector(){
    if(!homeLayoutReady)return;
-   bool hide=!fileConversionVisible&&!homeInspectorExplicit&&selection.Count==0;
+   // Only an explicit details/task action changes gallery width. Selection
+   // still refreshes inspector content, including while it is hidden.
+   bool hide=!fileConversionVisible&&!homeInspectorExplicit;
    if(sidebars.RightTemporarilyHidden!=hide){sidebars.SetTemporaryRightHidden(hide);QueueLayout();}
    UpdateDetailsToggle();
    // SidebarLayout applies its own visibility; page overlays retain priority.

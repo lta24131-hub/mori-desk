@@ -10,7 +10,7 @@ namespace Mori {
   string[] dragSelection;
   void InitializeBatch(){
    B("MultiSelect").Click+=delegate{SetBatchSelecting(!batchSelecting);};
-   B("BatchAll").Click+=delegate{SelectAllVisible();};B("BatchClear").Click+=delegate{ClearGallerySelection();};
+   B("BatchAll").Click+=delegate{SelectAllVisible();};B("BatchClear").Click+=delegate{if(batchSelecting)SetBatchSelecting(false);else ClearGallerySelection();};
    B("BatchMove").Click+=delegate{ShowHomeMenu(B("BatchMove"),CreateSelectionCategoryMenu());};B("MoveCategory").Click+=delegate{ChooseCategory(true);};
    B("BatchDelete").Click+=delegate{Trash();};B("BatchRestore").Click+=delegate{RestoreTrash();};
   }
@@ -45,7 +45,7 @@ namespace Mori {
    Find<Border>("BatchBar").Visibility=batchSelecting||count>1?Visibility.Visible:Visibility.Collapsed;
    L("BatchCount").Text="已选 "+count+" 项";B("MultiSelect").Content=batchSelecting?"完成":"多选";
    B("MultiSelect").SetResourceReference(Control.BackgroundProperty,batchSelecting?"AccentSoft":"Control");
-   B("BatchAll").IsEnabled=!busy&&visible.Count>0;B("BatchClear").IsEnabled=!busy&&count>0;
+   B("BatchAll").IsEnabled=!busy&&visible.Count>0;B("BatchClear").IsEnabled=!busy&&(count>0||batchSelecting);
    B("BatchMove").Visibility=trash?Visibility.Collapsed:Visibility.Visible;B("BatchRestore").Visibility=trash?Visibility.Visible:Visibility.Collapsed;
    foreach(string name in new[]{"BatchMove","BatchRestore","BatchDelete"})B(name).IsEnabled=!busy&&count>0;
    B("BatchDelete").Content=trash?"永久删除…":Selected().Any(a=>a.IsReference)?"移除收藏":"移到回收站";

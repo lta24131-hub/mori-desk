@@ -37,8 +37,8 @@ namespace Mori {
   }
   void Commit(bool isLeft){if(applying)return;if(LeftVisible)Left=ClampLeft((int)Math.Round(left.Width.IsAbsolute?left.Width.Value:left.ActualWidth));if(RightDisplayed&&(!temporaryRightWidth.HasValue||!isLeft)){Right=ClampRight((int)Math.Round(right.Width.IsAbsolute?right.Width.Value:right.ActualWidth));if(temporaryRightWidth.HasValue)temporaryRightWidth=Right;}Apply();if(Changed!=null)Changed();}
   internal void SetVisible(bool isLeft,bool visible){if(isLeft)LeftVisible=visible;else RightVisible=visible;Apply();}
-  // A selection-free gallery can use the full width without changing the user's
-  // saved preference or preferred inspector width.
+  // Compact browsing uses the full width until details are explicitly opened,
+  // without changing the saved preference or preferred inspector width.
   internal void SetTemporaryRightHidden(bool hidden){if(RightTemporarilyHidden==hidden)return;RightTemporarilyHidden=hidden;Apply();}
   // A task panel may need breathing room without overwriting the saved details
   // width. Explicit splitter movement still becomes the user's new preference.

@@ -132,6 +132,7 @@ namespace MoriDesk {
     check(Field<string>(main,"view")==category&&Find<TextBox>(main,"Search").Text=="测试素材"&&Field<List<Asset>>(main,"visible").Single().Id==first.Id,"type filtering within a category retains category membership and query");
     main.SetSection("assets");Select(main);var sidebars=Field<SidebarLayout>(main,"sidebars");sidebars.SetVisible(false,true);Set(main,"homeInspectorExplicit",false);Call(main,"UpdateInspector");
     var details=MenuAction(main.CreateGalleryMenu(),"显示右栏");check(!sidebars.RightDisplayed&&sidebars.RightVisible&&!details.IsChecked,"View check mark describes the automatically collapsed panel without overwriting the saved preference");
+    Select(main,first);check(!sidebars.RightDisplayed&&sidebars.RightVisible,"selecting the first image does not open compact details or change its saved preference");
     Click(details);Select(main,first);Select(main);check(sidebars.RightDisplayed&&MenuAction(main.CreateGalleryMenu(),"显示右栏").IsChecked,"one View action opens details and that explicit choice survives selection changes");
     main.ToggleSidebar(false);Select(main,first);main.ShowCanvasProjects();main.SetSection("assets");Select(main,first);check(!sidebars.RightDisplayed&&!sidebars.RightVisible,"explicitly hiding details remains honored after selecting images and visiting projects");
     check(Rows(library)==before&&store.List().Count==projects&&!main.Window.IsVisible,"all homepage navigation/selection/layout checks preserve every data row and canvas and never show a desktop window");

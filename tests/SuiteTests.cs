@@ -41,6 +41,7 @@ namespace MoriDesk {
    Stage("ImageViewerDetailTests.Run");ImageViewerDetailTests.Run(Path.Combine(root,"image-viewer-details"),Check);
    Stage("GalleryNavigationTests.Run");GalleryNavigationTests.Run(Path.Combine(root,"gallery-navigation"),Check);
    Stage("HomepageUsabilityTests.Run");HomepageUsabilityTests.Run(root,Check);
+   Stage("GallerySelectionStabilityTests.Run");GallerySelectionStabilityTests.Run(root,Check);
    Stage("HomepageRedesignTests.Run");HomepageRedesignTests.Run(root,Check);
    Stage("OpenWithRegistrationTests.Run");OpenWithRegistrationTests.Run(Path.Combine(root,"open-with"),Check);
    Stage("ThemePaletteTests.Run");ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
