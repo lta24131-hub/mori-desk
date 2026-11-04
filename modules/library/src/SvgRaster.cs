@@ -6,6 +6,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +43,7 @@ namespace Mori {
  }
  internal static class SvgRaster {
   internal const long MaximumInput=8*1024*1024;
+  internal const int WorkerReadyMagic=0x53564731,MaximumOutput=20*1024*1024;
   static readonly SemaphoreSlim Workers=new SemaphoreSlim(2);
   internal static readonly ThumbnailFailureCache FailureCache=new ThumbnailFailureCache(TimeSpan.FromMinutes(10),128);
   internal static void ClearFailures(){FailureCache.Clear();}
@@ -55,12 +57,13 @@ namespace Mori {
     var info=new FileInfo(path);if(!info.Exists||info.Length>MaximumInput)throw new NotSupportedException("SVG 文件过大，内置预览上限为 8 MB。");
     var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--svg-render \""+info.FullName+"\" "+Math.Max(1,Math.Min(2048,longest))){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
     using(var process=Process.Start(start)){
-     var bytes=WorkerIo.Run(delegate{using(var data=new MemoryStream()){byte[] buffer=new byte[16384];int n;while((n=process.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(data.Length+n>20*1024*1024)throw new InvalidDataException("SVG 预览输出过大。");data.Write(buffer,0,n);}return data.ToArray();}});
-     bool stopped=false;var clock=Stopwatch.StartNew();var diagnostic=new WorkerFailureDiagnostic("svg");Exception failure=null;
+     var clock=Stopwatch.StartNew();long readyAt=-1;
+     var bytes=WorkerIo.Run(()=>ReadWorkerOutput(process.StandardOutput.BaseStream,()=>Interlocked.CompareExchange(ref readyAt,clock.ElapsedMilliseconds,-1)));
+     bool stopped=false;var diagnostic=new WorkerFailureDiagnostic("svg");Exception failure=null;
      try{
       while(!process.WaitForExit(50)){
        long memory=0;try{process.Refresh();memory=process.PrivateMemorySize64;}catch(InvalidOperationException){if(process.HasExited)break;throw;}
-       bool limited=diagnostic.LimitReached(clock.ElapsedMilliseconds,memory,8000,256L*1024*1024);diagnostic.ThrowIfOutputFailed(bytes);
+       bool limited=WorkerLimitReached(diagnostic,clock.ElapsedMilliseconds,Interlocked.Read(ref readyAt),memory);diagnostic.ThrowIfOutputFailed(bytes);
        if(limited){stopped=true;diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);break;}
       }
       diagnostic.CaptureExit(process);if(!stopped)diagnostic.ThrowIfOutputFailed(bytes);
@@ -73,6 +76,22 @@ namespace Mori {
      finally{try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}try{bytes.Wait(2000);}catch(AggregateException){}}finally{diagnostic.StdoutFaulted=bytes.IsFaulted;diagnostic.CaptureExit(process);if(failure!=null)diagnostic.Attach(failure);}}
     }
    }catch{if(longest<=512)FailureCache.Remember(key,DateTime.UtcNow,attemptVersion);throw;}finally{Workers.Release();}
+  }
+  // Cold CLR/assembly startup must not consume the document's render budget.
+  // Both phases remain bounded to eight seconds; memory/output caps apply to
+  // the complete lifetime. Only the worker's first validated handshake starts
+  // the render phase, so output cannot keep resetting the deadline.
+  internal static bool WorkerLimitReached(WorkerFailureDiagnostic diagnostic,long elapsed,long readyAt,long memory){
+   bool limited=diagnostic.LimitReached(readyAt<0?elapsed:Math.Max(0,elapsed-readyAt),memory,8000,256L*1024*1024);
+   diagnostic.Observe(elapsed,memory);if(diagnostic.TimeoutExceeded&&readyAt<0)diagnostic.Reason="startup-timeout";return limited;
+  }
+  internal static byte[] ReadWorkerOutput(Stream input,Action ready){
+   using(var reader=new BinaryReader(input,Encoding.UTF8,true)){
+    if(reader.ReadInt32()!=WorkerReadyMagic)throw new InvalidDataException("SVG 预览连接版本不符。");ready();
+    using(var data=new MemoryStream()){
+     byte[] buffer=new byte[16384];int n;while((n=input.Read(buffer,0,buffer.Length))>0){if(data.Length+n>MaximumOutput)throw new InvalidDataException("SVG 预览输出过大。");data.Write(buffer,0,n);}return data.ToArray();
+    }
+   }
   }
   internal static XmlDocument SafeDocument(string path){
    var document=new XmlDocument{XmlResolver=null};
@@ -113,6 +132,6 @@ namespace Mori {
    double scale=longest/Math.Max(size.Width,size.Height);int w=Math.Max(1,(int)Math.Round(size.Width*scale)),h=Math.Max(1,(int)Math.Round(size.Height*scale));
    var result=doc.Draw(w,h);if(result==null)throw new InvalidDataException("无法绘制 SVG。");return result;
   }
-  internal static int Worker(string[] args){try{int longest;if(args.Length!=3||!int.TryParse(args[2],out longest)||longest<1||longest>2048)return 2;int width,height;using(var bitmap=RenderWorker(args[1],longest,out width,out height))using(var output=Console.OpenStandardOutput())using(var writer=new BinaryWriter(output)){writer.Write(width);writer.Write(height);bitmap.Save(output,ImageFormat.Png);}return 0;}catch{return 2;}}
+  internal static int Worker(string[] args){try{int longest;if(args.Length!=3||!int.TryParse(args[2],out longest)||longest<1||longest>2048)return 2;using(var output=Console.OpenStandardOutput())using(var writer=new BinaryWriter(output)){writer.Write(WorkerReadyMagic);writer.Flush();int width,height;using(var bitmap=RenderWorker(args[1],longest,out width,out height)){writer.Write(width);writer.Write(height);bitmap.Save(output,ImageFormat.Png);}}return 0;}catch{return 2;}}
  }
 }

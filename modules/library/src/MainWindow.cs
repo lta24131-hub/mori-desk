@@ -82,7 +82,6 @@ namespace Mori {
    B("RestoreTrash").Click+=delegate{RestoreTrash();};
    InitializeInspectorPreview();ReloadFolders();Refresh(true);if(!string.IsNullOrEmpty(library.DeletionRecoveryWarning))Status("上次删除的文件清理未完成："+library.DeletionRecoveryWarning);InitializeDesk();
   }
-  List<Asset> Selected(){return all.Where(a=>selection.Contains(a.Id)).ToList();}
   string CurrentFolder(){return view.Length==32?view:"";}
   void Navigate(string target){HideCanvasProjects();HideBrowser();HideBoard();HideReferences();EndFolderManaging();view=target;similarId=colorId="";selection.Clear();anchor="";pressed=null;if(!bookmarkMode&&target!="all")mediaSection="media";T("Search").Clear();Find<ComboBox>("MediaFilter").SelectedIndex=0;Refresh(true);ReloadFolders();UpdateNavigationHint();}
   void FolderDrop(object sender,DragEventArgs e){var node=sender as TreeViewItem;if(e.Handled||canvasProjectsMode||node==null||busy)return;string folder=(string)node.Tag;if(e.Data.GetDataPresent("Mori.AssetIds")){Edit("添加到分类："+node.Header,()=>library.AddToFolder((string[])e.Data.GetData("Mori.AssetIds"),folder));Refresh(false);RefreshCategoryLabel();e.Handled=true;}else if(IsLocalFileDrop(e.Data)){CollectLocalPaths((string[])e.Data.GetData(DataFormats.FileDrop));e.Handled=true;}}
@@ -110,7 +109,7 @@ namespace Mori {
    int sort=Find<ComboBox>("Sort").SelectedIndex;if(sort==1)query=query.OrderBy(a=>a.Added);else if(sort==2)query=query.OrderBy(a=>a.Name,StringComparer.CurrentCultureIgnoreCase);else if(sort==3)query=query.OrderByDescending(a=>a.Bytes);
    if(similarId!=""){var target=all.FirstOrDefault(a=>a.Id==similarId);query=ImageSimilarityIndex.HasIndex(target,false)?query.Where(a=>ImageSimilarityIndex.HasIndex(a,false)).OrderBy(a=>Library.Similarity(target.Perceptual,a.Perceptual)):Enumerable.Empty<Asset>();}
    if(colorId!=""){var target=all.FirstOrDefault(a=>a.Id==colorId);query=ImageSimilarityIndex.HasIndex(target,true)?query.Where(a=>ImageSimilarityIndex.HasIndex(a,true)).OrderBy(a=>ColorDistance(target.Color,a.Color)):Enumerable.Empty<Asset>();}
-   visible=query.ToList();if(mediaSection=="shortcuts")visible=visible.OrderByDescending(a=>a.IsDirectory).ToList();var visibleIds=new HashSet<string>(visible.Select(a=>a.Id));bool selectionChanged=selection.RemoveWhere(id=>!visibleIds.Contains(id))>0;foreach(var a in visible){a.Selected=selection.Contains(a.Id);a.Selecting=batchSelecting;}
+   visible=query.ToList();if(mediaSection=="shortcuts")visible=visible.OrderByDescending(a=>a.IsDirectory).ToList();var visibleIds=new HashSet<string>(visible.Select(a=>a.Id));bool selectionChanged=selection.RemoveWhere(id=>!visibleIds.Contains(id))>0;ApplyGallerySelection();
    string title=bookmarkMode&&(view=="home"||view=="all")?"网址收藏":view=="all"?(mediaSection=="pictures"?"图片 · 含动图":mediaSection=="videos"?"视频":mediaSection=="audio"?"音频":mediaSection=="documents"?"文档":mediaSection=="shortcuts"?"本地收藏":"全部素材"):view=="unfiled"?"未分类":view=="favorites"?"星标收藏":view=="trash"?"回收站":library.Folders().Where(f=>f.Id==view).Select(f=>f.Name).FirstOrDefault()??"分类";
    L("ViewTitle").Text=similarId!=""?"相似图片":colorId!=""?"相近颜色":title;L("ViewCount").Text=visible.Count+" 个素材 · "+Asset.Size(visible.Sum(a=>a.Bytes));
    Find<StackPanel>("Empty").Visibility=visible.Count==0?Visibility.Visible:Visibility.Collapsed;
@@ -159,7 +158,7 @@ namespace Mori {
   }
   void GalleryUp(object sender,MouseButtonEventArgs e){if(canvasProjectsMode){pressed=null;return;}FinishTileSelection(pressed,dragged);pressed=null;}
   void GalleryMove(object sender,MouseEventArgs e){if(canvasProjectsMode||pressed==null||e.LeftButton!=MouseButtonState.Pressed||dragged)return;Point point=e.GetPosition(Window);if(Math.Abs(point.X-dragOrigin.X)<SystemParameters.MinimumHorizontalDragDistance&&Math.Abs(point.Y-dragOrigin.Y)<SystemParameters.MinimumVerticalDragDistance)return;RestoreDragSelection();var items=Selected();if(items.Count==0)return;dragged=true;var data=new DataObject();data.SetData(DataFormats.FileDrop,items.Select(library.FullPath).ToArray());data.SetData("Mori.AssetIds",items.Select(a=>a.Id).ToArray());try{DragDrop.DoDragDrop(Window,data,DragDropEffects.Copy);}finally{HighlightLocalCollection(null);pressed=null;}}
-  void SyncSelection(){foreach(var a in visible){a.Selected=selection.Contains(a.Id);a.Selecting=batchSelecting;}UpdateInspector();if(refreshDeferred)Refresh(true);}
+  void SyncSelection(){ApplyGallerySelection();UpdateInspector();if(refreshDeferred)Refresh(true);}
   void ClearGallerySelection(){if(canvasProjectsMode||!PrepareLibraryChange())return;selection.Clear();anchor="";pressed=null;dragged=false;Find<ListBox>("Gallery").UnselectAll();SyncSelection();}
   void GalleryRight(object sender,MouseButtonEventArgs e){if(canvasProjectsMode)return;var tile=Tile(e.OriginalSource);if(tile==null)return;var a=(Asset)tile.Tag;if(!selection.Contains(a.Id)){if(!PrepareLibraryChange()){e.Handled=true;return;}selection.Clear();selection.Add(a.Id);SyncSelection();}var menu=CreateAssetMenu(a);menu.IsOpen=true;e.Handled=true;}
   void OnKey(object sender,KeyEventArgs e){

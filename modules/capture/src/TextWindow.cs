@@ -98,7 +98,7 @@ namespace QingJie {
             var allText=ActionButton("完整译文",ShowImageTranscript);allText.Name="ShowImageTranslationTranscript";imageTranslationActions.Children.Add(allText);
             var copyAll=ActionButton("复制全部译文",()=>{if(imageTranslation!=null)CopyText(imageTranslation.Transcript);});copyAll.Name="CopyImageTranslationTranscript";imageTranslationActions.Children.Add(copyAll);
             Grid.SetRow(selectionActions,2);right.Children.Add(selectionActions);
-            correctText=ActionButton("校正",EditRecognizedRegion);correctText.Name="CorrectRecognizedText";correctText.ToolTip="校正选中文字所在的段落，再重新翻译；原图保留";selectionActions.Children.Add(correctText);
+            correctText=ActionButton("校正",EditRecognizedRegion);correctText.Name="CorrectRecognizedText";correctText.ToolTip=allowTranslation?"校正选中文字所在的段落，再重新翻译；原图保留":"校正选中文字所在的段落；原图保留";selectionActions.Children.Add(correctText);
             selectionActions.Children.Add(ActionButton("复制",()=>CopyText(original.SelectedText)));
             translateSelection=ActionButton("翻译所选",TranslateSelected,true);translateSelection.ToolTip="翻译所选文字 · Ctrl+Enter";if(allowTranslation)selectionActions.Children.Add(translateSelection);
             var resultPanel=new StackPanel();var resultHeader=new DockPanel {Margin=new Thickness(8,4,4,0)};

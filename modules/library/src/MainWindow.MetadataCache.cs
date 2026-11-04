@@ -8,7 +8,7 @@ namespace Mori {
   internal void RefreshView(){RefreshCore(false);}
   void LoadMetadataForRefresh(){
    if(metadataLoaded&&!metadataReloadRequired)return;
-   var loaded=library.All();all=loaded;metadataLoaded=true;metadataReloadRequired=false;
+   var loaded=library.All();all=loaded;selectionPositions=null;selectionIndexSource=null;metadataLoaded=true;metadataReloadRequired=false;
   }
  }
 }
