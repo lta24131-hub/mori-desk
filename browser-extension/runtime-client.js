@@ -4,6 +4,7 @@ globalThis.MoriRuntime = (() => {
   const readOnly = message => ['preferences', 'folders'].includes(message?.action);
   function failure(error, message) {
     const diagnostic = String(error?.message || error || '').slice(0, 500);
+    if (message?.action === 'openLibrary') return {ok:false, code:'OPEN_LIBRARY_UNAVAILABLE', error:'收藏已完成，暂时无法打开 Nook，请从任务栏打开。', diagnostic};
     if (/extension context invalidated|context has been invalidated/i.test(diagnostic)) {
       return {ok:false, code:'EXTENSION_RELOADED', error:'Nook 插件已更新，请刷新这个网页后继续收藏。', diagnostic};
     }

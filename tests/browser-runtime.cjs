@@ -4,6 +4,10 @@ const path = require('node:path');
 const vm = require('node:vm');
 const {test} = require('node:test');
 const script = fs.readFileSync(path.join(__dirname,'../browser-extension/runtime-client.js'),'utf8');
+test('opening the app cannot turn a completed save into an unknown save or trigger a retry',async()=>{
+  const runtime=client([{error:'The message port closed before a response was received.'}]);
+  const result=await runtime.send({action:'openLibrary'});assert.equal(result.code,'OPEN_LIBRARY_UNAVAILABLE');assert.match(result.error,/收藏已完成/);assert.equal(runtime.calls.length,1);
+});
 function client(replies, clock = {}) {
   const pending = [], calls = [];
   const chrome = {runtime:{sendMessage(message,callback) {

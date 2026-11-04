@@ -133,6 +133,12 @@ function background(localOptions = {}) {
     request(message, tabId = 1, sender = {tab: {id: tabId}, frameId: 0}) {return new Promise(resolve => {const result = listener(message, sender, resolve); if (message.action !== 'discard') assert.equal(result, true);});}
   };
 }
+test('open Nook forwards no webpage executable, arguments or library path and never writes', async()=>{
+  const bg=background();bg.respond({ok:true});
+  const result=await bg.request({action:'openLibrary',path:'C:\\untrusted.exe',args:['--library','other'],data:'forged',source:'https://example.invalid'});
+  assert.equal(result.ok,true);assert.deepEqual(JSON.parse(JSON.stringify(bg.nativeCalls.at(-1).message)),{action:'openLibrary'});
+  assert.equal(bg.nativeCalls.filter(call=>call.message.action==='save').length,0);
+});
 
 test('same-version collector repair compares loaded generation, while legacy bundles keep version compatibility',async()=>{
   const version=extensionManifest.version;

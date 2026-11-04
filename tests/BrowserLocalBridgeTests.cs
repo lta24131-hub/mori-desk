@@ -21,6 +21,8 @@ namespace MoriDesk {
     string forged="{\"action\":\"bridgeStatus\",\"_extensionId\":\""+new string('b',32)+"\"}";
     string proof=Send(identity.ListeningPort,Request(identity.ListeningPort,origin,secret,forged));
     check(proof.Contains("\"id\":\""+id+"\"")&&!proof.Contains(new string('b',32)),"HTTP identity comes from authenticated origin not message body");
+    proof=Send(identity.ListeningPort,Request(identity.ListeningPort,origin,secret,"{\"action\":\"openLibrary\"}"));
+    check(proof.Contains("\"ok\":true")&&proof.Contains("\"id\":\""+id+"\""),"explicit open Nook action uses the same authenticated local fallback");
    }
    bool loadedSettings=false;string untouched=Path.Combine(root,"no-status-library");
    try{Mori.NativeBridge.HandleAtCurrentLibrary(new Dictionary<string,object>{{"action","bridgeStatus"},{"_extensionId",""}},untouched,()=>{loadedSettings=true;throw new Exception("Status touched settings");});}catch(UnauthorizedAccessException){}catch(InvalidDataException){}catch(InvalidOperationException error){if(string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA"))||!error.Message.Contains("独立数据目录"))throw;}

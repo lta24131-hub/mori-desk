@@ -16,6 +16,7 @@ namespace Mori {
    // Connection/update messages are independent of library selection. In
    // particular they must not initialize an empty database when a disk is away.
    if(Get(request,"action")=="bridgeStatus"||Get(request,"action")=="extensionControl")return MoriDesk.BrowserExtensionManager.Handle(request);
+   if(Get(request,"action")=="openLibrary")return MoriDesk.BrowserCollectionFeedback.Open(Get(request,"_extensionId"));
    if(loadSettings==null)loadSettings=Settings.Load;
    for(int attempt=0;attempt<3;attempt++){
     string root=testRoot??loadSettings().LibraryPath;
@@ -40,7 +41,7 @@ namespace Mori {
    var result=library.ImportBookmark(url,title,Get(request,"folder"),"","",choice);
    if(result.ChoiceRequired){var a=result.Item;return new{ok=true,duplicate=true,choiceRequired=true,existing=new{id=a.Id,name=a.Name,bytes=a.Bytes,width=0,height=0,type="网址",source=a.Source,thumbnail="",deleted=a.Deleted},incoming=new{name=title,bytes=a.Bytes,width=0,height=0,type="网址",source=url,thumbnail=""}};}
    BookmarkIcons.Remember(library.Root,url,Get(request,"iconUrl"));
-   return new{ok=true,duplicate=result.Duplicate,choiceRequired=false,keptCopy=result.KeptCopy,id=result.Item.Id,name=result.Item.Name};
+   return new{ok=true,duplicate=result.Duplicate,choiceRequired=false,keptCopy=result.KeptCopy,id=result.Item.Id,name=result.Item.Name,canOpenLibrary=MoriDesk.BrowserCollectionFeedback.CanOpen};
   }
   public static object Handle(Library library,Dictionary<string,object> request){string action=Get(request,"action");if(action=="folders"){var categories=library.Folders(Get(request,"scope")=="bookmark");return new{ok=true,theme=Settings.Load().Theme,folders=categories.Select(c=>new{id=c.Id,name=Label(c,categories)}).Take(500).ToArray()};}if(action=="importBookmarks")return BrowserBookmarkImport.Handle(library,request);if(action=="bookmark")return SaveBookmark(library,request);if(action!="save")throw new InvalidDataException("未知请求");
    string duplicateAction=Get(request,"duplicateAction");if(duplicateAction=="")duplicateAction="ask";if(duplicateAction!="ask"&&duplicateAction!="reuse"&&duplicateAction!="keep")throw new InvalidDataException("无效的重复文件处理方式");
@@ -68,7 +69,7 @@ namespace Mori {
       existing=new{id=existing.Id,name=existing.Name,bytes=existing.Bytes,width=existing.Width>0?existing.Width:width,height=existing.Height>0?existing.Height:height,type=existing.TypeLabel,source=existing.Source,thumbnail=thumbnail,deleted=existing.Deleted},
       incoming=new{name=title,bytes=image.LongLength,width=width,height=height,type=ext.TrimStart('.').ToUpperInvariant(),thumbnail=thumbnail}};
     }
-    return new{ok=true,duplicate=result.Duplicate,choiceRequired=false,keptCopy=result.KeptCopy,id=result.Item.Id,name=result.Item.Name};
+    return new{ok=true,duplicate=result.Duplicate,choiceRequired=false,keptCopy=result.KeptCopy,id=result.Item.Id,name=result.Item.Name,canOpenLibrary=MoriDesk.BrowserCollectionFeedback.CanOpen};
    }finally{if(File.Exists(temp))File.Delete(temp);}
   }
   // The prompt preview is generated only in memory: asking about a duplicate

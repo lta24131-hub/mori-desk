@@ -1,5 +1,7 @@
 (() => {
   const en = {
+    '收藏已完成，暂时无法打开 Nook，请从任务栏打开。':'Saved successfully. Nook could not be opened; open it from the taskbar.',
+    '打开 Nook':'Open Nook','正在打开…':'Opening…','已打开 Nook':'Nook opened','重新打开 Nook':'Try opening Nook again','请从任务栏打开 Nook':'Open Nook from the taskbar',
     '视频与网页来源一起保存':'Video and source URL','正在保存视频与来源到本机图库':'Saving the video and source locally','视频未收藏，请稍后重试。':'Video not saved. Please try again later.','本次未保存视频，也没有改存为网址或封面。':'Video not saved; no bookmark or poster was substituted.',
     '松手后，点击文件夹收藏':'Release, then click a folder to save','点击文件夹收藏 · 可滚轮查找':'Click a folder to save · Scroll to browse','选择文件夹':'Choose a folder','重试':'Retry',
     '已收藏到 Nook':'Saved to Nook','关闭提示':'Dismiss notification','发现重复图片 · 选择处理':'Duplicate image · Choose an action',

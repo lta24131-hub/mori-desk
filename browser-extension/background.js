@@ -310,6 +310,10 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     healthFlight.then(reply).catch(()=>reply({ok:false}));return true;
   }
   if(message?.action==='collector-idle') {updater.schedule();reply({ok:true});if(collectorGeneration&&sender.tab)void ensureCollector(sender.tab.id,sender.frameId??0);return;}
+  if(message?.action==='openLibrary') {
+    // No page-supplied path, arguments, or library location may cross this action.
+    native({action:'openLibrary'}).then(reply).catch(()=>reply({ok:false,error:'请从任务栏打开 Nook'}));return true;
+  }
   if(message?.action==='importBookmarks') {
     // Only the extension popup, never website content scripts, may bulk import.
     if(sender.tab || !String(sender.url || '').startsWith(`chrome-extension://${chrome.runtime.id}/popup.html`)){reply({ok:false,error:'只能从 Nook 插件窗口导入书签'});return true;}
@@ -458,7 +462,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       return;
     }
     await contextBadge(tab.id, '…', kind === 'video' ? '正在收藏视频' : '正在收藏图片');
-    await contextFeedback(tab.id, {action: 'context-saving', requestId, kind, name: item?.name || tab.title || '网页收藏'});
+    await contextFeedback(tab.id, {action: 'context-saving', requestId, kind, url:item?.url, name: item?.name || tab.title || '网页收藏'});
     const result = item ? await saveImage({url: item.url, kind, source: item.mediaPage || info.pageUrl || tab.url || info.frameUrl, name: item.name || tab.title || '网页收藏'}, owner)
       : {ok: false, error: lookupError || '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Nook。'};
     if (contextRequests.get(tab.id) !== requestId) {

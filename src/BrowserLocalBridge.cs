@@ -69,7 +69,7 @@ namespace MoriDesk {
     byte[] body=new byte[length];int at=0;
     while(at<length){if(clock.ElapsedMilliseconds>15000)return;int n=stream.Read(body,at,Math.Min(8192,length-at));if(n==0)return;at+=n;}
     object result;
-    try{var json=new JavaScriptSerializer{MaxJsonLength=Maximum};var request=json.Deserialize<Dictionary<string,object>>(new UTF8Encoding(false,true).GetString(body));object action;if(request==null||!request.TryGetValue("action",out action)||!new[]{"folders","save","bookmark","importBookmarks","bridgeStatus","extensionControl"}.Contains(action as string))throw new InvalidDataException("不支持此收藏请求");request["_extensionId"]=BrowserConnection.IdFromOrigin(origin);result=handle(request);}catch(Exception ex){result=new{ok=false,error=ex.Message};}
+    try{var json=new JavaScriptSerializer{MaxJsonLength=Maximum};var request=json.Deserialize<Dictionary<string,object>>(new UTF8Encoding(false,true).GetString(body));object action;if(request==null||!request.TryGetValue("action",out action)||!new[]{"folders","save","bookmark","importBookmarks","bridgeStatus","extensionControl","openLibrary"}.Contains(action as string))throw new InvalidDataException("不支持此收藏请求");request["_extensionId"]=BrowserConnection.IdFromOrigin(origin);result=handle(request);}catch(Exception ex){result=new{ok=false,error=ex.Message};}
     Reply(stream,200,origin,result);
    }finally{
     // Deliver an early rejection before closing a socket with an unread body.

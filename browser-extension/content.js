@@ -35,7 +35,7 @@
   let contextFramework;
   let contextTime = 0;
   const notices = new Map();
-  let noticeHost, noticeRoot, noticeList;
+  let noticeHost, noticeRoot, noticeList, noticeAnchor;
   const collectionBusy = () => resolving>0 || !!preparedDrag || [...sessions].some(session=>['dragging','choosing','editing','saving','duplicate'].includes(session.phase));
   function signalIdle() {if(!disposed)runtime({action:'collector-idle'},()=>{});}
   function releaseUpdateLock(lock) {
@@ -70,9 +70,34 @@
     const notice = notices.get(session);
     if (!notice) return;
     clearTimeout(notice.timer);
-    notice.row.remove(); notices.delete(session);
+    notices.delete(session); notice.row.remove();
     if (!notices.size) {noticeHost.remove(); noticeHost = null;}
+    else positionNotices();
     if (cancel) notice.cancel?.();
+  }
+
+  function positionNotices() {
+    if (!noticeHost) return;
+    const width = Math.min(360, innerWidth - 24);
+    Object.assign(noticeList.style, {width: `${width}px`, maxHeight: `${Math.max(48, innerHeight - 24)}px`,
+      left: `${Math.max(12, Math.min(noticeAnchor.x, innerWidth - width - 12))}px`,
+      top: `${Math.max(12, Math.min(noticeAnchor.y, innerHeight - noticeList.offsetHeight - 12))}px`});
+  }
+  listen(window, 'resize', positionNotices);
+  // Result cards can be hovered/read, but must never intercept the next drag.
+  listen(document, 'dragstart', () => {if (noticeHost) noticeHost.dataset.dragging = 'true';}, true);
+  listen(document, 'dragend', () => {if (noticeHost) delete noticeHost.dataset.dragging;}, true);
+
+  function collectionPreview(item) {
+    if (!item || item.kind === 'video' || item.bookmark) return '';
+    // Reuse an already loaded page image. Never download a guessed thumbnail,
+    // force playback, or decode a full-resolution copy just for feedback.
+    for (let at = 0; at < Math.min(document.images.length, 500); at++) {
+      const image = document.images[at];
+      if (image.complete && image.naturalWidth > 0 && image.currentSrc === item.url &&
+          /^(https?:|blob:|data:image\/)/i.test(image.currentSrc)) return image.currentSrc;
+    }
+    return '';
   }
 
   function notify(session, message, kind = 'success', detail = '', action = null, cancel = null) {
@@ -81,14 +106,22 @@
     // Bound DOM/memory even during a long burst of collections.
     if (notices.size >= 3) removeNotice(notices.keys().next().value, true);
     if (!noticeHost) {
+      noticeAnchor = session.rect || {x: innerWidth - 380, y: innerHeight - 160};
       noticeHost = document.createElement('div');
       noticeHost.dataset.moriNotice = '';
+      if (active?.phase === 'dragging') noticeHost.dataset.dragging = 'true';
       noticeHost.style.cssText = 'position:fixed;inset:0;z-index:2147483647;pointer-events:none';
       noticeRoot = noticeHost.attachShadow({mode:'closed'});
       const style = document.createElement('style');
-      style.textContent = `:host{all:initial;font:12px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}.notices{position:absolute;right:20px;bottom:20px;max-width:calc(100% - 40px);display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none}
-        .toast{--bg:#FFFFFF;--text:#252525;--line:#D7D7D7;--accent:#6D5BC7;box-sizing:border-box;display:flex;align-items:center;gap:7px;max-width:320px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--text);box-shadow:0 2px 10px #0001;overflow-wrap:anywhere;color-scheme:light}
-        .toast[data-theme="dark"]{--bg:#242424;--text:#EEEEEE;--line:#484848;--accent:#B7A8ED;color-scheme:dark}.toast[data-kind="error"]{color:#994c40}.toast[data-theme="dark"][data-kind="error"]{color:#f0b3a7}.toast-text{min-width:0}.toast-action,.toast-close{font:inherit;pointer-events:auto;cursor:pointer;border:0;background:none;color:inherit;padding:0}.toast-action{text-align:left;text-decoration:underline;text-underline-offset:3px}.toast-close{flex:none;width:18px;height:20px;opacity:.65}.toast-action:focus-visible,.toast-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}`;
+      style.textContent = `:host{all:initial;font:13px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}.notices{position:absolute;display:flex;flex-direction:column;gap:8px;pointer-events:none;overflow:auto;scrollbar-width:thin}
+        .toast{--bg:#FFFFFF;--text:#252525;--line:#D7D7D7;--accent:#6D5BC7;box-sizing:border-box;display:flex;flex:none;align-items:flex-start;gap:12px;width:100%;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--text);box-shadow:0 6px 24px #0002;overflow-wrap:anywhere;color-scheme:light;pointer-events:auto}
+        .toast[data-theme="dark"]{--bg:#242424;--text:#EEEEEE;--line:#484848;--accent:#B7A8ED;color-scheme:dark}
+        .toast[data-kind="error"]{color:#994c40}.toast[data-theme="dark"][data-kind="error"]{color:#f0b3a7}
+        :host([data-dragging="true"]) .toast,:host([data-dragging="true"]) button{pointer-events:none}
+        .toast-visual{position:relative;flex:none;width:56px;height:56px;display:grid;place-items:center;border-radius:9px;background:color-mix(in srgb,var(--line) 25%,var(--bg))}.toast-image{width:100%;height:100%;object-fit:contain;border-radius:9px}.toast-visual .collect-icon{position:absolute;inset:0;display:grid;place-items:center;color:var(--accent)}.toast-visual.has-image .collect-icon{inset:auto -5px -5px auto;width:26px;height:26px;border-radius:50%;background:var(--bg);box-shadow:0 1px 4px #0002}
+        .glyph{display:none;width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.has-image .glyph{width:18px;height:18px}.toast[data-kind="success"] .glyph-success{display:block;color:#20804b}.toast[data-theme="dark"][data-kind="success"] .glyph-success{color:#75d9a4}.toast[data-kind="saving"] .glyph-saving{display:block;animation:nook-notice-spin 1s linear infinite}.toast[data-kind="error"] .glyph-warning,.toast[data-kind="choice"] .glyph-warning{display:block;color:#c57a22}
+        .toast-body{min-width:0;flex:1}.toast-text,.toast-action{font-size:15px;font-weight:600;line-height:1.4}.toast-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}.toast-detail{opacity:.75;font-size:12px;margin-top:2px}.toast-action,.toast-open,.toast-close{font-family:inherit;pointer-events:auto;cursor:pointer;border:0;background:none;color:inherit;padding:0}.toast-action{text-align:left;text-decoration:underline;text-underline-offset:3px}.toast-open{color:var(--accent);font-size:12px;margin-top:9px}.toast-close{flex:none;width:24px;height:24px;font-size:20px;line-height:24px;opacity:.65;margin:-6px -7px 0 0;border-radius:5px}.toast-close:hover{background:color-mix(in srgb,var(--line) 35%,transparent);opacity:1}.toast-open:disabled{opacity:.6;cursor:wait}.toast-action:focus-visible,.toast-open:focus-visible,.toast-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+        @keyframes nook-notice-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.glyph-saving{animation:none!important}}`;
       noticeList = element('div', 'notices');
       noticeRoot.append(style, noticeList); document.documentElement.append(noticeHost);
     }
@@ -96,31 +129,65 @@
     row.dataset.kind = kind; row.dataset.theme = P.theme(preferences, darkMedia.matches);
     row.setAttribute('role', kind === 'error' ? 'alert' : 'status');
     row.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
+    row.setAttribute('aria-atomic', 'true');
     row.title = [session.item?.name, detail].filter(Boolean).join(' · ').slice(0, 1000);
     const label = element(action ? 'button' : 'span', action ? 'toast-action' : 'toast-text', message);
     if (action) {label.type = 'button'; label.onclick = action;}
+    const visual = element('div', 'toast-visual'); visual.setAttribute('aria-hidden', 'true');
+    if (session.feedbackPreview) {
+      const image = element('img', 'toast-image'); image.alt = ''; image.draggable = false;
+      image.onload = () => visual.classList.add('has-image');
+      image.onerror = () => {image.remove(); visual.classList.remove('has-image');};
+      image.src = session.feedbackPreview; visual.append(image);
+    }
+    visual.append(collectionIcon());
+    const body = element('div', 'toast-body'); body.append(label);
+    if (session.item?.name) {const name = element('div', 'toast-name'); name.textContent = session.item.name; body.append(name);}
+    if (detail) body.append(element('div', 'toast-detail', detail));
+    if (kind === 'success' && session.canOpenLibrary) {
+      const open = element('button', 'toast-open', '打开 Nook'); open.type = 'button';
+      open.onclick = () => {
+        if (open.disabled) return;
+        open.disabled = true; open.textContent = t('正在打开…');
+        runtime({action:'openLibrary'}, response => {
+          if (disposed || !row.isConnected) return;
+          open.disabled = false; open.textContent = t(response.ok ? '已打开 Nook' : '重新打开 Nook');
+          if (!response.ok) {body.querySelector('[role="alert"]')?.remove(); const error = element('div', 'toast-detail', '收藏已完成，暂时无法打开 Nook，请从任务栏打开。'); error.setAttribute('role', 'alert'); body.append(error); positionNotices();}
+        });
+      };
+      body.append(open);
+    }
     const close = element('button', 'toast-close', '×'); close.type = 'button';
     close.setAttribute('aria-label', t('关闭提示')); close.onclick = () => removeNotice(session, true);
-    row.append(label, close); noticeList.append(row);
+    row.append(visual, body, close); noticeList.append(row); positionNotices();
     const notice = {row, cancel}; notices.set(session, notice);
     // The transport has a bounded deadline. Keep its tiny pending status until
     // that result arrives, rather than hiding it while a slow save still runs.
     // It is always dismissible and the three-notice cap still bounds the DOM.
-    if (kind !== 'saving') notice.timer = setTimeout(() => removeNotice(session, true), kind === 'choice' ? 300000 : kind === 'error' ? 10000 : 1800);
+    if (kind !== 'saving') {
+      let remaining = kind === 'choice' ? 300000 : kind === 'error' ? 15000 : 7000, started;
+      const paused = new Set();
+      const resume = () => {if (!paused.size && notices.get(session) === notice) {clearTimeout(notice.timer); started = performance.now(); notice.timer = setTimeout(() => removeNotice(session, true), remaining);}};
+      const pause = reason => {if (!paused.size) {clearTimeout(notice.timer); remaining = Math.max(0, remaining - (performance.now() - started));} paused.add(reason);};
+      row.addEventListener('pointerenter', () => pause('pointer'));
+      row.addEventListener('pointerleave', () => {paused.delete('pointer'); resume();});
+      row.addEventListener('focusin', () => pause('focus'));
+      row.addEventListener('focusout', event => {if (!row.contains(event.relatedTarget)) {paused.delete('focus'); resume();}});
+      resume();
+    }
   }
 
   function detachCollector(session) {
     cancelFolderTimer(session);
     session.host.remove();
-    if (active === session) {clearTimeout(hideTimer); active = null;}
+    if (active === session) {clearTimeout(hideTimer); active = null; if (noticeHost) delete noticeHost.dataset.dragging;}
   }
 
   function beginBackground(session) {
     session.background = true;
     setPhase(session, 'saving');
     detachCollector(session);
-    // Fast saves only show the result; slow transfers get a small honest status.
-    session.progressTimer = setTimeout(() => notify(session, '正在收藏…', 'saving'), 500);
+    notify(session, '正在收藏…', 'saving', session.folderName ? `正在保存到「${session.folderName}」` : '正在保存到本机图库');
   }
 
   const outcomeUnknown = response => !response.ok && ['NATIVE_TIMEOUT','NATIVE_EMPTY_REPLY','NATIVE_HOST_DISCONNECTED','NATIVE_CONNECTION_ERROR','LOCAL_CONNECTION_UNAVAILABLE','SAVE_RESULT_UNKNOWN'].includes(response.code);
@@ -149,6 +216,8 @@
     releaseChoice(session); detachCollector(session);
     sessions.delete(session);
     session.phase = response.ok ? 'success' : 'error';
+    session.canOpenLibrary = response.canOpenLibrary === true;
+    if (response.ok && response.name) session.item = {...session.item, name:response.name};
     const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Nook') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Nook 按 Ctrl+V 收藏。'));
     notify(session, message, response.ok ? 'success' : 'error', response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.diagnostic);
     signalIdle();
@@ -491,7 +560,7 @@
     panel.append(head, quick, note, foot, categoryMenu);
     root.append(style, panel);
     document.documentElement.append(host);
-    const session = {host, panel, quick, title, hint, source, diagnostic, note, tag, foot, footerAction, categoryToggle, categoryMenu, categoryLabel, folderListElement, folderList: null, foldersOpen: false, item, phase: 'dragging'};
+    const session = {host, panel, quick, title, hint, source, diagnostic, note, tag, foot, footerAction, categoryToggle, categoryMenu, categoryLabel, folderListElement, folderList: null, foldersOpen: false, item, feedbackPreview:collectionPreview(item), phase: 'dragging'};
     sessions.add(session);
     active = session;
     unfiled.addEventListener('click', () => {if (session.phase === 'choosing') save(session, null);});
@@ -848,6 +917,9 @@
     if (session.background) {backgroundResult(session, response); return;}
     clearTimeout(hideTimer);
     if (response.ok && response.choiceRequired && response.choiceToken) {showDuplicate(session, response); return;}
+    // Right-click and editor collections share the same readable confirmation.
+    // Keep their existing error/duplicate editor so recovery never loses input.
+    if (response.ok) {backgroundResult(session, response); return;}
     releaseChoice(session);
     session.comparison?.remove();
     session.actions?.remove();
@@ -949,7 +1021,7 @@
 
   listen(document, 'dragend', () => {restoreDrag();if (active?.phase === 'dragging') dismiss();}, true);
   listen(document, 'keydown', event => {
-    if (event.key === 'Escape' && active) {event.preventDefault();event.stopPropagation();restoreDrag();dismiss();}
+    if (event.key === 'Escape' && active) {event.preventDefault();event.stopPropagation();restoreDrag();dismiss();if (noticeHost) delete noticeHost.dataset.dragging;}
   }, true);
   listen(window, 'resize', () => {if (active) position(active, fitted(active));});
   listen(document, 'contextmenu', event => {
@@ -1003,7 +1075,7 @@
       return;
     }
     if (message?.action === 'context-saving') {
-      const session = mount({name: message.name,kind:message.kind === 'video' ? 'video' : 'image'}, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
+      const session = mount({name: message.name,url:message.url,kind:message.kind === 'video' ? 'video' : 'image'}, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
       session.requestId = message.requestId;
       setPhase(session, 'saving');
       session.panel.title = t('正在收藏…');
