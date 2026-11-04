@@ -33,6 +33,27 @@ namespace MoriDeskInstaller {
    Check(Program.ParseUpdateRequest(Json(data),request,updates,root,10).ExpectedVersion==compiled.ToString(3),"request version generated from release metadata is accepted by the runtime protocol");
   }
   static void ManualFlowChecks(){
+   var desired=new Version(0,1,40,0);int recordReads=0,runningChecks=0,verifiedRuns=0;
+   var previous=new MoriDesk.InstalledApplicationDescriptor{version="0.1.38.0"};
+   Func<int> earlyAttempt=()=>Program.RunManualAttempt(()=>{recordReads++;return previous;},desired,()=>{runningChecks++;return true;},()=>{verifiedRuns++;return 7;});
+   Check(earlyAttempt()==Program.ManualNeedsExit&&recordReads==1&&runningChecks==1&&verifiedRuns==0,"known older running app is prompted before payload hashing, progress or replacement lease");
+   foreach(string version in new[]{"0.1.40.0","0.1.41.0"}){
+    previous.version=version;int beforeChecks=runningChecks;
+    Check(earlyAttempt()==7&&runningChecks==beforeChecks,"same/newer installation still reaches complete identity, integrity and version validation without an unnecessary exit: "+version);
+   }
+   previous=null;Check(earlyAttempt()==7,"first/legacy installation uses the complete verified path");
+   previous=new MoriDesk.InstalledApplicationDescriptor{version="0.1.38.0"};
+   bool stillRunning=true;int fullChecks=0,retries=0;
+   int preflightResult=Program.RunManualInstallation(()=>Program.RunManualAttempt(()=>previous,desired,()=>stillRunning,()=>{fullChecks++;return 0;}),()=>{retries++;stillRunning=false;return true;});
+   Check(preflightResult==0&&retries==1&&fullChecks==1,"after exit exactly one full validation runs; preflight never substitutes for it");
+   fullChecks=retries=0;stillRunning=true;
+   preflightResult=Program.RunManualInstallation(()=>Program.RunManualAttempt(()=>previous,desired,()=>stillRunning,()=>{fullChecks++;return 0;}),()=>{retries++;return false;});
+   Check(preflightResult==2&&retries==1&&fullChecks==0,"cancelling early exit performs no verification transaction or installation");
+   bool invalid=false;try{Program.RunManualAttempt(()=>{throw new InvalidDataException("bad record");},desired,()=>true,()=>{fullChecks++;return 0;});}catch(InvalidDataException){invalid=true;}
+   Check(invalid&&fullChecks==0,"invalid installation metadata fails without authorizing an install or requesting exit");
+   previous.version="0.1.38.0";retries=fullChecks=0;
+   preflightResult=Program.RunManualInstallation(()=>Program.RunManualAttempt(()=>previous,desired,()=>true,()=>{fullChecks++;return 7;}),()=>{retries++;previous.version="0.1.41.0";return true;});
+   Check(preflightResult==7&&retries==1&&fullChecks==1,"retry rereads a concurrently changed version and leaves downgrade rejection to full verification");
    Check(Program.ManualOperation(false,false,true)==InstallerOperation.Install,"first install has its own progress operation");
    Check(Program.ManualOperation(true,false,true)==InstallerOperation.Update,"an existing version reports update");
    Check(Program.ManualOperation(true,true,true)==InstallerOperation.Repair,"a damaged known installation reports repair");

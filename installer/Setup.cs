@@ -324,6 +324,18 @@ namespace MoriDeskInstaller {
    while(true){int result=attempt();if(result!=ManualNeedsExit)return result;if(!retryAfterExit())return 2;}
   }
   internal static InstallerOperation ManualOperation(bool hasInstalled,bool repair,bool apply){return !apply?InstallerOperation.VerifyEntrypoints:repair?InstallerOperation.Repair:hasInstalled?InstallerOperation.Update:InstallerOperation.Install;}
+  internal static int RunManualAttempt(Func<InstalledApplicationDescriptor> readRecord,Version desired,Func<bool> running,Func<int> verifiedInstall){
+   if(readRecord==null||desired==null||running==null||verifiedInstall==null)throw new ArgumentNullException();
+   // Advisory only: a known older installation will require exit regardless
+   // of its payload health. Ask before hashing the entire old tree/archive,
+   // and outside the replacement lease, so collection can finish normally.
+   // Never use this metadata to launch, repair, register or replace anything.
+   // Same/newer/legacy installs still take the complete verification path;
+   // a retry re-reads all state and Install rechecks running processes.
+   var previous=readRecord();
+   if(previous!=null&&new Version(previous.version)<desired&&running())return ManualNeedsExit;
+   return verifiedInstall();
+  }
   static bool RetryManualAfterExit(){
    return MessageBox.Show("Nook 仍在运行，本次尚未替换程序。\n\n请先完成收藏并保存编辑内容，再通过 Nook 菜单或托盘中的“退出 Nook”完全退出（旧版名称为 Mori Desk）。右上角 × 可能只是收进托盘。\n\n退出后点击“重试”继续，无需重新打开安装包；也可以取消，稍后再更新。安装器不会强制结束程序。","Nook · 等待退出",MessageBoxButtons.RetryCancel,MessageBoxIcon.Information)==DialogResult.Retry;
   }
@@ -332,7 +344,7 @@ namespace MoriDeskInstaller {
    // a forgotten confirmation/result dialog blocks browser collections and
    // the public launcher even though no replacement is in progress.
    if(MessageBox.Show("准备安装 Nook "+Version+"。\n\n已安装时会自动识别为更新或修复；无需更新且程序完好时只核对启动入口，不另装一套。\n新版确认可以启动后替换当前版本，再清理已核验的旧程序。\n素材、分类、贴图、画布、保存位置和设置均保留，Windows 默认应用选择保持不变。\n如果需要退出正在运行的 Nook，安装器会提示你保存并退出。","Nook · 安装与维护",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK)return 0;
-   return RunManualInstallation(()=>{pendingMessage=pendingTitle=null;return InstallerProgress.Run(()=>WithReplacementLease(Install));},RetryManualAfterExit);
+   return RunManualInstallation(()=>{pendingMessage=pendingTitle=null;return RunManualAttempt(()=>InstalledApplicationState.ReadRecordForRepair(ProgramRoot),new Version(Version+".0"),HasRunningMoriDesk,()=>InstallerProgress.Run(()=>WithReplacementLease(Install)));},RetryManualAfterExit);
   }
   [STAThread] static int Main(string[] args){Application.EnableVisualStyles();
    try{int result=Dispatch(args,MoriDesk.PhysicalUserContext.RequireInstalledContext,Verify,
@@ -343,7 +355,8 @@ namespace MoriDeskInstaller {
    UpdateRequest request=null;InstallerOperation operation=InstallerOperation.Install;
    try{
     InstallerProgress.Report("正在检查现有版本和安装包…");
-    bool repair;var previous=ExistingApplicationForRepair(out repair);string digest=PayloadDigest();
+    bool repair;var previous=ExistingApplicationForRepair(out repair);
+    InstallerProgress.Report("正在校验安装包…");string digest=PayloadDigest();
     bool apply=ShouldReplace(previous==null?null:new Version(previous.version),new Version(Version+".0"),previous==null?null:previous.payloadSha256,digest,repair);
     operation=ManualOperation(previous!=null,repair,apply);InstallerProgress.SetOperation(operation,Version);
     TryCleanupAbandonedStages();
