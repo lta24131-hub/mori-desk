@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
 
@@ -9,6 +10,7 @@ namespace MoriDesk {
  // metadata-only snapshot, not an automatic schema rollback or media backup.
  internal static class AppUpdateMetadataBackup {
   internal const long MaximumBytes=128L*1024*1024,MaximumFileBytes=64L*1024*1024;
+  internal const string InventoryName="backup-files.json";
   static readonly string[] LibraryKeys=("LibraryPath FileConversionOutputPath Theme ThumbnailSize LeftSidebarWidth RightSidebarWidth WaterfallLayout ShowAssetNames ShowAssetDetails LeftSidebarVisible RightSidebarVisible StartupSection DefaultSort ThemeAccent CloseToTray ConfirmTrash BookmarkOpenInApp AnimateImages PreviewBackdrop MediaVolume MediaMuted MediaAutoPlay MediaLoop CanvasDefaultTopmost CanvasSaveDelay CanvasCacheMB CanvasGrid CanvasShowTools CanvasSnap CanvasZoomSpeed CanvasDash CanvasSize").Split(' ');
   static readonly string[] CaptureKeys=("Stroke Color OcrLanguage TranslationProvider SaveFolder").Split(' ');
   internal static string SanitizeSettings(string text,bool capture){
@@ -52,11 +54,19 @@ namespace MoriDesk {
      foreach(string name in new[]{"project.json","mature-canvas.json"}){string source=Path.Combine(folder,name);if(!ExistsAs(source,false))continue;string target=Path.Combine(output,"canvas-"+id.ToString("N")+"-"+name);CopyMetadata(source,target,ref total);}
     }
    }
+   SealFiles(output,ref total);
    // This marker is written last. Failed/partial snapshots never advertise
    // completion; neither caller may replace the app after a backup failure.
    string marker=new JavaScriptSerializer().Serialize(new{schemaVersion=1,completedUtc=DateTime.UtcNow.ToString("O"),metadataOnly=true,sourceMediaIncluded=false,credentialsIncluded=false,bytes=total});
    if(Encoding.UTF8.GetByteCount(marker)>MaximumBytes-total)throw new IOException("元数据备份已达到总容量上限，未生成完成标记；请先手动备份。");
    Write(Path.Combine(output,"complete.json"),marker);
+  }
+  internal static void SealFiles(string output,ref long total){
+   var files=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+   foreach(string path in Directory.EnumerateFiles(output)){
+    PlainPath(path);using(var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))using(var sha=SHA256.Create())files.Add(Path.GetFileName(path),BitConverter.ToString(sha.ComputeHash(input)).Replace("-",""));
+   }
+   string text=new JavaScriptSerializer{MaxJsonLength=4*1024*1024}.Serialize(new{schemaVersion=1,files=files});AddBytes(Encoding.UTF8.GetByteCount(text),ref total);Write(Path.Combine(output,InventoryName),text);
   }
   static void CheckFile(string file,long maximum){PlainPath(file);if(!File.Exists(file)||new FileInfo(file).Length>maximum)throw new IOException("更新前元数据备份缺失或超过安全上限；本次更新已停止。");}
   // Exists() hides access-denied and I/O failures as "missing". Only a proven

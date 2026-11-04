@@ -14,7 +14,7 @@ namespace NookBackgroundUpdateTests {
     fixtures=args.Length>1?Path.GetFullPath(args[1]):Path.Combine(Path.GetTempPath(),"nook-update-background-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(fixtures);
     var assembly=Assembly.LoadFrom(executable);
     Action<bool,string> check=(passed,message)=>{checks++;if(!passed)throw new InvalidOperationException(message);};
-    foreach(string name in new[]{"MoriDesk.AppUpdateServiceTests","MoriDesk.AppUpdatePanelTests","MoriDesk.AppUpdateCoordinatorTests"}){
+    foreach(string name in new[]{"MoriDesk.AppUpdateServiceTests","MoriDesk.AppUpdatePanelTests","MoriDesk.AppUpdateCoordinatorTests","MoriDesk.UpdateArtifactMaintenanceTests"}){
      var type=assembly.GetType(name,true);var method=type.GetMethod("Run",BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic,null,new[]{typeof(string),typeof(Action<bool,string>)},null);
      if(method==null)throw new MissingMethodException(name,"Run");method.Invoke(null,new object[]{fixtures,check});
      Console.WriteLine("PASS "+name);

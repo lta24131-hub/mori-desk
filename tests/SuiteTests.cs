@@ -32,6 +32,7 @@ namespace MoriDesk {
    Stage("AppUpdatePanelTests.Run");AppUpdatePanelTests.Run(Path.Combine(root,"app-update-panel"),Check);
    Stage("AppUpdateCoordinatorTests.Run");AppUpdateCoordinatorTests.Run(Path.Combine(root,"app-update-coordinator"),Check);
    Stage("InstalledVersionMaintenanceTests.Run");InstalledVersionMaintenanceTests.Run(Check);
+   Stage("UpdateArtifactMaintenanceTests.Run");UpdateArtifactMaintenanceTests.Run(Path.Combine(root,"update-artifacts"),Check);
    Stage("InstalledTaskbarIdentityTests.Run");InstalledTaskbarIdentityTests.Run(Path.Combine(root,"installed-taskbar"),Check);
    Stage("ReferenceEagleMetadataTests.Run");ReferenceEagleMetadataTests.Run(Path.Combine(root,"reference-eagle"),Check);
    Stage("ExportNamingTests.Run");ExportNamingTests.Run(Path.Combine(root,"export-naming"),Check);

@@ -246,6 +246,7 @@ namespace MoriDesk {
    string partial = Path.Combine(directory, InstallerName + ".partial"), final = Path.Combine(directory, InstallerName);
    long downloaded = 0;
    try {
+    UpdateArtifactMaintenance.RecordDownload(directory,release,DateTime.UtcNow);
     using (var response = await SendAsync(AssetUri(release.AssetId), token, true, cancellationToken).ConfigureAwait(false)) {
      if (response.Content == null) throw new InvalidDataException("安装包内容为空。");
      if (response.Content.Headers.ContentLength.HasValue && response.Content.Headers.ContentLength.Value != release.Size) throw new InvalidDataException("安装包大小与发布记录不一致，已停止下载。");
@@ -275,6 +276,9 @@ namespace MoriDesk {
     return final;
    } catch {
     try { if (File.Exists(partial)) File.Delete(partial); } catch { }
+    // Only this newly created attempt, never a recursive cache purge. The
+    // receipt stays if a final installer exists for later verified cleanup.
+    try { if (!File.Exists(final)&&!File.Exists(partial)) { File.Delete(Path.Combine(directory,UpdateArtifactMaintenance.Receipt)); Directory.Delete(directory,false); } } catch { }
     throw;
    }
   }

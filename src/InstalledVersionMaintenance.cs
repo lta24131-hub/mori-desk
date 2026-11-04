@@ -15,6 +15,7 @@ namespace MoriDesk {
  internal sealed class InstalledMaintenanceAttempt {
   internal readonly string State,Reason;
   internal readonly InstalledCleanupResult Result;
+  internal bool ArtifactRetry;
   internal InstalledMaintenanceAttempt(string state,string reason,InstalledCleanupResult result=null){State=state;Reason=reason;Result=result;}
  }
  // Successful real-main rendering is the only caller. Portable/test/native
@@ -93,6 +94,7 @@ namespace MoriDesk {
   }
   internal static bool CanRetry(InstalledMaintenanceAttempt attempt){
    if(attempt==null)return false;
+   if(attempt.ArtifactRetry)return true;
    if(attempt.Result==null)return attempt.State=="deferred"&&(attempt.Reason=="integration-not-ready"||attempt.Reason=="maintenance-busy"||attempt.Reason=="file-occupation");
    return (attempt.State=="deferred"||attempt.State=="partial")&&attempt.Reason=="entries-pending"&&attempt.Result.Pending.Count>0&&attempt.Result.Skipped.Count==0&&attempt.Result.Pending.All(item=>item.Retry==InstalledCleanupRetry.FileInUse);
   }
@@ -164,6 +166,7 @@ namespace MoriDesk {
      // the committed installation are ready. Failure must not block the app
      // or authorize deleting any additional payload.
      bool visualRepairAttempted=false;
+     var artifacts=new UpdateArtifactResult();
      string sid;using(var identity=WindowsIdentity.GetCurrent())sid=identity.User.Value;
      var outcome=await RunWithOneRetryAsync(()=>{
       try{
@@ -190,6 +193,23 @@ namespace MoriDesk {
            var state=InstalledCleanupState.Capture(executable,root,paths);
            return CleanupGate(executable,state,!cancelled()&&committed()&&ready(),paths);
           },InstalledLegacyPayloadCatalog.TryCertify);
+          // Reuse the healthy-install gate and lease. Downloads/backups live
+          // inside dataRoot, so protect its actual user-content children plus
+          // BOTH live and saved storage routes instead of excluding dataRoot.
+          try{
+           string saved=InstalledCleanupState.ReadPhysicalText(Path.Combine(Entry.DataRoot,"settings.json"),1024*1024);
+           Action artifactGuard=()=>{
+            if(AppUpdateCoordinator.IsActive||RevalidationFailure(ref expectedIdentity,()=>InstallationIdentity(root,executable),committed,cancelled,ready)!=null)throw new IOException("Update still active.");
+            if(saved!=InstalledCleanupState.ReadPhysicalText(Path.Combine(Entry.DataRoot,"settings.json"),1024*1024))throw new IOException("Storage routes changed.");
+            var snapshot=InstalledCleanupState.Capture(executable,root,new[]{Entry.DataRoot});
+            if(!snapshot.Complete||!snapshot.EntrypointsSwitched)throw new IOException("Update routes not ready.");
+           };
+           var protectedArtifacts=ProtectedRoutes(Path.Combine(Entry.DataRoot,"capture"),libraryPath,saved,Mori.Settings.DefaultConversionOutputPath,new[]{Path.Combine(local,"Nook","ConversionComponents"),Path.Combine(Entry.DataRoot,"free-canvas"),Path.Combine(Entry.DataRoot,"browser")},ValidateProtectedPath);
+           var pass=UpdateArtifactMaintenance.Clean(Path.Combine(Entry.DataRoot,"updates"),typeof(Entry).Assembly.GetName().Version,DateTime.UtcNow,protectedArtifacts,artifactGuard);
+           artifacts.downloads+=pass.downloads;artifacts.backups+=pass.backups;artifacts.bytes+=pass.bytes;artifacts.retained=pass.retained;
+           UpdateArtifactMaintenance.SaveReport(Entry.DataRoot,artifacts);
+           if(pass.retry)return new InstalledMaintenanceAttempt(StateFor(result),ReasonFor(result),result){ArtifactRetry=true};
+          }catch(Exception artifactError){Trace.WriteLine("Nook update artifact cleanup deferred: "+artifactError.GetType().Name);}
           return new InstalledMaintenanceAttempt(StateFor(result),ReasonFor(result),result);
          }finally{if(held)mutex.ReleaseMutex();}
         }
@@ -255,7 +275,7 @@ namespace MoriDesk {
    try{
     if(!Entry.InteractiveShell)return "后台与测试进程不读取正式版清理状态。";
     if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA")))return "独立数据环境不读取正式版清理状态。";
-    return SummaryFromReport(InstalledCleanupState.ReadPhysicalText(Path.Combine(PhysicalUserContext.DefaultRoot,"maintenance","version-cleanup.json"),MaximumReportBytes));
+    return SummaryFromReport(InstalledCleanupState.ReadPhysicalText(Path.Combine(PhysicalUserContext.DefaultRoot,"maintenance","version-cleanup.json"),MaximumReportBytes))+UpdateArtifactMaintenance.ReadSummary(PhysicalUserContext.DefaultRoot);
    }catch(FileNotFoundException){return SummaryFromReport(null);}catch(DirectoryNotFoundException){return SummaryFromReport(null);}
    catch{return "无法读取上次清理状态，未对旧版本执行任何操作。";}
   }

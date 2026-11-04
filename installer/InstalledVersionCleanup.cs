@@ -91,14 +91,14 @@ namespace MoriDeskInstaller {
     if((File.GetAttributes(part)&FileAttributes.ReparsePoint)!=0)throw new IOException("安装目录含链接，未清理旧版本。");
   }
   static string Final(SafeFileHandle handle){var value=new StringBuilder(32768);uint count=GetFinalPathNameByHandle(handle,value,(uint)value.Capacity,0);if(count==0||count>=value.Capacity)throw WinError("无法确认文件实际位置。");string path=value.ToString();return path.StartsWith(@"\\?\",StringComparison.Ordinal)?path.Substring(4):path;}
-  static SafeFileHandle OpenLocked(string path,bool directory,bool deletion,bool exclusive=false){
+  internal static SafeFileHandle OpenLocked(string path,bool directory,bool deletion,bool exclusive=false){
    // Exclusive old-file handles also prevent a new old-version process from
    // loading between the final process snapshot and deletion.
    Plain(path);var handle=CreateFile(path,(directory?ReadAttributes:GenericRead)|(deletion?DeleteAccess:0),directory?ShareRead|ShareWrite:((deletion||exclusive)?0:ShareRead),IntPtr.Zero,OpenExisting,OpenReparsePoint|(directory?BackupSemantics:0),IntPtr.Zero);
    if(handle.IsInvalid){var error=WinError("文件正在使用或无法读取，旧版本稍后重试。");handle.Dispose();throw error;}
    try{if(!Names.Equals(Full(path),Full(Final(handle))))throw new IOException("文件实际位置与安装目录不同，未清理。");Plain(path);return handle;}catch{handle.Dispose();throw;}
   }
-  static string Hash(Stream input){input.Position=0;using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(input)).Replace("-","");}
+  internal static string Hash(Stream input){input.Position=0;using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(input)).Replace("-","");}
   static string Hash(byte[] bytes){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-","");}
   internal static bool ConfirmedMissing(string path){
    // Exists() collapses permission and I/O failures into false. Recovery may
@@ -266,7 +266,7 @@ namespace MoriDeskInstaller {
    foreach(string directory in manifest.directories){Resolve(folder,directory);if(!unique.Add(directory)||Names.Equals(directory,ManifestName)||Names.Equals(directory,ProgressName))throw new InvalidDataException("安装目录清单无效。");}
    if(!manifest.files.Keys.Any(name=>Names.Equals(name,"Mori.exe")))throw new InvalidDataException("安装清单未包含主程序。");return manifest;
   }
-  static void MarkDelete(SafeFileHandle handle){var disposition=new Disposition{DeleteFile=1};if(!SetFileInformationByHandle(handle,4,ref disposition,4))throw WinError("文件仍在使用或删除被阻止，可稍后重试。");}
+  internal static void MarkDelete(SafeFileHandle handle){var disposition=new Disposition{DeleteFile=1};if(!SetFileInformationByHandle(handle,4,ref disposition,4))throw WinError("文件仍在使用或删除被阻止，可稍后重试。");}
   static void DeleteFile(LockedTree tree,string path){var stream=tree.Files[path];MarkDelete(stream.SafeFileHandle);stream.Dispose();}
   static void DeleteOne(string root,string folder,Action validateState,Action<byte[],InstalledPayloadManifest> verifyOwnership=null){
    Child(root,folder);validateState();

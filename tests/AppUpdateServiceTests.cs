@@ -134,7 +134,7 @@ namespace MoriDesk {
    using (var service = new AppUpdateService(handler)) {
     string file = await service.DownloadAsync(DownloadRelease(), Token, Path.Combine(root, "success"), progress, CancellationToken.None).ConfigureAwait(false);
     check(File.Exists(file) && Path.GetFileName(file) == "Nook-Setup.exe" && File.ReadAllBytes(file).SequenceEqual(Installer), "verified download atomically publishes exact installer bytes without executing");
-    check(!File.Exists(file + ".partial") && Directory.GetFiles(Path.GetDirectoryName(file)).Length == 1, "successful staging leaves no partial or unrelated executable");
+    check(!File.Exists(file + ".partial") && Directory.GetFiles(Path.GetDirectoryName(file)).Length == 2 && File.Exists(Path.Combine(Path.GetDirectoryName(file),UpdateArtifactMaintenance.Receipt)), "successful staging retains only verified installer and its cleanup receipt");
     check(handler.Requests[0].Authorization == "Bearer " + Token && handler.Requests[1].Authorization == "", "private token is never forwarded to release CDN redirect");
     check(progress.Values.First().Downloaded == 0 && progress.Values.Last().Stage == "ready" && progress.Values.Last().Downloaded == Installer.Length && progress.Values.Any(p => p.Stage == "verifying"), "progress distinguishes download, verification, and ready only after verified rename");
    }
