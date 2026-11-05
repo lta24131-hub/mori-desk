@@ -14,7 +14,9 @@ globalThis.MoriDesktopFeedback = {
         let result;
         try {result = await task();} catch {result={ok:false,code:'SAVE_RESULT_UNKNOWN',error:'收藏结果未确认，请先检查图库，避免重复收藏。'};}
         // Preserve ordering even when a cached image saves during a cold start.
-        await pending;
+        // A failed progress channel is not a reason to launch another native
+        // host and make an already finished save wait through a second timeout.
+        if (!await pending) return {...result,desktopFeedback:false};
         const state = result.choiceRequired ? 'choice' : result.ok ? 'success' : unknown.has(result.code) ? 'unknown' : 'error';
         const desktopFeedback = await deliver({...base,state,name:text(result.name,250)||name,
           detail:text(result.error,600),duplicate:result.duplicate===true,keptCopy:result.keptCopy===true});

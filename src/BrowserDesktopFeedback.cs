@@ -80,14 +80,14 @@ namespace MoriDesk {
    SourceInitialized+=(s,e)=>{var handle=new WindowInteropHelper(this).Handle;SetStyle(handle,-20,GetStyle(handle,-20)|0x08000000|0x00000080);};
    SizeChanged+=(s,e)=>Place();
    timer=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(250)};
-   timer.Tick+=(s,e)=>{
-    double now=clock.Elapsed.TotalSeconds;
+   timer.Tick+=(s,e)=>Advance(clock.Elapsed.TotalSeconds);timer.Start();Closed+=(s,e)=>timer.Stop();
+  }
+  internal void Advance(double now){
     foreach(var card in cards.Values.ToArray()){
      double delta=now-card.Last;card.Last=now;
      if(card.State=="saving"){if(now-card.Created>90){card.State="unknown";card.Title.Text="收藏结果未确认";card.Detail.Text="请先检查图库，避免重复收藏。";card.Remaining=15;card.Mark.Text="!";}}
-     else if(!card.View.IsMouseOver&&!card.View.IsKeyboardFocusWithin){card.Remaining-=delta;if(card.Remaining<=0)Remove(card.Id,card.State!="choice");}
+     else if(!card.View.IsMouseOver&&!card.View.IsKeyboardFocusWithin){card.Remaining-=delta;if(card.Remaining<=0)Remove(card.Id,card.State!="choice"&&card.State!="unknown");}
     }
-   };timer.Start();Closed+=(s,e)=>timer.Stop();
   }
   internal static Rect Placement(Rect area,double width,double height){width=Math.Min(width,Math.Max(1,area.Width-24));height=Math.Min(height,Math.Max(1,area.Height-24));return new Rect(Math.Max(area.Left+12,area.Right-width-12),Math.Max(area.Top+12,area.Bottom-height-12),width,height);}
   void Place(){var bounds=Placement(SystemParameters.WorkArea,Width,ActualHeight);Left=bounds.Left;Top=bounds.Top;}
@@ -97,7 +97,7 @@ namespace MoriDesk {
    var value=BrowserDesktopFeedback.Clean(raw);string id=(string)value["id"],state=(string)value["state"];
    if(state=="dismiss"){Remove(id);Remember(id);return;}if(closed.Contains(id))return;
    Card card;if(cards.TryGetValue(id,out card)){if(card.State!="saving"&&card.State!="choice"&&state=="saving")return;if(card.State=="choice"&&state=="saving")card.Created=clock.Elapsed.TotalSeconds;}
-   else{if(cards.Count>=3)Remove(cards.Values.OrderBy(c=>c.Created).First().Id);card=new Card{Id=id,Created=clock.Elapsed.TotalSeconds};cards.Add(id,card);Build(card);stack.Children.Add(card.View);}
+   else{if(cards.Count>=3){var oldest=cards.Values.OrderBy(c=>c.Created).First();Remove(oldest.Id,oldest.State=="success"||oldest.State=="error");}card=new Card{Id=id,Created=clock.Elapsed.TotalSeconds};cards.Add(id,card);Build(card);stack.Children.Add(card.View);}
    card.State=state;card.Last=clock.Elapsed.TotalSeconds;card.Remaining=state=="success"?7:15;
    bool dark=(string)value["theme"]=="dark";Brush background=new SolidColorBrush(dark?Color.FromRgb(36,36,36):Colors.White),foreground=new SolidColorBrush(dark?Color.FromRgb(238,238,238):Color.FromRgb(37,37,37));
    card.View.Background=background;card.Mark.Background=background;card.Title.Foreground=foreground;card.Name.Foreground=foreground;card.Detail.Foreground=foreground;card.Close.Foreground=foreground;card.View.BorderBrush=new SolidColorBrush(dark?Color.FromRgb(72,72,72):Color.FromRgb(215,215,215));card.Open.Foreground=new SolidColorBrush(dark?Color.FromRgb(183,168,237):Color.FromRgb(109,91,199));
@@ -108,7 +108,7 @@ namespace MoriDesk {
    string folder=(string)value["folderName"];
    card.Detail.Text=state=="choice"?"请返回原网页选择处理方式。":success?(duplicate&&!kept?"已使用图库原图，未重复保存":folder!=""?"已保存到「"+folder+"」":"已保存到本机图库 · 未分类"):state=="saving"?(folder!=""?"正在保存到「"+folder+"」":"正在保存到本机图库"):(string)value["detail"];
    card.Open.Visibility=success?Visibility.Visible:Visibility.Collapsed;
-   card.Image.Source=Preview((string)value["preview"]);card.Image.Visibility=card.Image.Source==null?Visibility.Collapsed:Visibility.Visible;
+   string preview=(string)value["preview"];if(card.PreviewSource!=preview){card.PreviewSource=preview;card.Image.Source=Preview(preview);}card.Image.Visibility=card.Image.Source==null?Visibility.Collapsed:Visibility.Visible;
    if(!IsVisible)Show();UpdateLayout();Place();
   }
   internal static BitmapSource Preview(string source){
@@ -129,6 +129,6 @@ namespace MoriDesk {
    card.Open.Click+=(s,e)=>{try{if(!BrowserCollectionFeedback.CanOpen)throw new InvalidOperationException();string executable=InstalledApplicationRouting.RegistrationExecutable();AppUpdateCoordinator.PlainPath(executable);using(var process=Process.Start(BrowserCollectionFeedback.StartInfo(executable))){if(process==null)throw new IOException();}}catch{card.Detail.Text="收藏已完成，请从任务栏打开 Nook。";card.Remaining=15;}};body.Children.Add(card.Open);
    var close=new Button{Content="×",FontSize=18,Height=24,Width=24,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),VerticalAlignment=VerticalAlignment.Top,Cursor=System.Windows.Input.Cursors.Hand,ToolTip="关闭提示"};card.Close=close;System.Windows.Automation.AutomationProperties.SetName(close,"关闭收藏提示");close.Click+=(s,e)=>Remove(card.Id);Grid.SetColumn(close,2);grid.Children.Add(close);
   }
-  sealed class Card {internal string Id,State;internal double Created,Last,Remaining;internal Border View;internal TextBlock Title,Name,Detail,Mark;internal Image Image;internal Button Open,Close;}
+  sealed class Card {internal string Id,State,PreviewSource;internal double Created,Last,Remaining;internal Border View;internal TextBlock Title,Name,Detail,Mark;internal Image Image;internal Button Open,Close;}
  }
 }

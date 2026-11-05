@@ -22,6 +22,7 @@ namespace MoriDesk {
   }
   static byte[] ReadExact(Stream input,int length){var bytes=new byte[length];int at=0;while(at<length){int count=input.Read(bytes,at,length-at);if(count==0)throw new EndOfStreamException();at+=count;}return bytes;}
   static Dictionary<string,object> Message(string id,string state){return new Dictionary<string,object>{{"id",id},{"state",state},{"name","工作区灵感.png"},{"folderName","设计参考"}};}
+  static bool HasText(DependencyObject node,string text){var label=node as System.Windows.Controls.TextBlock;if(label!=null&&label.Text==text)return true;for(int i=0;i<VisualTreeHelper.GetChildrenCount(node);i++)if(HasText(VisualTreeHelper.GetChild(node,i),text))return true;return false;}
   public static void Run(string root,Action<bool,string> check){
    string id=Guid.NewGuid().ToString();var valid=Message(id,"saving");valid["path"]="C:\\untrusted.exe";var clean=BrowserDesktopFeedback.Clean(valid);check(!clean.ContainsKey("path"),"notifications never accept executable or saved file paths");
    foreach(var pair in new[]{new[]{"id","not-a-guid"},new[]{"state","run"},new[]{"preview","https://example.com/image.png"},new[]{"name",new string('x',251)}}){var bad=Message(id,"saving");bad[pair[0]]=pair[1];bool refused=false;try{BrowserDesktopFeedback.Clean(bad);}catch(InvalidDataException){refused=true;}check(refused,"invalid notification field refused: "+pair[0]);}
@@ -40,6 +41,20 @@ namespace MoriDesk {
     window.Update(Message(id,"dismiss"));window.Update(Message(id,"success"));check(window.NoticeCount==0,"dismissed notification cannot reappear on completion");
     for(int n=0;n<5;n++)window.Update(Message(Guid.NewGuid().ToString(),"success"));check(window.NoticeCount==3,"notification burst stays bounded to three cards");
    }finally{window.Close();}
+   var burst=new CollectionNotificationWindow();try{
+    string slow=Guid.NewGuid().ToString();burst.Update(Message(slow,"saving"));
+    for(int n=0;n<3;n++)burst.Update(Message(Guid.NewGuid().ToString(),"success"));
+    var result=Message(slow,"success");result["name"]="burst-completed.png";burst.Update(result);burst.UpdateLayout();
+    check(burst.NoticeCount==3&&HasText(burst,"burst-completed.png"),"evicted pending collection can still show its later completion within the card limit");
+   }finally{burst.Close();}
+   var delayed=new CollectionNotificationWindow();try{
+    string slow=Guid.NewGuid().ToString();delayed.Update(Message(slow,"saving"));delayed.Advance(91);delayed.UpdateLayout();
+    check(HasText(delayed,"收藏结果未确认"),"a stalled collection never invents success");
+    delayed.Advance(107);check(delayed.NoticeCount==0,"automatic uncertainty notice expires");
+    var result=Message(slow,"success");result["name"]="late-completed.png";delayed.Update(result);delayed.UpdateLayout();
+    check(delayed.NoticeCount==1&&HasText(delayed,"late-completed.png"),"a real late completion remains visible after automatic uncertainty expiry");
+    delayed.Update(Message(slow,"dismiss"));delayed.Update(result);check(delayed.NoticeCount==0,"manual dismiss still blocks late completion after recovery");
+   }finally{delayed.Close();}
    var start=Stopwatch.StartNew();var foreground=GetForegroundWindow();var pending=Message(Guid.NewGuid().ToString(),"saving");
    check(Protocol(pending),"real native messaging process acknowledges actual desktop display");
    double cold=start.Elapsed.TotalMilliseconds;

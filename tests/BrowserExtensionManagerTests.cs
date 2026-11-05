@@ -28,10 +28,30 @@ namespace MoriDesk {
   static bool Rejects(Action action){try{action();return false;}catch(InvalidDataException){return true;}catch(IOException){return true;}catch(InvalidOperationException){return true;}}
   public static void Run(string root,Action<bool,string> check){
    string suite=Path.Combine(root,"extension-manager");Directory.CreateDirectory(suite);
+   RealBundle(suite,check);HistoricalInventory(suite,check);
    check(BrowserExtensionStore.KeyId(BrowserExtensionManager.PublicKey)=="ohmoflmbcmhahccacmlbggkpalcmmmae","extension fixed public key produces stable Chrome ID");
    check(BrowserExtensionStore.PathId(@"C:\MoriSynthetic\Legacy\browser-extension")=="ohoboebcmiggodaodjkpcneaafpkmkii","legacy path identity agrees with Chromium UTF-16 path hash");
    check(BrowserExtensionStore.PathId(@"c:\MoriSynthetic\Legacy\browser-extension")==BrowserExtensionStore.PathId(@"C:\MoriSynthetic\Legacy\browser-extension"),"keyless ID normalizes drive letter");
    FreshInstall(suite,check);RuntimeIo(suite,check);Updates(suite,check);SameVersionReload(suite,check);Rollback(suite,check);CrashRecovery(suite,check);DowngradeProtection(suite,check);Clients(suite,check);UpdateTimeouts(suite,check);StatusAggregation(suite,check);Legacy(suite,check);UnsafeCatalog(suite,check);
+  }
+  static void RealBundle(string root,Action<bool,string> check){
+   var f=new Fixture(root,"real-bundle");string source=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"browser-extension");
+   foreach(string file in Directory.GetFiles(source)){string name=Path.GetFileName(file);if(name!="local-connection.js")File.Copy(file,Path.Combine(f.bundle,name),true);}
+   var store=f.Store();var status=store.EnsureInstalled();
+   foreach(string file in Directory.GetFiles(source,"*.js")){string name=Path.GetFileName(file);if(name=="local-connection.js")continue;check(File.Exists(Path.Combine(status.path,name)),"managed install contains shipped script: "+name);}
+   string background=File.ReadAllText(Path.Combine(status.path,"background.js"));
+   foreach(System.Text.RegularExpressions.Match import in System.Text.RegularExpressions.Regex.Matches(background,"importScripts\\(([^)]+)\\)"))foreach(System.Text.RegularExpressions.Match script in System.Text.RegularExpressions.Regex.Matches(import.Groups[1].Value,"['\"]([^'\"]+)['\"]"))check(File.Exists(Path.Combine(status.path,script.Groups[1].Value)),"installed worker import resolves: "+script.Groups[1].Value);
+  }
+  static void HistoricalInventory(string root,Action<bool,string> check){
+   var f=new Fixture(root,"historical-inventory");f.SetVersion("0.2.28");var store=f.Store();store.EnsureInstalled();var old=f.Catalog().installs.Single();
+   File.Delete(Path.Combine(old.path,"desktop-feedback.js"));check(!store.Status().filesMissing,"older working extension does not require a script introduced by a later version");
+   f.SetVersion("0.2.29");store.RequestUpdate();var state=f.Catalog();var item=state.installs.Single();item.pending.hashes.Remove("desktop-feedback.js");File.Delete(Path.Combine(item.pending.path,"desktop-feedback.js"));
+   string catalog=Path.Combine(f.data,"browser","extension-installs.json");File.WriteAllText(catalog,f.json.Serialize(state));
+   check(store.Status().pending,"desktop upgrade accepts the exact older pending file inventory");
+   check(Ok(f.Send(store,item,"apply",item.pending.token)),"previously staged extension can complete after desktop upgrade");
+   f.SetVersion("0.2.30");store.RequestUpdate();state=f.Catalog();item=state.installs.Single();
+   check(item.pending.hashes.ContainsKey("desktop-feedback.js")&&File.Exists(Path.Combine(item.pending.path,"desktop-feedback.js")),"next staged update includes new notification dependency");
+   item.pending.hashes.Remove("desktop-feedback.js");File.WriteAllText(catalog,f.json.Serialize(state));check(Rejects(()=>store.Status()),"new extension cannot use the legacy exception to omit its required dependency");
   }
   static void FreshInstall(string root,Action<bool,string> check){
    var f=new Fixture(root,"fresh");var store=f.Store();var initial=store.Status();check(!initial.connected&&!initial.pending&&initial.bundledVersion=="1.0.0"&&initial.version=="","uninstalled status exposes bundled version but no invented running version");
