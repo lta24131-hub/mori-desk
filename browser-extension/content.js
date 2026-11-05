@@ -35,7 +35,7 @@
   let contextFramework;
   let contextTime = 0;
   const notices = new Map();
-  let noticeHost, noticeRoot, noticeList, noticeAnchor;
+  let noticeHost, noticeRoot, noticeList;
   const collectionBusy = () => resolving>0 || !!preparedDrag || [...sessions].some(session=>['dragging','choosing','editing','saving','duplicate'].includes(session.phase));
   function signalIdle() {if(!disposed)runtime({action:'collector-idle'},()=>{});}
   function releaseUpdateLock(lock) {
@@ -80,8 +80,7 @@
     if (!noticeHost) return;
     const width = Math.min(360, innerWidth - 24);
     Object.assign(noticeList.style, {width: `${width}px`, maxHeight: `${Math.max(48, innerHeight - 24)}px`,
-      left: `${Math.max(12, Math.min(noticeAnchor.x, innerWidth - width - 12))}px`,
-      top: `${Math.max(12, Math.min(noticeAnchor.y, innerHeight - noticeList.offsetHeight - 12))}px`});
+      right: '12px', bottom: '12px'});
   }
   listen(window, 'resize', positionNotices);
   // Result cards can be hovered/read, but must never intercept the next drag.
@@ -99,6 +98,17 @@
     }
     return '';
   }
+  function desktopPreview(session) {
+    if(!session.feedbackPreview)return '';
+    try {
+      const image=[...document.images].slice(0,500).find(image=>image.currentSrc===session.feedbackPreview && image.complete && image.naturalWidth>0);
+      if(!image)return '';
+      const scale=Math.min(1,112/Math.max(image.naturalWidth,image.naturalHeight));
+      const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+      canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+      const data=canvas.toDataURL('image/png');return data.length<=90000?data:'';
+    }catch{return '';}// Cross-origin images remain protected; use the state icon.
+  }
 
   function notify(session, message, kind = 'success', detail = '', action = null, cancel = null) {
     if (disposed) return;
@@ -106,7 +116,6 @@
     // Bound DOM/memory even during a long burst of collections.
     if (notices.size >= 3) removeNotice(notices.keys().next().value, true);
     if (!noticeHost) {
-      noticeAnchor = session.rect || {x: innerWidth - 380, y: innerHeight - 160};
       noticeHost = document.createElement('div');
       noticeHost.dataset.moriNotice = '';
       if (active?.phase === 'dragging') noticeHost.dataset.dragging = 'true';
@@ -219,7 +228,8 @@
     session.canOpenLibrary = response.canOpenLibrary === true;
     if (response.ok && response.name) session.item = {...session.item, name:response.name};
     const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Nook') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Nook 按 Ctrl+V 收藏。'));
-    notify(session, message, response.ok ? 'success' : 'error', response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.diagnostic);
+    if(response.desktopFeedback)removeNotice(session);
+    else notify(session, message, response.ok ? 'success' : 'error', response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.diagnostic);
     signalIdle();
   }
 
@@ -796,7 +806,8 @@
   function commit(session, folder) {
     session.folderName = folder?.name;
     beginBackground(session);
-    const send = item => runtime({...item, action:'save', folder:folder?.id || ''}, response => showResult(session,response));
+    session.feedbackId=crypto.randomUUID();
+    const send = item => runtime({...item, action:'save', folder:folder?.id || '',folderName:session.folderName||'',feedbackId:session.feedbackId,feedbackPreview:desktopPreview(session),feedbackTheme:P.theme(preferences,darkMedia.matches)}, response => showResult(session,response));
     if (session.item.kind === 'video' && session.item.url.startsWith('blob:')) {
       MoriMediaSource.resolve(session.item).then(send, error => showResult(session,{ok:false,error:error.message}));
     } else send(session.item);
@@ -894,7 +905,7 @@
       releaseChoice(session);
       session.comparison.remove(); session.actions.remove();
       beginBackground(session);
-      runtime({action:'save', choiceToken, duplicateAction:action}, response => showResult(session, response));
+      runtime({action:'save', choiceToken, duplicateAction:action,feedbackId:session.feedbackId}, response => showResult(session, response));
       return;
     }
     setPhase(session, 'saving');
@@ -906,7 +917,7 @@
     session.hint.textContent = t(action === 'keep' ? '正在另存一份原图' : '正在使用图库中的已有图片');
     session.tag.textContent = t('保存中');
     session.footerAction.textContent = t('Esc 关闭');
-    runtime({action: 'save', choiceToken, duplicateAction: action}, response => {
+    runtime({action: 'save', choiceToken, duplicateAction: action,feedbackId:session.feedbackId}, response => {
       if (active === session) showResult(session, response);
       else if (response.choiceToken) runtime({action: 'discard', choiceToken: response.choiceToken}, () => {});
     });
@@ -1034,6 +1045,10 @@
     contextTime = Date.now();
   }, true);
   subscribe(chrome.runtime.onMessage, (message, sender, reply) => {
+    if(message?.action==='desktop-feedback-started') {
+      for(const session of sessions)if(session.feedbackId===message.feedbackId && session.phase==='saving')removeNotice(session);
+      reply({ok:true});return;
+    }
     if(message?.action==='mori-update-prepare') {
       if(disposed || collectionBusy() || typeof message.lock!=='string' || message.lock.length>100){reply({ready:false});return;}
       holdUpdateLock(message.lock);reply({ready:true,lock:message.lock});return;
@@ -1077,21 +1092,16 @@
     if (message?.action === 'context-saving') {
       const session = mount({name: message.name,url:message.url,kind:message.kind === 'video' ? 'video' : 'image'}, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
       session.requestId = message.requestId;
-      setPhase(session, 'saving');
-      session.panel.title = t('正在收藏…');
-      session.note.classList.add('hidden');
-      session.title.textContent = t('正在收藏…');
-      session.hint.textContent = t(session.item.kind === 'video' ? '正在保存视频与来源到本机图库' : '正在保存原图与网页来源到本机图库');
-      session.tag.textContent = t('保存中');
-      session.footerAction.textContent = t('Esc 关闭');
+      session.feedbackId = message.feedbackId;
+      beginBackground(session);
       reply({displayed: true});
       return;
     }
     if (message?.action !== 'result') return;
     // Closing the progress panel or beginning another collection must not bring
     // it back when a slow request completes, nor replace a newer duplicate choice.
-    if (message.requestId && active?.requestId !== message.requestId) {reply({displayed: false}); return;}
-    const session = message.requestId ? active : mount(null, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
+    const session = message.requestId ? [...sessions].find(value=>value.requestId===message.requestId) : mount(null, contextPoint || {x: innerWidth - 20, y: innerHeight - 120});
+    if (!session) {reply({displayed: false}); return;}
     showResult(session, message.result || {ok: false, error: 'Nook 未返回结果，请重试。'});
     reply({displayed: true});
   });

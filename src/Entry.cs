@@ -14,6 +14,7 @@ namespace MoriDesk {
   public static bool ClassicEnabled;
   public static string DataRoot {get{return PhysicalUserContext.DataRoot();}}
   [STAThread] public static int Main(string[] args){
+   if(args.Length==1&&args[0]=="--collection-notification-host")return BrowserDesktopFeedback.Run();
    if(args.Length>0&&args[0]=="--svg-render")return Mori.SvgRaster.Worker(args);
    if(args.Length>0&&args[0]=="--image-codec")return Mori.ImageCodec.Worker(args);
    if(args.Length>0&&args[0]=="--video-thumbnail")return Mori.VideoThumbnail.Worker(args);

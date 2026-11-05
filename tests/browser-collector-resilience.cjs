@@ -78,9 +78,9 @@ test('lost video save results never claim the video definitely was not saved',as
   const f=await fixture();try{
     await f.message({action:'context-saving',requestId:'unknown-video',kind:'video',name:'Synthetic video'});
     await f.message({action:'result',requestId:'unknown-video',result:{ok:false,code:'SAVE_RESULT_UNKNOWN',error:'未收到收藏结果，请先检查 Mori 图库，确认后再重试。'}});
-    assert.match(await f.page.locator('[data-mori-collector] .title').innerText(),/未确认/);
-    assert.doesNotMatch(await f.page.locator('[data-mori-collector] .source').innerText(),/未保存|截图/);
-    assert.match(await f.page.locator('[data-mori-collector] .source').innerText(),/检查.*图库/);assert.deepEqual(f.errors,[]);
+    const notice=await f.page.locator('[data-mori-notice] .toast').innerText();
+    assert.match(notice,/未确认/);assert.doesNotMatch(notice,/未保存|截图/);
+    assert.match(notice,/检查.*图库/);assert.deepEqual(f.errors,[]);
   }finally{await f.page.close();}
 });
 
@@ -169,12 +169,12 @@ test('reusing a duplicate reports the existing original instead of falsely placi
   }
 });
 
-test('drop immediately shows pending then a visible named thumbnail confirmation at the drop panel',async()=>{
+test('drop immediately shows pending then a visible named thumbnail confirmation at the page bottom-right when desktop feedback is unavailable',async()=>{
   const f=await fixture();try{
     await f.page.evaluate(()=>fixtureSavePending=true);await f.start();const origin=await f.panel.boundingBox();await f.drop();
     const pending=f.page.locator('[data-mori-notice] .toast[data-kind="saving"]');assert.equal(await pending.count(),1);
     assert.equal(await f.page.locator('.toast[data-kind="success"]').count(),0);
-    const at=await pending.boundingBox();assert(Math.abs(at.x-origin.x)<2&&Math.abs(at.y-origin.y)<2);
+    const at=await pending.boundingBox();assert(Math.abs(at.x+at.width-1088)<2&&Math.abs(at.y+at.height-838)<2);
     await f.page.evaluate(()=>fixtureReplies.splice(0).forEach(reply=>reply({ok:true,name:'Saved original.png',canOpenLibrary:true})));
     const toast=f.page.locator('[data-mori-notice] .toast');
     assert.match(await toast.innerText(),/已收藏到 Nook/);assert.match(await toast.innerText(),/Saved original.png/);assert.match(await toast.innerText(),/已保存到本机图库 · 未分类/);
@@ -219,6 +219,18 @@ test('preview failure preserves success and old desktop versions do not get a de
   }finally{await f.page.close();}
 });
 
+test('acknowledged desktop progress and result remove page duplicates while failed desktop delivery falls back',async()=>{
+ const f=await fixture();try{
+  await f.page.evaluate(()=>fixtureSavePending=true);await f.start();await f.drop();
+  const request=await f.page.evaluate(()=>fixtureCalls.find(value=>value.action==='save'));assert(request.feedbackId);
+  await f.message({action:'desktop-feedback-started',feedbackId:request.feedbackId});assert.equal(await f.page.locator('[data-mori-notice]').count(),0);
+  await f.page.evaluate(()=>fixtureReplies.splice(0).forEach(reply=>reply({ok:true,desktopFeedback:true})));
+  assert.equal(await f.page.locator('[data-mori-notice]').count(),0);
+  await f.start();await f.drop();await f.page.evaluate(()=>fixtureReplies.splice(0).forEach(reply=>reply({ok:true,desktopFeedback:false})));
+  assert.match(await f.page.locator('.toast').innerText(),/已收藏到 Nook/);assert.deepEqual(f.errors,[]);
+ }finally{await f.page.close();}
+});
+
 test('right click shares readable completion and a rejected save cannot show success',async()=>{
   const f=await fixture();try{
     await f.message({action:'context-saving',requestId:'context-ok',kind:'image',name:'Context image'});
@@ -229,6 +241,19 @@ test('right click shares readable completion and a rejected save cannot show suc
     const error=f.page.locator('.toast');assert.equal(await error.getAttribute('role'),'alert');assert.match(await error.innerText(),/收藏失败：Disk unavailable/);assert.equal(await error.locator('.glyph-success').isVisible(),false);
     assert.equal(await error.locator('.toast-open').count(),0);assert.deepEqual(f.errors,[]);
   }finally{await f.page.close();}
+});
+
+test('right-click background completion preserves a newer drag and releases its update lock',async()=>{
+ const f=await fixture();try{
+  await f.message({action:'context-saving',requestId:'detached',feedbackId:'desktop-context',kind:'image',name:'Context image'});
+  assert.equal(await f.panel.count(),0);
+  await f.message({action:'desktop-feedback-started',feedbackId:'desktop-context'});assert.equal(await f.page.locator('.toast').count(),0);
+  await f.start();assert.equal(await f.panel.getAttribute('data-phase'),'dragging');
+  assert.equal((await f.message({action:'result',requestId:'detached',result:{ok:true,desktopFeedback:true}})).displayed,true);
+  assert.equal(await f.panel.getAttribute('data-phase'),'dragging');assert.equal(await f.page.locator('.toast').count(),0);
+  await f.page.keyboard.press('Escape');assert.equal((await f.message({action:'mori-update-prepare',lock:'after-context'})).ready,true);
+  assert.deepEqual(f.errors,[]);
+ }finally{await f.page.close();}
 });
 
 test('light and dark feedback stay readable with a real preview and visible category',async()=>{

@@ -64,6 +64,10 @@ function background(localOptions = {}) {
       onStartup: {addListener(value) {startupListener = value;}},
       onConnect: {addListener(value) {connectedListener=value;}},
       sendNativeMessage(host, message, callback) {
+        if(message.action==='collectionFeedback'){
+          chrome.runtime.lastError=localOptions.feedbackNativeError?{message:localOptions.feedbackNativeError}:null;
+          callback(chrome.runtime.lastError?undefined:{ok:false,error:'Old desktop fixture'});chrome.runtime.lastError=null;return;
+        }
         if(['save','bookmark','importBookmarks'].includes(message.action))assert.equal(metadata.moriUpdatePendingWrite,true,'pre-write journal must be durable before native transmission');
         nativeCalls.push({host, message});
         chrome.runtime.lastError = nativeError ? {message: nativeError} : null;
@@ -138,6 +142,14 @@ test('open Nook forwards no webpage executable, arguments or library path and ne
   const result=await bg.request({action:'openLibrary',path:'C:\\untrusted.exe',args:['--library','other'],data:'forged',source:'https://example.invalid'});
   assert.equal(result.ok,true);assert.deepEqual(JSON.parse(JSON.stringify(bg.nativeCalls.at(-1).message)),{action:'openLibrary'});
   assert.equal(bg.nativeCalls.filter(call=>call.message.action==='save').length,0);
+});
+
+test('unavailable desktop feedback never competes with saves for HTTP backup slots',async()=>{
+ const error='Specified native messaging host not found.';
+ const bridge=background({config:{endpoint:'http://127.0.0.1:47891/mori/v1',token:'a'.repeat(64)},feedbackNativeError:error});bridge.fail(error);
+ const result=await bridge.request({action:'save',url:'https://example.invalid/image.png'});
+ assert.equal(result.ok,true);assert.equal(result.desktopFeedback,false);
+ const local=bridge.fetchCalls.filter(call=>call.url==='http://127.0.0.1:47891/mori/v1');assert.equal(local.length,1);assert.equal(JSON.parse(local[0].options.body).action,'save');
 });
 
 test('same-version collector repair compares loaded generation, while legacy bundles keep version compatibility',async()=>{

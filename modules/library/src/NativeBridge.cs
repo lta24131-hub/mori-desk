@@ -17,6 +17,7 @@ namespace Mori {
    // particular they must not initialize an empty database when a disk is away.
    if(Get(request,"action")=="bridgeStatus"||Get(request,"action")=="extensionControl")return MoriDesk.BrowserExtensionManager.Handle(request);
    if(Get(request,"action")=="openLibrary")return MoriDesk.BrowserCollectionFeedback.Open(Get(request,"_extensionId"));
+   if(Get(request,"action")=="collectionFeedback")return MoriDesk.BrowserDesktopFeedback.Handle(request);
    if(loadSettings==null)loadSettings=Settings.Load;
    for(int attempt=0;attempt<3;attempt++){
     string root=testRoot??loadSettings().LibraryPath;

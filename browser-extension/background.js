@@ -1,6 +1,7 @@
 importScripts('preferences.js');
 importScripts('local-bridge.js');
 importScripts('updater.js');
+importScripts('desktop-feedback.js');
 const collectorGeneration = /^[0-9a-f]{32}$/.test(globalThis.MoriInstalledGeneration || '') ? globalThis.MoriInstalledGeneration : '';
 const HOST = 'app.mori.desk';
 const MAX = 20 * 1024 * 1024;
@@ -29,6 +30,14 @@ function activity(task) {
   return finish ? Promise.resolve().then(task).finally(finish) : Promise.resolve(updater.blocked());
 }
 const fromPopup = sender => !sender?.tab && sender?.url === `chrome-extension://${chrome.runtime.id}/popup.html`;
+const desktopFeedback = MoriDesktopFeedback.create({send:message=>native(message),uuid:()=>crypto.randomUUID()});
+function collectWithFeedback(message,owner,iconUrl='',sender=null) {
+  const pending=message.choiceToken && pendingSaves.get(message.choiceToken);
+  const info=pending?.owner===owner ? {...pending.feedback,...message} : message;
+  return desktopFeedback.collect(info,()=>saveImage(message,owner,iconUrl),()=>{
+    if(sender?.tab && message.feedbackId)chrome.tabs.sendMessage(sender.tab.id,{action:'desktop-feedback-started',feedbackId:message.feedbackId},{frameId:sender.frameId??0}).catch(()=>{});
+  }).then(result=>{if(result.choiceToken && pendingSaves.has(result.choiceToken))pendingSaves.get(result.choiceToken).feedback={name:info.name,folderName:info.folderName,feedbackPreview:info.feedbackPreview,feedbackTheme:info.feedbackTheme};return result;});
+}
 
 // Existing pages do not automatically receive new declarative content scripts
 // when an unpacked extension is reloaded. Restore only the missing collectors;
@@ -212,7 +221,7 @@ async function native(message, waitForNativeCallback = false) {
     // a JS timer cannot cancel sendNativeMessage or stop a hung native host.
     const timer = waitForNativeCallback ? null : setTimeout(() => finish({ok:false,code:'NATIVE_TIMEOUT',error:uncertain
       ? '等待 Nook 收藏结果超时，请先检查图库是否已保存，再重试。'
-      : 'Nook 本机连接响应超时，请打开桌面程序后重试。'}),30000);
+      : 'Nook 本机连接响应超时，请打开桌面程序后重试。'}),message.action==='collectionFeedback'?15000:30000);
     try {
       chrome.runtime.sendNativeMessage(HOST, message, reply => {
         const error = chrome.runtime.lastError;
@@ -225,7 +234,9 @@ async function native(message, waitForNativeCallback = false) {
   }).then(async reply => {
     // Only retry definite failures before a request reached the host. Never
     // bypass a policy/permission refusal or repeat an ambiguous write/disconnect.
-    if (['NATIVE_HOST_NOT_FOUND','NATIVE_HOST_START_FAILED','NATIVE_HOST_INVALID'].includes(reply.code)) {
+    // Desktop feedback must not occupy the limited HTTP backup slots needed
+    // for actual saves when native messaging is unavailable. Use page fallback.
+    if (message.action!=='collectionFeedback' && ['NATIVE_HOST_NOT_FOUND','NATIVE_HOST_START_FAILED','NATIVE_HOST_INVALID'].includes(reply.code)) {
       const fallback = await MoriLocalBridge.request(message);
       if (fallback) reply={...fallback, nativeDiagnostic:reply.diagnostic};
     }
@@ -326,7 +337,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   }
   const owner = ownerOf(sender);
   if (message.action === 'discard') {reply(discardChoice(message.choiceToken, owner)); return;}
-    (message.action === 'folders' ? native({action: 'folders',scope:message.scope==='bookmark'?'bookmark':'media'}) : activity(()=>saveImage(message, owner, bookmarkIcon(message,sender)))).then(reply).catch(() => reply({ok: false, error: '收藏失败，请重试'}));
+    (message.action === 'folders' ? native({action: 'folders',scope:message.scope==='bookmark'?'bookmark':'media'}) : activity(()=>collectWithFeedback(message, owner, bookmarkIcon(message,sender),sender))).then(reply).catch(() => reply({ok: false, error: '收藏失败，请重试'}));
   return true;
 });
 // MV3 workers can sleep between messages. While a choice is visible, a content
@@ -462,8 +473,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       return;
     }
     await contextBadge(tab.id, '…', kind === 'video' ? '正在收藏视频' : '正在收藏图片');
-    await contextFeedback(tab.id, {action: 'context-saving', requestId, kind, url:item?.url, name: item?.name || tab.title || '网页收藏'});
-    const result = item ? await saveImage({url: item.url, kind, source: item.mediaPage || info.pageUrl || tab.url || info.frameUrl, name: item.name || tab.title || '网页收藏'}, owner)
+    await contextFeedback(tab.id, {action: 'context-saving', requestId, feedbackId:requestId,kind, url:item?.url, name: item?.name || tab.title || '网页收藏'});
+    const result = item ? await collectWithFeedback({url: item.url, kind, source: item.mediaPage || info.pageUrl || tab.url || info.frameUrl, name: item.name || tab.title || '网页收藏',feedbackId:requestId,feedbackTheme:preferences.theme}, owner,'',{tab,frameId:0})
       : {ok: false, error: lookupError || '这里没有找到可收藏的图片，请右键图片本身，或截图后粘贴到 Nook。'};
     if (contextRequests.get(tab.id) !== requestId) {
       if (result.choiceToken) discardChoice(result.choiceToken, owner);
