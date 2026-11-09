@@ -174,7 +174,7 @@
     // that result arrives, rather than hiding it while a slow save still runs.
     // It is always dismissible and the three-notice cap still bounds the DOM.
     if (kind !== 'saving') {
-      let remaining = kind === 'choice' ? 300000 : kind === 'error' ? 15000 : 7000, started;
+      let remaining = kind === 'choice' ? 300000 : kind === 'error' ? 15000 : 4000, started;
       const paused = new Set();
       const resume = () => {if (!paused.size && notices.get(session) === notice) {clearTimeout(notice.timer); started = performance.now(); notice.timer = setTimeout(() => removeNotice(session, true), remaining);}};
       const pause = reason => {if (!paused.size) {clearTimeout(notice.timer); remaining = Math.max(0, remaining - (performance.now() - started));} paused.add(reason);};
@@ -227,7 +227,7 @@
     session.phase = response.ok ? 'success' : 'error';
     session.canOpenLibrary = response.canOpenLibrary === true;
     if (response.ok && response.name) session.item = {...session.item, name:response.name};
-    const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '已收藏到 Nook') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Nook 按 Ctrl+V 收藏。'));
+    const message = response.ok ? (response.keptCopy ? '已另存一份' : response.duplicate ? '已使用已有图片' : '收藏成功') : (outcomeUnknown(response) ? '收藏结果未确认：' : '收藏失败：') + (response.error || t(session.item?.kind === 'video' ? '视频未收藏，请稍后重试。' : '请重试，或截图后在 Nook 按 Ctrl+V 收藏。'));
     if(response.desktopFeedback)removeNotice(session);
     else notify(session, message, response.ok ? 'success' : 'error', response.ok ? (session.folderName ? `已保存到「${session.folderName}」` : response.duplicate && !response.keptCopy ? '已使用图库中的原图，未重复保存文件' : '已保存到本机图库 · 未分类') : response.diagnostic);
     signalIdle();

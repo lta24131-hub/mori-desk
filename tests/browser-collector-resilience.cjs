@@ -177,14 +177,14 @@ test('drop immediately shows pending then a visible named thumbnail confirmation
     const at=await pending.boundingBox();assert(Math.abs(at.x+at.width-1088)<2&&Math.abs(at.y+at.height-838)<2);
     await f.page.evaluate(()=>fixtureReplies.splice(0).forEach(reply=>reply({ok:true,name:'Saved original.png',canOpenLibrary:true})));
     const toast=f.page.locator('[data-mori-notice] .toast');
-    assert.match(await toast.innerText(),/已收藏到 Nook/);assert.match(await toast.innerText(),/Saved original.png/);assert.match(await toast.innerText(),/已保存到本机图库 · 未分类/);
+    assert.match(await toast.innerText(),/收藏成功/);assert.match(await toast.innerText(),/Saved original.png/);assert.match(await toast.innerText(),/已保存到本机图库 · 未分类/);
     assert.equal(await toast.getAttribute('role'),'status');assert.equal(await toast.locator('.toast-image').count(),1);
     await f.page.waitForFunction(()=>document.querySelector('[data-mori-notice]').shadowRoot.querySelector('.toast-image').naturalWidth>0);
     await toast.locator('.toast-open').click();assert.equal(await f.calls('openLibrary'),1);assert.equal(await f.calls('save'),1);assert.deepEqual(f.errors,[]);
   }finally{await f.page.close();}
 });
 
-test('success remains readable for seven seconds and hover plus keyboard focus pause dismissal',async()=>{
+test('success remains readable for four seconds and hover plus keyboard focus pause dismissal',async()=>{
   const f=await fixture();try{
     const time=new Date('2026-11-04T00:00:00Z');await f.page.clock.install({time});await f.page.clock.pauseAt(new Date(time.getTime()+60000));
     await f.start();await f.drop();const toast=f.page.locator('[data-mori-notice] .toast');
@@ -193,7 +193,7 @@ test('success remains readable for seven seconds and hover plus keyboard focus p
     await f.page.clock.fastForward(20000);assert.equal(await toast.count(),1);
     await toast.dispatchEvent('pointerleave');await f.page.clock.fastForward(20000);assert.equal(await toast.count(),1,'keyboard focus still protects the result');
     await f.page.evaluate(()=>document.querySelector('[data-mori-notice]').shadowRoot.activeElement.blur());
-    await f.page.clock.fastForward(4900);assert.equal(await toast.count(),1);await f.page.clock.fastForward(200);assert.equal(await toast.count(),0);
+    await f.page.clock.fastForward(1900);assert.equal(await toast.count(),1);await f.page.clock.fastForward(200);assert.equal(await toast.count(),0);
     assert.equal(await f.calls('save'),1);assert.deepEqual(f.errors,[]);
   }finally{await f.page.close();}
 });
@@ -214,7 +214,7 @@ test('preview failure preserves success and old desktop versions do not get a de
   const f=await fixture();try{
     await f.start();await f.drop();const toast=f.page.locator('[data-mori-notice] .toast');
     await toast.locator('.toast-image').dispatchEvent('error');assert.equal(await toast.locator('.toast-image').count(),0);
-    assert.match(await toast.innerText(),/已收藏到 Nook/);assert.equal(await toast.locator('.toast-open').count(),0);assert.equal(await f.calls('save'),1);
+    assert.match(await toast.innerText(),/收藏成功/);assert.equal(await toast.locator('.toast-open').count(),0);assert.equal(await f.calls('save'),1);
     assert.equal(await toast.locator('.glyph-success').isVisible(),true);assert.deepEqual(f.errors,[]);
   }finally{await f.page.close();}
 });
@@ -227,7 +227,7 @@ test('acknowledged desktop progress and result remove page duplicates while fail
   await f.page.evaluate(()=>fixtureReplies.splice(0).forEach(reply=>reply({ok:true,desktopFeedback:true})));
   assert.equal(await f.page.locator('[data-mori-notice]').count(),0);
   await f.start();await f.drop();await f.page.evaluate(()=>fixtureReplies.splice(0).forEach(reply=>reply({ok:true,desktopFeedback:false})));
-  assert.match(await f.page.locator('.toast').innerText(),/已收藏到 Nook/);assert.deepEqual(f.errors,[]);
+  assert.match(await f.page.locator('.toast').innerText(),/收藏成功/);assert.deepEqual(f.errors,[]);
  }finally{await f.page.close();}
 });
 
