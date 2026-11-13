@@ -129,13 +129,17 @@ namespace Mori
 							{
 								throw new InvalidDataException("视频缩略图输出超过安全范围。");
 							}
-							process.Refresh();
 							if (stopwatch.ElapsedMilliseconds > MaximumMilliseconds)
 							{
 								text = "timeout";
 								break;
 							}
-							if (process.PrivateMemorySize64 > 268435456)
+							long memory;
+							if (!WorkerIo.TryReadPrivateMemory(process, out memory))
+							{
+								break;
+							}
+							if (memory > MaximumPrivateMemory)
 							{
 								text = "private-memory-limit";
 								break;

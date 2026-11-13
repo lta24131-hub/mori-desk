@@ -1,0 +1,9 @@
+{
+  "phase": "baseline",
+  "complete": false,
+  "planSha256": "FA17553EFE8FA8AF3AA5BD134C9C72FDDF9EE3041EC8D61960C2123C3128837E",
+  "controllerSha256": "C7E044EA6ECA5682F585575EA65966B2C3DDD19B8DAAB0CD86D0838456366287",
+  "hostProductExecution": false,
+  "original1304RetainedFailed": true,
+  "results": []
+}

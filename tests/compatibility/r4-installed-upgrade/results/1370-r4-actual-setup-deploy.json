@@ -1,0 +1,9 @@
+{
+  "id": "1370-r4-actual-setup-deploy",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\969E0720E227",
+  "elapsedSeconds": 17.1,
+  "guestUtc": "2026-11-13T15:48:52.9273010Z",
+  "receivedUtc": "20261113T154853891313Z"
+}

@@ -33,7 +33,7 @@ async function until(read, label, timeout = 12000) {
   const versionParts = originalManifest.version.split('.').map(Number);
   versionParts[versionParts.length - 1]++;
   const nextVersion = versionParts.join('.');
-  const state = {offer: false, applies: [], calls: [], saves: [], held: null, holdSave: false};
+  const state = {offer: false, applies: [], calls: [], saves: [], collections: [], held: null, holdSave: false};
   const nonce = crypto.randomBytes(16).toString('hex');
   const token = crypto.randomUUID();
   const answer = (response, value) => {
@@ -68,7 +68,14 @@ async function until(read, label, timeout = 12000) {
       assert.equal(request.url, `/${nonce}/native`);
       if (message.action === 'folders') {answer(response, {ok: true, folders: []});return;}
       if (message.action === 'bridgeStatus') {answer(response, {ok: true});return;}
-      assert.equal(message.action, 'save', 'only synthetic saves may reach the fixture');
+      if (message.action === 'collectionFeedback') {
+        assert.match(message.id, /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i);
+        assert(['saving', 'success'].includes(message.state), 'synthetic successful saves have progress and success feedback only');
+        state.collections.push({action: message.action, state: message.state, id: message.id, name: message.name});
+        answer(response, {ok: true});return;
+      }
+      assert.equal(message.action, 'save', 'only synthetic saves and their explicit feedback may reach the fixture');
+      state.collections.push({action: message.action, state: '', name: message.name});
       state.saves.push({name: message.name, source: message.source});
       if (state.holdSave) {assert.equal(state.held, null);state.held = () => answer(response, {ok: true});return;}
       answer(response, {ok: true});
@@ -134,6 +141,15 @@ native = async message => {
       await page.waitForSelector('[data-mori-collector]', {state: 'detached'});
     };
     const drop = async () => {await page.mouse.move(260, 220, {steps: 8});await page.mouse.up();};
+    const assertCollection = (start, label) => {
+      const calls = state.collections.slice(start);
+      assert.deepEqual(calls.map(call => [call.action, call.state]), [
+        ['collectionFeedback', 'saving'], ['save', ''], ['collectionFeedback', 'success']
+      ], label + ': exactly one save between progress and success, in order');
+      assert.equal(calls[2].id, calls[0].id, label + ': progress and success identify the same collection');
+      for (const call of calls) assert.equal(call.name, 'Synthetic update image', label + ': all calls refer to the collected image');
+      return calls[0].id;
+    };
     await ready(originalManifest.version);
     await page.evaluate(() => {window.fixtureDocumentMarker = 'original-open-page';});
 
@@ -155,17 +171,23 @@ native = async message => {
     assert.equal(await page.locator('[data-mori-collector]').count(), 1);assert.equal(state.saves.length, 0);
     state.offer = false;await page.keyboard.press('Escape');
     await page.waitForSelector('[data-mori-collector]', {state: 'detached'});
+    assert.equal(state.collections.length, 0, 'cancelled drag/editor never starts a collection or notification');
     console.log('PASS unsaved editor defers update without saving or dismissing it');
 
     // A quick-save collector disappears before the response arrives. That is
     // still busy and must never be mistaken for an idle update opportunity.
+    const firstCollection = state.collections.length;
     state.holdSave = true;await startDrag();await drop();
     await until(() => state.held, 'synthetic in-flight save');
     await page.waitForSelector('[data-mori-collector]', {state: 'detached'});
     state.offer = true;const saving = await poll();
     assert.equal(saving.reason, 'busy');assert.equal(state.applies.length, 0);
+    assert.deepEqual(state.collections.slice(firstCollection).map(call => [call.action, call.state]), [
+      ['collectionFeedback', 'saving'], ['save', '']
+    ], 'in-flight save has progress but no premature success notification');
     state.offer = false;state.holdSave = false;state.held();state.held = null;
     await until(async () => !(await worker.evaluate(() => updater.status())).busy, 'save finished');
+    const firstFeedbackId = assertCollection(firstCollection, 'pre-update collection');
     console.log('PASS detached background save blocks reload until its response arrives');
 
     // Actual manifest-version update and runtime reload, with no page refresh.
@@ -186,12 +208,15 @@ native = async message => {
     console.log('PASS idle update reloads the real worker, preserves identity/preferences and repairs the open page');
 
     const beforeSaves = state.saves.length;
+    const secondCollection = state.collections.length;
     await startDrag();assert.equal(await page.locator('[data-mori-collector]').count(), 1);
     await drop();await until(() => state.saves.length === beforeSaves + 1, 'post-update drag save');
     await until(async () => !(await worker.evaluate(() => updater.status())).busy, 'post-update save finished');
     await pause(250);
     assert.equal(state.saves.length, beforeSaves + 1, 'repaired page has exactly one save handler');
     assert.equal(state.saves.at(-1).name, 'Synthetic update image');
+    const secondFeedbackId = assertCollection(secondCollection, 'post-update collection');
+    assert.notEqual(secondFeedbackId, firstFeedbackId, 'separate collections have distinct notification identities across reload');
     assert.equal(state.applies.length, 1, 'no reload loop after successful update');
     assert.deepEqual(errors, []);if (state.error) throw state.error;
     console.log('PASS one post-update drag saves once; no duplicate handler or reload loop');

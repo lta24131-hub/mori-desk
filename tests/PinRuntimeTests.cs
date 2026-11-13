@@ -40,13 +40,23 @@ namespace MoriDesk {
     check(DeskRuntime.PinCancellation.IsCancellationRequested,"normal exit cancels in-flight preview pin encoding before a late presentation");
     var saved=new PinStore(store.Folder).Records.Single();
     check(saved.Active&&saved.ClosedAt==0&&saved.Left==387&&saved.Top==219&&saved.Width==192&&saved.Opacity==.75,"normal exit persists active pins and unsaved geometry even with Started false");
+    var abandoned=DeskRuntime.PinCancellation;DeskRuntime.ResumeAfterCancelledExit();var resumed=DeskRuntime.PinCancellation;
+    check(abandoned.IsCancellationRequested&&!resumed.IsCancellationRequested&&!AppState.Quitting&&!DeskRuntime.Started,"cancelled exit preserves cancellation of old work and enables a fresh pin generation even after partial startup");
+    DeskRuntime.ResumeAfterCancelledExit();check(resumed==DeskRuntime.PinCancellation,"repeated exit-cancellation callbacks keep the same usable generation");
+    var retryStore=new PinStore(Path.Combine(root,"paste-after-cancelled-exit"));var retryPixels=Picture();int presented=0;
+    System.Threading.Tasks.Task.Run(()=>retryStore.CreatePinAsync(retryPixels,new Int32Rect(0,0,2,2),resumed,(record,bounds,prepared)=>presented++)).GetAwaiter().GetResult();
+    check(presented==1&&new PinStore(retryStore.Folder).Records.Count==1,"a new paste can commit and present after cancelling exit instead of silently inheriting cancellation");
+    bool staleCancelled=false;try{System.Threading.Tasks.Task.Run(()=>retryStore.CreatePinAsync(retryPixels,new Int32Rect(0,0,2,2),abandoned,(record,bounds,prepared)=>presented++)).GetAwaiter().GetResult();}catch(OperationCanceledException){staleCancelled=true;}
+    check(staleCancelled&&presented==1&&new PinStore(retryStore.Folder).Records.Count==1,"abandoned pre-exit paste cannot commit late after the application resumes");
     AppState.Quitting=false;pin.Left=418;pin.Width=208;DeskRuntime.PrepareSessionEnd();
     check(DeskRuntime.SessionEnding&&AppState.Quitting&&!DeskRuntime.Started,"system session ending protects active pins even with Started false");
+    DeskRuntime.ResumeAfterCancelledExit();check(DeskRuntime.SessionEnding&&AppState.Quitting&&DeskRuntime.PinCancellation.IsCancellationRequested,"a cancelled-window callback cannot restart pin work during system session ending");
     saved=new PinStore(store.Folder).Records.Single();
     check(saved.Active&&saved.ClosedAt==0&&saved.Left==418&&saved.Width==208,"system session ending persists current active pin geometry after partial startup failure");
     check(File.ReadAllBytes(store.ImagePath(pin)).SequenceEqual(pixels),"runtime exit and system-ending persistence leave original synthetic PNG bytes unchanged");
     DeskRuntime.Stop();
     check(!DeskRuntime.Started&&!DeskRuntime.SessionEnding&&!(bool)Get(typeof(DeskRuntime),"ownsPins"),"stopping runtime relinquishes pin ownership and clears session-ending state");
+    var stopped=DeskRuntime.PinCancellation;DeskRuntime.ResumeAfterCancelledExit();check(stopped==DeskRuntime.PinCancellation&&stopped.IsCancellationRequested,"a stopped runtime cannot revive cancelled work through a stale close callback");
     var foreign=new PinStore(Path.Combine(root,"other-owner"));var other=foreign.Add(Picture());string manifest=Path.Combine(foreign.Folder,"pins.json");byte[] original=File.ReadAllBytes(manifest);other.Left=699;other.Active=false;other.ClosedAt=123;
     AppState.Pins=foreign;AppState.Quitting=false;DeskRuntime.PrepareSessionEnd();
     check(!AppState.Quitting&&!DeskRuntime.SessionEnding&&File.ReadAllBytes(manifest).SequenceEqual(original),"a stopped runtime cannot mark session ending or overwrite another owner's current pin store");

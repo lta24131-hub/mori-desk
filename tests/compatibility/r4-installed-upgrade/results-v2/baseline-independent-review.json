@@ -1,0 +1,56 @@
+{
+  "passed": true,
+  "stages": [
+    {
+      "taskId": "1375-r4-preserve1304",
+      "outerReportSha256": "6D60595C62A64100962DF8FDA8BA1568CA74A900255CB988205E7DE1AAAAE259",
+      "reportSha256": "4BB4309066ED3070F577467B0D1D8CB0A795C3EF3ACAC4EB06D7CA6E961B5BDA",
+      "passed": true,
+      "checks": 60,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1376-r4-real-install42",
+      "outerReportSha256": "223D1C24C02D49A0B4F45ECCE02D99C6D9DB3DB5550E482951803D57EA5027C5",
+      "reportSha256": "A513B6454424F63506D2AD6473D531C1CE8304BB6C6C79C7DB4F1AF23A02C07A",
+      "passed": true,
+      "checks": 30,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1377-r4-public42-browser-ui",
+      "outerReportSha256": "BC76CC1D2B5356D8811CBA12DBBF1166FFE9EA7644A1C98A82ECA789875D3ADF",
+      "reportSha256": "DAD7C9FF2D5F7D4FAF48FB0C81F15CB5D9F36177AC1FA0048F0F2262C6C8284F",
+      "passed": true,
+      "checks": 37,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1378-r4-public42-health",
+      "outerReportSha256": "1888B392BB4193479E4F22B14CF7635E506543B9429A4BA34B3481501AA08588",
+      "reportSha256": "DEDFB006BB35A263E463117DB3A8A35202F90B1BC4BE95CDEEE306B46E08820D",
+      "passed": true,
+      "checks": 92,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1379-r4-healthy42-inventory",
+      "outerReportSha256": "AFC4D264BFAE0C615326D5E7CA4BB4B6F9BDCE57D07A1810520A452CC700DDC1",
+      "reportSha256": "58EE312CA795D12E4E670FBDB31842F898A0E90F42A2F949EDAA9E7CE340DEB6",
+      "passed": true,
+      "checks": 0,
+      "outerExitCode": 0
+    }
+  ],
+  "allRawBrokerAndExtractedBytesMatch": true,
+  "actualPublic42InstallAccepted": true,
+  "actualPublic42OwnedSettingsNormalClose": true,
+  "actualPublic42NormalExitAndJobDrain": true,
+  "original1304Preserved": true,
+  "sourceAndShortcutMovesVerified": true,
+  "productionHealthAndIndependentInventoryAgree": true,
+  "actualChromeCollectionAccepted": false,
+  "healthyBaselineScopeAccepted": true,
+  "displayLeaseReleasedNormally": true,
+  "scope": "Dedicated VM baseline only; generated fixtures and no physical desktop execution. Original R3 failures and first R4 lease readiness failure retained."
+}

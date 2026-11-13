@@ -1,0 +1,15 @@
+{
+  "packageSha256": "3ECC8CC986439221E9C47C2115326BAE9D8B241E94007E19ED472EDF0FC29C83",
+  "sourceSha256": "634DD34E836ED08DD1C55AC80776B2D404BE43BD5EEBFD08195CBCFA85E5036D",
+  "helperSha256": "6C71E191AD383268D80A7AB9464F501380628E3D56CFE17CAD6A5FC6EF6C62A1",
+  "zipMembersAndCrcVerified": true,
+  "compileInputsOutputsVerified": true,
+  "allOriginalMethodsBeforePrepareByteEquivalent": true,
+  "public42SourceTagAndExcerptsVerified": true,
+  "passed": true,
+  "original1253RetainedFailed": true,
+  "otherStagesMustUseOriginal95618": true,
+  "scope": "Test-only public42 browser preparation: enumerate native windows only for the owned exact public42 process, then verify exact title, main-window owner, visibility and UIA window identity. Existing 6-second limit, supported Install/Repair click, local-listening evidence, normal closure and Job drain remain. Entry rejects installation and all other operations.",
+  "causalBoundary": "Original1253 proves a Settings discovery timeout; it does not establish UIA root-child enumeration as the sole cause.",
+  "hostExecuted": false
+}

@@ -1,0 +1,281 @@
+{
+  "schemaVersion": 1,
+  "purpose": "real-public42-to-frozen-R3-final45-upgrade",
+  "scope": "dedicated-NookTester-VM-only",
+  "hostAppExecution": false,
+  "productFrozen": true,
+  "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "packages": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-release45\\upgrade-journey\\setup42-package.zip",
+      "bytes": 349626494,
+      "sha256": "52758D725C767FF4CC52D1ABC2D2178475E59362B4148EE97A311CCC360B1335",
+      "members": 1,
+      "guest": "C:\\NookLab\\Audit\\apps\\52758D725C76",
+      "entrySha256": "DABCF2BA17300A7CE5B64AD342188207C81CBACE35E14AA28E67753A1F4F666B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\setup45-r3-package.zip",
+      "bytes": 350492286,
+      "sha256": "FC2DECB42A44CC9D5173F470056D9AE134E9A040E3DA0AF334E14356E6951FDC",
+      "members": 1,
+      "guest": "C:\\NookLab\\Audit\\apps\\FC2DECB42A44",
+      "entrySha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\upgrade-helpers-r3.zip",
+      "bytes": 91366,
+      "sha256": "CE69BF0D653EC203B2AB5830080C9BE91847DAD8886404778EA2F9B7A5E59D35",
+      "members": 13,
+      "guest": "C:\\NookLab\\Audit\\apps\\CE69BF0D653E"
+    }
+  ],
+  "inventory": null,
+  "preservedRoot": "C:\\NookLab\\Audit\\upgrade42to45-preserved-20261113-r3",
+  "fixtureRoot": "C:\\NookLab\\Upgrade42To45-20261113-r3",
+  "stages": [
+    {
+      "report": "preserve-result.json",
+      "exe": "InstalledUpgradePreserveGuest.exe",
+      "args": [
+        "--preserve-reviewed-vm-state",
+        "FRESH_INVENTORY_REQUIRED",
+        "FRESH_INVENTORY_SHA_REQUIRED"
+      ]
+    },
+    {
+      "report": "install42-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--install42",
+        "C:\\NookLab\\Audit\\apps\\52758D725C76\\Nook-Setup.exe"
+      ]
+    },
+    {
+      "report": "fixtureseed42-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--seed42"
+      ]
+    },
+    {
+      "report": "launch42-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--launch42"
+      ]
+    },
+    {
+      "report": "fixturesnapshot42-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--snapshot42"
+      ]
+    },
+    {
+      "report": "install45-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--install45",
+        "C:\\NookLab\\Audit\\apps\\FC2DECB42A44\\Nook-Setup.exe"
+      ]
+    },
+    {
+      "report": "launch45-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--launch45"
+      ]
+    },
+    {
+      "report": "fixtureverify45-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--verify45"
+      ]
+    }
+  ],
+  "failurePolicy": "Stop on any failure, preserve receipts and state, review before any retry. No automatic rollback or data deletion.",
+  "limits": [
+    "Actual setup entry with no arguments; not --verify",
+    "Actual default VM profile and installed models",
+    "No Chrome drag-collection claim from this journey",
+    "No physical-host installation or app/runtime test"
+  ],
+  "candidateSetupSha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994",
+  "inventoryState": "BLOCKED: fresh read-only before42 inventory is mandatory; parent must review and bind guest path/hash before preservation",
+  "sourceAdaptations": [
+    {
+      "original": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\compatibility\\InstalledUpgradeDriverGuest.cs",
+      "originalSha256": "D9FE86106D2BC11C038AACFA43118D59B7DBC23138653A76C8E9695FB9A4EDEB",
+      "sourceSha256": "B7B111F1936A5D8BE2B45632273653788FC309F1EFD211E300F7D4EAB7C2AF2D",
+      "command": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/nologo",
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001",
+        "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeDriverGuest.exe",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationClient.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationTypes.dll",
+        "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeDriverGuest.cs"
+      ],
+      "inputs": [
+        {
+          "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeDriverGuest.cs",
+          "sha256": "B7B111F1936A5D8BE2B45632273653788FC309F1EFD211E300F7D4EAB7C2AF2D",
+          "bytes": 19544
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D",
+          "bytes": 1551104
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC",
+          "bytes": 412080
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3",
+          "bytes": 1846016
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622",
+          "bytes": 1303864
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E",
+          "bytes": 173880
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5",
+          "bytes": 234848
+        }
+      ],
+      "outputSha256": "F3C7CBF3FDC408236419CEF77DF2A4D8626474D7DD455FEBE001B9ADA4EDD7E8",
+      "changes": "Exact final app/setup identities and fresh R3 fixture/preservation paths only",
+      "hostExecution": "Compiler only"
+    },
+    {
+      "original": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\compatibility\\InstalledUpgradeFixtureGuest.cs",
+      "originalSha256": "5DF4B3F15926D038F7C294D0A10C52FE998566EF9DCF66E726498C779085DF8C",
+      "sourceSha256": "3CA6E9868751904E6D915F818E49AEE4F621109709FB0463777A8A82C38B14DF",
+      "command": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/nologo",
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001",
+        "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeFixtureGuest.exe",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationCore.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationFramework.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Xaml.dll",
+        "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeFixtureGuest.cs"
+      ],
+      "inputs": [
+        {
+          "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeFixtureGuest.cs",
+          "sha256": "3CA6E9868751904E6D915F818E49AEE4F621109709FB0463777A8A82C38B14DF",
+          "bytes": 13978
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D",
+          "bytes": 1551104
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC",
+          "bytes": 412080
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3",
+          "bytes": 1846016
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622",
+          "bytes": 1303864
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02",
+          "bytes": 3718456
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3",
+          "bytes": 6316856
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E",
+          "bytes": 636160
+        }
+      ],
+      "outputSha256": "EB3D10D439483951136EEC98D3EA41C0ABEA9526FDFF5F6C80CD8BC8A6610EE8",
+      "changes": "Exact final app/setup identities and fresh R3 fixture/preservation paths only",
+      "hostExecution": "Compiler only"
+    },
+    {
+      "original": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\compatibility\\InstalledUpgradePreserveGuest.cs",
+      "originalSha256": "20D1DAA266159B6AF694D913DC02370FF30F1F51B1FB2017BE949E28E81965D6",
+      "sourceSha256": "1462B78A0282BA8E227ACA71AAF763EC51796D98C14AC98CCCABCCE619462AF4",
+      "command": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+        "/nologo",
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001",
+        "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradePreserveGuest.exe",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+        "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+        "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradePreserveGuest.cs"
+      ],
+      "inputs": [
+        {
+          "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradePreserveGuest.cs",
+          "sha256": "1462B78A0282BA8E227ACA71AAF763EC51796D98C14AC98CCCABCCE619462AF4",
+          "bytes": 12504
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D",
+          "bytes": 1551104
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC",
+          "bytes": 412080
+        },
+        {
+          "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3",
+          "bytes": 1846016
+        }
+      ],
+      "outputSha256": "BC83758CC3970FE2C2FD971EA11B684922D831D7497E376845BB5F4740915A70",
+      "changes": "Exact final app/setup identities and fresh R3 fixture/preservation paths only",
+      "hostExecution": "Compiler only"
+    }
+  ],
+  "runAuthorized": false
+}

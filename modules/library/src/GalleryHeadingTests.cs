@@ -40,6 +40,8 @@ namespace Mori {
    ((TextBlock)window.FindName("ViewTitle")).Text=filtering?"一个很长的分类名称：图片与视频参考":"全部素材";
    ((TextBlock)window.FindName("ViewCount")).Text="657 个素材 · 483.5 MB";
    ((Button)window.FindName("ClearFilter")).Visibility=filtering?Visibility.Visible:Visibility.Collapsed;
+   ((ComboBox)window.FindName("MediaFilter")).SelectedIndex=filtering?1:0;
+   ((Button)window.FindName("HomeTypePicker")).Content=filtering?"图片 ▾":"全部类型 ▾";
   }
   static void Drain(){
    // This is a real WPF layout/render queue, not a timed sleep or manually
@@ -58,7 +60,7 @@ namespace Mori {
    if(!SetWindowPos(handle,IntPtr.Zero,0,0,outerWidth,outerHeight,0x0016))throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(),"Cannot size the VM heading test's native client.");
   }
   static void Verify(Window window,FrameworkElement content,int width,bool hosted,string label,Action<bool,string> check){
-   var center=(Grid)window.FindName("Center");var header=(Grid)window.FindName("GalleryHeader");var heading=(Grid)window.FindName("GalleryHeading");var toolbar=(StackPanel)window.FindName("GalleryToolbar");var toggle=(Button)window.FindName("ToggleInspector");var title=(TextBlock)window.FindName("ViewTitle");var count=(TextBlock)window.FindName("ViewCount");var media=(ComboBox)window.FindName("MediaFilter");var sort=(ComboBox)window.FindName("Sort");
+   var center=(Grid)window.FindName("Center");var header=(Grid)window.FindName("GalleryHeader");var heading=(Grid)window.FindName("GalleryHeading");var toolbar=(StackPanel)window.FindName("GalleryToolbar");var toggle=(Button)window.FindName("ToggleInspector");var title=(TextBlock)window.FindName("ViewTitle");var count=(TextBlock)window.FindName("ViewCount");var media=(ComboBox)window.FindName("MediaFilter");var typePicker=(Button)window.FindName("HomeTypePicker");var sort=(ComboBox)window.FindName("Sort");var multi=(Button)window.FindName("MultiSelect");var view=(Button)window.FindName("HomeView");var clear=(Button)window.FindName("ClearFilter");
    double expectedCenter=width-(width==1040?296:208)-6-252-6;
    bool rootState=hosted?window.IsVisible&&object.ReferenceEquals(window.Content,content)&&PresentationSource.FromVisual(content)!=null:!window.IsVisible&&VisualTreeHelper.GetParent(content)==null&&PresentationSource.FromVisual(content)==null;
    check(rootState&&Math.Abs(content.ActualWidth-width)<.5&&Math.Abs(center.ActualWidth-expectedCenter)<.5&&Math.Abs(header.ActualWidth-(expectedCenter-header.Margin.Left-header.Margin.Right))<.5,label+"whole-page root and header honor the requested width before geometry assertions (root="+content.ActualWidth+", center="+center.ActualWidth+", header="+header.ActualWidth+")");
@@ -67,9 +69,12 @@ namespace Mori {
    double titleY=title.TranslatePoint(new Point(),heading).Y+title.ActualHeight/2,countY=count.TranslatePoint(new Point(),heading).Y+count.ActualHeight/2;
    check(Math.Abs(titleY-countY)<1&&title.FontSize==14&&title.ActualHeight<=24&&count.ActualHeight<=24,label+"title and count remain one compact vertically aligned line");
    var headingBounds=Bounds(heading,header);var toolbarBounds=Bounds(toolbar,header);var toggleBounds=Bounds(toggle,header);
-   bool separated=headingBounds.Right<=toggleBounds.Left+.5&&headingBounds.Bottom<=toolbarBounds.Top+.5&&Bounds(title,heading).Right<=Bounds(count,heading).Left+.5&&Bounds(count,heading).Right<=heading.ActualWidth+.5&&Bounds(media,toolbar).Right<=Bounds(sort,toolbar).Left+.5&&Bounds(sort,header).Right<=header.ActualWidth+.5&&media.ActualWidth>=94&&sort.ActualWidth>=109&&title.ActualWidth>20&&title.ActualWidth<=200.5;
-   check(separated,label+"long titles, details toggle and second-row filters remain separated in minimum window"+(separated?"":" (heading="+headingBounds+", title="+Bounds(title,heading)+", count="+Bounds(count,heading)+", toggle="+toggleBounds+", toolbar="+toolbarBounds+", media="+Bounds(media,toolbar)+", sort="+Bounds(sort,header)+")"));
-   var clear=(Button)window.FindName("ClearFilter");check(Hit(content,toggle)&&Hit(content,media)&&Hit(content,sort)&&(clear.Visibility!=Visibility.Visible||Hit(content,clear)),label+"details, type and sort controls, and the visible filter-clear action are hit-testable at their displayed positions");
+   bool separated=headingBounds.Right<=toggleBounds.Left+.5&&headingBounds.Bottom<=toolbarBounds.Top+.5&&Bounds(title,heading).Right<=Bounds(count,heading).Left+.5&&Bounds(count,heading).Right<=heading.ActualWidth+.5&&typePicker.ActualWidth>=97&&sort.ActualWidth>=109&&title.ActualWidth>20&&title.ActualWidth<=200.5;
+   Rect? previous=null;foreach(var control in new FrameworkElement[]{typePicker,sort,multi,clear,view}){if(control.Visibility!=Visibility.Visible)continue;var bounds=Bounds(control,header);separated&=bounds.Left>=-.5&&bounds.Right<=header.ActualWidth+.5&&bounds.Width>0&&bounds.Height>0&&(!previous.HasValue||previous.Value.Right<=bounds.Left+.5);previous=bounds;}
+   check(separated,label+"long titles, details toggle and every visible second-row action remain separated in minimum window"+(separated?"":" (heading="+headingBounds+", title="+Bounds(title,heading)+", count="+Bounds(count,heading)+", toggle="+toggleBounds+", toolbar="+toolbarBounds+", type="+Bounds(typePicker,toolbar)+", sort="+Bounds(sort,header)+")"));
+   check(typePicker.Visibility==Visibility.Visible&&view.Visibility==Visibility.Visible&&media.Visibility==Visibility.Collapsed,label+"visible type/display actions keep the compatibility selector hidden");
+   check(Hit(content,toggle)&&Hit(content,typePicker)&&Hit(content,sort)&&Hit(content,multi)&&Hit(content,view)&&(clear.Visibility!=Visibility.Visible||Hit(content,clear)),label+"every visible gallery action is hit-testable at its displayed position");
+   check(toggle.Focusable&&typePicker.Focusable&&sort.Focusable&&multi.Focusable&&view.Focusable&&clear.Focusable,label+"gallery actions retain keyboard focus access in short and long title states");
    check(title.ToolTip.ToString()==title.Text&&count.ToolTip.ToString()==count.Text,label+"full category name and count retained in tooltips");
   }
   static void Render(Window window,FrameworkElement content,int width,string path){

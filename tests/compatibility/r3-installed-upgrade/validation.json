@@ -1,0 +1,315 @@
+{
+  "status": "Public42 launch and model snapshot passed; real R3 installation committed exact bytes but strict previous-directory removal failed. Later launch45 and verify45 did not run.",
+  "inventoryTask": 1101,
+  "inventorySha256": "1450987DB542FA8B379AFB164F3668BAE41EB75831924338A32A50A5A551E318",
+  "stages": [
+    {
+      "task": 1140,
+      "report": "preserve-result.json",
+      "sha256": "382311C5FCA1B018918EAA1179EE47ADF0D09087744FEBFFB1CF71EBFD5A9698",
+      "passed": true,
+      "forcedCleanupAtProcessExit": null,
+      "jobActive": null,
+      "jobActiveIncludesHelper": null
+    },
+    {
+      "task": 1141,
+      "report": "install42-result.json",
+      "sha256": "C252857FA5DAEFC0FBB250598EA9F3BA374006529DF73B1CAD2F01F7B6AA593A",
+      "passed": true,
+      "forcedCleanupAtProcessExit": false,
+      "jobActive": 1,
+      "jobActiveIncludesHelper": true
+    },
+    {
+      "task": 1142,
+      "report": "fixtureseed42-result.json",
+      "sha256": "06362A8A0546CB357981CD8D90E47D1B46117EB7D1F4D8D4E5B88416BE2D64E4",
+      "passed": true,
+      "forcedCleanupAtProcessExit": null,
+      "jobActive": null,
+      "jobActiveIncludesHelper": null
+    },
+    {
+      "task": 1143,
+      "report": "launch42-result.json",
+      "sha256": "081A2BE449D290EDE0EE884A5771F62C708E8CEC27D8E927F0AB3C4D10408B80",
+      "passed": false,
+      "forcedCleanupAtProcessExit": true,
+      "jobActive": 2,
+      "jobActiveIncludesHelper": true
+    },
+    {
+      "task": 1211,
+      "report": "launch42-result.json",
+      "evidenceGroup": "r3-upgrade-launcher-race/results",
+      "sha256": "13AEA9B79DD6AAC2A35DD4F335B5DCBFC2760F3865F6DCDAF39D1A99B7A0CB7B",
+      "passed": true,
+      "forcedCleanupAtProcessExit": false,
+      "jobActive": 1,
+      "jobActiveIncludesHelper": true
+    },
+    {
+      "task": 1213,
+      "report": "fixturesnapshot42-result.json",
+      "evidenceGroup": "r3-upgrade-launcher-race/results",
+      "sha256": "796C1FBE8692941C1B6D9A39679F47BE1FA33A8A22845F40F55E8D4F003D4ABE",
+      "passed": true,
+      "forcedCleanupAtProcessExit": null,
+      "jobActive": null,
+      "jobActiveIncludesHelper": null
+    },
+    {
+      "task": 1215,
+      "report": "install45-result.json",
+      "evidenceGroup": "r3-upgrade-launcher-race/results",
+      "sha256": "63F25DB880FBBD0E47D9EA20B6D1D23F152B56C77EA84B1D761E55E3482D91CA",
+      "passed": false,
+      "forcedCleanupAtProcessExit": true,
+      "jobActive": 2,
+      "jobActiveIncludesHelper": true
+    }
+  ],
+  "actualPublic42InstallationRun": true,
+  "actualR3UpgradeRun": true,
+  "fullJourneyPassed": false,
+  "original1143RetainedFailed": true,
+  "physicalProductExecution": false,
+  "recoveryInventoryTask": 1195,
+  "recoveryInventorySha256": "E3FD818BFD3BB70AC3479DC549D529A98FC0C5C9E6D4231413453BE1D6A5FE97",
+  "recoveryPlanSha256": "F686107D1D3919C47D0F8D525787BE0C99B9812C9638AA50AEC948A2F2B9FD04",
+  "historicalInfrastructureFailures": [
+    {
+      "task": 1190,
+      "passed": false,
+      "reportSha256": "CC69B2027A3D1C86BA997A288C5AADA1D1863B184BA72C9EA37367906F1EB947",
+      "reason": "Re-extracting the unchanged existing inventory package failed because a member already existed. No inventory command ran in this task; fresh1195 used a new hash-addressed package with identical helper bytes.",
+      "retainedFailed": true
+    }
+  ],
+  "original1215RetainedFailed": true,
+  "after1215Inventory": {
+    "task": 1221,
+    "sha256": "25AEA3B20A3849FAD1DF11110551A0584651BA5E4CBBF207DF6694A3FDA9712E",
+    "runningCount": 0,
+    "versionCleanupState": "deferred",
+    "versionCleanupReason": "entries-pending",
+    "pendingCount": 1,
+    "deletedCount": 0,
+    "skippedCount": 0,
+    "exactRefusalNotPersistedInSummary": true
+  },
+  "knownPreexistingFixtureCondition": "Task1140 moved the previous complete DataRoot while preserving registry. Exact preserved manifest and tree are recovered. Before installing R3, task1195 already had four native registrations pointing to the absent original manifest. Source rejects incomplete native evidence. Detailed1225 cleanup journal finished deferred without file verification/deletion lines; exact per-item exception was not persisted.",
+  "laterStagesRun": false,
+  "detailedFailureEvidence": {
+    "task": 1225,
+    "passed": true,
+    "artifacts": [
+      {
+        "report": "session-installer-cleanup.json",
+        "sha256": "7473BCB905A1E1610D286E6E12F74D23CD7843FEE6C754793F014B2227C9F1B5"
+      },
+      {
+        "report": "version-cleanup.json",
+        "sha256": "D550FB4E6F6DE42F1F107B14EB08C9A8969639DC4502C25787B88783C661B76D"
+      },
+      {
+        "report": "preservation-plan.json",
+        "sha256": "D2320FC03F14BE0F4B98D81ADC25244BCC11B50D7F0A5664516B3E2E14E31FCF"
+      },
+      {
+        "report": "preservation-complete.json",
+        "sha256": "F874933DBBBF4B7C07A57D019846AE2F60129793479852CD10EF7F2A4C3C5687"
+      },
+      {
+        "report": "preserved-native-manifest.json",
+        "sha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D"
+      },
+      {
+        "report": "old-payload-tree.json",
+        "sha256": "CB08F13AF27117D284F061B2B6B34D283E22EC40F133BC7E03069B47DCFBE6D3"
+      },
+      {
+        "report": "old-installed-files.json",
+        "sha256": "AF8D2D1C61B1E1A7EDEBD608A6F0DA93BB2B3AAF27F6E9D849F9C3EE6E593392"
+      },
+      {
+        "report": "cleanup-evidence-result.json",
+        "sha256": "8E505DBF810DF4BBB3A761C63A2D24DFF118F25B316BEDA8D916C7132224459D"
+      }
+    ],
+    "cleanupFinished": true,
+    "cleanupState": "deferred",
+    "lastProgress": "Checking startup entrypoints and browser connection",
+    "oldPayloadStructurallyPresent": true,
+    "classification": "Real install committed; strict cleanup failed in a baseline with dangling native-host registrations caused by preservation leaving registry unchanged.",
+    "limitation": "Actual per-item exception was not persisted. Missing native manifest is an observed precondition and a source-confirmed rejection path, not a direct logged exception or proof that it was the only blocker.",
+    "registeredNativeManifestMissingBeforeR3Upgrade": true,
+    "oldPayloadContentHashesRecomputed": false
+  },
+  "independentHealthyBaseline": {
+    "status": "Task1261 seeded generated fixtures through exact installed public42; task1262 failed in test-helper ProcessModule.FileName sampling before any UI action. Original1262 remains failed, later stages did not run. A reviewed native-image launch-only supplement is pending returned evidence.",
+    "packageSha256": "95618CD835944970114766C2735E37C52074FA0C37792EBC655E8E708A11B0FE",
+    "reviewSha256": "9807DABC3E47740907DC2F294961D13124330C58AA1FF6041B07110073CC4C29",
+    "original1215RetainedFailed": true,
+    "public42SupportedUiPreparation": true,
+    "productionCapturePreflightRequired": true,
+    "actualChromeLoaded": false,
+    "fullJourneyPassed": false,
+    "preserve1251Failure": {
+      "task": 1251,
+      "reportSha256": "92AF77452376C59EC45EF1865A2CEA15FF3D270FE906B47A7FC690310D5AB103",
+      "outerReportSha256": "BCA540941DE19E4FF72AB2F7EEBC10194E59DCDE63917421AC010F94D5043182",
+      "independentReviewSha256": "400F4E967BB4D43D1567C86EBB1A76C54F7774C653BE9A124951F1C844D0C597",
+      "passed": false,
+      "original1251RetainedFailed": true,
+      "reportedMovedItems": 3,
+      "programFilesCountBeforeMove": 3707,
+      "programPostMoveVerificationCompleted": false,
+      "dataMoveReached": false,
+      "healthyBaselineInstallationStarted": false,
+      "noDeletionReported": true,
+      "reason": "Test-only preservation helper destination path exceeds .NET legacy path limit after same-volume program directory move.",
+      "mayContinueInstallation": false
+    },
+    "partialPreserve1251Recovery": {
+      "status": "Task1271 dedicated-VM preservation recovery passed; not an installation or upgrade pass",
+      "packageSha256": "49BE5A75777EFAD403633165D19CD22F442FBB0C75D8055251E54F83D98981E3",
+      "sourceSha256": "B00F078A9C352ADA5CC1A7E402106620B59B2B0EC952B767ADCB78689484AFAE",
+      "reviewSha256": "66C21F3DD1C8F5FF11B4591E5FDBCEDEFBB739AB96F9DC77DD61BFFC7521F0A0",
+      "original1251RetainedFailed": true,
+      "noDeletion": true,
+      "oldRoot": "C:\\NookLab\\Audit\\upgrade42to45-preserved-20261113-r3-healthy",
+      "newRoot": "C:\\NookLab\\Preserve1251",
+      "expectedProgramFiles": 3707,
+      "expectedDataFiles": 36,
+      "mayContinueInstallation": true,
+      "task": 1271,
+      "passed": true,
+      "reportSha256": "4C926D2F12BED310D40773D15B584D45BCF6E8B880BB576E6460D59A61318B7C",
+      "outerReportSha256": "FA97FDA7CE310C133D4A21EF17CA917B28DF95CEB2877D9B3EF2805F283ED091",
+      "resultReviewSha256": "D7E49EFF01FFF40055FFF2F30B7553C74C4803492AC2A05D8EF34F72F3F7CF0C",
+      "checksPassed": 86,
+      "programFiles": 3707,
+      "dataFiles": 36,
+      "allFileContentHashesRecomputed": false,
+      "physicalProductExecution": false,
+      "registryChanged": false
+    },
+    "initialPreparationStages": [
+      {
+        "task": 1252,
+        "report": "install42-result.json",
+        "reportSha256": "83ABE38775B19128B07F92101C70F2E9DDCF601596B72C234B126CF6FEBD4D47",
+        "outerReportSha256": "BD8FBC308D4444B15AB50270A63E0749356819B3764A53A4662DD86020479C78",
+        "passed": true,
+        "forcedCleanupAtProcessExit": false,
+        "jobActive": 1,
+        "jobActiveIncludesHelper": true
+      },
+      {
+        "task": 1253,
+        "report": "prepare-browser42-result.json",
+        "reportSha256": "DA04448ACBB26116361F912046E3C5335ACEAD20B2B079F9A45BDE681BE1D9CC",
+        "outerReportSha256": "262C933BB280A359AAB3182EF1F8FBACA3BBCEB9B7CD383BFDC28BE1250C4F58",
+        "passed": false,
+        "forcedCleanupAtProcessExit": true,
+        "jobActive": 2,
+        "jobActiveIncludesHelper": true
+      }
+    ],
+    "original1253RetainedFailed": true,
+    "initialPreparationReviewSha256": "8A4DC38D03734173CC9FE7232AD45324BF1AD595FC38FDA30475D23FF2AA47F9",
+    "ownedDialogSupplement": {
+      "status": "Original1276 remains failed; supported setup side effects and separate production health/inventory are verified, not a preparation normal-close pass",
+      "packageSha256": "3ECC8CC986439221E9C47C2115326BAE9D8B241E94007E19ED472EDF0FC29C83",
+      "sourceSha256": "634DD34E836ED08DD1C55AC80776B2D404BE43BD5EEBFD08195CBCFA85E5036D",
+      "reviewSha256": "920713CB961AE2FCC0F02D1843576F2C79F4F3E2A75E5C67E53AE2A4AB8928E7",
+      "original1253RetainedFailed": true,
+      "originalInstallLaunchCloseBlocksUnchanged": true,
+      "settingsTimeoutStill6000ms": true,
+      "productChanged": false,
+      "physicalProductExecution": false,
+      "stages": [
+        {
+          "task": 1276,
+          "report": "prepare-browser42-result.json",
+          "reportSha256": "072EE496759AD1399A01D34591C12B8E7AAA15509E0C66EA66A07F7404F71083",
+          "outerReportSha256": "903E3757EA1691BD648ED4628E64169F85C7C98146BFB522F2C2A761BC165E3D",
+          "passed": false,
+          "checks": 25
+        },
+        {
+          "task": 1279,
+          "report": "healthy42-preflight-result.json",
+          "reportSha256": "465BD84876BB7EAA419CD0E8D76BA67F731CB6C25BE6D082BBFBE77B7239A0AD",
+          "outerReportSha256": "9C82C6C84C3725EC1FA94D5BF1EC1AB0984CA7E4D1AA812B50C64646C099965D",
+          "passed": true,
+          "checks": 92
+        }
+      ],
+      "original1276RetainedFailed": true,
+      "clickedInstallRepairOnce": true,
+      "manifestCatalogRuntimeListeningWaitReached": true,
+      "preparationNormalCloseAccepted": false,
+      "forcedCleanupAtProcessExit": true,
+      "jobActiveAtFailure": 2,
+      "normalLaunchCloseRequiredTask": 1262,
+      "productionHealthTask": 1279,
+      "productionHealthPassed": true,
+      "productionSnapshot": {
+        "complete": true,
+        "entrypointsSwitched": true,
+        "reason": "ready",
+        "runningCount": 0,
+        "referenceCount": 1,
+        "protectedPathCount": 0
+      },
+      "independentInventoryTask": 1256,
+      "independentInventorySha256": "1DD0822CD7EE7F2D49995B8C1A307C7076424BBB880DFEF78B7D9D93EE2BACFD",
+      "independentInventoryReviewSha256": "3A95C4F51509E53450450D2D78B3F4C82D6E85947400F5752B3AD57E76E10F4E",
+      "healthyInstalledStateAccepted": true,
+      "realChromeCollectionAccepted": false,
+      "originalNormalCloseTask1262Failed": true
+    },
+    "original1276RetainedFailed": true,
+    "seedAndOriginalLaunchStages": [
+      {
+        "task": 1261,
+        "report": "fixtureseed42-result.json",
+        "reportSha256": "E69BE13766CCB9654B5CDDF158B95C030CCF15000D0F81B3ED5422A17A9B202E",
+        "outerReportSha256": "C19015D0510338BEFA79747B10B042B7C87D13388DC2AA7EDFB2D70A7B9D3899",
+        "passed": true,
+        "forcedCleanupAtProcessExit": null,
+        "jobActive": null,
+        "jobActiveIncludesHelper": null
+      },
+      {
+        "task": 1262,
+        "report": "launch42-result.json",
+        "reportSha256": "E58B1BEE8CEBAB69EA0FF333D3E717CFB1E4FDBDE8F09D5136E3BCEC176EA13D",
+        "outerReportSha256": "0CF59808A8DC8BE3074523057ED4E7E8FD8F23AA70500DCE1C6A4844E26E330C",
+        "passed": false,
+        "forcedCleanupAtProcessExit": true,
+        "jobActive": 2,
+        "jobActiveIncludesHelper": true
+      }
+    ],
+    "original1262RetainedFailed": true,
+    "nativeProcessImageSupplement": {
+      "status": "Reviewed compiler/package source; no returned launch or final upgrade evidence yet",
+      "packageSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+      "sourceSha256": "371B26653C5506338A99903D7AC76BDD50514F9DDB34AB14D960EA4E1975F705",
+      "reviewSha256": "9B80D094FF2AC429D119ECE5A08C7DF51BAEA231CC573BE9838F5D3F98B8BCB0",
+      "original1262RetainedFailed": true,
+      "processImageQuery": "QueryFullProcessImageNameW",
+      "retainedHandlePidChecked": true,
+      "originalInstallPrepareAndCloseUnchanged": true,
+      "launchCloseOnlyChangesPathProvider": true,
+      "originalTimeoutsAndAssertionsUnchanged": true,
+      "existingSeedReused": true,
+      "otherStagesMustUseOriginal95618": true,
+      "physicalProductExecution": false
+    }
+  }
+}

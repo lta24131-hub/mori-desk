@@ -1,0 +1,79 @@
+{
+  "originalSource": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeDriverGuest.cs",
+  "originalSourceSha256": "4C6F18CB11C91C3279065E8D5B37374FEEA7BE904AB54984559ADF074AA89354",
+  "sourceSha256": "371B26653C5506338A99903D7AC76BDD50514F9DDB34AB14D960EA4E1975F705",
+  "outputSha256": "78635AB0695903FD4CEAC27DE0D5952C4F9BC0CACD6953C514BA0726B5A27E88",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/target:exe",
+    "/optimize+",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-native-launch-v2\\package\\InstalledUpgradeLaunchGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationClient.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationTypes.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-native-launch-v2\\package\\InstalledUpgradeLaunchGuest.cs"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-native-launch-v2\\package\\InstalledUpgradeLaunchGuest.cs",
+      "sha256": "371B26653C5506338A99903D7AC76BDD50514F9DDB34AB14D960EA4E1975F705"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+      "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationClient.dll",
+      "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\UIAutomationTypes.dll",
+      "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+    }
+  ],
+  "unchangedSections": [
+    {
+      "section": "static object Install(",
+      "sha256": "89DA84081D2B7D17B53DC3056CB1C2B7ED680B02EE1CFFC75C638FA6C991489C"
+    },
+    {
+      "section": "static object PrepareBrowser42(){",
+      "sha256": "D6045978779D82C775547C762546FE19D207D3AEB87E42D0F594BC79E3CB88E1"
+    },
+    {
+      "section": "static void Wait(",
+      "sha256": "286C3CF845C084449DBA2AFAE57E3FA92BCEADDEFB8E162BD372A4EBADD73249"
+    },
+    {
+      "section": "static AutomationElement[] Windows(",
+      "sha256": "836E824755FF476513D8C28E6185A42C05937730C1D488D35A1BD56F45ED60A6"
+    },
+    {
+      "section": "static void CloseApp(",
+      "sha256": "86FC18CBEDDBEBDC2722EBA34820AADB1BD4A767AC13150CEE542D52B23A815B"
+    }
+  ],
+  "normalCloseAssertionsUnchanged": true,
+  "launchPathCheckOnlyChangesProvider": true,
+  "hostExecution": "Compiler only",
+  "original1262RetainedFailed": true,
+  "otherStagesMustUseOriginal95618": true
+}

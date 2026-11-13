@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "scope": "Actual public42 to frozen R3 replacement attempt in dedicated VM, after independently accepted installed-file/registration baseline. Previous failure cannot be attributed only to the earlier unhealthy baseline. Installation acceptance remains failed; root cause needs exported transaction evidence.",
+  "stages": [
+    {
+      "taskId": "1301-r3-native-image-launch42",
+      "outerReportSha256": "43B741FFD6710825BA7EC62D9920F36CEC7A3435CA7E54E3806A854FFB736C76",
+      "reportSha256": "ADCD6A2A851CB17AF684346172FE72FCF9B6AFC76CF9513D19737D349D8C63AE",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "passed": true,
+      "checks": 18,
+      "elapsedSeconds": 16.28
+    },
+    {
+      "taskId": "1303-r3-native-image-snapshot42",
+      "outerReportSha256": "4B6A7198E4C642CDA6C94D8A825D4158BBE55D2BE177CCB7A45C000603DD1159",
+      "reportSha256": "3D5913BBD788E8EF564182DB1494C51B68F269A1ED4204CC3BE537625F6EA37E",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "passed": true,
+      "checks": 28,
+      "elapsedSeconds": 3.54
+    },
+    {
+      "taskId": "1304-r3-native-image-install45",
+      "outerReportSha256": "F14E96859A8CFBA06D2E1725CF48310933302F3E9F9CACFCBBCB2F43A1251ECA",
+      "reportSha256": "ECD090910BE2CBF731DE9ED6C647DFCA0072C8AF5A79FFDC9E6ED6E0E5BCED2E",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 1,
+      "passed": false,
+      "checks": 32,
+      "elapsedSeconds": 564.09
+    }
+  ],
+  "launchHelperSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+  "controllerSha256": "D10850F4EA4C3BB8DAA71C2ABEA7FB126300AE5E99C801F9F1831AC07A13EAA9",
+  "gateSha256": "139B363D08D49ECD153716365EB295957300360AD8DB960A6A69004DF981252C",
+  "progressSha256": "29D350C6F528ADF9D13E32DBD8F7E169C65E1B969F4140CD8A73782BFEA47B91",
+  "healthyBaselineAcceptedBeforeAttempt": true,
+  "actualPublic42LaunchAndNormalCloseAccepted": true,
+  "actualPublic42ModelSnapshotPassed": true,
+  "actualNoArgumentInstallerFourWizardStepsCompleted": true,
+  "installerExitCodeZero": true,
+  "newCandidateAndStartupIdentityAssertionsCompleted": true,
+  "fixedLauncherBytesPreservedAssertionCompleted": true,
+  "old42RemovalAssertionPassed": false,
+  "postInstallNormalCloseAccepted": false,
+  "cleanupForced": true,
+  "jobActiveBeforeForcedCleanup": 2,
+  "jobIncludesHelper": true,
+  "actual45LaunchStageRun": false,
+  "final45FixtureVerificationRun": false,
+  "finalDataPreservationAccepted": false,
+  "actualUpgradeScopePassed": false,
+  "original1215RetainedFailed": true,
+  "original1262RetainedFailed": true,
+  "original1304RetainedFailed": true,
+  "sourceOrProductChanged": false,
+  "hostExecuted": false
+}

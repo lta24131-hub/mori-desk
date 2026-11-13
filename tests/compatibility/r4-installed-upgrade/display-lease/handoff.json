@@ -1,0 +1,21 @@
+{
+  "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-upgrade-display-lease\\lease.zip",
+  "sha256": "F863774650CF53A73BAE2797AD9B6D1FE2681980C7C6B903A92C9214E645DA10",
+  "guest": "C:\\NookLab\\Audit\\apps\\F863774650CF",
+  "executable": "DisplayLeaseGuest.exe",
+  "args": [
+    "--bounded-upgrade-resume-lease-3600s"
+  ],
+  "releaseArgs": [
+    "--release-own-lease"
+  ],
+  "maxSeconds": 3600,
+  "startedReport": "display-resume-lease-started.json",
+  "releaseRequest": "display-resume-lease-release.request.json",
+  "releasedReport": "display-resume-lease-released.json",
+  "globalPowerPlanChanged": false,
+  "productExecuted": false,
+  "vmQueueTouched": false,
+  "sourceSha256": "3F10C49D85F05B27364EB03BF29153E67866EF5CDE20FA830E2104A1A9E03017",
+  "exeSha256": "2C3DB3C59FEBE4E0A14E257B52D2C2B2548751B68D3BB4BC03F2917505CDD2EF"
+}

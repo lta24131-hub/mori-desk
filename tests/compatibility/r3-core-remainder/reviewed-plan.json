@@ -1,0 +1,10 @@
+{
+  "label": "core-remainder",
+  "exe": "R3CoreRemainderRunner.exe",
+  "sha256": "B3ECC38E5A059643D4FE5B46030647CA89137C13D6EC6FFDA54BE9D838BD9131",
+  "args": [
+    "$root"
+  ],
+  "successRegex": "^PASS (\\d+) adapted core remainder checks; product=97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6; original 865 failure retained\\r?$",
+  "timeoutSeconds": 600
+}

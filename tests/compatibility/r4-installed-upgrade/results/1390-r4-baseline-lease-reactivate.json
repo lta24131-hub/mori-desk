@@ -1,0 +1,9 @@
+{
+  "id": "1390-r4-baseline-lease-reactivate",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\F863774650CF",
+  "elapsedSeconds": 0.02,
+  "guestUtc": "2026-11-13T15:50:13.3091130Z",
+  "receivedUtc": "20261113T155014263056Z"
+}

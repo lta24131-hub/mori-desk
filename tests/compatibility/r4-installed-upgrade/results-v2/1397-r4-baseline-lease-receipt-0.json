@@ -1,0 +1,9 @@
+{
+  "id": "1397-r4-baseline-lease-receipt-0",
+  "type": "read",
+  "status": "passed",
+  "text": "{\"released\":true,\"reason\":\"explicit-own-package-request\",\"elapsedSeconds\":961.07284889999994,\"utc\":\"2026-11-13T16:06:19.7783656Z\"}",
+  "elapsedSeconds": 0.02,
+  "guestUtc": "2026-11-13T16:06:22.7789668Z",
+  "receivedUtc": "20261113T160623737987Z"
+}

@@ -431,14 +431,40 @@ internal static class CaptureOutputLifecycleTests {
     }
     static void Pins(string directory,Action<bool,string> check){
         var store=new PinStore(Path.Combine(directory,"pins"));var prior=store.Add(Pixels());byte[] previous=File.ReadAllBytes(store.ImagePath(prior));bool failed=false;
-        try{Wait(store.CreatePinAsync(Pixels(),new Int32Rect(-500,20,400,300),CancellationToken.None,(record,bounds)=>{throw new IOException("synthetic native presenter unavailable");}));}catch(IOException){failed=true;}
+        try{Wait(store.CreatePinAsync(Pixels(),new Int32Rect(-500,20,400,300),CancellationToken.None,(record,bounds,prepared)=>{throw new IOException("synthetic native presenter unavailable");}));}catch(IOException){failed=true;}
         check(failed&&store.Records.Count==1&&store.Records.Single()==prior&&File.ReadAllBytes(store.ImagePath(prior)).SequenceEqual(previous),"failed new pin presentation rolls back only the new record and keeps previous pin bytes");
         check(Directory.GetFiles(store.Folder,"*.png").Length==1&&new PinStore(store.Folder).Records.Count==1,"failed pin creation leaves no duplicate or active phantom in its persisted index");
-        int presented=0;Wait(store.CreatePinAsync(Pixels(),new Int32Rect(-500,20,400,300),CancellationToken.None,(record,bounds)=>{presented++;check(File.Exists(store.ImagePath(record))&&store.Records.Contains(record),"pin presentation runs only after complete bytes and metadata have committed");}));
+        int presented=0;Wait(store.CreatePinAsync(Pixels(),new Int32Rect(-500,20,400,300),CancellationToken.None,(record,bounds,prepared)=>{presented++;check(File.Exists(store.ImagePath(record))&&store.Records.Contains(record),"pin presentation runs only after complete bytes and metadata have committed");}));
         check(presented==1&&store.Records.Count==2&&new PinStore(store.Folder).Records.Count==2,"successful asynchronous pin creation commits exactly one recoverable pin");
         using(var cancel=new CancellationTokenSource()){
-            cancel.Cancel();bool cancelled=false;try{Wait(store.CreatePinAsync(Pixels(),new Int32Rect(0,0,20,20),cancel.Token,(record,bounds)=>presented++));}catch(OperationCanceledException){cancelled=true;}
+            cancel.Cancel();bool cancelled=false;try{Wait(store.CreatePinAsync(Pixels(),new Int32Rect(0,0,20,20),cancel.Token,(record,bounds,prepared)=>presented++));}catch(OperationCanceledException){cancelled=true;}
             check(cancelled&&store.Records.Count==2&&presented==1,"cancelled pin encoding does not create an image, index entry or window");
+        }
+        int owner=Thread.CurrentThread.ManagedThreadId,encoderThread=owner;bool heartbeat=false;var source=Pixels();
+        using(var release=new ManualResetEventSlim(false)){
+            var started=new TaskCompletionSource<bool>();
+            var creation=store.CreatePinAsync(source,new Int32Rect(0,0,400,300),CancellationToken.None,(record,bounds,prepared)=>{
+                check(Thread.CurrentThread.ManagedThreadId==owner&&ReferenceEquals(prepared,source)&&prepared.IsFrozen,"committed pin returns the exact frozen input to the owning dispatcher");
+                // Exercise the production materializer without showing a native window.
+                var window=store.CreateWindow(record,bounds,prepared);
+                try{check(ReferenceEquals(Field<BitmapSource>(window,"image"),source)&&ReferenceEquals(Field<Image>(window,"picture").Source,source),"new pin window reuses committed pixels without decoding its newly saved PNG");}
+                finally{window.Discard();}
+                presented++;
+            },(pixels,path,token)=>{encoderThread=Thread.CurrentThread.ManagedThreadId;started.TrySetResult(true);if(!release.Wait(6000))throw new TimeoutException("Synthetic encoder gate timed out.");PinStore.EncodeNewPin(pixels,path,token);});
+            try{
+                Await(started.Task);Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Input,new Action(()=>{heartbeat=!creation.IsCompleted;release.Set();}));Wait(creation);
+            }finally{release.Set();}
+            check(heartbeat&&encoderThread!=owner,"dispatcher services an input-priority callback while PNG encoding is still pending off-thread");
+        }
+        int retained=store.Records.Count;string[] images=Directory.GetFiles(store.Folder,"*.png");
+        using(var cancel=new CancellationTokenSource())using(var release=new ManualResetEventSlim(false)){
+            var started=new TaskCompletionSource<bool>();int latePresentations=0;bool cancelled=false;
+            var creation=store.CreatePinAsync(Pixels(),new Int32Rect(0,0,400,300),cancel.Token,(record,bounds,prepared)=>latePresentations++,
+                (pixels,path,token)=>ImageFiles.WriteAtomic(path,stream=>{stream.WriteByte(42);started.TrySetResult(true);if(!release.Wait(6000))throw new TimeoutException("Synthetic cancel gate timed out.");},token));
+            try{Await(started.Task);Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Normal,new Action(()=>{cancel.Cancel();release.Set();}));try{Wait(creation);}catch(OperationCanceledException){cancelled=true;}}
+            finally{release.Set();}
+            check(cancelled&&latePresentations==0&&store.Records.Count==retained&&new PinStore(store.Folder).Records.Count==retained,"cancellation during encoding never commits a record or presents a late pin");
+            check(Directory.GetFiles(store.Folder,"*.png").OrderBy(p=>p).SequenceEqual(images.OrderBy(p=>p))&&Directory.GetFiles(store.Folder,"*.tmp").Length==0&&File.ReadAllBytes(store.ImagePath(prior)).SequenceEqual(previous),"mid-encode cancellation removes only its own temporary bytes and preserves prior images");
         }
     }
     static void Placement(Action<bool,string> check){

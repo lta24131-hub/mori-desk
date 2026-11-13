@@ -1,0 +1,11 @@
+--- D:\Nook-DevTestVM\audit\20261113-worker-race-rebind\r3-upgrade-journey\helpers\InstalledUpgradeFixtureGuest.cs
++++ InstalledUpgradeFixtureGuest.cs
+@@ -20,7 +20,7 @@
+ internal static class InstalledUpgradeFixtureGuest {
+  const string OldHash="0023F5CF9C7B6021ED8071E9936EB20282C1FBBE467716B33146AA52110662EB";
+  const string NewHash="97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6";
+- const string Fixture=@"C:\NookLab\Upgrade42To45-20261113-r3";
++ const string Fixture=@"C:\NookLab\Upgrade42To45-20261113-r3-healthy";
+  static readonly JavaScriptSerializer Json=new JavaScriptSerializer{MaxJsonLength=4*1024*1024,RecursionLimit=48};
+  static readonly UTF8Encoding Utf8=new UTF8Encoding(false);
+  static string Package,Data,Program,App;static Assembly Product;static readonly List<string> Checks=new List<string>();

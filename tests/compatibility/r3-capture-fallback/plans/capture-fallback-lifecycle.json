@@ -1,0 +1,11 @@
+{
+  "label": "capture-fallback-lifecycle",
+  "exe": "CaptureFallbackRunner.exe",
+  "sha256": "ACF0F43EFF904EABC95DEB65026C5488C315199736F7DAB9CACA2AAB6BACEDC4",
+  "args": [
+    "$root",
+    "capture-fallback-lifecycle"
+  ],
+  "timeoutSeconds": 180,
+  "successRegex": "^PASS (\\d+) independent capture fallback and lifecycle checks; original 943 failure retained\\r?$"
+}

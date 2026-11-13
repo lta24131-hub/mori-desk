@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "packageSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+  "previousPackageSha256": "D777BCF0556DCA212F292277B02FB26A0023624C19077F61CFB5D9E3588AB06A",
+  "zipMemberCount": 5,
+  "originalFourMembersByteIdentical": true,
+  "sentinelIdenticalToHelper": true,
+  "sourceAndHelperUnchanged": true,
+  "originalSourceReviewSha256": "0F804CB70088BC9B720319664A21C7847CC3168907343C9BC1D80555213B3299",
+  "sentinelRequiredByGuestDeploymentCache": true,
+  "hostExecuted": false,
+  "scope": "Packaging-only review; original source and executable review reused. Mori.exe alias is deployment sentinel, launcher command remains InstalledUpgradeLaunchGuest.exe."
+}

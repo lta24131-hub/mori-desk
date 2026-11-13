@@ -1,0 +1,35 @@
+{
+  "stages": [
+    {
+      "taskId": "1252-r3-healthy-install42",
+      "outerReportSha256": "BD8FBC308D4444B15AB50270A63E0749356819B3764A53A4662DD86020479C78",
+      "reportSha256": "83ABE38775B19128B07F92101C70F2E9DDCF601596B72C234B126CF6FEBD4D47",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "passed": true,
+      "jobActive": 1,
+      "forcedCleanupAtProcessExit": false,
+      "checks": 30
+    },
+    {
+      "taskId": "1253-r3-healthy-prepare-browser42",
+      "outerReportSha256": "262C933BB280A359AAB3182EF1F8FBACA3BBCEB9B7CD383BFDC28BE1250C4F58",
+      "reportSha256": "DA04448ACBB26116361F912046E3C5335ACEAD20B2B079F9A45BDE681BE1D9CC",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 1,
+      "passed": false,
+      "jobActive": 2,
+      "forcedCleanupAtProcessExit": true,
+      "checks": 18
+    }
+  ],
+  "actualPublic42InstallAccepted": true,
+  "public42SetupAndAppIdentityVerified": true,
+  "normalCloseAndDrainAfterInstall": true,
+  "prepare1253Accepted": false,
+  "prepare1253InstallRepairReached": false,
+  "prepare1253NormalClose": false,
+  "healthStageExecuted": false,
+  "healthyGateAccepted": false,
+  "scope": "Actual public42 installation completed; initial browser preparation only invoked Settings then hit its unchanged 6-second discovery timeout. No browser preparation, healthy baseline, actual45 upgrade or data retention acceptance follows from this report. Original1253 retained; helper Job cleanup is forced, not normal close."
+}

@@ -1,0 +1,48 @@
+{
+  "media": [
+    {
+      "label": "actual-webm",
+      "exe": "R3MediaProbeRunner.exe",
+      "sha256": "9F384F6BC0C0967B64CF21FB07B579EF73DD55C60B8CA2E37562322DC3AAD0DF",
+      "args": [
+        "$root",
+        "actual-webm"
+      ],
+      "timeoutSeconds": 300,
+      "successRegex": "^PASS (\\d+) actual WebM checks; product=97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6; video=[A-F0-9]{64}\\r?$"
+    },
+    {
+      "label": "mp4-diagnostic",
+      "exe": "R3MediaProbeRunner.exe",
+      "sha256": "9F384F6BC0C0967B64CF21FB07B579EF73DD55C60B8CA2E37562322DC3AAD0DF",
+      "args": [
+        "$root",
+        "mp4-diagnostic"
+      ],
+      "timeoutSeconds": 180,
+      "successRegex": "^OBSERVED (\\d+) MP4 diagnostic samples; original 888 failure retained\\r?$"
+    }
+  ],
+  "originalMp4": {
+    "label": "library-media",
+    "exe": "MediaPlaybackRunner.exe",
+    "sha256": "8E127C1A9BD14CDF149BC80E0AD8C2D9466B62FA9059FAD4A597F38C8BC2A96B",
+    "args": [
+      "$root",
+      "$video"
+    ],
+    "successRegex": "^PASS (\\d+) actual library-media checks; product=97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6; video=0430D51A7C8EF567F00130EB303DBC0236DAD1972CF54467C9FE3554C2666B1B\\r?$",
+    "timeoutSeconds": 300
+  },
+  "boundedNativeMp4Functional": {
+    "label": "native-mp4-functional",
+    "exe": "R3MediaFunctionalRunner.exe",
+    "sha256": "45E3C757974D39CB8C27AFB46A7F842CB05ECFA586D00E7B75B92D000AF494BB",
+    "args": [
+      "$root",
+      "native-mp4-functional"
+    ],
+    "timeoutSeconds": 180,
+    "successRegex": "^PASS (\\d+) bounded native-MP4 functional checks; original timing failures retained\\r?$"
+  }
+}

@@ -152,13 +152,26 @@ namespace MoriDeskInstaller {
   sealed class LockedTree : IDisposable {
    internal readonly List<KeyValuePair<string,SafeFileHandle>> Directories=new List<KeyValuePair<string,SafeFileHandle>>();
    internal readonly Dictionary<string,FileStream> Files=new Dictionary<string,FileStream>(Names);
-   internal LockedTree(string folder,bool deletion){try{Scan(folder,deletion);}catch{Dispose();throw;}}
+   readonly Action<string> report;readonly Stopwatch progressClock;long lastProgress=-500;
+   internal LockedTree(string folder,bool deletion):this(folder,deletion,null){}
+   internal LockedTree(string folder,bool deletion,Action<string> report){
+    this.report=report;if(report!=null)progressClock=Stopwatch.StartNew();
+    try{Scan(folder,deletion);ReportProgress(true);}catch{Dispose();throw;}
+   }
+   void ReportProgress(bool complete=false){
+    if(report==null)return;long now=progressClock.ElapsedMilliseconds;
+    if(!complete&&now-lastProgress<500)return;lastProgress=now;
+    // Advance only after a real entry has passed its physical-path checks and
+    // its handle is owned by this scope. A stalled I/O cannot emit heartbeats.
+    Progress(report,(complete?"已完成位置检查，共 ":"已检查 ")+(Directories.Count+Files.Count)+" 个文件与目录");
+   }
    void Scan(string folder,bool deletion){
     if(Directories.Count+Files.Count>=MaximumFiles)throw new InvalidDataException("安装文件数量超出清理上限。");
     Directories.Add(new KeyValuePair<string,SafeFileHandle>(folder,OpenLocked(folder,true,deletion)));
+    ReportProgress();
     foreach(string path in Directory.EnumerateFileSystemEntries(folder)){
      var attributes=File.GetAttributes(path);if((attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("旧目录含链接，未清理。");
-     if((attributes&FileAttributes.Directory)!=0)Scan(path,deletion);else{if(Directories.Count+Files.Count>=MaximumFiles)throw new InvalidDataException("安装文件数量超出清理上限。");Files.Add(path,new FileStream(OpenLocked(path,false,deletion),FileAccess.Read));}
+     if((attributes&FileAttributes.Directory)!=0)Scan(path,deletion);else{if(Directories.Count+Files.Count>=MaximumFiles)throw new InvalidDataException("安装文件数量超出清理上限。");Files.Add(path,new FileStream(OpenLocked(path,false,deletion),FileAccess.Read));ReportProgress();}
     }
    }
    public void Dispose(){foreach(var file in Files.Values)file.Dispose();foreach(var directory in Directories)directory.Value.Dispose();}
@@ -296,7 +309,8 @@ namespace MoriDeskInstaller {
   static void Progress(Action<string> report,string message){try{if(report!=null)report(message);}catch{}}
   static void DeleteFile(LockedTree tree,string path,Action<string> report,string root){var stream=tree.Files[path];MarkDelete(stream.SafeFileHandle);stream.Dispose();Progress(report,"清理文件："+Relative(root,path));}
   static void DeleteOne(string root,string folder,Action validateState,Action<byte[],InstalledPayloadManifest> verifyOwnership=null,Action<string> report=null){
-   Child(root,folder);validateState();
+   Child(root,folder);Progress(report,"正在核对旧程序的启动引用与保存位置…");validateState();
+   Progress(report,"启动引用与保存位置已核对，正在检查旧程序文件…");
    string marker=Path.Combine(folder,ManifestName),progressPath=Path.Combine(folder,ProgressName),journalPath=JournalPath(root,folder);
    string executable=Path.Combine(folder,"Mori.exe");
    // Metadata is read before exclusive locking; the subsequently locked file
@@ -305,7 +319,7 @@ namespace MoriDeskInstaller {
    if(File.Exists(executable))Identity(executable,FolderVersion(folder));
    FileStream journal=null;
    try{if(File.Exists(journalPath))journal=new FileStream(OpenLocked(journalPath,false,true),FileAccess.Read);
-   using(var tree=new LockedTree(folder,true)){
+   using(var tree=new LockedTree(folder,true,report)){
     FileStream manifestStream;byte[] manifestBytes;
     if(tree.Files.TryGetValue(marker,out manifestStream))manifestBytes=Read(manifestStream,MaximumRecordBytes);
     else if(journal!=null)manifestBytes=JournalManifest(journal,folder);
@@ -324,7 +338,8 @@ namespace MoriDeskInstaller {
     if(!resuming&&tree.Directories.Count-1!=expectedDirectories.Count)throw new IOException("旧版文件夹不完整，未删除。");
     foreach(var file in manifest.files){Progress(report,"核对旧文件："+file.Key);FileStream opened;if(!tree.Files.TryGetValue(Resolve(folder,file.Key),out opened)){if(!resuming)throw new IOException("旧版文件不完整，不能确认目录归属，未删除。");}else if(Hash(opened)!=file.Value)throw new IOException("旧版文件与安装清单不同（可能已单独更新插件），已保留待核对。");}
     if(!tree.Files.ContainsKey(executable)&&!resuming)throw new InvalidDataException("旧版主程序缺失，未删除。");
-    validateState();
+    Progress(report,"文件内容已核对，正在再次检查使用状态…");validateState();
+    Progress(report,"使用状态已确认，正在清理已核验的旧程序…");
     if(journal==null){WriteNew(journalPath,new InstalledCleanupJournal{schemaVersion=1,directory=Path.GetFileName(folder),manifestSha256=digest,manifestJson=new UTF8Encoding(false,true).GetString(manifestBytes)});journal=new FileStream(OpenLocked(journalPath,false,true),FileAccess.Read);if(Hash(JournalManifest(journal,folder))!=digest)throw new IOException("外置清理记录未能完成核对。");}
     if(!localProgress){WriteNew(progressPath,new InstalledCleanupProgress{schemaVersion=1,directory=Path.GetFileName(folder),manifestSha256=digest});tree.Files.Add(progressPath,new FileStream(OpenLocked(progressPath,false,true),FileAccess.Read));}
     // The executable and records go last so a sharing violation early in the

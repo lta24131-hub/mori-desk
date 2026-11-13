@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Independent healthy public42-to-frozenR3 upgrade; original1215 remains failed",
+  "scope": "dedicated-NookTester-VM-only",
+  "hostAppExecution": false,
+  "productFrozen": true,
+  "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "packages": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-release45\\upgrade-journey\\setup42-package.zip",
+      "bytes": 349626494,
+      "sha256": "52758D725C767FF4CC52D1ABC2D2178475E59362B4148EE97A311CCC360B1335",
+      "members": 1,
+      "guest": "C:\\NookLab\\Audit\\apps\\52758D725C76",
+      "entrySha256": "DABCF2BA17300A7CE5B64AD342188207C81CBACE35E14AA28E67753A1F4F666B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\setup45-r3-package.zip",
+      "bytes": 350492286,
+      "sha256": "FC2DECB42A44CC9D5173F470056D9AE134E9A040E3DA0AF334E14356E6951FDC",
+      "members": 1,
+      "guest": "C:\\NookLab\\Audit\\apps\\FC2DECB42A44",
+      "entrySha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\upgrade-healthy-helpers.zip",
+      "sha256": "95618CD835944970114766C2735E37C52074FA0C37792EBC655E8E708A11B0FE",
+      "bytes": 119284,
+      "members": 17,
+      "guest": "C:\\NookLab\\Audit\\apps\\95618CD83594",
+      "sources": [
+        {
+          "name": "InstalledUpgradeDriverGuest",
+          "sha256": "4C6F18CB11C91C3279065E8D5B37374FEEA7BE904AB54984559ADF074AA89354",
+          "exeSha256": "CEBF18090E67B8636EEB8B1E028B126A4384FD9F1E57C0B4C825CBAF56F41725"
+        },
+        {
+          "name": "InstalledUpgradeFixtureGuest",
+          "sha256": "B15C61002C5F39138803DBDA8425A475C7A8EC2569E01A20CE92D43BE013921B",
+          "exeSha256": "663B072C769D445AFCB4EA5FBA05D68598B9DB6A3163233B8E0005A0021DBED3"
+        },
+        {
+          "name": "InstalledUpgradePreserveGuest",
+          "sha256": "ECFF4EA1CE537479935ECBC5DB5FC075A7EB27977966ACCEF1601D75FBBA7EFF",
+          "exeSha256": "2DCB3143604F688233F32C62F7B29A5181EFFB92A9FF9B3AB3C51E8258F03BAC"
+        },
+        {
+          "name": "InstalledUpgradeHealthGuest",
+          "sha256": "6B4D1A18D721F604918344E52DC9C11C6A1FC4533D458CF3BCE2CDCC16FA10D3",
+          "exeSha256": "BEA8ACBA8DB6DB9A63DCFF8A92C347AC5622FBA3385046412B05B00A5B3B0399"
+        }
+      ],
+      "hostExecution": "Compiler/package only",
+      "runAuthorized": false
+    }
+  ],
+  "inventory": null,
+  "preservedRoot": "C:\\NookLab\\Audit\\upgrade42to45-preserved-20261113-r3-healthy",
+  "fixtureRoot": "C:\\NookLab\\Upgrade42To45-20261113-r3-healthy",
+  "stages": [
+    {
+      "report": "preserve-result.json",
+      "exe": "InstalledUpgradePreserveGuest.exe",
+      "args": [
+        "--preserve-reviewed-vm-state",
+        null,
+        null
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "install42-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--install42",
+        "C:\\NookLab\\Audit\\apps\\52758D725C76\\Nook-Setup.exe"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "prepare-browser42-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--prepare-browser42"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "healthy42-preflight-result.json",
+      "exe": "InstalledUpgradeHealthGuest.exe",
+      "args": [
+        "--validate-public42-browser"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594",
+      "independentInventoryAlsoRequired": true,
+      "stopForReviewBeforeNextStage": true
+    },
+    {
+      "report": "fixtureseed42-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--seed42"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "launch42-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--launch42"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "fixturesnapshot42-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--snapshot42"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "install45-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--install45",
+        "C:\\NookLab\\Audit\\apps\\FC2DECB42A44\\Nook-Setup.exe"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "launch45-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--launch45"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    },
+    {
+      "report": "fixtureverify45-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--verify45"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\95618CD83594"
+    }
+  ],
+  "failurePolicy": "Stop on any failure, preserve receipts and state, review before any retry. No automatic rollback or data deletion.",
+  "limits": [
+    "Actual setup entry with no arguments; not --verify",
+    "Actual default VM profile and installed models",
+    "No Chrome drag-collection claim from this journey",
+    "No physical-host installation or app/runtime test"
+  ],
+  "candidateSetupSha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994",
+  "inventoryState": "Fresh actual current45 inventory required before preservation; exact path and hash must be independently bound.",
+  "runAuthorized": false,
+  "originalFailureRetained": {
+    "task": 1215,
+    "sha256": "63F25DB880FBBD0E47D9EA20B6D1D23F152B56C77EA84B1D761E55E3482D91CA"
+  },
+  "preUpgradeHealthyGate": "After public42 UI preparation, fresh independent read-only inventory and actual production Capture must both pass independent review before any seed or upgrade."
+}

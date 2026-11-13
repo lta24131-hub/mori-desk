@@ -1,0 +1,11 @@
+{
+  "label": "conversion-regressions",
+  "exe": "RegressionRunner.exe",
+  "sha256": "AC4268244E33B313E6DE87FFEB0F959091CF42885172E2A2957AF59C81069D24",
+  "args": [
+    "$app",
+    "$root"
+  ],
+  "successRegex": "^Selected classification, routing, menus and drop regressions: (\\d+) passed; 0 failed\\.",
+  "timeoutSeconds": 300
+}

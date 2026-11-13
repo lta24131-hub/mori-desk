@@ -1,0 +1,20 @@
+{
+  "id": "1342-r3-readonly-tree-timing",
+  "type": "run",
+  "status": "passed",
+  "pid": 6844,
+  "exitCode": 0,
+  "peakWorkingSetBytes": 42086400,
+  "reports": {
+    "tree-timing-result.json": "{\"passed\":true,\"diagnosticCompleted\":true,\"purpose\":\"Read-only timing; not installation qualification\",\"operation\":\"tree\",\"result\":{\"constructionMilliseconds\":89873.067600000009,\"disposeMilliseconds\":126.90950000000001,\"files\":1702,\"directories\":424,\"deletion\":false,\"deleteAccessRequested\":false,\"sourceWrites\":false,\"exclusiveDeletionModeNotReproduced\":true},\"error\":null,\"stage\":\"04-tree-disposed\",\"checks\":[\"Dedicated NookTester QEMU VM only.\",\"Hash-addressed audit output only.\",\"Exact dedicated-user physical profile.\",\"No application/browser process during read-only diagnosis: Mori\",\"No application/browser process during read-only diagnosis: Nook\",\"No application/browser process during read-only diagnosis: Nook-Setup\",\"No application/browser process during read-only diagnosis: chrome\",\"No application/browser process during read-only diagnosis: msedge\",\"Exact preserved file SHA256: Mori.exe\",\"Exact preserved file SHA256: Mori.exe\",\"Exact preserved file SHA256: .nook-installed-files.json\",\"Exact preserved file SHA256: active-install.json\",\"Preserved committed descriptor matches exact R3.\",\"Fixed bounded diagnostic filename.\",\"Loaded exact installed R3 assembly without invoking entry point.\",\"Exact private production LockedTree type.\",\"Exact production LockedTree(string,bool) constructor.\",\"Fixed bounded diagnostic filename.\",\"Exact production field: Files\",\"Exact production field: Directories\",\"Fixed bounded diagnostic filename.\",\"Fixed bounded diagnostic filename.\",\"Fixed bounded diagnostic filename.\"],\"totalMs\":92147.277200000011,\"limitMs\":240000,\"sourceWrites\":false,\"applicationStarted\":false,\"productEntryPointInvoked\":false,\"cleanupInvoked\":false,\"registrationWrites\":false,\"filesystemCacheNotControlled\":true,\"hostExecuted\":false,\"completedUtc\":\"2026-11-13T15:28:08.0124148Z\"}",
+    "tree-00-identity-verified.json": "{\"stage\":\"00-identity-verified\",\"utc\":\"2026-11-13T15:26:37.5742881Z\",\"elapsedMs\":1718.9404000000002,\"details\":{\"currentDirectory\":\"0.1.45-20261113145904278-57e527ec\",\"oldDirectory\":\"0.1.42-20261113142121298-e4e817b1\",\"currentSha256\":\"97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6\",\"oldSha256\":\"0023F5CF9C7B6021ED8071E9936EB20282C1FBBE467716B33146AA52110662EB\",\"oldManifestSha256\":\"F5CDFC58C2F0F6434BBC64D8C4727C0C426BAF8FE100456ED69248EFC44244FD\",\"activeDescriptorSha256\":\"E8E28898DA231CA9C2A8E2CC51AAEB17B904AA234E099678AEB1A0D8D1A2667C\",\"sourceWrites\":false,\"processOnlyDataOverrideCleared\":true,\"coldHelperProcess\":true,\"filesystemCacheNotControlled\":true,\"identityHashReadsWarmOnlySelectedFiles\":true}}",
+    "tree-01-tree-start.json": "{\"stage\":\"01-tree-start\",\"utc\":\"2026-11-13T15:26:37.9310000Z\",\"elapsedMs\":2066.8266000000003,\"details\":{\"method\":\"MoriDeskInstaller.InstalledVersionCleanup.LockedTree\",\"deletion\":false,\"deleteAccessRequested\":false,\"exclusiveDeletionModeNotReproduced\":true}}",
+    "tree-02-tree-constructed.json": "{\"stage\":\"02-tree-constructed\",\"utc\":\"2026-11-13T15:28:07.8227196Z\",\"elapsedMs\":91962.8062,\"details\":{\"milliseconds\":89873.067600000009,\"files\":1702,\"directories\":424,\"rootDirectoryIncluded\":true,\"hashesComputedByTree\":false,\"deletion\":false}}",
+    "tree-03-tree-dispose-start.json": "{\"stage\":\"03-tree-dispose-start\",\"utc\":\"2026-11-13T15:28:07.8471575Z\",\"elapsedMs\":91983.5172,\"details\":{\"deletion\":false}}",
+    "tree-04-tree-disposed.json": "{\"stage\":\"04-tree-disposed\",\"utc\":\"2026-11-13T15:28:07.9913272Z\",\"elapsedMs\":92128.8019,\"details\":{\"milliseconds\":126.90950000000001,\"deletion\":false}}",
+    "tree-timeout.json": "missing: apps\\AA4B02D80BF0\\tree-timeout.json"
+  },
+  "elapsedSeconds": 92.98,
+  "guestUtc": "2026-11-13T15:28:08.1163277Z",
+  "receivedUtc": "20261113T152809079960Z"
+}

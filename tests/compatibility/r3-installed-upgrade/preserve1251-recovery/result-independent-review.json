@@ -1,0 +1,22 @@
+{
+  "taskId": "1271-r3-preserve-recovery",
+  "outerReportSha256": "FA97FDA7CE310C133D4A21EF17CA917B28DF95CEB2877D9B3EF2805F283ED091",
+  "reportSha256": "4C926D2F12BED310D40773D15B584D45BCF6E8B880BB576E6460D59A61318B7C",
+  "allReturnedReportBytesVerified": true,
+  "outerExitCode": 0,
+  "checksPassed": 86,
+  "passed": true,
+  "mayContinueInstallation": true,
+  "original1251RetainedFailed": true,
+  "programFiles": 3707,
+  "dataFiles": 36,
+  "wholeTreeMetadataPreserved": true,
+  "shortcutsAndInventoriedMetadataHashesPreserved": true,
+  "committedR3HashPreserved": true,
+  "noDeletion": true,
+  "registryChanged": false,
+  "hostExecuted": false,
+  "scope": "One-shot dedicated VM preservation recovery only. Exact partial state moved to a shorter fixed root, original program and data relative path/length/timestamp trees verified, shortcuts and inventoried settings/pins plus committed R3 content hashes verified. This does not prove all-file content hashes or an installation.",
+  "controllerSha256": "F42C94B96E66E1A822387D5E7BA21E6CE8D59F9FDF49444BFF356D1FD5CDFA49",
+  "controllerScopeReviewed": "Continues original frozen plan stages 1 through 3 only, with exact passed recovery hash and a fresh separate progress record; original1251 failure record is not rewritten."
+}

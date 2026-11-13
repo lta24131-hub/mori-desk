@@ -1,0 +1,27 @@
+{
+  "originalTestSha256": "1A9D6C4AD07427B7E4B34902254B27F685AA9233AF0D614FC12D00A05D5B7F06",
+  "independentTestSha256": "6B93F484574D91A8A625260E7DDE7A83484E540B71D93470598207D95F3F1C7B",
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "preparedPackage": {
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-local-contract-package\\local-contract-supplement.zip",
+    "sha256": "D245764DD46B24B296268E934A08D340812D3933150C39B3B7FF724C5FEF30DF",
+    "bytes": 8061575,
+    "members": 287,
+    "guest": "C:\\NookLab\\Audit\\apps\\D245764DD46B",
+    "executable": "LocalContractGuest.exe",
+    "args": [
+      "--stage",
+      "browser-local-contract"
+    ],
+    "report": "browser-local-contract-js-proxy.json",
+    "detail": "browser-local-contract-js-result.json",
+    "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "originalFailedTask": 969,
+    "originalFailureRetained": true,
+    "hostExecution": "Compiler/package only",
+    "unchangedSealedFiles": 277,
+    "healthyPopupAccepted": false
+  },
+  "physicalTestsExecuted": false,
+  "productionChanged": false
+}

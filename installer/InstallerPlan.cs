@@ -50,7 +50,30 @@ namespace MoriDeskInstaller {
    var drive=new DriveInfo(Path.GetPathRoot(path));if(!drive.IsReady||drive.DriveType!=DriveType.Fixed)throw new InvalidDataException("请选择可用的本机固定磁盘。");
    return path;
   }
-  static string ValidatePlan(InstallerPlan plan){return ValidateInstallLocation(plan.Location,ProgramRoot,plan.LocationLocked,StageProtectedPaths(false));}
+  internal static void ValidatePayloadPathBudget(string location,string version,IEnumerable<string> entries){
+   string folder=Path.Combine(Path.GetFullPath(location).TrimEnd('\\','/'),CandidateDirectoryName(version));
+   const string tooLong="安装位置过长，请返回选择较短的目录（例如 D:\\Nook）。";
+   if(folder.Length>=248)throw new InvalidDataException(tooLong);
+   foreach(string name in entries){
+    string relative=name.Replace('/','\\');bool directory=relative.EndsWith("\\",StringComparison.Ordinal);if(directory)relative=relative.TrimEnd('\\');
+    if(string.IsNullOrWhiteSpace(relative)||Path.IsPathRooted(relative)||relative.IndexOfAny(new[]{':','\0','\r','\n'})>=0)throw new InvalidDataException("安装包路径异常。");
+    foreach(string part in relative.Split('\\'))if(part.Length==0||part=="."||part==".."||part.EndsWith(".",StringComparison.Ordinal)||part.EndsWith(" ",StringComparison.Ordinal))throw new InvalidDataException("安装包路径不规范。");
+    // Budget before Path.GetFullPath/FileStream can throw a raw MAX_PATH
+    // failure. Include unselected components so adding one later is safe.
+    int length=checked(folder.Length+1+relative.Length),separator=relative.LastIndexOf('\\');
+    int parent=directory?length:separator<0?folder.Length:folder.Length+1+separator;
+    if((!directory&&length>=260)||parent>=248)throw new InvalidDataException(tooLong);
+   }
+  }
+  internal static void ValidatePlanPayload(InstallerPlan plan,string location,Stream source){
+   if(source==null)throw new InvalidDataException("安装包缺少程序。");
+   using(var zip=new ZipArchive(source,ZipArchiveMode.Read,true))ValidatePayloadPathBudget(location,Version,zip.Entries.Select(entry=>entry.FullName));
+  }
+  static string ValidatePlan(InstallerPlan plan){
+   string location=ValidateInstallLocation(plan.Location,ProgramRoot,plan.LocationLocked,StageProtectedPaths(false));
+   using(var stream=Assembly.GetExecutingAssembly().GetManifestResourceStream("MoriDesk.Payload.zip"))ValidatePlanPayload(plan,location,stream);
+   return location;
+  }
   // Separate per-user location gate closes the two-first-installers race. It
   // is released with the attempt, before any Retry/Finish user interaction.
   static int WithSelectedLocation(Func<int> action){

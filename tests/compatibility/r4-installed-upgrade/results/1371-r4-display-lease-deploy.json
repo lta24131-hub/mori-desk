@@ -1,0 +1,9 @@
+{
+  "id": "1371-r4-display-lease-deploy",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\F863774650CF",
+  "elapsedSeconds": 6.29,
+  "guestUtc": "2026-11-13T15:50:07.5664364Z",
+  "receivedUtc": "20261113T155008526441Z"
+}

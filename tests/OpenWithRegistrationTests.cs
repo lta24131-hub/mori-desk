@@ -12,6 +12,35 @@ namespace MoriDesk {
   static void Set(RegistryKey scope,string path,string name,string value){using(var key=scope.CreateSubKey(path))key.SetValue(name,value);}
   static string CopyProgram(string root,string version,string source){string file=Path.Combine(root,version,"Mori.exe");Directory.CreateDirectory(Path.GetDirectoryName(file));File.Copy(source,file);return file;}
   static bool Changed(RegistryKey scope,string executable,string managedRoot,ref int notices){int count=notices;bool result=OpenWithRegistration.RepairInScope(scope,executable,managedRoot,()=>count++);notices=count;return result;}
+  static void DeferredStartup(RegistryKey scope,string executable,string managedRoot,Action<bool,string> check){
+   int uiThread=Thread.CurrentThread.ManagedThreadId,repairThread=0,repairFinished=0,maintenance=0;
+   var dispatcher=System.Windows.Threading.Dispatcher.CurrentDispatcher;
+   using(var entered=new ManualResetEventSlim(false))
+   using(var proceed=new ManualResetEventSlim(false))
+   using(var mutex=new Mutex(false,OpenWithRegistration.MutexName(scope))){
+    bool held=false;Task pending=null;
+    try{
+     held=mutex.WaitOne(0);check(held,"startup responsiveness fixture owns only its isolated registry lock");
+     pending=Mori.MainWindow.RunStartupMaintenanceAsync(false,false,()=>{
+      repairThread=Thread.CurrentThread.ManagedThreadId;entered.Set();
+      // Keep the maintenance operation pending deterministically, without a
+      // speed assumption about the VM's one-second registry wait budget.
+      if(!proceed.Wait(15000))throw new TimeoutException("Deferred repair gate timed out.");
+      OpenWithRegistration.RepairInScope(scope,executable,managedRoot,null);Interlocked.Exchange(ref repairFinished,1);
+     },()=>{if(Volatile.Read(ref repairFinished)==1)Interlocked.Increment(ref maintenance);});
+     check(entered.Wait(10000)&&repairThread!=uiThread,"Explorer startup repair executes off the window dispatcher");
+     bool heartbeat=false;var frame=new System.Windows.Threading.DispatcherFrame();
+     dispatcher.BeginInvoke(new Action(()=>{heartbeat=true;frame.Continue=false;}));System.Windows.Threading.Dispatcher.PushFrame(frame);
+     check(heartbeat&&!pending.IsCompleted&&repairFinished==0,"window dispatcher responds while registration maintenance remains pending");
+    }finally{if(held)mutex.ReleaseMutex();proceed.Set();if(pending!=null)pending.GetAwaiter().GetResult();}
+   }
+   check(repairFinished==1&&maintenance==1,"version maintenance runs after deferred Explorer repair finishes");
+   foreach(var eligibility in new[]{new[]{true,false},new[]{false,true},new[]{true,true}}){
+    int repairs=0,cleanup=0;
+    Mori.MainWindow.RunStartupMaintenanceAsync(eligibility[0],eligibility[1],()=>repairs++,()=>cleanup++).GetAwaiter().GetResult();
+    check(repairs==0&&cleanup==1,"installer candidates skip registration repair without skipping commit-guarded maintenance");
+   }
+  }
   internal static void Run(string root,Action<bool,string> check){
    Directory.CreateDirectory(root);
    string registryPath="Software\\Nook.Tests\\OpenWith-"+Guid.NewGuid().ToString("N");
@@ -87,6 +116,7 @@ namespace MoriDesk {
      check(!Changed(scope,current,managedRoot,ref notices)&&Value(scope,app,"FriendlyAppName")=="Another Mori","an application-name collision is preserved for manual resolution");
      int finalNotices=notices;
      check(!Changed(scope,other,managedRoot,ref notices)&&notices==finalNotices,"the candidate must also have verified Nook executable metadata");
+     DeferredStartup(scope,current,managedRoot,check);
     }
    }finally{
      // Delete only the exact fresh test key after confirming it is in the test

@@ -63,7 +63,15 @@ namespace MoriDesk {
     }finally{StopTimers(main);main.Window.Close();}
    }
   }
-  internal static void Run(string root,Action<bool,string> check){
+  internal static void Run(string root,Action<bool,string> check){RunRange(root,check,0,32);}
+  // Keep the normal suite exhaustive, while a VM can publish progress after
+  // each independent group instead of spending its whole budget in one call.
+  internal static void RunScenario(string root,Action<bool,string> check,int scenario){RunRange(root,check,scenario,1);}
+  internal static void RunSlice(string root,Action<bool,string> check,int slice){
+   if(slice<0||slice>=4)throw new ArgumentOutOfRangeException("slice");RunRange(root,check,slice*8,8);
+  }
+  static void RunRange(string root,Action<bool,string> check,int first,int count){
+   if(first<0||count<1||first>32-count)throw new ArgumentOutOfRangeException("first");
    root=Path.Combine(root,"selection-stability");Directory.CreateDirectory(root);string priorData=Environment.GetEnvironmentVariable("MORI_DESK_DATA"),priorTheme=Theme.Current;bool interactive=Entry.InteractiveShell;var priorLibrary=ThumbnailImage.CurrentLibrary;
    var app=Application.Current??new Application();var shutdown=app.ShutdownMode;app.ShutdownMode=ShutdownMode.OnExplicitShutdown;
    var sync=System.Threading.SynchronizationContext.Current;System.Threading.SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
@@ -78,7 +86,9 @@ namespace MoriDesk {
      var content=(FrameworkElement)main.Window.Content;main.Window.Content=null;content.Resources.MergedDictionaries.Add(main.Window.Resources);content.SetValue(System.Windows.Documents.TextElement.FontFamilyProperty,main.Window.FontFamily);content.SetValue(System.Windows.Documents.TextElement.FontSizeProperty,main.Window.FontSize);content.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty,"Text");
      var sidebars=Field<SidebarLayout>(main,"sidebars");var gallery=Find<ListBox>(main,"Gallery");
      try{
+      int scenario=0,executed=0;
       foreach(string theme in new[]{"light","dark"})foreach(int width in new[]{1040,1366})foreach(bool waterfall in new[]{false,true})foreach(bool details in new[]{false,true})foreach(bool scrolled in new[]{false,true}){
+       int scenarioIndex=scenario++;if(scenarioIndex<first||scenarioIndex>=first+count)continue;executed++;
        Theme.Set(theme);foreach(object key in app.Resources.Keys)content.Resources[key]=app.Resources[key];content.SetResourceReference(Panel.BackgroundProperty,"Canvas");
        main.SetBatchSelecting(false);main.SetSection("assets");sidebars.SetPreferred(true,296);sidebars.SetPreferred(false,252);sidebars.SetVisible(false,true);Set(main,"homeInspectorExplicit",details);Call(main,"UpdateHomeInspector");main.SetGalleryLayout(waterfall);Measure(main,content,width);
        var scroll=MainWindow.VisualChild<ScrollViewer>(gallery);scroll.ScrollToVerticalOffset(scrolled?400:0);Measure(main,content,width);
@@ -98,6 +108,10 @@ namespace MoriDesk {
        check(Find<Button>(main,"BatchClear").IsEnabled,label+": empty multi-select can be cancelled");Click(main,"BatchAll");stable("select all");Click(main,"BatchClear");stable("leave batch mode");
        check(!Field<bool>(main,"batchSelecting")&&Field<HashSet<string>>(main,"selection").Count==0,label+": Cancel exits batch mode and restores browse controls");
       }
+      check(executed==count,"the requested selection scenarios all execute without silently skipping a case");
+      // Match the final state of the exhaustive loop before testing explicit
+      // hiding, even when this slice ended with the details pane closed.
+      Set(main,"homeInspectorExplicit",true);Call(main,"UpdateHomeInspector");
       Click(main,"ToggleInspector");main.SelectTile(Field<List<Asset>>(main,"visible")[0],ModifierKeys.None);main.SetSection("pictures");Measure(main,content,1040);
       check(!sidebars.RightDisplayed&&!sidebars.RightVisible,"explicitly closed details stay closed across selection and page navigation");
       check(library.All().Count==48&&!main.Window.IsVisible,"selection checks preserve every synthetic asset and never open a desktop window");

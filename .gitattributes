@@ -4,9 +4,98 @@
 /modules/capture/src/*.cs text eol=lf
 /assets/update-data-contract.json text eol=lf
 /modules/file-conversion/upstream.json text eol=lf
-# These two frozen, compiled inputs intentionally retain their original mixed endings.
-/modules/library/src/MainWindow.cs -text -eol
-/modules/library/src/VideoThumbnail.cs -text -eol
+# These frozen, compiled inputs intentionally retain their reviewed original endings.
+/modules/library/src/MainWindow.cs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/library/src/VideoThumbnail.cs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/library/src/Program.cs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 # Third-party notice inventories authenticate original bytes, including endings.
 /modules/shell-preview/licenses/** -text -eol -whitespace
 /modules/shell-preview/icons/** -text -eol -whitespace
+# Archived regression recipes authenticate original source bytes and line endings.
+/tests/compatibility/** -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Original host-exported stdout contains doubled CR bytes; keep this reviewed evidence verbatim.
+/tests/compatibility/r4-install-maintenance/results/r4-installer-safety-stdout.txt -whitespace
+
+# Preserve exact source bytes authenticated by frozen JavaScript regression manifests.
+/browser-extension/background.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/bookmarks.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/collector-text.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/content.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/drag-geometry.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/local-bridge.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/manifest.json -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/media-source.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/popup.css -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/popup.html -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/popup.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/preferences.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/runtime-client.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/browser-extension/updater.js -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/README.md -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/assets/fluent/LICENSE.txt -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/assets/fluent/SOURCE.txt -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/assets/fluent/checkmark.svg -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/main.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/panel-layout.d.mts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/panel-layout.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/prepare.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/protocol.d.mts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/protocol.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/renderer-match.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/renderer-panel.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/renderer-schedule.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/renderer-session.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/result-editor.css -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/host/scroll-panel.css -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/package-runtime.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/README.txt -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/host-lifecycle.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/package-runtime.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/panel-layout.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/protocol.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/reference-flow-integration.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/renderer-state.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/scroll-match.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/scroll-panel.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/modules/scroll-capture/tests/scroll-schedule.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-collector-resilience.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-extension.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-fixture-diagnostics.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-lifecycle.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-local-e2e.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-preferences.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-runtime.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-theme.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-update-host-e2e.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-update-integration.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/browser-updater.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/media-source.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/tests/native-suite.cjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/index.html -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/package.json -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/pnpm-lock.yaml -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/pnpm-workspace.yaml -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/assets.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/bridge.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/image-layout.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/main.tsx -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/policies.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/preferences.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/style-panel.tsx -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/style.css -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/thumbnail-queue.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/thumbnail.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/timers.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/src/wheel.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/assets.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/bridge.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/browser-timers.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/editor-mount.test.tsx -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/image-layout.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/policies.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/sdk-test-setup.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tests/thumbnail-queue.test.mjs -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/tsconfig.json -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/vite.config.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/canvas-src/vitest.config.ts -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+/web/model/desktop-theme.css -text -eol whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

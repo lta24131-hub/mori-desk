@@ -1,0 +1,81 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "recipes": [
+    {
+      "name": "QuickFunctionalRunner",
+      "source": "QuickFunctionalRunner.cs",
+      "sourceSha256": "05988B1C528FB6A98D8D5F7C1E8C14CE78309316B1B8B14780107A819C0FDF0A",
+      "assemblyIdentity": "QuickFunctionalRunner.exe",
+      "outputName": "QuickFunctionalRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        }
+      ],
+      "originalOutputSha256": "D6A893FDDE1E62030851A79F3E1D6B899CDD5AEB9A7A19478F2AE98CC5296C28",
+      "originalProvenanceSha256": "BE6E6DEDFF7EBEC38DE1C0F575CA7E9F1D34D09A3FDA892E607C24501715600B"
+    },
+    {
+      "name": "QuickFunctionalGuest",
+      "source": "QuickFunctionalGuest.cs",
+      "sourceSha256": "7C3E6EA032C35E9243FB1FF9BE2621B894C33AA15DB5213D41E0C29D7971D9AA",
+      "assemblyIdentity": "QuickFunctionalGuest.exe",
+      "outputName": "QuickFunctionalGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        }
+      ],
+      "originalOutputSha256": "656597F7C88C87BEF5A289D9EA4424CFE3907175F5C4C35D4F6D10AA847A9DB8",
+      "originalProvenanceSha256": "590927013B659A72A5800ACCC112BC1A223E16294B69CD0704B8255772F4099C"
+    }
+  ],
+  "packageSha256": "2CD7C0E415F1668C66D68B87F454F196F0D5E4DF27A444B0C93EFA2EAB86C3C6",
+  "packageBytes": 39218,
+  "scope": {
+    "originalFailedTasks": [
+      931,
+      1005
+    ],
+    "original20SecondFailureRetained": true,
+    "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+    "productChanged": false,
+    "change": "Invoke existing frozen four-argument RunReal with phase trace and its existing VM-only 120-second opt-in. Every result assertion remains in frozen R3. Production capability timeout remains 45 seconds; original outer 600-second bound unchanged. UTF-8 output captured explicitly.",
+    "ordinaryTestWaitSeconds": 20,
+    "functionalTestWaitSeconds": 120,
+    "outerTimeoutSeconds": 600,
+    "performanceAcceptance": false,
+    "originalRunnerSha256": "31E2BC7BFF59A10F75D25A2B952623E4C1EB8375083142E4E7716E2E232AA063",
+    "supplementRunnerSha256": "05988B1C528FB6A98D8D5F7C1E8C14CE78309316B1B8B14780107A819C0FDF0A"
+  }
+}

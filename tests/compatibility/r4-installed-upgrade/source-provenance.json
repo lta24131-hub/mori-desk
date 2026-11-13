@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "setupSha256": "366A3208B1BEC55594CF7B8E07F9050AC48A3895BD9DD311D5504A1005AC5772",
+  "scope": "Historical dedicated-VM journey; generated fixtures and pinned public42/R4 installers. Not permission to replay.",
+  "recipes": [
+    {
+      "name": "InstalledUpgradeDriverGuest",
+      "outputName": "InstalledUpgradeDriverGuest.exe",
+      "flags": [
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "package/InstalledUpgradeDriverGuest.cs",
+          "sha256": "878BFBD92713075489834E70157A647F4BB6DA72465E1A14A0390F03FD6AB23C"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "71BD35CDC069409AAA1A4CE10BBF9D3F18C7D915239F723807EC470B7CE99834",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "InstalledUpgradeFixtureGuest",
+      "outputName": "InstalledUpgradeFixtureGuest.exe",
+      "flags": [
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "package/InstalledUpgradeFixtureGuest.cs",
+          "sha256": "B09EBD62E1EF3B4BF08B913FC91ECE6C4CC1B6E15563EE4F14F76B13D674336A"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        }
+      ],
+      "originalOutputSha256": "6C99C8D780C2EDC79BCE7E5C4CE287A214F80829D459F4C30F7E7C80D0AA3D17",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "InstalledUpgradePreserveGuest",
+      "outputName": "InstalledUpgradePreserveGuest.exe",
+      "flags": [
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "package/InstalledUpgradePreserveGuest.cs",
+          "sha256": "25BD1774C360E366743A778DB0D132FDE328C909D112C115B696D75B3E460CD4"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "FED3D99A406C4BC6150875734E510F8BC3BA661E1FC62A26A83EACAE418E55AA",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "InstalledUpgradeHealthGuest",
+      "outputName": "InstalledUpgradeHealthGuest.exe",
+      "flags": [
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "package/InstalledUpgradeHealthGuest.cs",
+          "sha256": "C2A54FAF7B9975583D4048AAA069507BA92E5AA066BB79E8A514B350ED5011FC"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "AE2EE2505776F5FCECF05B3360940A14DC5C2E53A846E132172992042B5F00D3",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "InstalledUpgradeInventoryGuest",
+      "outputName": "InstalledUpgradeInventoryGuest.exe",
+      "flags": [
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "package/InstalledUpgradeInventoryGuest.cs",
+          "sha256": "FAEE92F5E6ECC2921C986F39F46924C17F3A1A3FB8E0E4A03B88A8A5DED3BCAB"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "B4A4C6C74066BD536E8B7E67300A99F194D35BDAA9387F4EED5137A335C3E057",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "InstalledUpgradePrepareGuest",
+      "outputName": "InstalledUpgradePrepareGuest.exe",
+      "flags": [
+        "/target:exe",
+        "/optimize+",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "owned-settings-close/InstalledUpgradePrepareGuest.cs",
+          "sha256": "8A156067C7A891E158FDA13E9F46355CA672912458BA50D15C73A2827AB375E6"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "BA897156FCB619F36234EB97C367EA607127493A0882124A2FB79DDB2ACD87EE",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "DisplayLeaseGuest",
+      "outputName": "DisplayLeaseGuest.exe",
+      "flags": [
+        "/optimize+",
+        "/target:exe"
+      ],
+      "sources": [
+        {
+          "path": "display-lease/DisplayLeaseGuest.cs",
+          "sha256": "3F10C49D85F05B27364EB03BF29153E67866EF5CDE20FA830E2104A1A9E03017"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "2C3DB3C59FEBE4E0A14E257B52D2C2B2548751B68D3BB4BC03F2917505CDD2EF",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    }
+  ],
+  "compilerIdentityObservedAtArchive": true
+}

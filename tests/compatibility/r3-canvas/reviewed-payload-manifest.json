@@ -1,0 +1,719 @@
+{
+  "schema": 1,
+  "scope": "VM-only actual WebView journey; independent structural comparison supplement; original task 913 remains failed",
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "files": [
+    {
+      "path": "CanvasWebJourneyGuest.cs",
+      "sha256": "EFE52529FF8C3A1CBB057A1D609E2DDBEFA93DE674F86FFEE2CCE02D82E639E5"
+    },
+    {
+      "path": "CanvasWebJourneyGuest.exe",
+      "sha256": "4D0289B5600075E342C367A1C8C38A6CA8214FF7672E8312D9A28F1D45757BD8"
+    },
+    {
+      "path": "CanvasWebJourneyGuest.exe.config",
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512"
+    },
+    {
+      "path": "ExCSS.dll",
+      "sha256": "F86616EA8327107F918FE4EB08040F6D50EA4D765F6F9EC521643EA2AAD8C480"
+    },
+    {
+      "path": "Magick.Native-Q8-x64.dll",
+      "sha256": "E24D1B5ECF421C9A5EC4FD592B795DA228D7ADDE5964B1687BBCAF9C56151CC8"
+    },
+    {
+      "path": "Magick.NET-Q8-x64.dll",
+      "sha256": "E049FE2B776CA1151FEB36A7209E97439E94CF870B81485F4F8D67CF4CFE7C7C"
+    },
+    {
+      "path": "Magick.NET.Core.dll",
+      "sha256": "477CA5CEA07E25BA4867F3DA12E374BC1E9C4F848135ECA556F4787F5C41D19C"
+    },
+    {
+      "path": "Microsoft.Bcl.HashCode.dll",
+      "sha256": "3A4E851EE5FC0F6182AA5A3D65DC56FCD6979B65334B5C3B92FBDC791457C0AB"
+    },
+    {
+      "path": "Microsoft.Web.WebView2.Core.dll",
+      "sha256": "88A3B62F45225A811CDB85DF6DFD95C2BFF9A0E43E3B04F813B125EACA56CC9F"
+    },
+    {
+      "path": "Microsoft.Web.WebView2.Wpf.dll",
+      "sha256": "1C5B6C792916D168093EF9B836F33E818D2D15D0C81F0864B5CDDFF97D913319"
+    },
+    {
+      "path": "Mori.exe",
+      "sha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+    },
+    {
+      "path": "Mori.exe.config",
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512"
+    },
+    {
+      "path": "Svg.dll",
+      "sha256": "59C0E607ADC9DD23AC979B665B149B12BC7B82F01B8631769F3AF8D85C3C3988"
+    },
+    {
+      "path": "SymSpell.dll",
+      "sha256": "9C2B4085A0C43D4E0FBD0452F714E0491ED0CE302BE9A94588B82E645EC7E3CD"
+    },
+    {
+      "path": "System.Buffers.dll",
+      "sha256": "3AF1E07305BED0ABE0CF32D9854E0A7F5F470216ADEE1B87D02350BE09D31B35"
+    },
+    {
+      "path": "System.Memory.dll",
+      "sha256": "B8FE216AFF0F6D162F8EEFE7BE1712162B7D8199E20CE2E70FFAC36C7CE20A4C"
+    },
+    {
+      "path": "System.Numerics.Vectors.dll",
+      "sha256": "22C84BE385FE8BA6D0E0138952748F28D781FCE36078B5A7AED91A6104BCD99B"
+    },
+    {
+      "path": "System.Runtime.CompilerServices.Unsafe.dll",
+      "sha256": "2D6F419D641682D8EFC4A40E850D2E85DE519D6823B93DAF2AEEE63206D4E32D"
+    },
+    {
+      "path": "Tesseract.dll",
+      "sha256": "BC2AD67AB5FB9E80E5E60F1A422A1F44F830FB1B9A77579E85A634B1A9630840"
+    },
+    {
+      "path": "UglyToad.PdfPig.Core.dll",
+      "sha256": "894BF5E8DAAC5E4F6FBD7E2EB26C6B2F39E42B3122E35FA69C6FA30469A43BB0"
+    },
+    {
+      "path": "UglyToad.PdfPig.dll",
+      "sha256": "CD712F405CBD4400903D18F2855E0B2458ACB76D75019765F9FAAA2F3BA0717E"
+    },
+    {
+      "path": "UglyToad.PdfPig.DocumentLayoutAnalysis.dll",
+      "sha256": "AA79F1774B74E5BD6939E089BB7770FD62B8E8C22D444F5F736A7171C243E16C"
+    },
+    {
+      "path": "UglyToad.PdfPig.Fonts.dll",
+      "sha256": "B066E7440E7D76D2B8229E9274E300DCFE7DCEC65DD578106E8A1BF2473BB911"
+    },
+    {
+      "path": "UglyToad.PdfPig.Package.dll",
+      "sha256": "EC4A85D737582D93917A4DFF811267723092E60F891916DD56DC94630417B5EE"
+    },
+    {
+      "path": "UglyToad.PdfPig.Tokenization.dll",
+      "sha256": "84315CE24887373ED9019442EDFCB1B7777E7782ED0C4BF69BE63E84941B43E0"
+    },
+    {
+      "path": "UglyToad.PdfPig.Tokens.dll",
+      "sha256": "D91A3F93CA27728709875EF71425D4C8E7165D5D3A7B13094EC976CFC22D305C"
+    },
+    {
+      "path": "web/canvas/assets/index-BOpMSxKV.css",
+      "sha256": "74C07A43371F9F72A58C36B062EA6705403903D74BBDB214A24337E802AC8FB2"
+    },
+    {
+      "path": "web/canvas/assets/index-CqpnVthc.js",
+      "sha256": "6118EA641CAA5A9240727A840AC598A00D943EE85170A9A5142732EA38255EDC"
+    },
+    {
+      "path": "web/canvas/BUILD-INFO.json",
+      "sha256": "8F6C76C8ACCE25E6047E71DC0E1D1E94B23E96069CAA406E01BB537B29396611"
+    },
+    {
+      "path": "web/canvas/index.html",
+      "sha256": "7A7FF6C62137A4A77E13A65FE92B407FB6D1EAB456A1D502FC6F8A90FDCA693A"
+    },
+    {
+      "path": "web/canvas/LICENSE.md",
+      "sha256": "D113F392E813269F31C5AF93D5E61BA4DCCCCDCEECC014C15CB0C64010CC9533"
+    },
+    {
+      "path": "web/canvas/licenses/dependencies.json",
+      "sha256": "C5ADE0E10BFCC402417C4CBD19535565E6E950A27EC846E86ABE95ABABB9BC19"
+    },
+    {
+      "path": "web/canvas/licenses/FONTS-NOTICES.txt",
+      "sha256": "BE635A4E5371E259B53EFE55C019D6652535A78E4A982557C2AFC309FBD6D010"
+    },
+    {
+      "path": "web/canvas/licenses/IBM-Plex-OFL.txt",
+      "sha256": "344651807491BAAD0B5A107C3F66E9BF5D7B669DC37EB7A90BC2AA8C72760D56"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_babel_runtime_7.29.10/LICENSE",
+      "sha256": "117DA2AF0D4CE0FE1C8E19B5CFF9DCD806ADF973D328D27B11D4448C4FF24F76"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_floating-ui_core_1.8.0/LICENSE",
+      "sha256": "0E4C9A9B6C71019CBBEA3BDC20B01223110A9035700F9C960C8FCBF78C2325CE"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_floating-ui_dom_1.8.0/LICENSE",
+      "sha256": "0E4C9A9B6C71019CBBEA3BDC20B01223110A9035700F9C960C8FCBF78C2325CE"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_floating-ui_react-dom_2.1.9/LICENSE",
+      "sha256": "0E4C9A9B6C71019CBBEA3BDC20B01223110A9035700F9C960C8FCBF78C2325CE"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_floating-ui_utils_0.2.12/LICENSE",
+      "sha256": "0E4C9A9B6C71019CBBEA3BDC20B01223110A9035700F9C960C8FCBF78C2325CE"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_number_1.1.3/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_primitive_1.2.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-alert-dialog_1.2.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-arrow_1.1.17/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-collection_1.2.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-compose-refs_1.1.5/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-context_1.3.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-context-menu_2.4.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-dialog_1.3.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-direction_1.2.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-dismissable-layer_1.2.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-dropdown-menu_2.2.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-focus-guards_1.2.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-focus-scope_1.3.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-id_1.1.4/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-menu_2.2.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-popper_1.4.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-portal_1.2.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-presence_1.1.11/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-primitive_2.2.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-roving-focus_1.2.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-slider_1.6.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-slot_1.5.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-toast_1.3.1/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-callback-ref_1.1.5/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-controllable-state_1.3.0/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-effect-event_0.0.5/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-is-hydrated_0.1.3/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-layout-effect_1.1.4/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-rect_1.1.4/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-use-size_1.1.5/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_react-visually-hidden_1.2.13/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_radix-ui_rect_1.1.3/LICENSE",
+      "sha256": "0E80A2D229D2FD4FC7E8636142EC5D0FF0BC031F14C15B682E2AC01DFD5B5138"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_assets_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_editor_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_state_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_state-react_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_store_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_tlschema_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_utils_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_tldraw_validate_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_types_core-js_2.5.8/LICENSE",
+      "sha256": "C2CFCCB812FE482101A8F04597DFC5A9991A6B2748266C47AC91B6A5AAE15383"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_use-gesture_core_10.3.1/LICENSE",
+      "sha256": "B99672EF9AF57432E6D025A66D34F8B968564E4E0A1E2005EA9018457A7E38DC"
+    },
+    {
+      "path": "web/canvas/licenses/npm/_use-gesture_react_10.3.1/LICENSE",
+      "sha256": "B99672EF9AF57432E6D025A66D34F8B968564E4E0A1E2005EA9018457A7E38DC"
+    },
+    {
+      "path": "web/canvas/licenses/npm/aria-hidden_1.2.6/LICENSE",
+      "sha256": "30F0CFDDF483D1128E3610205020F2041A6C5E837AA999E0AA82E5576187D4A9"
+    },
+    {
+      "path": "web/canvas/licenses/npm/canvas-size_1.2.6/LICENSE",
+      "sha256": "E647CD97DB2ADF92A9F9F90F201AC20C4EBE9F68D7C61FCD31FE415FE4E16652"
+    },
+    {
+      "path": "web/canvas/licenses/npm/classnames_2.5.1/LICENSE",
+      "sha256": "0C1C24DCC129CB0C02EE9803CFA7A50061C236A3B59B36A714C27F3ADE66D7BE"
+    },
+    {
+      "path": "web/canvas/licenses/npm/core-js_3.50.0/LICENSE",
+      "sha256": "B87653FFF2D44426AB5CD4723CEE3B1364DC8D35A0ACDF098C54689543123BF8"
+    },
+    {
+      "path": "web/canvas/licenses/npm/detect-node-es_1.1.0/LICENSE",
+      "sha256": "54B32293EA560D22CD9B62AF9B2CDA1A030D910A48C6601D227C5FF2338D95F8"
+    },
+    {
+      "path": "web/canvas/licenses/npm/eventemitter3_4.0.7/LICENSE",
+      "sha256": "3AECC12B1CB28832B5F65AB64291DE96568C3F236A74D646281B4491F7BCADBF"
+    },
+    {
+      "path": "web/canvas/licenses/npm/get-nonce_1.0.1/LICENSE",
+      "sha256": "ACF3B087B348D2F2E731B9D4131AF185AAD694C1204CE14A46909483FD42DA05"
+    },
+    {
+      "path": "web/canvas/licenses/npm/hotkeys-js_3.13.15/LICENSE",
+      "sha256": "EFC6759044C0B3C95F5CCC9B09A6AA325CDED29355EB65B45243E881F0C9D36B"
+    },
+    {
+      "path": "web/canvas/licenses/npm/idb_7.1.1/LICENSE",
+      "sha256": "873A2F333FDA393EC3464F4579209B019D98E97C3BF498B10E85F630162FD708"
+    },
+    {
+      "path": "web/canvas/licenses/npm/is-plain-object_5.1.0/LICENSE",
+      "sha256": "4CD903859549D4B20B571041F96DFAE1136ED079C476126268F9D7CC1B611150"
+    },
+    {
+      "path": "web/canvas/licenses/npm/js-tokens_4.0.0/LICENSE",
+      "sha256": "2213D91C606205C71EB051A199478CDC2ADDE945893404D7F1421436DD6D5CC1"
+    },
+    {
+      "path": "web/canvas/licenses/npm/lodash.isequal_4.5.0/LICENSE",
+      "sha256": "E159C6D48C989185448658F276375BFB2300362EC6D4AE5525A2D49C4BCB947D"
+    },
+    {
+      "path": "web/canvas/licenses/npm/lodash.throttle_4.1.1/LICENSE",
+      "sha256": "FFD8B33B354585F4CE119F19C53728281E48A97B074491EB6BF6D5C5FF305272"
+    },
+    {
+      "path": "web/canvas/licenses/npm/lodash.uniq_4.5.0/LICENSE",
+      "sha256": "FFD8B33B354585F4CE119F19C53728281E48A97B074491EB6BF6D5C5FF305272"
+    },
+    {
+      "path": "web/canvas/licenses/npm/loose-envify_1.4.0/LICENSE",
+      "sha256": "4EB7543B08D955A6D23FCC224601D43FF566E775BE918805E26210D7F6EB4893"
+    },
+    {
+      "path": "web/canvas/licenses/npm/lz-string_1.5.0/LICENSE",
+      "sha256": "433FC9DFE659DBFB1E91EED8351F13651E97BFA3AC6D03394C3D63F61D4BBC80"
+    },
+    {
+      "path": "web/canvas/licenses/npm/nanoid_4.0.2/LICENSE",
+      "sha256": "DA4DB1480D9BEEA3483A2EDA5C53B22238D0827D57DA162B48F122E04D2D9987"
+    },
+    {
+      "path": "web/canvas/licenses/npm/react_18.3.1/LICENSE",
+      "sha256": "52412D7BC7CE4157EA628BBAACB8829E0A9CB3C58F57F99176126BC8CF2BFC85"
+    },
+    {
+      "path": "web/canvas/licenses/npm/react-dom_18.3.1/LICENSE",
+      "sha256": "52412D7BC7CE4157EA628BBAACB8829E0A9CB3C58F57F99176126BC8CF2BFC85"
+    },
+    {
+      "path": "web/canvas/licenses/npm/react-remove-scroll_2.5.5/LICENSE",
+      "sha256": "30F0CFDDF483D1128E3610205020F2041A6C5E837AA999E0AA82E5576187D4A9"
+    },
+    {
+      "path": "web/canvas/licenses/npm/react-remove-scroll_2.7.2/LICENSE",
+      "sha256": "30F0CFDDF483D1128E3610205020F2041A6C5E837AA999E0AA82E5576187D4A9"
+    },
+    {
+      "path": "web/canvas/licenses/npm/react-style-singleton_2.2.3/LICENSE",
+      "sha256": "30F0CFDDF483D1128E3610205020F2041A6C5E837AA999E0AA82E5576187D4A9"
+    },
+    {
+      "path": "web/canvas/licenses/npm/scheduler_0.23.2/LICENSE",
+      "sha256": "52412D7BC7CE4157EA628BBAACB8829E0A9CB3C58F57F99176126BC8CF2BFC85"
+    },
+    {
+      "path": "web/canvas/licenses/npm/tldraw_2.4.6/LICENSE.md",
+      "sha256": "4575C72988945BB8FE9A205A096866CB1CCDA2908B0FDEE96A967C08E3BFD3DD"
+    },
+    {
+      "path": "web/canvas/licenses/npm/tslib_2.8.1/LICENSE.txt",
+      "sha256": "210B19E543130388C68654B7497E967119CE17145F66AB7D85688FBD70F08751"
+    },
+    {
+      "path": "web/canvas/licenses/npm/use-callback-ref_1.3.3/LICENSE",
+      "sha256": "30F0CFDDF483D1128E3610205020F2041A6C5E837AA999E0AA82E5576187D4A9"
+    },
+    {
+      "path": "web/canvas/licenses/npm/use-sidecar_1.1.3/LICENSE",
+      "sha256": "30F0CFDDF483D1128E3610205020F2041A6C5E837AA999E0AA82E5576187D4A9"
+    },
+    {
+      "path": "web/canvas/licenses/radix-ui-primitives-MIT.txt",
+      "sha256": "1B41BDF236E48C371C8B603CCF6E6D2660D6FE05D3AE34E1F7088C0AB4DDAB9D"
+    },
+    {
+      "path": "web/canvas/licenses/react-remove-scroll-bar-MIT.txt",
+      "sha256": "17BDE5F383545EABB973FEB1EA4128936CADE24805EDD092B3D9C0E4FC2C6761"
+    },
+    {
+      "path": "web/canvas/licenses/Shantell-Sans-OFL.txt",
+      "sha256": "66C92722FF16058ADDBFEB32787744DF97608A388FE1EE8209F6482A07A0CB89"
+    },
+    {
+      "path": "web/canvas/licenses/tldraw-2.4.6-LICENSE.md",
+      "sha256": "D113F392E813269F31C5AF93D5E61BA4DCCCCDCEECC014C15CB0C64010CC9533"
+    },
+    {
+      "path": "web/canvas/THIRD-PARTY-NOTICES.txt",
+      "sha256": "9C6D1D6DCB0FFEA508ADFFBED98AADCAD6610CEA2C99579406D194540F5639F1"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/codepen.png",
+      "sha256": "C509134009FB9F13B16C600E86CBF16A5BD0554DE55DF302009BF180076959AA"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/codesandbox.png",
+      "sha256": "0D91ED967922A025A8328D1C7B612D85328FF758D712459FE8042608C2FADCC6"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/desmos.png",
+      "sha256": "15D0B08B30B4ECEAA787C52130E3F61F530851DDCA000C8AC6F94BD4389080D5"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/excalidraw.png",
+      "sha256": "99A33A0FA20D1250DA2C25EC962876349CC68AF07B9CC61B3C3C96EC39722025"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/felt.png",
+      "sha256": "CE0F1FB6B58D5F00B167366AD1F7AA1E983031C845ED541C3A3E720DCAA2952F"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/figma.png",
+      "sha256": "12BF0233448A1BB04F8AECE6B8C6D0113BF94E5FA04F4F0C78D848F207AA0EAD"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/github_gist.png",
+      "sha256": "FE7709816B48E704B56DE694BADAD7D7A96F27A4A2F0B5CE6F7346CD0D43F2B9"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/google_calendar.png",
+      "sha256": "372998BD27D1484D2421B70CBD45FF840E242978059EEE471E589FF5CA4CC72E"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/google_maps.png",
+      "sha256": "96179F24F08107671779F84975EA50A80A1FBB5F6B110971B272AF887E6E671C"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/google_slides.png",
+      "sha256": "3C807CAF0BCD7BB041BEFF10CA9559E50CA02F9D0AA3DA1AEDD7DA946D005F27"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/observable.png",
+      "sha256": "EBA6B075E22BE583CAB748681DC98C222B54C2B9F13FC4AD4E2E33935DBC5DB3"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/replit.png",
+      "sha256": "BCE8ED12C055CBFD27D2696A14F3792A81A51437F0CA2B5F21D0FE668BDAE53A"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/scratch.png",
+      "sha256": "93375FD43AF3073CCCF35D9E0E4A0B3CE55318CC19E3E0D3537A5B7D1EF40698"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/spotify.png",
+      "sha256": "A30D4066C9F18B9AE8EC9B621BE3EAF0B328A1C27E354522BFD8958F2E2C6710"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/tldraw.png",
+      "sha256": "76B041906F80BAAC1EED3C146A7985487C0FA380595FC933AB04B9272CEDB9D1"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/val_town.png",
+      "sha256": "0B5E9C3E547979E1753B7CE74AD43A169D2BEA3A61C5280A86952236E633B7E4"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/vimeo.png",
+      "sha256": "F0A42F95E10D0C0DB97107F46364789A8A113DB5F856FDE16718685A93E4E4F4"
+    },
+    {
+      "path": "web/canvas/tl-assets/embed-icons/youtube.png",
+      "sha256": "0F750243E1BA37F5616E0D75BF0B97CB301F65E9F916238A181DA2D1925501EE"
+    },
+    {
+      "path": "web/canvas/tl-assets/fonts/IBMPlexMono-Medium.woff2",
+      "sha256": "602B967BE5C1A0C90B9B162A00000660C42838D7BC2185A74703A1C77D459C76"
+    },
+    {
+      "path": "web/canvas/tl-assets/fonts/IBMPlexSans-Medium.woff2",
+      "sha256": "032F2DA358608A2AA15D7BD21384E4BF1F398584E265B37D1814509812CC219B"
+    },
+    {
+      "path": "web/canvas/tl-assets/fonts/IBMPlexSerif-Medium.woff2",
+      "sha256": "8685EAC3C37FB0777E3CDDC949F6C902BDFE47CEC1D7BD84A14F8379EB30A68D"
+    },
+    {
+      "path": "web/canvas/tl-assets/fonts/Shantell_Sans-Tldrawish.woff2",
+      "sha256": "9F44B7C4092C5D428D48950304003E436D0B599FA3D3C56C5FD56A2A88CD0772"
+    },
+    {
+      "path": "web/canvas/tl-assets/icons/icon/0_merged.svg",
+      "sha256": "83C221C6C68EA997AAB05FBE438AAD1F9FDD28641447D3A55710C6F1C61622E2"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ar.json",
+      "sha256": "C85A9A315F52558B31E6132F0041111C2FD1E66FC839A04944CE76C07DC4A2E0"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ca.json",
+      "sha256": "7CEE459891E3C261372CCA4EFB67BE6B30348B420ECFFA3228A410528A8EFCCA"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/cs.json",
+      "sha256": "79511FCCCC7234D7358ED45750CACEE2FEDB1F5BD72E47AE950BCB306C5E2A58"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/da.json",
+      "sha256": "C0310ABDEDFBE818B37042668E610525416BBC58A003C7BE8B8252D6F3A76330"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/de.json",
+      "sha256": "4D4E1094DEB83B5E5A3DEC391B09000FB75B0D140D878BF9CAF9FF51876B3074"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/en.json",
+      "sha256": "CA3D163BAB055381827226140568F3BEF7EAAC187CEBD76878E0B63E9E442356"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/es.json",
+      "sha256": "B3D4FE2B8263CB50700EFAE152D157C068100826A2F14EA8D8F826B5EAD248B0"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/fa.json",
+      "sha256": "C0EF348384E9393A4C51DD6E45A66BCA38BE1019B2286ECF53D30E8AAB83716F"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/fi.json",
+      "sha256": "D3BD627650E856154A29EEC768C883402F4DB16504292F5E7431196610870E5B"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/fr.json",
+      "sha256": "F4D56D74E148154A46F2626094732D22D9DD004F33CEFBF54D143A8DE5F0DDDB"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/gl.json",
+      "sha256": "22FF3E22CC3E39CE4FCE40DDF6F58C7B4A8979EF60A9BB8E7843A0DBE6166A46"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/he.json",
+      "sha256": "F4FFA1B933BB113EAA3912E38D514A94116A3B17327E66CCF30473A360FF99AD"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/hi-in.json",
+      "sha256": "8911411C859E2372B4CB2B3ADF39655E6740B2409BCC2515A18BB3543DEFF929"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/hr.json",
+      "sha256": "D6B440038AF9F7DC86D873D49EE28880DD3C4A76A8A321D3ED452299D7326365"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/hu.json",
+      "sha256": "8EC163594A60BBB4298BD90D426C2630C205E024F15582E204CF3F7540220CE6"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/id.json",
+      "sha256": "2F4C36D8CD3B47108D0138E9FF295B30477C519F9DFABEE55DB82FCDBC0CA84B"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/it.json",
+      "sha256": "D323A75C99E209D4E70B81B8C038F8ECA49A55245E3D702C5DF8205C5B0B5AE3"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ja.json",
+      "sha256": "DA2439E5F4635831E69671F46A1A69D36BF98627399F68956252431FC67D220A"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ko-kr.json",
+      "sha256": "7068297D0672ABCCF4F257A68C48FCE81AD4FA290B90CD69EC85DF27F984514B"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ku.json",
+      "sha256": "35A7BF856594259FD590A219A884AAF87A66FF9BAC1269902C96E245ADB4E0A0"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/languages.json",
+      "sha256": "5E80DFD61AF97CA8E417B06C5E3B0C5A5A47EE5B091067AA95C933F280D4B3C3"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/main.json",
+      "sha256": "A9536EF24D6AF2C369D6D0C6DBFE71E7D8D0E6A0A24A2041B0A2421D316B1CCF"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/my.json",
+      "sha256": "9E176F8B1AEA08860F5B767FA964FF7E5697F16CE56F97AAD80ACCE28FE3DB85"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ne.json",
+      "sha256": "721716B183628D6C47D332CCBD15FD8B47E8D59C588A854CD826A5C6928DBE18"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/no.json",
+      "sha256": "081A09E104CCAF1C8533CA75207F0EBC7D483E3F83DC5C5FF0E6F797BBFA6856"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/pl.json",
+      "sha256": "90D9AC721A3A55C0F8D3AEB21E3E1626C72FE97ABFA5297CB0C9D1A6BC76257D"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/pt-br.json",
+      "sha256": "13A0965DCE566014142F67BE19B2E30BACD2D3A1A38BF4CCD2F95DA55DE56667"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/pt-pt.json",
+      "sha256": "4159D2159E0D44CF60EB6DF7E837DE8416F8B818FFCE1DE19B45F8D42CE6C2B6"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ro.json",
+      "sha256": "2378F289C1B532F51BC045AF7FE71BED9DC5CEFE1F5CC99F2415BF78B675462C"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/ru.json",
+      "sha256": "93C142938935C13B97FA021A084B12B7B94BAD2342D0E6A61C8BCEAC180B97B3"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/sl.json",
+      "sha256": "2D6D3343AA0A3236B73360C2B1F73449675506A698426C80BEC7838066D88A7C"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/sv.json",
+      "sha256": "CFFAB93B7AD80D8E5F5B03576F21AB3D2EE1E29C20E8AC9DF5FE1C2E2488458E"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/te.json",
+      "sha256": "7484FDFAE2BCAEF623B305077B5A419088220EBCDABAD9A194523BF90E51D317"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/th.json",
+      "sha256": "61E49AE8236C617E4B9C6A758E187DFE71728F41230E61445C1F092FB379F5FC"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/tr.json",
+      "sha256": "369474095095E3148D661C71527BFAD46C79BBB95A575ABB075F2D1E64BE1157"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/uk.json",
+      "sha256": "C513EC324109FDB3FC945EB02282D95D0E5CAB1F118DF099F134F547A38F501A"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/vi.json",
+      "sha256": "85E9BCB461228A468B5D2444AB5A166BD3EAA9E4BE6000F367BEEC28D138BEDD"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/zh-cn.json",
+      "sha256": "C7D54FA4806036F2D8F39E4300A4AB5B26C05F4622F4CBB58F704882D6B51007"
+    },
+    {
+      "path": "web/canvas/tl-assets/translations/zh-tw.json",
+      "sha256": "EA56499F84CA4E4EEFD5876B5F184AE2980FD53AB9D1F55A2803D56E482A5C80"
+    },
+    {
+      "path": "WebView2Loader.dll",
+      "sha256": "462B36FD1BE6CA9F7563466A89E57C41EF4A4DEF3E0A84FA885D203AEA4A3AAF"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "1380-r4-upgrade-helpers",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\0D9E59A64489",
+  "elapsedSeconds": 0.14,
+  "guestUtc": "2026-11-13T16:08:32.0125803Z",
+  "receivedUtc": "20261113T160832970897Z"
+}

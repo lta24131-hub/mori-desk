@@ -1,0 +1,11 @@
+{
+  "label": "capture-budget-diagnostic",
+  "exe": "CaptureBudgetDiagnosticRunner.exe",
+  "sha256": "F7EE63EEB8779C02C101189EF72E1576E7AAE31C5F2E6263086902E403854D84",
+  "args": [
+    "$root",
+    "capture-budget-diagnostic"
+  ],
+  "timeoutSeconds": 180,
+  "successRegex": "^OBSERVED (\\d+) capture diagnostic and explicit-budget geometry checks; original 943 failure retained\\r?$"
+}

@@ -1,0 +1,12 @@
+{
+  "label": "conversion-quick",
+  "exe": "QuickOverloadRunner.exe",
+  "sha256": "02E1E35B6F0FB34AF8CA151C736DB3E9D3B4B212BC522E805D198293B2B0FAA4",
+  "args": [
+    "$app",
+    "$worker",
+    "$root"
+  ],
+  "successRegex": "^Quick real-worker closed-loop: (\\d+) passed; 0 failed\\.",
+  "timeoutSeconds": 600
+}

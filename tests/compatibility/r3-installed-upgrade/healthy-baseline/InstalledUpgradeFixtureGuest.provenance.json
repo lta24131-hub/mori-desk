@@ -1,0 +1,66 @@
+{
+  "originalSource": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeFixtureGuest.cs",
+  "originalSourceSha256": "3CA6E9868751904E6D915F818E49AEE4F621109709FB0463777A8A82C38B14DF",
+  "sourceSha256": "B15C61002C5F39138803DBDA8425A475C7A8EC2569E01A20CE92D43BE013921B",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/target:exe",
+    "/optimize+",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeFixtureGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationCore.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationFramework.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Xaml.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeFixtureGuest.cs"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeFixtureGuest.cs",
+      "sha256": "B15C61002C5F39138803DBDA8425A475C7A8EC2569E01A20CE92D43BE013921B",
+      "bytes": 13986
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D",
+      "bytes": 1551104
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC",
+      "bytes": 412080
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3",
+      "bytes": 1846016
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\WindowsBase.dll",
+      "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622",
+      "bytes": 1303864
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationCore.dll",
+      "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02",
+      "bytes": 3718456
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\WPF\\PresentationFramework.dll",
+      "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3",
+      "bytes": 6316856
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Xaml.dll",
+      "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E",
+      "bytes": 636160
+    }
+  ],
+  "outputSha256": "663B072C769D445AFCB4EA5FBA05D68598B9DB6A3163233B8E0005A0021DBED3",
+  "hostExecution": "Compiler only"
+}

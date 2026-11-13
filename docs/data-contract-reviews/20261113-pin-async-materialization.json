@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "reviewDate": "2026-11-13",
+  "status": "verified-adjacent-implementation-vm-roundtrip",
+  "contractId": "nook-c33-data-v1",
+  "changedFile": "modules/capture/src/PinStore.cs",
+  "previousReviewedSha256": "ddb0ede70db90efb5a7a0aba5c2ba8f96962011945c4f767f5a96a99396bd624",
+  "reviewedSourceSha256": "5397b96f0ca6cf0809195ad523fcc2022e44020f04e207248cf621e3b210ff89",
+  "decision": "Persisted pin contract is unchanged by asynchronous paste and prepared-pixel presentation; no migration is required. Independent source review and the R1 0.1.45 candidate's four-phase VM roundtrip support updating the PinStore source pin. R1 was subsequently withdrawn for an unrelated preview-worker defect. Its pin implementation is unchanged in R3; this is explicitly reused implementation evidence, not a fresh R3 roundtrip or a published-release installer upgrade.",
+  "candidateEvidenceScope": {
+    "testedCandidate": "R1",
+    "testedAppSha256": "95122AAA3FB4F69AB2A1D259B74500A71424B2439F8375784E86BCC563237716",
+    "releaseCandidate": "R3",
+    "releaseAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "reuseBoundary": "PinStore, AppMain, DeskRuntime, PinRuntimeTests and MainWindow.Update source bytes are identical in the sealed R1 and R3 inputs. The separately compiled CaptureOutputLifecycleTests source matches the recorded R1 source pin. Original task 594 and 626 results remain R1 results. Public 0.1.42 to R3 installation has separate evidence in the 0.1.45 validation record."
+  },
+  "review": {
+    "schemaChanged": false,
+    "migrationRequired": false,
+    "durableFieldsChanged": false,
+    "pathsChanged": false,
+    "sourceFindings": [
+      "PinRecord fields, default values, ordering, identity validation and JSON serialization are unchanged. pins.json, its backup, original GUID PNGs and translated PNG paths retain the same names and meanings.",
+      "Load, Save, Add, SaveTranslation, Recover, PersistAll and translation-cache compatibility rules are unchanged by this diff. The previous translation-policy review remains a separate change and is not reclassified as a durable schema change.",
+      "NewAtAsync now gives Show the same frozen BitmapSource already encoded successfully, avoiding a second decode of the new PNG. Restore and Recover still load their existing files; no persisted resource is replaced merely to display it.",
+      "The actual PNG encoder still writes through ImageFiles.WriteAtomic: one uniquely owned temporary path, cancellation checks before publication, flush, then atomic move/replace. The encoder runs on a worker; record/index changes and presentation resume on the owning dispatcher.",
+      "Presentation occurs after both complete image bytes and the index entry commit. On cancellation or presentation failure, only the newly added record is removed. Its image is deleted only when index rollback succeeds; if rollback fails the bytes remain recoverable.",
+      "The removed synchronous NewAt and NewTranslation methods have no remaining production or test callers. Existing public New and Add are retained, including the Add API used by the old/new/old/new compatibility harness.",
+      "The optional internal encoder and CreateWindow test entry are not durable data or public file formats. The production NewAtAsync path supplies the real atomic encoder and frozen committed source."
+    ]
+  },
+  "requiredVmEvidence": {
+    "lifecycleTest": "modules/capture/tests/CaptureOutputLifecycleTests.cs: Pins",
+    "lifecycleSourceSha256": "775519e780e84a3d37f9a45a14fff0fbf0f5113e62f9f14c1679e6d528b8bb01",
+    "checks": [
+      "Dispatcher heartbeat occurs while worker encoding is still pending.",
+      "The real PinWindow constructor receives and displays the same frozen input without showing a native window.",
+      "Successful commit reopens with exactly one additional recoverable pin.",
+      "Pre-cancel, mid-encode cancel and presentation failure preserve all prior records and image bytes, with no late window or owned temporary file.",
+      "tests/compatibility/PinAsyncDataContractGuest.cs executes earlier draft seed, candidate asynchronous creation, earlier implementation edit, candidate reopen. Preserve every record field and original/cache image hash."
+    ],
+    "finalBinarySha256": "95122AAA3FB4F69AB2A1D259B74500A71424B2439F8375784E86BCC563237716",
+    "roundtripReport": "D:\\Nook-DevTestVM\\audit\\20261113-performance-round\\pin-contract\\vm-report.json",
+    "roundtripPassed": true,
+    "hostRuntimeExecuted": false
+  },
+  "relatedLifecycleReview": {
+    "status": "source-fix-final-vm-runtime-and-native-closing-paste-verified",
+    "finding": "DeskRuntime.PrepareExit cancels the pin lifetime before a later update Closing handler can refuse exit. Resetting Quitting alone left future asynchronous F3 pin requests cancelled.",
+    "resolution": "DeskRuntime.ResumeAfterCancelledExit creates a new lifetime only for an owned runtime outside session ending, retains cancellation on the abandoned token and keeps repeated callbacks idempotent. MainWindow.Update, MainWindow.Desk and MainWindow.FileConversion now use it for cancelled-exit recovery. No durable data changes.",
+    "regressionTest": "tests/PinRuntimeTests.cs: cancelled exit permits an actual new CreatePinAsync commit, refuses a commit using the abandoned token and cannot revive session-ending or stopped runtimes.",
+    "scopeLimit": "The runtime regression and separate native VM journey exercise actual MainWindow Closing refusal, restored lifetime and the real Paste entry presenting native PinWindows. They do not inject OS F3 or execute installer commit; do not describe them as a complete native installer upgrade.",
+    "vmTask": "589-final45-pin-runtime",
+    "appSha256": "95122AAA3FB4F69AB2A1D259B74500A71424B2439F8375784E86BCC563237716",
+    "passed": true,
+    "checks": 22,
+    "testSourceSha256": "7EE721ABD0CE186534B32C3B30ACFACC407C803A0C29A15F63178909173E1FA7",
+    "report": "D:\\Nook-DevTestVM\\audit\\20261102-canvas-save\\reports\\latest-589-final45-pin-runtime.json",
+    "reportSha256": "EECD7DA85498C5BCAA2EAA18272BE6A9BD2DD6C5C9C5236735B896A6A2434FF4",
+    "nativeClosingPasteJourney": {
+      "task": "626-final45-pin-native",
+      "passed": true,
+      "appSha256": "95122AAA3FB4F69AB2A1D259B74500A71424B2439F8375784E86BCC563237716",
+      "helper": "tests/compatibility/PinCancelledExitGuest.cs",
+      "helperSourceSha256": "6EA8B668524991097D865ECF9266D72201525FFDE9AD2B250008770C800DAC4B",
+      "packageSha256": "437DCB8E87D7E9F991ABA4D7504CB7696446A4A2E1FC6DD9B1D9C05224B23E77",
+      "command": "PinCancelledExitGuest.exe --run",
+      "result": "D:\\Nook-DevTestVM\\audit\\20261113-performance-round\\pin-cancelled-exit\\vm-report.json",
+      "resultSha256": "1F37399760E1734A818C6925008F5EB40C332D228C246B647E67D26B1ED4DEBC",
+      "outerReport": "D:\\Nook-DevTestVM\\audit\\20261102-canvas-save\\reports\\latest-626-final45-pin-native.json",
+      "outerReportSha256": "33AB489DB45089813195B77230109933C3A9AC76C6BCC9AA29D7BFA73B96ADE4",
+      "guestUtc": "2026-11-13T08:56:59.6050356Z",
+      "elapsedSeconds": 34.8,
+      "verified": [
+        "Real AppState.Paste commits a first generated image and shows a visible native PinWindow.",
+        "Actual MainWindow Closing prepares exit before the later update readiness handler refuses it; the main native window remains usable.",
+        "The old pin lifetime remains cancelled while the replacement lifetime permits a second real Paste and a second native PinWindow.",
+        "Both committed records and the first original survive; no failure or busy notification is raised.",
+        "Fixture windows close normally and this run reports successful VM clipboard restoration."
+      ],
+      "nativeWindowsClosed": true,
+      "clipboardRestored": true,
+      "osF3Injected": false,
+      "installerCommitExercised": false,
+      "hostRuntimeExecuted": false,
+      "installedApplicationTouched": false
+    }
+  },
+  "roundtripEvidence": {
+    "task": "594-final45-pin-contract",
+    "baselineRole": "earlier 0.1.44 draft candidate; not a published-release upgrade",
+    "oldVersion": "0.1.44.0",
+    "oldAppSha256": "B3672326C92BA3A50E1A3E46C473295519183F277400C6A1C85A0C4C10A6F95F",
+    "candidateVersion": "0.1.45.0",
+    "candidateAppSha256": "95122AAA3FB4F69AB2A1D259B74500A71424B2439F8375784E86BCC563237716",
+    "helper": "tests/compatibility/PinAsyncDataContractGuest.cs",
+    "helperSourceSha256": "00A17DF0D7FB0072EE68500748CD686748F4EB7C29868A2F2E2351206B6DF514",
+    "helperExecutableSha256": "9AAA8866DF8A368D782A6F3464F3588A1CE07ABEADA4150F2620C3B151D79851",
+    "packageSha256": "02712926A7B02468A93D30B1ECE3EE315C1C70E24577B973CA2325EBB6A6F69B",
+    "command": "PinAsyncDataContractGuest.exe --run",
+    "resultSha256": "1EEAD24B80729A9800258047395B1F234E4502FCC16863C85DAF11840B6BB9DE",
+    "outerReport": "D:\\Nook-DevTestVM\\audit\\20261102-canvas-save\\reports\\latest-594-final45-pin-contract.json",
+    "outerReportSha256": "52463605BDB05DFC4CD888627EEAC3F35378E5279558782E5A11BCC39B916523",
+    "guestUtc": "2026-11-13T08:35:49.3152087Z",
+    "elapsedSeconds": 30.21,
+    "allPhasesPassed": true,
+    "phaseChecks": { "seed": 66, "forward": 97, "rollback": 97, "reupgrade": 86 },
+    "verified": [
+      "Final candidate reads all prior records, geometry, Active/ClosedAt, transforms, translation cache fields and original/cache bytes.",
+      "Final candidate really encodes and commits a fifth pin through CreatePinAsync, presenting the exact frozen input.",
+      "Earlier implementation reads the asynchronous pin, changes its geometry, Active/ClosedAt and flip state, and saves without damaging original bytes.",
+      "Final candidate reopens those earlier-version edits intact, retaining five originals and three translation images.",
+      "Each implementation replaces one translation image through the actual SaveTranslation path while retaining every unrelated PNG byte-for-byte.",
+      "Every phase saves and reopens the real PinStore. All four original records' durable fields and all five unique identities survive."
+    ],
+    "nativeWindowsShown": false,
+    "networkOrOcrCalled": false,
+    "hostRuntimeExecuted": false,
+    "installedApplicationTouched": false
+  },
+  "notClaimed": [
+    "Compatibility with a public-release installer merely because the baseline draft has a version number",
+    "Whole-application or physical-machine acceptance",
+    "Installer or public release completion"
+  ]
+}

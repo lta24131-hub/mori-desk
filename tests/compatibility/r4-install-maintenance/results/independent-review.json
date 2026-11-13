@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "stages": [
+    {
+      "id": "1351-r4-native-maintenance",
+      "outerSha256": "F4482275B5E16DEE57D198694EEB8CE75879F0D4A9900F47E6370077BD274AFA",
+      "innerSha256": "1E41C053C8BF52C96E019C20E91A2A8FA8A84F161CAFA4D1D911A636C9563A3A",
+      "checks": 102,
+      "elapsedSeconds": 11.44,
+      "childrenStopped": true,
+      "watchdogFired": false,
+      "jobActiveAfterStop": 0
+    },
+    {
+      "id": "1353-r4-native-installerSafety",
+      "outerSha256": "A912C249E4A2C80A1A24D3E4481157318B39337DAABB89BF8E22D6408DE6E265",
+      "innerSha256": "5376DF2D9AF61CEFFD3E41BD3F530E8EA6BE982E06D2ECCC42F273D497D554E8",
+      "checks": 420,
+      "elapsedSeconds": 9.18,
+      "childrenStopped": true,
+      "watchdogFired": false,
+      "jobActiveAfterStop": 0
+    }
+  ],
+  "checks": 522,
+  "distinctNamedProductStages": 3,
+  "rawInnerOuterAndProgressMatch": true,
+  "outputExtractionDifferences": [
+    {
+      "file": "r4-installer-safety-stdout.txt",
+      "extractedLength": 515,
+      "brokerOriginalLength": 511,
+      "difference": "Only Windows text-write LF to CRLF expansion; broker raw report remains authoritative."
+    }
+  ],
+  "maintenanceStdoutStderr": "Broker missing markers; assertions are recorded in complete inner progressTail. These markers are not timeout events.",
+  "limitations": [
+    "VM native contract tests only; no actual installation, upgrade, browser collection or physical desktop acceptance.",
+    "R3 1304 installation failure remains failed; these passes do not supersede a real R4 upgrade."
+  ],
+  "hostExecuted": false
+}

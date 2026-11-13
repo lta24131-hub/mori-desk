@@ -1,0 +1,29 @@
+{
+  "stages": [
+    {
+      "taskId": "1261-r3-healthy-seed42",
+      "outerReportSha256": "C19015D0510338BEFA79747B10B042B7C87D13388DC2AA7EDFB2D70A7B9D3899",
+      "reportSha256": "E69BE13766CCB9654B5CDDF158B95C030CCF15000D0F81B3ED5422A17A9B202E",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "passed": true
+    },
+    {
+      "taskId": "1262-r3-healthy-launch42",
+      "outerReportSha256": "0CF59808A8DC8BE3074523057ED4E7E8FD8F23AA70500DCE1C6A4844E26E330C",
+      "reportSha256": "E58B1BEE8CEBAB69EA0FF333D3E717CFB1E4FDBDE8F09D5136E3BCEC176EA13D",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 1,
+      "passed": false
+    }
+  ],
+  "actualPublic42SeedPassed": true,
+  "original1262RetainedFailed": true,
+  "normalLaunchAccepted": false,
+  "normalCloseAccepted": false,
+  "cleanupForced": true,
+  "jobActiveBeforeForcedCleanup": 2,
+  "jobIncludesHelper": true,
+  "actual45UpgradeStarted": false,
+  "scope": "Generated fixture seeded with exact installed public42 model. Original1262 failed in test-helper startup ProcessModule.FileName identity sampling before any UI action; original launch/normal-close conditions were not reached. Failure is retained; later launch must prove exact identity, Job containment and normal close without reseeding."
+}

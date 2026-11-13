@@ -60,7 +60,9 @@ namespace Mori {
    try{
     while(!pending.Wait(25)){
      cancellation.ThrowIfCancellationRequested();if(process.HasExited){if(!pending.Wait(2000))throw new IOException("PDF 预览进程已退出，请重新打开文档。");break;}
-     process.Refresh();if(watch.ElapsedMilliseconds>TimeoutMilliseconds||process.PrivateMemorySize64>MaximumMemory)throw new NotSupportedException("此 PDF 页面处理时间或内存超出限制，已停止预览。请使用默认程序打开。");
+     if(watch.ElapsedMilliseconds>TimeoutMilliseconds)throw new NotSupportedException("此 PDF 页面处理时间或内存超出限制，已停止预览。请使用默认程序打开。");
+     long memory;if(!WorkerIo.TryReadPrivateMemory(process,out memory)){if(!pending.Wait(2000))throw new IOException("PDF 预览进程已退出，请重新打开文档。");break;}
+     if(memory>MaximumMemory)throw new NotSupportedException("此 PDF 页面处理时间或内存超出限制，已停止预览。请使用默认程序打开。");
     }
     cancellation.ThrowIfCancellationRequested();return pending.GetAwaiter().GetResult();
    }catch(AggregateException error){Abort();throw error.InnerException??error;}

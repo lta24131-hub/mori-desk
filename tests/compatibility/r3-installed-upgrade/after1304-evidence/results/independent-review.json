@@ -1,0 +1,205 @@
+{
+  "taskId": "1325-r3-after1304-cleanup-evidence",
+  "outerReportSha256": "6C86D303F9AF4F2E295A8CC10B1DF889862A66F54803F0401FC1D954ED3DCCFD",
+  "reportSha256": "3E748004D7360E7675827F5F75948D2DB92073B128B586E61A6EA49ACC86657E",
+  "exportProgressSha256": "DB141368E26FB9096419129CE7D78814F5FA3AD0ABAF59BF0A6774FD03076F68",
+  "allReturnedReportAndArtifactBytesVerified": true,
+  "artifactCount": 22,
+  "existingArtifacts": 18,
+  "missingArtifacts": 4,
+  "outerExitCode": 0,
+  "helperPassed": true,
+  "artifacts": [
+    {
+      "name": "current-native-manifest.json",
+      "exists": true,
+      "bytes": 236,
+      "sha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "current-browser-tree.json",
+      "exists": true,
+      "bytes": 3335,
+      "sha256": "B1AD7DF58B0FB37178151AFEA23EFC765C8F7E5AECF6AEF99E5E090523BA8186",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "active-install.json",
+      "exists": true,
+      "bytes": 306,
+      "sha256": "E8E28898DA231CA9C2A8E2CC51AAEB17B904AA234E099678AEB1A0D8D1A2667C",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-installer-cleanup.json",
+      "exists": true,
+      "bytes": 354,
+      "sha256": "B91B38B9AAC7CF686A8C74FC2C0FFC07939B7877DA2FAA418DD63440ED85D305",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-result.json",
+      "exists": true,
+      "bytes": 181,
+      "sha256": "9511D4022EF175260DF7AC994F1A6BC68C2EA09C96DF550C9F90EA9E185E74AE",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-startup-ready.json",
+      "exists": true,
+      "bytes": 218,
+      "sha256": "70E05E4FACA4C471F855FB6D4B0B3EA40D943E2E363997F272C9422CFB861D5E",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-ready.json",
+      "exists": true,
+      "bytes": 76,
+      "sha256": "9EF72BAE4D3D40C012825AF2D4D88D89116954542E4CC9DF656DBF0D7FBC29FF",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-candidate.json",
+      "exists": true,
+      "bytes": 240,
+      "sha256": "C3D2BC5CA3DD88EA2D835B1FB667FB6C2D1E4AE9C5032DA38086A3AF612CCD79",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-request.json",
+      "exists": true,
+      "bytes": 252,
+      "sha256": "3C4B5D49BCC84A0BED9B17D676B5BBA01D158CB727E351E5C6F345F088B3AAE5",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-staging.json",
+      "exists": true,
+      "bytes": 356,
+      "sha256": "C89CBA9A43EBC9618D19EE2F1EC1C593BD6AD798DCBFA1B5CF33F759A1497830",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-activation-attempted.json",
+      "exists": true,
+      "bytes": 339,
+      "sha256": "BFD351C45354E4FE2257850AC6A8851A327A3C573525AA319B95EA3325F84157",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "session-cancel.request",
+      "exists": false
+    },
+    {
+      "name": "version-cleanup.json",
+      "exists": false
+    },
+    {
+      "name": "staging-cleanup.json",
+      "exists": true,
+      "bytes": 90,
+      "sha256": "48A230EBBC7F3D804215DC2BF0103A8A0B721F65845C81793DFB5EF5BE7C2D79",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "old-installed-files.json",
+      "exists": true,
+      "bytes": 234820,
+      "sha256": "F5CDFC58C2F0F6434BBC64D8C4727C0C426BAF8FE100456ED69248EFC44244FD",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "old-cleanup-progress.json",
+      "exists": false
+    },
+    {
+      "name": "old-payload-tree.json",
+      "exists": true,
+      "bytes": 334127,
+      "sha256": "D9443D78DB35F5340034E26FBAB7CAA02DDAFEFD8C6433DB5F9BE8A3F80084E9",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "current-installed-files.json",
+      "exists": true,
+      "bytes": 236379,
+      "sha256": "F2BA148D797FA93357A3046F4B6E3CC5D444344DACC19646795E3C5E4B1DBDEA",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "current-cleanup-progress.json",
+      "exists": false
+    },
+    {
+      "name": "current-payload-tree.json",
+      "exists": true,
+      "bytes": 336252,
+      "sha256": "672588E58C16C0DF100C241CAB65A9D448D718ED2216909DA76F9BFE17549A1D",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "cleanup-root-metadata.json",
+      "exists": true,
+      "bytes": 998,
+      "sha256": "179F8D735A1AAF1826DCAFBA617181EE54F334EBD5AE6AAAB7728C4352A8A46F",
+      "allReturnedChunkBytesVerified": true
+    },
+    {
+      "name": "cleanup-journal-000.txt",
+      "exists": true,
+      "bytes": 34,
+      "sha256": "DF58DEF3750BEBA80CA8DC67D7F38EA5BBAD696C3D1C8C8A4D6D8E9BA89A2203",
+      "allReturnedChunkBytesVerified": true
+    }
+  ],
+  "facts": {
+    "cleanupFinished": false,
+    "cleanupState": null,
+    "cleanupSequence": 2,
+    "cleanupLastStage": "checking-entrypoints-and-browser",
+    "versionCleanupReportExists": false,
+    "oldVersionCleanupProgressExists": false,
+    "currentVersionCleanupProgressExists": false,
+    "activeRecordCandidateIdentityMatchesFrozenR3": true,
+    "installedResultAndStartupReceiptAgree": true,
+    "currentNativeManifestUnchangedFromHealthy42": true,
+    "currentNativeManifestSha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D",
+    "preflight42Snapshot": {
+      "complete": true,
+      "entrypointsSwitched": true,
+      "reason": "ready",
+      "runningCount": 0,
+      "referenceCount": 1,
+      "protectedPathCount": 0
+    },
+    "candidateCleanupSnapshotAvailable": false,
+    "cleanupJournalOnlyOwnershipHeader": true,
+    "journalDirectoryRecordedUtc": "2026-11-13T15:04:47.7527608Z",
+    "finishWizardActionUtc": "2026-11-13T15:05:48.4000967Z",
+    "journalDirectoryToWizardFinishSeconds": 60.647336,
+    "oldPayload": {
+      "entries": 2125,
+      "files": 1702,
+      "directories": 423,
+      "fileBytes": 775442740,
+      "readOnlyEntries": 0,
+      "reparseEntries": 0
+    },
+    "currentPayload": {
+      "entries": 2140,
+      "files": 1716,
+      "directories": 424,
+      "fileBytes": 777245151,
+      "readOnlyEntries": 0,
+      "reparseEntries": 0
+    },
+    "actualCleanupCompletionAccepted": false
+  },
+  "inference": "The healthy42 preflight was ready, but this attempt never emitted a final candidate cleanup status or version maintenance report. The cleanup journal shows entry into the cleanup engine; source inspection places it after integration readiness and shell repair. No complete candidate snapshot is available. The installer may stop waiting after 90 seconds without progress during pre-deletion verification. Filesystem export cannot distinguish an unfinished state capture, locked-tree inventory, or another unreported operation; do not label it a proven missing-manifest failure or completed deferred cleanup.",
+  "sourceWrites": false,
+  "productExecuted": false,
+  "hostExecuted": false,
+  "original1304RetainedFailed": true,
+  "scope": "Readonly post-failure export; validates recorded artifacts and metadata, not a fresh candidate execution, full-file payload hash proof, current registry snapshot, or cleanup repair."
+}

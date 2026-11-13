@@ -63,7 +63,7 @@ test('popup locks updates before health reads and never opens the library just t
   const {page,errors}=await mockPage();try{
     const actions=await page.evaluate(()=>testMessages.map(message=>message.action));
     assert.equal(actions[0],'connect');assert(actions.includes('bridgeStatus'));assert(actions.includes('extensionUpdateStatus'));assert.equal(actions.includes('folders'),false);
-    assert.equal(await page.locator('#status').innerText(),'已连接 Nook');
+    assert.equal(await page.locator('#status').innerText(),'收藏连接 · 已连接');
     assert.doesNotMatch(await page.locator('#status').innerText(),/图库/);
     await page.evaluate(()=>testPortListeners.forEach(fn=>fn({updateStatus:{ok:true,pendingVersion:'0.3.2',uncertain:true,reason:'uncertain'}})));
     assert.equal(await page.locator('#acknowledge-update').isVisible(),true);assert.match(await page.locator('#update-status').innerText(),/检查.*保存/);
@@ -78,7 +78,7 @@ test('popup locks updates before health reads and never opens the library just t
 });
 test('English bridge health describes Nook connection without claiming library or save readiness',async()=>{
   const {page,errors}=await mockPage({language:'en'});try{
-    assert.equal(await page.locator('#status').innerText(),'Connected to Nook');
+    assert.equal(await page.locator('#status').innerText(),'Collection connection · Connected');
     assert.equal(await page.evaluate(()=>testMessages.some(message=>['folders','save','bookmark','importBookmarks'].includes(message.action))),false);
     assert.deepEqual(errors,[]);
   }finally{await page.close();}

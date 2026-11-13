@@ -1,0 +1,73 @@
+{
+  "phase": "upgrade",
+  "complete": true,
+  "planSha256": "FA17553EFE8FA8AF3AA5BD134C9C72FDDF9EE3041EC8D61960C2123C3128837E",
+  "controllerSha256": "0A62394B57A81B295D7E0D1C237041BEC76CF4DE79E2B6808351D435751D6C97",
+  "hostProductExecution": false,
+  "original1304RetainedFailed": true,
+  "results": [
+    {
+      "id": "1381-r4-seed42",
+      "status": "passed",
+      "passed": true,
+      "report": "fixtureseed42-result.json",
+      "sha256": "838A15A83EB9DFC31C4370C5F8C483EE55A633ADD1517C8BF8703115A441CB2C",
+      "elapsedSeconds": 5.6,
+      "error": null
+    },
+    {
+      "id": "1382-r4-launch42",
+      "status": "passed",
+      "passed": true,
+      "report": "launch42-result.json",
+      "sha256": "BF3D77E7B499ACA5B5602C571A6C377DFD1B40A66A51C651936F18821667A427",
+      "elapsedSeconds": 16.13,
+      "error": null
+    },
+    {
+      "id": "1383-r4-snapshot42",
+      "status": "passed",
+      "passed": true,
+      "report": "fixturesnapshot42-result.json",
+      "sha256": "B628029F7B102004CD74B71AF0D932917B550F45CE83E9C7F0A40AEDC84E62FD",
+      "elapsedSeconds": 3.52,
+      "error": null
+    },
+    {
+      "id": "1384-r4-real-upgrade",
+      "status": "passed",
+      "passed": true,
+      "report": "install45-result.json",
+      "sha256": "FDE2A72D1E4151E5473DF39A6714CBDFF69C10C858EF6ED4EEA84AC061F0B602",
+      "elapsedSeconds": 519.91,
+      "error": null
+    },
+    {
+      "id": "1385-r4-launch45",
+      "status": "passed",
+      "passed": true,
+      "report": "launch45-result.json",
+      "sha256": "A88EC49E80CAD2926CB83DE0441263109CBB10981C990DFFDE51ED31D5D242BE",
+      "elapsedSeconds": 17.19,
+      "error": null
+    },
+    {
+      "id": "1386-r4-verify45",
+      "status": "passed",
+      "passed": true,
+      "report": "fixtureverify45-result.json",
+      "sha256": "F53AE1973EE5A65538233EB7BEE078A1477F692A1B99E588517BE4CA3096F2D1",
+      "elapsedSeconds": 3.16,
+      "error": null
+    },
+    {
+      "id": "1387-r4-final-inventory",
+      "status": "passed",
+      "passed": true,
+      "report": "audit-installed-inventory-final-r4.json",
+      "sha256": "BF3B42C0B134C702BB2DFC8B62F2B90375C3A294D44864727A684AE3C2499127",
+      "elapsedSeconds": 4.26,
+      "error": null
+    }
+  ]
+}

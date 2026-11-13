@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -137,6 +138,38 @@ namespace MoriDeskInstaller {
    attempts=0;result=InstallerWizard.Execute(new WizardState(),()=>false,()=>{attempts++;return 0;},()=>{throw new Exception("unexpected cleanup");},()=>{throw new Exception("unexpected finish");});Check(result==2&&attempts==0,"cancelling before confirmation does no installation or cleanup");
    state=new WizardState();result=InstallerWizard.Execute(state,()=>true,()=>{throw new IOException("transaction rollback");},()=>{throw new Exception("must not clean on failure");},()=>{});Check(result==1&&state.Snapshot().Failed&&state.Snapshot().Percent<100,"transaction exception remains in same wizard as failure, without cleanup");
   }
+  static void PayloadPathChecks(){
+   const string root=@"C:\Apps\Nook";string version=Program.InstallerVersion;
+   int folderLength=root.Length+1+Program.CandidateDirectoryName(version).Length;
+   string file259=new string('f',259-folderLength-1),file260=file259+"f";
+   Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",file259});Check(true,"259-character file path passes before any extraction");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",file260}),"260-character file path is rejected before registry or filesystem writes");
+   string directory247=new string('d',247-folderLength-1),directory248=directory247+"d";
+   Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory247+"/"});Check(true,"247-character explicit directory path passes");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory248+"/"}),"248-character explicit directory path is rejected");
+   Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory247+"/x"});Check(true,"247-character implicit parent directory passes");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory248+"/x"}),"248-character implicit parent is rejected even when the full file path is below 260");
+   const string longest="file-conversion/licenses/nuget/microsoft.extensions.dependencyinjection.abstractions/10.0.12/microsoft.extensions.dependencyinjection.abstractions.nuspec";
+   foreach(string location in new[]{@"C:\Users\ADMIN\AppData\Local\Programs\MoriDesk",@"C:\Users\NookTester\AppData\Local\Programs\MoriDesk",@"D:\Nook"}){
+    Program.ValidatePayloadPathBudget(location,version,new[]{"Mori.exe",longest});Check(true,"normal default or custom path fits the current longest payload member: "+location);
+   }
+   int oldFolder=root.Length+1+Program.CandidateDirectoryName("0.1.44").Length;
+   string oldBoundary=new string('f',259-oldFolder-1);
+   Program.ValidatePayloadPathBudget(root,"0.1.44",new[]{"Mori.exe",oldBoundary});Check(true,"candidate directory follows the actual release version length");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,"0.1.100",new[]{"Mori.exe",oldBoundary}),"a longer future version participates in the path budget");
+   foreach(string bad in new[]{"../outside","/absolute",@"x\..\outside","x:stream","x//empty","x /file"})Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{bad}),"noncanonical ZIP path cannot bypass the budget: "+bad);
+   string unicode=new string('\u56fe',file259.Length);Program.ValidatePayloadPathBudget(root,version,new[]{unicode});Check(true,"Chinese file paths count UTF-16 characters, not UTF-8 bytes");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{unicode+"图"}),"Chinese paths obey the same 260-character boundary");
+   var plan=new InstallerPlan{Location=root,Version=version,Components=new[]{new InstallerComponent{Directory="file-conversion",Selected=false}}};
+   string optional="file-conversion/"+new string('f',260-folderLength-1-"file-conversion/".Length);
+   using(var stream=new MemoryStream()){
+    using(var zip=new ZipArchive(stream,ZipArchiveMode.Create,true)){zip.CreateEntry("Mori.exe");zip.CreateEntry(optional);}
+    stream.Position=0;Check(!plan.Includes(optional),"test component is actually unselected");
+    Rejected(()=>Program.ValidatePlanPayload(plan,root,stream),"actual ZIP preflight budgets unselected components before installation location can be locked");
+    stream.Position=0;Program.ValidatePlanPayload(plan,@"C:\Nook",stream);Check(true,"same payload can be retried with a shorter path without extracting it or changing the plan");
+   }
+   Check(plan.Location==root&&!plan.LocationLocked&&!plan.Components[0].Selected,"failed and successful path validation leave wizard choices editable and unchanged");
+  }
   static void StartupChecks(){
    string executable=@"C:\Generated\Programs\MoriDesk\0.1.24\Mori.exe";
    Action<string> verify=text=>Program.ValidateStartupReceipt(text,Program.InstallerVersion,executable,42,638960000000000001L);
@@ -207,9 +240,39 @@ namespace MoriDeskInstaller {
    Check(rejected&&Convert.ToBase64String(before)==Convert.ToBase64String(File.ReadAllBytes(link)),"failed staged shortcut identity publication cannot truncate or replace the existing entrypoint");
    Console.WriteLine("Generated taskbar shortcut fixture retained at: "+root);
   }
+  static void CleanupPreparationProgressChecks(){
+   string folder=Path.Combine(Path.GetTempPath(),"Nook-cleanup-progress-"+Guid.NewGuid().ToString("N"));
+   Directory.CreateDirectory(Path.Combine(folder,"child"));
+   string first=Path.Combine(folder,"first.txt"),second=Path.Combine(folder,"child","second.txt");
+   File.WriteAllText(first,"retained first");File.WriteAllText(second,"retained second");
+   var treeType=typeof(InstalledVersionCleanup).GetNestedType("LockedTree",BindingFlags.NonPublic);
+   var constructor=treeType.GetConstructor(BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(string),typeof(bool),typeof(Action<string>)},null);
+   var messages=new List<string>();bool lastHandlesHeld=false;
+   Action<string> observe=text=>{
+    messages.Add(text);
+    if(!text.StartsWith("已完成位置检查",StringComparison.Ordinal))return;
+    int locked=0;foreach(string path in new[]{first,second})try{using(var write=new FileStream(path,FileMode.Open,FileAccess.Write,FileShare.ReadWrite)){} }catch(IOException){locked++;}
+    lastHandlesHeld=locked==2;
+   };
+   using((IDisposable)constructor.Invoke(new object[]{folder,true,observe})){
+    Check(messages.Count>=2&&messages[0]=="已检查 1 个文件与目录","cleanup preparation reports actual progress before the entire tree is locked");
+    Check(messages[messages.Count-1]=="已完成位置检查，共 4 个文件与目录"&&lastHandlesHeld,"final preparation progress counts actual files/directories while exclusive handles remain held");
+   }
+   foreach(string path in new[]{first,second})using(var writable=new FileStream(path,FileMode.Open,FileAccess.Write,FileShare.None))Check(writable.Length>0,"progress-enabled tree releases each handle after disposal");
+   Check(File.ReadAllText(first)=="retained first"&&File.ReadAllText(second)=="retained second","preparation and display progress never delete or change file contents");
+   using((IDisposable)constructor.Invoke(new object[]{folder,true,(Action<string>)(text=>{throw new IOException("display unavailable");})})){}
+   Check(true,"a failed display callback cannot skip validation or strand owned handles");
+   bool refused=false;messages.Clear();
+   using(var occupied=new FileStream(second,FileMode.Open,FileAccess.Read,FileShare.None)){
+    try{using((IDisposable)constructor.Invoke(new object[]{folder,true,observe})){} }catch(TargetInvocationException error){refused=error.InnerException is IOException;}
+   }
+   Check(refused&&!messages.Exists(text=>text.StartsWith("已完成位置检查",StringComparison.Ordinal)),"blocked preparation retains its failure and never emits successful completion");
+   foreach(string path in new[]{first,second})using(var writable=new FileStream(path,FileMode.Open,FileAccess.Write,FileShare.None))Check(writable.Length>0,"failed preparation releases all previously acquired file handles");
+   Console.WriteLine("Generated cleanup progress fixtures retained at: "+folder);
+  }
   [STAThread]public static int Main(string[] args){
    try{
-    VersionChecks();ManualFlowChecks();ProgressChecks();WizardChecks();TaskbarShortcutChecks();
+     VersionChecks();ManualFlowChecks();ProgressChecks();WizardChecks();PayloadPathChecks();TaskbarShortcutChecks();CleanupPreparationProgressChecks();
     foreach(string product in new[]{"Mori Desk","mori desk","MORI DESK","Nook","nook","NOOK"}){
      Check(Program.MatchesRunningProcess(20,1,product,"Mori.exe",10,1),"same-session legacy or new product blocks installation: "+product);
      Check(Program.MatchesRunningProcess(20,1,product,"mori.exe",10,1),"stable original-filename comparison is case insensitive: "+product);

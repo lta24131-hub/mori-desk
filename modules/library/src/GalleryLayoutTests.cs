@@ -17,9 +17,9 @@ namespace Mori {
   static Rect Bounds(FrameworkElement element,Visual root){return element.TransformToAncestor(root).TransformBounds(new Rect(new Point(),element.RenderSize));}
   static void HeaderLayout(Window window,FrameworkElement content,Action<bool,string> check){
    var header=(Grid)window.FindName("GalleryHeader");var title=(TextBlock)window.FindName("ViewTitle");var count=(TextBlock)window.FindName("ViewCount");
-   var clear=(Button)window.FindName("ClearFilter");var filter=(ComboBox)window.FindName("MediaFilter");var sort=(ComboBox)window.FindName("Sort");var multi=(Button)window.FindName("MultiSelect");var toggle=(Button)window.FindName("ToggleInspector");
+   var clear=(Button)window.FindName("ClearFilter");var filter=(ComboBox)window.FindName("MediaFilter");var typePicker=(Button)window.FindName("HomeTypePicker");var view=(Button)window.FindName("HomeView");var sort=(ComboBox)window.FindName("Sort");var multi=(Button)window.FindName("MultiSelect");var toggle=(Button)window.FindName("ToggleInspector");
    var workspace=(Grid)window.FindName("Workspace");var center=(Grid)window.FindName("Center");
-   string oldTitle=title.Text,oldCount=count.Text;Visibility oldClear=clear.Visibility,oldFilter=filter.Visibility;
+   string oldTitle=title.Text,oldCount=count.Text;Visibility oldClear=clear.Visibility;object oldType=typePicker.Content;int oldFilterIndex=filter.SelectedIndex;
    double oldWidth=content.Width,oldHeight=content.Height;var oldLeft=workspace.ColumnDefinitions[0].Width;
    try{
     // Measure the real full page from its detached root. Arranging the header
@@ -27,8 +27,9 @@ namespace Mori {
     // 1380px window allocation, making every "narrow" case falsely 860px wide.
     workspace.ColumnDefinitions[0].Width=new GridLength(296);
     count.Text="9999 个素材 · 128.50 GB";
+    check(filter.Visibility==Visibility.Collapsed,"legacy media selector starts hidden behind the visible home type picker");
     foreach(string theme in new[]{"dark","light"})foreach(double width in new[]{480.0,720,1000})foreach(bool searching in new[]{false,true})foreach(bool filtering in new[]{false,true})foreach(bool longTitle in new[]{false,true}){
-     Theme.Set(theme);title.Text=longTitle?"一个名称很长的项目素材分类用于窄窗口检查":"全部素材";clear.Visibility=searching?Visibility.Visible:Visibility.Collapsed;filter.Visibility=filtering?Visibility.Visible:Visibility.Collapsed;
+     Theme.Set(theme);title.Text=longTitle?"一个名称很长的项目素材分类用于窄窗口检查":"全部素材";clear.Visibility=searching||filtering?Visibility.Visible:Visibility.Collapsed;filter.SelectedIndex=filtering?1:0;typePicker.Content=filtering?"图片 ▾":"全部类型 ▾";
      double fullWidth=width+296+6+252+6;
      content.Width=fullWidth;content.Height=900;content.Measure(new Size(fullWidth,900));content.Arrange(new Rect(0,0,fullWidth,900));content.UpdateLayout();
      string context=theme+" header / "+width+" / search="+searching+" / filter="+filtering+" / long="+longTitle;
@@ -37,14 +38,16 @@ namespace Mori {
      check(count.ActualWidth>=probe.DesiredSize.Width-.5,context+" keeps full count and size instead of toolbar-induced ellipsis");
      var heading=Bounds((FrameworkElement)window.FindName("GalleryHeading"),header);var toggleBounds=Bounds(toggle,header);var multiBounds=Bounds(multi,header);var sortBounds=Bounds(sort,header);
      check(heading.Right<=toggleBounds.Left+.5&&heading.Bottom<=multiBounds.Top+.5,context+" separates heading, details toggle and actions");
-     check(sortBounds.Right<=header.ActualWidth+.5&&multiBounds.Left>=-.5&&sortBounds.Height>=30,context+" fits actions within minimum center width");
-     var previous=multiBounds;bool separated=true;foreach(FrameworkElement control in new FrameworkElement[]{clear,filter,sort}){if(control.Visibility!=Visibility.Visible)continue;var next=Bounds(control,header);separated&=previous.Right<=next.Left+.5;previous=next;}
+     var actions=new FrameworkElement[]{typePicker,sort,multi,clear,view}.Where(control=>control.Visibility==Visibility.Visible).ToArray();
+     check(actions.All(control=>{var bounds=Bounds(control,header);return bounds.Left>=-.5&&bounds.Right<=header.ActualWidth+.5&&bounds.Width>0&&bounds.Height>0;})&&sortBounds.Height>=30,context+" fits every visible action within minimum center width");
+     var previous=Bounds(actions[0],header);bool separated=true;foreach(FrameworkElement control in actions.Skip(1)){var next=Bounds(control,header);separated&=previous.Right<=next.Left+.5;previous=next;}
      check(separated,context+" keeps visible controls separate in their reading order");
+     check(typePicker.Visibility==Visibility.Visible&&view.Visibility==Visibility.Visible&&filter.Visibility==Visibility.Collapsed,context+" keeps the real type/display actions visible and the compatibility selector hidden");
      check(title.ActualWidth<=200.5&&Bounds(title,(Grid)window.FindName("GalleryHeading")).Right<=Bounds(count,(Grid)window.FindName("GalleryHeading")).Left+.5,context+" constrains the actual title element, not only its Auto column, before the count");
     }
-    check(System.Windows.Automation.AutomationProperties.GetName(filter)=="素材类型筛选"&&System.Windows.Automation.AutomationProperties.GetName(sort)=="素材排序"&&System.Windows.Automation.AutomationProperties.GetName(toggle)=="收起详情栏","gallery controls keep distinct assistive labels after rearrangement");
-    check(multi.Focusable&&clear.Focusable&&filter.Focusable&&sort.Focusable&&toggle.Focusable,"gallery actions remain keyboard focusable");
-   }finally{title.Text=oldTitle;count.Text=oldCount;clear.Visibility=oldClear;filter.Visibility=oldFilter;workspace.ColumnDefinitions[0].Width=oldLeft;content.Width=oldWidth;content.Height=oldHeight;}
+    check(System.Windows.Automation.AutomationProperties.GetName(typePicker)=="素材类型"&&System.Windows.Automation.AutomationProperties.GetName(view)=="显示选项"&&System.Windows.Automation.AutomationProperties.GetName(sort)=="素材排序"&&System.Windows.Automation.AutomationProperties.GetName(toggle)=="收起详情栏","gallery controls keep distinct assistive labels after rearrangement");
+    check(multi.Focusable&&clear.Focusable&&typePicker.Focusable&&view.Focusable&&sort.Focusable&&toggle.Focusable,"visible gallery actions remain keyboard focusable");
+   }finally{title.Text=oldTitle;count.Text=oldCount;clear.Visibility=oldClear;typePicker.Content=oldType;filter.SelectedIndex=oldFilterIndex;workspace.ColumnDefinitions[0].Width=oldLeft;content.Width=oldWidth;content.Height=oldHeight;}
   }
   public static void Run(string output,Action<bool,string> check){
    Directory.CreateDirectory(output);

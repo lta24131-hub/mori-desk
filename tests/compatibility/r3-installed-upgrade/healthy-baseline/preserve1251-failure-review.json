@@ -1,0 +1,21 @@
+{
+  "taskId": "1251-r3-healthy-preserve-reviewed-vm-state",
+  "outerReportSha256": "BCA540941DE19E4FF72AB2F7EEBC10194E59DCDE63917421AC010F94D5043182",
+  "reportSha256": "92AF77452376C59EC45EF1865A2CEA15FF3D270FE906B47A7FC690310D5AB103",
+  "allReturnedReportBytesVerified": true,
+  "passed": false,
+  "failureClass": "Test-only preservation helper destination path exceeds .NET legacy path limit after same-volume program directory move.",
+  "oldUpgradeFailureRetained": 1215,
+  "requiresManualReviewAfterPartialFailure": true,
+  "mayContinueInstallation": false,
+  "noDeletionReported": true,
+  "hostExecuted": false,
+  "reportedMovedItems": 3,
+  "programFilesCountBeforeMove": 3707,
+  "shortcutHashesVerifiedBeforeFailure": true,
+  "programPostMoveVerificationCompleted": false,
+  "dataMoveReached": false,
+  "healthyBaselineInstallationStarted": false,
+  "sourceReviewBoundary": "The exact failing filename is not in this exception. Tree(destination) calls NoLinks(Path.GetFullPath) after Directory.Move. The two shortcut hash checks succeeded; destination program tree reconciliation still requires a read-only recovery review.",
+  "scope": "Failure evidence only. Not permission to retry preservation, finish moving data, install, or delete anything."
+}

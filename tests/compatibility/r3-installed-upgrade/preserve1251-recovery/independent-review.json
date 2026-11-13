@@ -1,0 +1,29 @@
+{
+  "packageSha256": "49BE5A75777EFAD403633165D19CD22F442FBB0C75D8055251E54F83D98981E3",
+  "sourceSha256": "B00F078A9C352ADA5CC1A7E402106620B59B2B0EC952B767ADCB78689484AFAE",
+  "helperSha256": "38DECCC25CA9E7453EB24032C9A18577682FF99FBFD3DF453A8E2363A5DD278D",
+  "zipMembersAndCrcVerified": true,
+  "compileInputsOutputsVerified": true,
+  "boundRecords": [
+    "preservation-plan.json",
+    "reviewed-inventory.json",
+    "move-1.json",
+    "move-2.json",
+    "move-3.json",
+    "verified-1.json",
+    "verified-2.json"
+  ],
+  "allSevenExportedRecordChunksAndBytesVerified": true,
+  "programFiles": 3707,
+  "dataFiles": 36,
+  "sourceReviewed": true,
+  "passed": true,
+  "scope": "One-shot VM-only recovery of exact partial1251 state; fixed same-volume root rename to shorter path, original program tree/shortcut hashes then data tree/metadata verified before data move; no deletion, overwrite, registry writes, product launch or test relaxation.",
+  "limits": [
+    "Original1251 remains failed; acceptance requires fresh recovery receipt.",
+    "Tree equivalence compares relative paths, file lengths and timestamps, not every content hash.",
+    "Exact committed R3 executable, original shortcuts and inventoried data metadata receive content hashes."
+  ],
+  "hostExecuted": false,
+  "executionAuthorizedByThisReview": false
+}

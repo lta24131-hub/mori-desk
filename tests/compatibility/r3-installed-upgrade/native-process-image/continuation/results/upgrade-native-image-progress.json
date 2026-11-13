@@ -1,0 +1,42 @@
+{
+  "planSha256": "45267B338D5AB3361473F9317355670A7D738822E443F79A866602002D3E3EEB",
+  "complete": false,
+  "hostProductExecution": false,
+  "original1215RetainedFailed": true,
+  "original1251RetainedFailed": true,
+  "original1253RetainedFailed": true,
+  "original1276RetainedFailed": true,
+  "original1262RetainedFailed": true,
+  "seedRepeated": false,
+  "preparationRepeated": false,
+  "launchHelperSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+  "results": [
+    {
+      "id": "1301-r3-native-image-launch42",
+      "originalStageIndex": 5,
+      "originalReport": "launch42-result.json",
+      "packageSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+      "status": "passed",
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "1303-r3-native-image-snapshot42",
+      "originalStageIndex": 6,
+      "originalReport": "fixturesnapshot42-result.json",
+      "packageSha256": "95618CD835944970114766C2735E37C52074FA0C37792EBC655E8E708A11B0FE",
+      "status": "passed",
+      "passed": true,
+      "error": null
+    },
+    {
+      "id": "1304-r3-native-image-install45",
+      "originalStageIndex": 7,
+      "originalReport": "install45-result.json",
+      "packageSha256": "95618CD835944970114766C2735E37C52074FA0C37792EBC655E8E708A11B0FE",
+      "status": "failed",
+      "passed": false,
+      "error": "System.IO.InvalidDataException: Exact previous 0.1.42 payload directory is removed by product cleanup.\r\n   \u5728 InstalledUpgradeDriverGuest.Need(Boolean value, String reason)\r\n   \u5728 InstalledUpgradeDriverGuest.Install(Boolean newer, String setup)\r\n   \u5728 InstalledUpgradeDriverGuest.Main(String[] args)"
+    }
+  ]
+}

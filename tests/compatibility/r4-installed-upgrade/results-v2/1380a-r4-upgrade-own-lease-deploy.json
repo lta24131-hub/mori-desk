@@ -1,0 +1,9 @@
+{
+  "id": "1380a-r4-upgrade-own-lease-deploy",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\982ECD28E958",
+  "elapsedSeconds": 0.34,
+  "guestUtc": "2026-11-13T16:08:16.9887097Z",
+  "receivedUtc": "20261113T160817946727Z"
+}

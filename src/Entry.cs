@@ -5,8 +5,8 @@ using System.Reflection;
 using System.Windows;
 [assembly: AssemblyTitle("Nook")]
 [assembly: AssemblyProduct("Nook")]
-[assembly: AssemblyVersion("0.1.44.0")]
-[assembly: AssemblyFileVersion("0.1.44.0")]
+[assembly: AssemblyVersion("0.1.45.0")]
+[assembly: AssemblyFileVersion("0.1.45.0")]
 namespace MoriDesk {
  public static class Entry {
   public static bool InteractiveShell;
@@ -51,7 +51,6 @@ namespace MoriDesk {
    if(request.Mode=="model")return ModelWindow.Run(request.Path);
    if(request.Mode=="preview")return FilePreviewHost.Run(request.Path);
    InteractiveShell=request.Mode=="library";ClassicEnabled=InteractiveShell||args.Contains("--ui-test");
-   if(InteractiveShell&&!args.Contains("--ui-test")&&!InstalledApplicationRouting.IsPendingCandidate)OpenWithRegistration.TryRepairCurrentInstallation();
    return Mori.Program.Main(args);
   }
  }

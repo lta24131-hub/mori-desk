@@ -1,0 +1,9 @@
+{
+  "id": "1374-r4-baseline-helpers",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\0D9E59A64489",
+  "elapsedSeconds": 0.29,
+  "guestUtc": "2026-11-13T15:55:39.1838065Z",
+  "receivedUtc": "20261113T155540143793Z"
+}

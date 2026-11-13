@@ -1,0 +1,106 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "recipes": [
+    {
+      "name": "CaptureBudgetDiagnosticRunner",
+      "source": "CaptureBudgetDiagnosticRunner.cs",
+      "sourceSha256": "C9C6C5F8BA06727CDF8A8338D02C138F2A432D58BB6505C12FA3B0FF7DF32B6B",
+      "assemblyIdentity": "CaptureBudgetDiagnosticRunner.exe",
+      "outputName": "CaptureBudgetDiagnosticRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        }
+      ],
+      "originalOutputSha256": "F7EE63EEB8779C02C101189EF72E1576E7AAE31C5F2E6263086902E403854D84",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-capture-budget-diagnostic\\package\\CaptureBudgetDiagnosticRunner.cs",
+      "originalProvenanceSha256": "84C1C25932881C585803F0364FFF747171D04E78EFB01DE5318C9BA0FA015E78"
+    },
+    {
+      "name": "CaptureBudgetDiagnosticGuest",
+      "source": "CaptureBudgetDiagnosticGuest.cs",
+      "sourceSha256": "1DD44A303BA03C59DC36C412A937593B877DF6FD22FF3B71D3B31EEA942813EC",
+      "assemblyIdentity": "CaptureBudgetDiagnosticGuest.exe",
+      "outputName": "CaptureBudgetDiagnosticGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "77D49B30A4AB50FB33EFE6E6A0A28CBDCC8AD405933EB744DABECEC63F351E37",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-capture-budget-diagnostic\\package\\CaptureBudgetDiagnosticGuest.cs",
+      "originalProvenanceSha256": "401B380D6576C5640AEB95805030AE6AD819CE8ABEF8024A1D9EEA6CF24546EE"
+    }
+  ],
+  "preparedPackage": {
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-capture-budget-diagnostic\\capture-budget-diagnostic.zip",
+    "sha256": "9776EFF422E60DF8705ECEACB394845B27A3D9D0C395AD96324EDC1D32ECAB4C",
+    "bytes": 55893,
+    "members": 11,
+    "guest": "C:\\NookLab\\Audit\\apps\\9776EFF422E6",
+    "executable": "CaptureBudgetDiagnosticGuest.exe",
+    "args": [
+      "--run",
+      "capture-budget-diagnostic"
+    ],
+    "report": "capture-budget-diagnostic.json",
+    "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+    "originalFailedTasks": [
+      943
+    ],
+    "fixed55PerformancePass": false
+  },
+  "originalFailedTask": 943,
+  "originalTestSha256": "63915E957D6D4F857648088181B594B8CEBC13598E1E0D34C1452F2340F052DF",
+  "change": "Independent reflection diagnostic only; original R3 capture tests and product remain unchanged."
+}

@@ -1,0 +1,42 @@
+{
+  "originalSource": null,
+  "originalSourceSha256": null,
+  "sourceSha256": "6B4D1A18D721F604918344E52DC9C11C6A1FC4533D458CF3BCE2CDCC16FA10D3",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/target:exe",
+    "/optimize+",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeHealthGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeHealthGuest.cs"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeHealthGuest.cs",
+      "sha256": "6B4D1A18D721F604918344E52DC9C11C6A1FC4533D458CF3BCE2CDCC16FA10D3",
+      "bytes": 9526
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D",
+      "bytes": 1551104
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC",
+      "bytes": 412080
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3",
+      "bytes": 1846016
+    }
+  ],
+  "outputSha256": "BEA8ACBA8DB6DB9A63DCFF8A92C347AC5622FBA3385046412B05B00A5B3B0399",
+  "hostExecution": "Compiler only"
+}

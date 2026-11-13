@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "packageSha256": "F863774650CF53A73BAE2797AD9B6D1FE2681980C7C6B903A92C9214E645DA10",
+  "sourceSha256": "3F10C49D85F05B27364EB03BF29153E67866EF5CDE20FA830E2104A1A9E03017",
+  "exeSha256": "2C3DB3C59FEBE4E0A14E257B52D2C2B2548751B68D3BB4BC03F2917505CDD2EF",
+  "allZipBytesCrcVerified": true,
+  "zipMembers": [
+    "DisplayLeaseGuest.cs",
+    "DisplayLeaseGuest.exe",
+    "Mori.exe",
+    "provenance.json",
+    "source.diff"
+  ],
+  "originCompilerReferencesVerified": true,
+  "scope": "VM/user/hash-package guards precede same-thread bounded display/system lease and own-package release marker. Lease is one-shot, <=3600 seconds, loop checks every200ms. Finally releases thread lease. No input injection, process kill, global power plan or product start.",
+  "releaseRequirement": "Controller must send --release-own-lease and verify released receipt after journey, including failure; it must not leave lease idle until deadline.",
+  "hostExecuted": false
+}

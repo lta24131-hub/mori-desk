@@ -1,0 +1,17 @@
+{
+  "originalFailedTask": 967,
+  "originalFailureRetained": true,
+  "priorSupplement1061RetainedFailed": true,
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "unchangedSealedFiles": 276,
+  "stage": "browser-mv3-compat",
+  "tests": [
+    "browser-lifecycle.cjs",
+    "browser-update-integration.cjs"
+  ],
+  "unchangedUpdateIntegrationSha256": "3228D3CD22A36D62332BD99FFFEA223267F5AA4EDBA48CCD17C3BA93750918AB",
+  "physicalTestsExecuted": false,
+  "productionChanged": false,
+  "originalLifecycleSha256": "D8E2E7DECEC52BC338E0C76C67A214CBB17BF2528E621E618F2D143C221FA581",
+  "revisedLifecycleSha256": "523CB03E2FEF906B42BED009D532600A981F5A711A0C4C2DF23868AFADB9DA13"
+}

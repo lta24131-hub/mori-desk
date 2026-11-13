@@ -1,0 +1,77 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "recipes": [
+    {
+      "name": "QuickOverloadRunner",
+      "source": "QuickOverloadRunner.cs",
+      "sourceSha256": "31E2BC7BFF59A10F75D25A2B952623E4C1EB8375083142E4E7716E2E232AA063",
+      "assemblyIdentity": "QuickOverloadRunner.exe",
+      "outputName": "QuickOverloadRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        }
+      ],
+      "originalOutputSha256": "02E1E35B6F0FB34AF8CA151C736DB3E9D3B4B212BC522E805D198293B2B0FAA4",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-quick-overload\\package\\QuickOverloadRunner.cs",
+      "originalProvenanceSha256": "24434E125CD2970AA8643E49E58CEE7ABA4380AACEB9C281D03F6C32836E530D"
+    },
+    {
+      "name": "QuickOverloadGuest",
+      "source": "QuickOverloadGuest.cs",
+      "sourceSha256": "8DEAE7F3EC3AD0513AE1F0287089FA9B2ABA0CF0F205E0D5CC6B70B95F4FD787",
+      "assemblyIdentity": "QuickOverloadGuest.exe",
+      "outputName": "QuickOverloadGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        }
+      ],
+      "originalOutputSha256": "448263F014875E59B73F1B0F939B60826835185E86CEE87B0004418520D22D5C",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-quick-overload\\package\\QuickOverloadGuest.cs",
+      "originalProvenanceSha256": "E1B5CFD1CAAE729CCCC8235F8DE34C9382ED00EDCE5C4F8985DF768B1A505E83"
+    }
+  ],
+  "reviewedPackage": {
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-quick-overload\\quick-overload-supplement.zip",
+    "sha256": "B412FB3E86530502A59158F821916778156B0AC9312FB2739AF6FB46D45389BA",
+    "bytes": 37450,
+    "members": 11,
+    "guest": "C:\\NookLab\\Audit\\apps\\B412FB3E8653",
+    "executable": "QuickOverloadGuest.exe",
+    "args": [
+      "--run",
+      "conversion-quick"
+    ],
+    "report": "conversion-quick.json",
+    "original931RetainedFailed": true,
+    "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+  },
+  "originalFailedTask": 931,
+  "originalSourceSha256": "500ABC231B3E373BEAE3DC3FC0BF9B7F0C39EFB88E41E22DB77B923845F687F6",
+  "change": "The external reflection selector now names exact original signature RunReal(string,string,Action<bool,string>). No product or original test assertion changes."
+}

@@ -1,0 +1,44 @@
+{
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "hostExecution": "Compiler only; no tests/product run",
+  "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/optimize+",
+    "/target:exe",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-native-regressions\\installer-safety\\ExternalGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-native-regressions\\installer-safety\\ExternalGuest.cs"
+  ],
+  "inputs": [
+    {
+      "kind": "source",
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-native-regressions\\installer-safety\\ExternalGuest.cs",
+      "sha256": "4F4AB0CAAF4F5924CCED763BDDD69D2B890315D8F4CC4A9AF569A6C60865134B"
+    },
+    {
+      "kind": "reference",
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+    },
+    {
+      "kind": "reference",
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+    },
+    {
+      "kind": "reference",
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+    }
+  ],
+  "output": {
+    "path": "ExternalGuest.exe",
+    "sha256": "8277536564F3467385C533C9FC5CD46E497E7FE28DC092C4CAD7FD8C1F8C7B4E"
+  }
+}

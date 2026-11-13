@@ -1,0 +1,20 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "originalTestSha256": "63915E957D6D4F857648088181B594B8CEBC13598E1E0D34C1452F2340F052DF",
+  "original943RetainedFailed": true,
+  "diagnostic1091Retained": true,
+  "fixed55PerformancePassed": false,
+  "productionChanged": false,
+  "originalTestsChanged": false,
+  "plan": {
+    "label": "capture-fallback-lifecycle",
+    "exe": "CaptureFallbackRunner.exe",
+    "sha256": "ACF0F43EFF904EABC95DEB65026C5488C315199736F7DAB9CACA2AAB6BACEDC4",
+    "args": [
+      "$root",
+      "capture-fallback-lifecycle"
+    ],
+    "timeoutSeconds": 180,
+    "successRegex": "^PASS (\\d+) independent capture fallback and lifecycle checks; original 943 failure retained\\r?$"
+  }
+}

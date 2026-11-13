@@ -1,0 +1,28 @@
+{
+  "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-evidence\\cleanup-evidence.zip",
+  "sha256": "D346F3ABB346C80DF8C5BCE7B3CF88CB5F758B8E4E468F43113FD4FAC7449676",
+  "sourceSha256": "2A48AB6E71F9EB38245ED581859710BD9943B31D2A3BBE5A86200A13F56A052F",
+  "exeSha256": "F6FD607619B9C40288884C2FE674C7D4E3990BF6DB08323E0A2568C8D9BE86F1",
+  "guest": "C:\\NookLab\\Audit\\apps\\D346F3ABB346",
+  "executable": "CleanupEvidenceGuest.exe",
+  "args": [
+    "--read-after1304-cleanup"
+  ],
+  "report": "cleanup-evidence-result.json",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/optimize+",
+    "/target:exe",
+    "/r:System.Management.dll",
+    "/r:System.Web.Extensions.dll",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-evidence\\CleanupEvidenceGuest.exe",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-evidence\\CleanupEvidenceGuest.cs"
+  ],
+  "hostExecution": "Compiler only; helper not run",
+  "sourceWrites": false,
+  "sourceBaseSha256": "225ADF2190FB669BF0D339D82786B187E7A749BD7F3ADE85FBD9C3573FCF3081",
+  "session": "6ec57c3bede94645935f8e041f6a6dd4",
+  "oldDirectory": "0.1.42-20261113142121298-e4e817b1",
+  "currentDirectory": "0.1.45-20261113145904278-57e527ec"
+}

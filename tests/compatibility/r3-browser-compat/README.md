@@ -1,0 +1,12 @@
+# R3 browser compatibility supplements
+
+This source-only archive preserves exact independent VM wrappers, scripts, sealed manifests and selected test sources. No production extension/C# changes are made by these supplements. Historical failures remain recorded in `validation.json`.
+
+- Preferences: original nine tests with two obsolete status-text expectations corrected; explicit TAP reporting and strict pass accounting.
+- Lifecycle v1/v2: busy reinjection preserves the exact instance/panel; cancelling saves nothing; idle reinjection retires the old instance. Version 2 records native calls serially and distinguishes progress/save/success. Task 1111 passed this lifecycle stage but failed the unchanged update-integration fixture.
+- Update feedback: independent integration supplement accepts only explicit progress/success notifications and actual saves as separate actions. All original update, stable identity/preferences, no-page-refresh, exactly-one-save and no-reload-loop assertions remain. It additionally checks correct notification order/identity, no premature success while save is held, and no notifications for cancelled work. Already-passing lifecycle is not rerun.
+- Local contract: isolated fixture rejects installed-context health while original authenticated local collection and host library validation remain. This does not certify healthy-popup or real installed-browser behavior.
+
+`build.py --build <exact frozen R3 release-build> --output <fresh directory>` compiles wrappers only. Reconstructing runtime packages also requires the frozen sealed JavaScript package and exact hashed dependencies; do not substitute current dependency versions. Rebuilt binaries require fresh package hashes and independent review. Never run product/tests on the physical host. See `validation.json` for actual evidence and limitations.
+
+Task 1232 passed the independent update-feedback integration in 28.56 seconds, with the enclosing owned process Job empty afterward. It exercised real isolated Edge MV3 worker reload and an already-open page using the explicit synthetic native bridge. This does not certify the actual installed native host or healthy-popup flow. Task 1111 remains failed overall; its passing lifecycle stage was not rerun. The proxy hashes the original PowerShell result bytes; the exported detail is reserialized and was checked for semantic equality, with its separate hash recorded.

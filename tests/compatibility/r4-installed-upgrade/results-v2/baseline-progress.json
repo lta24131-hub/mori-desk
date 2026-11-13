@@ -1,0 +1,55 @@
+{
+  "phase": "baseline",
+  "complete": true,
+  "planSha256": "FA17553EFE8FA8AF3AA5BD134C9C72FDDF9EE3041EC8D61960C2123C3128837E",
+  "controllerSha256": "0A62394B57A81B295D7E0D1C237041BEC76CF4DE79E2B6808351D435751D6C97",
+  "hostProductExecution": false,
+  "original1304RetainedFailed": true,
+  "results": [
+    {
+      "id": "1375-r4-preserve1304",
+      "status": "passed",
+      "passed": true,
+      "report": "preserve-result.json",
+      "sha256": "4BB4309066ED3070F577467B0D1D8CB0A795C3EF3ACAC4EB06D7CA6E961B5BDA",
+      "elapsedSeconds": 172.98,
+      "error": null
+    },
+    {
+      "id": "1376-r4-real-install42",
+      "status": "passed",
+      "passed": true,
+      "report": "install42-result.json",
+      "sha256": "A513B6454424F63506D2AD6473D531C1CE8304BB6C6C79C7DB4F1AF23A02C07A",
+      "elapsedSeconds": 403.22,
+      "error": null
+    },
+    {
+      "id": "1377-r4-public42-browser-ui",
+      "status": "passed",
+      "passed": true,
+      "report": "prepare-browser42-result.json",
+      "sha256": "DAD7C9FF2D5F7D4FAF48FB0C81F15CB5D9F36177AC1FA0048F0F2262C6C8284F",
+      "elapsedSeconds": 31.73,
+      "error": null
+    },
+    {
+      "id": "1378-r4-public42-health",
+      "status": "passed",
+      "passed": true,
+      "report": "healthy42-preflight-result.json",
+      "sha256": "DEDFB006BB35A263E463117DB3A8A35202F90B1BC4BE95CDEEE306B46E08820D",
+      "elapsedSeconds": 12.49,
+      "error": null
+    },
+    {
+      "id": "1379-r4-healthy42-inventory",
+      "status": "passed",
+      "passed": true,
+      "report": "audit-installed-inventory-healthy42-r4.json",
+      "sha256": "58EE312CA795D12E4E670FBDB31842F898A0E90F42A2F949EDAA9E7CE340DEB6",
+      "elapsedSeconds": 4.62,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-readonly-timing\\readonly-timing.zip",
+  "sha256": "AA4B02D80BF085786EA5527C418050E8C98C7158B1486985FCEF9C213EBDB548",
+  "sourceSha256": "546C021814CC88B09A997AFBF7419973AF47105FF4C960A4299485986A6159BE",
+  "exeSha256": "A69385509EF1CEA30A03C36E9F4BE4818F27B9D3B3D98238779437C60848171A",
+  "guest": "C:\\NookLab\\Audit\\apps\\AA4B02D80BF0",
+  "executable": "CleanupTimingGuest.exe",
+  "operations": [
+    {
+      "args": [
+        "--capture"
+      ],
+      "reports": [
+        "capture-timing-result.json",
+        "capture-00-identity-verified.json",
+        "capture-01-capture-start.json",
+        "capture-02-capture-finished.json",
+        "capture-timeout.json"
+      ]
+    },
+    {
+      "args": [
+        "--tree"
+      ],
+      "reports": [
+        "tree-timing-result.json",
+        "tree-00-identity-verified.json",
+        "tree-01-tree-start.json",
+        "tree-02-tree-constructed.json",
+        "tree-03-tree-dispose-start.json",
+        "tree-04-tree-disposed.json",
+        "tree-timeout.json"
+      ]
+    }
+  ],
+  "timeoutSeconds": 240,
+  "recommendedBrokerTimeoutSeconds": 270,
+  "compileCommand": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/optimize+",
+    "/target:exe",
+    "/r:System.Management.dll",
+    "/r:System.Web.Extensions.dll",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-readonly-timing\\CleanupTimingGuest.exe",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-readonly-timing\\CleanupTimingGuest.cs"
+  ],
+  "hostExecution": "Compiler only; neither helper nor product executed",
+  "scope": "Exact preserved after1304 R3 Capture and old42 LockedTree(false), independent helper processes, read-only, no source writes",
+  "productSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "coldWarmLimit": "Fresh helper process per operation; OS caches uncontrolled; required identity hashes warm only current/old main executable, old manifest and active descriptor. Tree(false) does not request DELETE access or reproduce deletion exclusivity."
+}

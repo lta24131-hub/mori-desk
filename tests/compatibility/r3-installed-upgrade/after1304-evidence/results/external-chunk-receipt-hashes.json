@@ -1,0 +1,166 @@
+{
+  "scope": "Original chunk wrappers remain in audit directory; reconstructed source artifacts are archived byte-for-byte and independently verified.",
+  "originalDirectory": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-evidence\\results",
+  "files": [
+    {
+      "file": "1326-00-000-r3-cleanup-part.json",
+      "bytes": 531,
+      "sha256": "07718A7EE71ABC1E4E7AF254FD3D613C1EBDB203BB7F6FF5FEBA870B8CF42828"
+    },
+    {
+      "file": "1326-01-000-r3-cleanup-part.json",
+      "bytes": 4663,
+      "sha256": "5FCC1DA705923D4AC52E45CADADDC3FB7488F4CB640EC63862578B31C22605F8"
+    },
+    {
+      "file": "1326-02-000-r3-cleanup-part.json",
+      "bytes": 623,
+      "sha256": "1821C1894338A10AE3CB0F692BE2B88D24A1FAA358EF11A634533E9EEECC53A4"
+    },
+    {
+      "file": "1326-03-000-r3-cleanup-part.json",
+      "bytes": 687,
+      "sha256": "AEC7497B1209FC27E7803D7B4FD7E64B2DBAD21AFDE7E2282FC70FDBD9F06A47"
+    },
+    {
+      "file": "1326-04-000-r3-cleanup-part.json",
+      "bytes": 459,
+      "sha256": "287F1A16C0FC4186DBCC8431178DAE6A88371521B2597C595CDCE53A81477175"
+    },
+    {
+      "file": "1326-05-000-r3-cleanup-part.json",
+      "bytes": 507,
+      "sha256": "AF05AA1F610E42F861AEA7AC4E8A20D6CA5CEB2CA0405FB8B9B6538235E9388F"
+    },
+    {
+      "file": "1326-06-000-r3-cleanup-part.json",
+      "bytes": 322,
+      "sha256": "7F0C34B60B32553F91688301000FF2B0D371D5E7AD9B7B1495F9C269E7F4D5B0"
+    },
+    {
+      "file": "1326-07-000-r3-cleanup-part.json",
+      "bytes": 535,
+      "sha256": "344F7CF9A3A3F7E75633CA92FEAF65F589AAFD0CFFD5EBF40C7F84FB4460C1DF"
+    },
+    {
+      "file": "1326-08-000-r3-cleanup-part.json",
+      "bytes": 551,
+      "sha256": "75C8877645A288138123299916B2C5377FB4AE75F23B48FE7C9425116C5FCEB3"
+    },
+    {
+      "file": "1326-09-000-r3-cleanup-part.json",
+      "bytes": 691,
+      "sha256": "594CE7A5567EED21223C14BF5E2BBFDE75B4403F1AB69A5439BAE192E71BCFC7"
+    },
+    {
+      "file": "1326-10-000-r3-cleanup-part.json",
+      "bytes": 667,
+      "sha256": "0D68203246EC547A0E9C9C3F87875B4B7A5E781AB61BC45225E056E4D9775417"
+    },
+    {
+      "file": "1326-13-000-r3-cleanup-part.json",
+      "bytes": 335,
+      "sha256": "B66C203CC8DACE5E1D7B3B8E4D5FE2EEE3B0376D96E2C6B311A6FAD5DED9356A"
+    },
+    {
+      "file": "1326-14-000-r3-cleanup-part.json",
+      "bytes": 100218,
+      "sha256": "9A218BAFACCB17BA95B231E02227162F13CFABBF3D4D9148ACFB4765C93909C6"
+    },
+    {
+      "file": "1326-14-001-r3-cleanup-part.json",
+      "bytes": 100218,
+      "sha256": "C54599E33E6AB40A29F9027F6AA3A331CB99AA5999AB5E345EF3B2C4A21B9BE0"
+    },
+    {
+      "file": "1326-14-002-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "FC0B1E324BC916ADE412F01BB7FEB9B281C4F292592478D709778D50B5BE4439"
+    },
+    {
+      "file": "1326-14-003-r3-cleanup-part.json",
+      "bytes": 13311,
+      "sha256": "9F2AB87020A9EC3644844B1AAB9B16D57EBDFA50312F714995E102AFC97F70EF"
+    },
+    {
+      "file": "1326-16-000-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "8904986399313FD4341A7E879153877F7BE52AA9646B02EC94568B9E1359E216"
+    },
+    {
+      "file": "1326-16-001-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "DEE2C5FF9FE63023525BAA87900DAA0B39C283C59B90EB2B58ACD3C2C383BBFF"
+    },
+    {
+      "file": "1326-16-002-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "B5529605628756649D357584E17EFD135C5EA576426B5CED6589726B422FF845"
+    },
+    {
+      "file": "1326-16-003-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "A256CC07993AAD0DD911FBF5BB74F2EFB262FB61EAACA653A3FBABB1172D64F7"
+    },
+    {
+      "file": "1326-16-004-r3-cleanup-part.json",
+      "bytes": 45722,
+      "sha256": "525E5F83476A7CA322A549933677E6A4D5182C76EBADC8A3073DBDF3DAE91FCC"
+    },
+    {
+      "file": "1326-17-000-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "75CF7F25D5F79566C9F8642F6C845CAD88DC272CF37C3CB56EE743FB3321D93F"
+    },
+    {
+      "file": "1326-17-001-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "24349B7425F25E44A71B74628561C60A75A3B57186B661E0CB3462DF50583033"
+    },
+    {
+      "file": "1326-17-002-r3-cleanup-part.json",
+      "bytes": 100218,
+      "sha256": "3441B6EE8F4CC01C3C4C26C2114ECE9BE17670E0E30A7F13FC6E2C829023C14B"
+    },
+    {
+      "file": "1326-17-003-r3-cleanup-part.json",
+      "bytes": 15387,
+      "sha256": "A02BEBD46085C5C28E727C849A9F0EAA145938BE714DA501B60F9D46ADE85EF0"
+    },
+    {
+      "file": "1326-19-000-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "D3A3C3A2F1FD039AA927DD48602B0F6A894EF3B4050AD514E0FD2F6F6717154A"
+    },
+    {
+      "file": "1326-19-001-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "CFAD599BB1D9DAC0C469C2732449045C6A0BE54F063F9750520E26DC27C0E3F9"
+    },
+    {
+      "file": "1326-19-002-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "539C4B44AAE44BF06831F505AC2004A830A18CD9668AC9701E6B240EFB1A03F6"
+    },
+    {
+      "file": "1326-19-003-r3-cleanup-part.json",
+      "bytes": 100215,
+      "sha256": "C4FA2AA3E0EF818209F1D8A1E7D07D8B7D4AB0D2EB8763F7BD87440BD68945B3"
+    },
+    {
+      "file": "1326-19-004-r3-cleanup-part.json",
+      "bytes": 48551,
+      "sha256": "A1055E2965B84AE8B80598C9CEF36153E007F8747D81D2BE5A056EF4144D5DE3"
+    },
+    {
+      "file": "1326-20-000-r3-cleanup-part.json",
+      "bytes": 1547,
+      "sha256": "A0998E96F2AF18EAC22294C7F146E2F08786045834F479E67C0C7151C8547E6B"
+    },
+    {
+      "file": "1326-21-000-r3-cleanup-part.json",
+      "bytes": 263,
+      "sha256": "C813D1116C7C6FB4BB25DD999D57E296F2AA894599C8870451EDBAF3FEA48577"
+    }
+  ]
+}

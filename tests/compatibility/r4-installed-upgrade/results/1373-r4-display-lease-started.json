@@ -1,0 +1,9 @@
+{
+  "id": "1373-r4-display-lease-started",
+  "type": "read",
+  "status": "passed",
+  "text": "missing: apps\\F863774650CF\\display-resume-lease-started.json",
+  "elapsedSeconds": 0,
+  "guestUtc": "2026-11-13T15:50:11.2044407Z",
+  "receivedUtc": "20261113T155012160837Z"
+}

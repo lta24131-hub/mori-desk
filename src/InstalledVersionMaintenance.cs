@@ -176,9 +176,11 @@ namespace MoriDesk {
        // A second update must not switch the active version during a deletion
        // pass. Never wait for this lease; the one delayed retry is outside it.
        using(InstalledApplicationState.AcquireLease(root,0)){
+        if(display!=null)display.Log("正在核对当前安装与更新状态…");
         string failure=RevalidationFailure(ref expectedIdentity,()=>InstallationIdentity(root,executable),committed,cancelled,ready);
         if(failure!=null)return new InstalledMaintenanceAttempt("deferred",failure);
         if(!visualRepairAttempted){visualRepairAttempted=true;
+         if(display!=null)display.Log("正在维护文件图标与预览入口…");
          try{ShellVisualRegistration.RepairCommittedInstallation(executable);}
          catch(Exception visualError){Trace.WriteLine("Nook file previews deferred: "+visualError.GetType().Name);}
         }
@@ -186,6 +188,7 @@ namespace MoriDesk {
          bool held=false;try{
           try{held=mutex.WaitOne(0);}catch(AbandonedMutexException){held=true;}
           if(!held)return new InstalledMaintenanceAttempt("deferred","maintenance-busy");
+          if(display!=null)display.Log("正在核对可清理的旧程序…");
           var result=InstalledVersionCleanup.Cleanup(root,executable,old=>{
            // Re-read routes, commit/cancellation and browser evidence before
            // EVERY deletion pass, including after the delayed second attempt.

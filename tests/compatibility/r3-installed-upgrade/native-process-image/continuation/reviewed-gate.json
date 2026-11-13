@@ -1,0 +1,29 @@
+{
+  "approved": true,
+  "controllerPath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\run_healthy_upgrade_native_image_reviewed.py",
+  "controllerSha256": "D10850F4EA4C3BB8DAA71C2ABEA7FB126300AE5E99C801F9F1831AC07A13EAA9",
+  "planSha256": "45267B338D5AB3361473F9317355670A7D738822E443F79A866602002D3E3EEB",
+  "original1262RetainedFailed": true,
+  "repeatSeedOrPrepare": false,
+  "originalInstallAndFixtureHelpersRequired": true,
+  "launchHelperHandoff": {
+    "sha256": "9365E2B8B02793B59E1921A6CD3B5AA665188835DE7BCF4B4C231265936E8D0E",
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-native-launch-v3\\handoff.json"
+  },
+  "launchHelper": {
+    "sha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+    "exe": "InstalledUpgradeLaunchGuest.exe",
+    "guest": "C:\\NookLab\\Audit\\apps\\7EA84EF4FBE1",
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-native-launch-v3\\native-launch.zip"
+  },
+  "allowedLaunchArgs": [
+    [
+      "--launch42"
+    ],
+    [
+      "--launch45"
+    ]
+  ],
+  "scope": "VM only, root authorized comparison review then serial1301/1303/1304/1306/1308; strict original timeouts and cleanup/normalClose/Job assertions",
+  "noHostProductExecution": true
+}

@@ -7,14 +7,19 @@ using Mori;
 
 namespace MoriDesk {
  internal static class WorkerStartupTests {
-  sealed class Result {internal bool Exited;internal int ExitCode;internal byte[] Output;}
+  sealed class Result {internal bool Exited;internal int ExitCode,ReadyCount;internal byte[] Output;}
   static Result RunWorker(string arguments,string data){
    var start=new ProcessStartInfo(typeof(Entry).Assembly.Location,arguments){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
    start.EnvironmentVariables["MORI_DESK_DATA"]=data;
    using(var child=Process.Start(start)){
     var read=Task.Run(delegate{using(var output=new MemoryStream()){byte[] buffer=new byte[8192];int n;while((n=child.StandardOutput.BaseStream.Read(buffer,0,buffer.Length))>0){if(output.Length+n>1024*1024)throw new InvalidDataException("Small worker fixture exceeded output budget.");output.Write(buffer,0,n);}return output.ToArray();}});
     bool exited=false;
-    try{exited=child.WaitForExit(15000);if(!exited)return new Result{Exited=false};return new Result{Exited=true,ExitCode=child.ExitCode,Output=read.GetAwaiter().GetResult()};}
+    try{
+     exited=child.WaitForExit(15000);if(!exited)return new Result{Exited=false};
+     byte[] raw=read.GetAwaiter().GetResult();int ready=0;
+     if(child.ExitCode==0)using(var input=new MemoryStream(raw,false))raw=SvgRaster.ReadWorkerOutput(input,()=>ready++);
+     return new Result{Exited=true,ExitCode=child.ExitCode,Output=raw,ReadyCount=ready};
+    }
     finally{if(!exited&&!child.HasExited){child.Kill();child.WaitForExit(2000);}try{read.Wait(2000);}catch(AggregateException){}}
    }
   }
@@ -27,6 +32,7 @@ namespace MoriDesk {
    if(valid.Exited){
     check(valid.ExitCode==0&&valid.Output.Length>16,"SVG worker renders with an inaccessible application configuration path");
     if(valid.ExitCode==0&&valid.Output.Length>16){
+     check(valid.ReadyCount==1,"real SVG worker readiness handshake is accepted exactly once before dimensions");
      check(BitConverter.ToInt32(valid.Output,0)==100&&BitConverter.ToInt32(valid.Output,4)==50,"worker keeps the existing dimension header and source size contract");
      using(var stream=new MemoryStream(valid.Output,8,valid.Output.Length-8))using(var image=new System.Drawing.Bitmap(stream)){
       check(image.Width==100&&image.Height==50,"SVG worker produces the requested bounded preview");
@@ -35,12 +41,12 @@ namespace MoriDesk {
     }
    }
    foreach(string args in new[]{"--svg-render","--svg-render \""+source+"\" 0","--svg-render \""+source+"\" 2049"}){
-    var invalid=RunWorker(args,inaccessible);check(invalid.Exited&&invalid.ExitCode==2&&invalid.Output.Length==0,"invalid worker input returns failure without opening the main application / "+args.Split(' ').Last());
+    var invalid=RunWorker(args,inaccessible);check(invalid.Exited&&invalid.ExitCode==2&&invalid.Output.Length==0&&invalid.ReadyCount==0,"invalid worker input returns failure without opening the main application / "+args.Split(' ').Last());
    }
    check(File.ReadAllText(blocker)=="must stay unchanged"&&!Directory.Exists(inaccessible),"media worker neither initializes nor rewrites application configuration");
    check(File.ReadAllText(source)==svg&&File.GetLastWriteTimeUtc(source)==stamp,"worker startup leaves the original file bytes and timestamp intact");
    string fresh=Path.Combine(root,"absent-profile");var absent=RunWorker("--svg-render \""+source+"\" 100",fresh);
-   check(absent.Exited&&absent.ExitCode==0&&!Directory.Exists(fresh),"SVG rendering does not create an otherwise unused profile directory");
+   check(absent.Exited&&absent.ExitCode==0&&absent.ReadyCount==1&&!Directory.Exists(fresh),"SVG rendering does not create an otherwise unused profile directory");
   }
  }
 }

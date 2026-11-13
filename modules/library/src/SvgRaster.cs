@@ -45,15 +45,21 @@ namespace Mori {
   internal const long MaximumInput=8*1024*1024;
   internal const int WorkerReadyMagic=0x53564731,MaximumOutput=20*1024*1024;
   static readonly SemaphoreSlim Workers=new SemaphoreSlim(2);
+  // Observation only: tests can hold an owned worker to exercise cancellation
+  // without relying on a particular document or machine being slow.
+  internal static Action<Process> WorkerStartedForTests;
   internal static readonly ThumbnailFailureCache FailureCache=new ThumbnailFailureCache(TimeSpan.FromMinutes(10),128);
   internal static void ClearFailures(){FailureCache.Clear();}
   // Rendering is isolated: a malformed/recursive/expensive SVG cannot crash the
   // gallery or keep a render worker indefinitely. No external resources execute.
-  internal static BitmapSource Render(string path,int longest,out int width,out int height){
+  internal static BitmapSource Render(string path,int longest,out int width,out int height){return Render(path,longest,CancellationToken.None,out width,out height);}
+  internal static BitmapSource Render(string path,int longest,CancellationToken cancellation,out int width,out int height){
+   width=height=0;cancellation.ThrowIfCancellationRequested();
    string key=ThumbnailBuildGate.SourceStamp(path);long attemptVersion=FailureCache.Version;
    if(longest<=512&&FailureCache.Has(key,DateTime.UtcNow))throw new NotSupportedException("此 SVG 暂时无法生成缩略图，可按 F5 重试。");
-   Workers.Wait();
+   Workers.Wait(cancellation);
    try{
+    cancellation.ThrowIfCancellationRequested();
     var info=new FileInfo(path);if(!info.Exists||info.Length>MaximumInput)throw new NotSupportedException("SVG 文件过大，内置预览上限为 8 MB。");
     var start=new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--svg-render \""+info.FullName+"\" "+Math.Max(1,Math.Min(2048,longest))){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardOutput=true};
     using(var process=Process.Start(start)){
@@ -61,22 +67,28 @@ namespace Mori {
      var bytes=WorkerIo.Run(()=>ReadWorkerOutput(process.StandardOutput.BaseStream,()=>Interlocked.CompareExchange(ref readyAt,clock.ElapsedMilliseconds,-1)));
      bool stopped=false;var diagnostic=new WorkerFailureDiagnostic("svg");Exception failure=null;
      try{
+      var started=WorkerStartedForTests;if(started!=null)started(process);
       while(!process.WaitForExit(50)){
+       cancellation.ThrowIfCancellationRequested();
        long memory=0;try{process.Refresh();memory=process.PrivateMemorySize64;}catch(InvalidOperationException){if(process.HasExited)break;throw;}
        bool limited=WorkerLimitReached(diagnostic,clock.ElapsedMilliseconds,Interlocked.Read(ref readyAt),memory);diagnostic.ThrowIfOutputFailed(bytes);
        if(limited){stopped=true;diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);break;}
       }
-      diagnostic.CaptureExit(process);if(!stopped)diagnostic.ThrowIfOutputFailed(bytes);
+      cancellation.ThrowIfCancellationRequested();diagnostic.CaptureExit(process);if(!stopped)diagnostic.ThrowIfOutputFailed(bytes);
       if(stopped||process.ExitCode!=0){if(!stopped)diagnostic.Reason="child-exit";throw new NotSupportedException("SVG 过于复杂或格式不受支持，无法安全预览。");}
       diagnostic.Reason="stdout-failure";var result=bytes.GetAwaiter().GetResult();diagnostic.Reason="payload-invalid";using(var data=new MemoryStream(result))using(var reader=new BinaryReader(data)){
        width=reader.ReadInt32();height=reader.ReadInt32();if(width<1||height<1||width>1000000||height>1000000)throw new InvalidDataException("SVG 尺寸无效。");
-       using(var png=new MemoryStream(result,8,result.Length-8)){var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=png;bitmap.EndInit();bitmap.Freeze();if(bitmap.PixelWidth>2048||bitmap.PixelHeight>2048)throw new InvalidDataException("SVG 输出尺寸无效。");return bitmap;}
+       using(var png=new MemoryStream(result,8,result.Length-8)){var bitmap=new BitmapImage();bitmap.BeginInit();bitmap.CacheOption=BitmapCacheOption.OnLoad;bitmap.StreamSource=png;bitmap.EndInit();bitmap.Freeze();if(bitmap.PixelWidth>2048||bitmap.PixelHeight>2048)throw new InvalidDataException("SVG 输出尺寸无效。");cancellation.ThrowIfCancellationRequested();return bitmap;}
       }
-     }catch(Exception error){diagnostic.Observe(clock.ElapsedMilliseconds,0);failure=error;throw;}
-     finally{try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}try{bytes.Wait(2000);}catch(AggregateException){}}finally{diagnostic.StdoutFaulted=bytes.IsFaulted;diagnostic.CaptureExit(process);if(failure!=null)diagnostic.Attach(failure);}}
+     }catch(Exception error){if(error is OperationCanceledException)diagnostic.Reason="cancelled";diagnostic.Observe(clock.ElapsedMilliseconds,0);failure=error;throw;}
+     finally{try{StopWorker(process,diagnostic);try{bytes.Wait(2000);}catch(AggregateException){}}finally{diagnostic.StdoutFaulted=bytes.IsFaulted;diagnostic.CaptureExit(process);if(failure!=null)diagnostic.Attach(failure);}}
     }
-   }catch{if(longest<=512)FailureCache.Remember(key,DateTime.UtcNow,attemptVersion);throw;}finally{Workers.Release();}
+   }catch(OperationCanceledException){throw;}
+   catch{if(longest<=512)FailureCache.Remember(key,DateTime.UtcNow,attemptVersion);throw;}finally{Workers.Release();}
   }
+  // Stop only this invocation's child, on the decode thread. Cancel() on the
+  // UI thread never performs a process wait or enumerates unrelated workers.
+  static void StopWorker(Process process,WorkerFailureDiagnostic diagnostic){try{if(!process.HasExited){diagnostic.ParentKillRequested=true;process.Kill();process.WaitForExit(2000);}}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}}
   // Cold CLR/assembly startup must not consume the document's render budget.
   // Both phases remain bounded to eight seconds; memory/output caps apply to
   // the complete lifetime. Only the worker's first validated handshake starts

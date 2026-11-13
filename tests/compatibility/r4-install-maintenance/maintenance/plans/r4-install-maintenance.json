@@ -1,0 +1,22 @@
+{
+  "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "captureSettings": true,
+  "timeoutSeconds": 300,
+  "stages": [
+    {
+      "type": "MoriDesk.InstalledVersionMaintenanceTests",
+      "method": "Run",
+      "args": [
+        "check"
+      ]
+    },
+    {
+      "type": "MoriDesk.UpdateArtifactMaintenanceTests",
+      "method": "Run",
+      "args": [
+        "root",
+        "check"
+      ]
+    }
+  ]
+}

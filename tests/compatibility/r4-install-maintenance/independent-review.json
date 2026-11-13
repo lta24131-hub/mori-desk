@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "all422CurrentSealedInputsVerified": true,
+  "handOffSha256": "07D0EACCEA4DC16AA4A5393BB6854723219856E76298309B604247B7C4A232FC",
+  "recipeSha256": "036BD95BFB3E3BA88177B577DC0265D222DEE5D5275607047848242D9B2C04B8",
+  "packages": {
+    "maintenance": "DADD17F52A1F83802A3EC36838114BCC23FAEAE523F6490F8974CC164BAE2224",
+    "installerSafety": "7175954244B6A7FECDA1A76EE3BB4B0C352B90A6159617A36EC71E73AA7D88D2"
+  },
+  "originalStageGuestByteIdentical": true,
+  "externalGuestOnlyAppHashAndTargetRebound": true,
+  "compileInputsReferencesCompilerAndOutputsVerified": true,
+  "originalTwoMaintenanceSuiteCallsUnchanged": true,
+  "originalSafetyExecutableAnd18SourcesVerified": true,
+  "allZipMembersBytesAndCrcVerified": true,
+  "vmOnlyIsolatedFixtures": true,
+  "hostExecuted": false,
+  "actualInstallationNotCovered": true,
+  "scope": "R4 only existing directly affected native suites. Source/packaging audit, not execution approval for host or installer qualification. Original wrappers, assertions, deadlines, isolation and Job cleanup retained."
+}

@@ -1,0 +1,16 @@
+{
+  "original969Passed": false,
+  "supplementStatus": "VM1071 passed independent guard-negative and collection scope",
+  "healthyPopupAccepted": false,
+  "actualInstalledHealthAccepted": false,
+  "supplement": {
+    "task": 1071,
+    "passed": true,
+    "reportSha256": "1881E49CC12D70E50EA2686E653A5CBDBFC5E98B80236F20B3FD2308F26419E4",
+    "jobActiveAfterStop": 0,
+    "original969RetainedFailed": true,
+    "healthyPopupAccepted": false,
+    "actualInstalledHealthAccepted": false,
+    "scope": "Independent negative installed-context guard plus original real authenticated local collection and C# host library validation"
+  }
+}

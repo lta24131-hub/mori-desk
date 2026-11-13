@@ -1,0 +1,16 @@
+{
+  "approved": true,
+  "planSha256": "FA17553EFE8FA8AF3AA5BD134C9C72FDDF9EE3041EC8D61960C2123C3128837E",
+  "controllerSha256": "C7E044EA6ECA5682F585575EA65966B2C3DDD19B8DAAB0CD86D0838456366287",
+  "helperReviewSha256": "C65BFFE0F677D95258DD517B921BB4FD0AB8652C97981491904552095B966D0C",
+  "inventorySha256": "6355E2D576A79F7F488AE0F5D236D609AE904CA83911296E8AE4CB0C9036376F",
+  "phases": "baseline now; upgrade requires separate healthy42-reviewed-gate with exact baseline/health/inventory hashes.",
+  "conditions": [
+    "Stop first failure; no automatic retry.",
+    "P1304 preserved state is never deleted; new fixture U42R4 only.",
+    "Baseline and upgrade have independent one-shot3600s leases, both normally released in finally on success or failure.",
+    "Upgrade success requires old42 directory gone, cleanup complete, normal close exit0/Job1 and post-upgrade fixture comparison.",
+    "No host product/test execution, install or browser collection claim."
+  ],
+  "notExecutionResult": true
+}

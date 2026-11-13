@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "reviewType": "bounded-source-caller-and-sealed-payload-review-not-runtime",
+  "historicalAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "inputs": {
+    "total": 422,
+    "unchanged": 420,
+    "changed": [
+      {
+        "path": "src/InstalledVersionMaintenance.cs",
+        "oldSha256": "B769B4CBA988805060FC50776F13594814471D7AACB2088CF1D4931C9EF52106",
+        "newSha256": "2071C682FF071D5884A53C06CF7FC36A065397E65F16B6AC812E1772AA27EC68"
+      },
+      {
+        "path": "installer/InstalledVersionCleanup.cs",
+        "oldSha256": "6EB57C5ECA58505A1C98E6D7713E5E21A633E5DECA58304B8325E4BB17721ECE",
+        "newSha256": "6BB0250BEDF207884DDB80C75BFF931301A19F2CCC4A128DFEDCD7114A2187D3"
+      }
+    ],
+    "allCurrentR4InputBytesVerified": true,
+    "historicalChangedSourceReconstruction": "Git blob content restored to CRLF then matched exact R3 input SHA256 before diff review."
+  },
+  "payloadReviewSha256": "4941BAC8D4266425958A8B40F8F099A916B4B2FBE1D2F9965DD0C61040E312EA",
+  "payloadBoundary": {
+    "unchangedRootDlls": 22,
+    "unchangedBrowserFiles": 19,
+    "unchangedConversionFiles": 336,
+    "unchangedRuntimeCodeDataFiles": 770,
+    "unchangedPortableEntries": 1709,
+    "newPortableEntries": 2,
+    "changedPortableEntries": 5,
+    "removedPortableEntries": 0
+  },
+  "reviewedCallers": [
+    {
+      "source": "src/MainWindow.Update.cs",
+      "scope": "Only successful main rendering schedules installed maintenance; caller unchanged."
+    },
+    {
+      "source": "src/InstalledVersionMaintenance.cs",
+      "scope": "Three phase logs added before existing identity, shell repair and cleanup work. Existing ready/commit/cancellation/protected path/lease/retry conditions unchanged."
+    },
+    {
+      "source": "installer/InstalledVersionCleanup.cs",
+      "scope": "Existing two-argument LockedTree delegates to null report, preserving three read-only callers. Only DeleteOne passes report. New progress is emitted after each actual locked physical entry, throttled500ms, plus completion. Hash/inventory/ownership/physical handle/deletion/state checks unchanged."
+    },
+    {
+      "source": "installer/InstallerPlan.cs",
+      "scope": "WaitForCleanup unchanged: maximum30minutes with90second idle bound. Meaningful scan progress addresses silent prehash scan; no unconditional heartbeat or extended production deadline."
+    }
+  ],
+  "reuseDecision": "Retain original R3 named execution and bounded historical R1 source/caller reviews under their original identities. Unchanged source/dependencies support limited reuse for unaffected functionality. Do not relabel them as R4 runtime passes.",
+  "r3PlanAccountingRetained": {
+    "actualR3NamedStages": 38,
+    "boundedHistoricalR1StageReviews": 59,
+    "totalNamedPlanEntries": 97,
+    "preludeSeparate": true
+  },
+  "excludedFromAutomaticReuse": [
+    "InstalledVersionMaintenance and old-payload cleanup runtime behavior",
+    "Installer safety contracts involving changed cleanup source",
+    "Actual public42-to-R4 installation, deletion of old payload, stable launcher restart and data preservation",
+    "Performance characteristics of changed Mori.exe as a whole",
+    "Actual OCR accuracy or WeChat comparisons; actual screen gestures or physical browser acceptance"
+  ],
+  "directR4Regressions": {
+    "taskIds": [
+      "1351",
+      "1353"
+    ],
+    "namedProductStages": 3,
+    "checks": 522,
+    "independentReviewSha256": "EE2E1B842CA188033A94B0B7821B69FE251AE567574CBD6383004C82B348C03E",
+    "scope": "Native contracts only; actual upgrade still required."
+  },
+  "originalR3Installation1304RemainsFailed": true,
+  "hostProductExecuted": false
+}

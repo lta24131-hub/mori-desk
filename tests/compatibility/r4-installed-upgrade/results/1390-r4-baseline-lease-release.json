@@ -1,0 +1,14 @@
+{
+  "id": "1390-r4-baseline-lease-release",
+  "type": "run",
+  "status": "failed",
+  "pid": 5716,
+  "exitCode": 1,
+  "peakWorkingSetBytes": 22360064,
+  "reports": {
+    "display-resume-lease-release.request.json": "missing: apps\\F863774650CF\\display-resume-lease-release.request.json"
+  },
+  "elapsedSeconds": 2.27,
+  "guestUtc": "2026-11-13T15:50:17.6462267Z",
+  "receivedUtc": "20261113T155018682412Z"
+}

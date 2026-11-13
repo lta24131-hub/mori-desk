@@ -1,0 +1,286 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "recipes": [
+    {
+      "name": "PreferencesCopyGuest",
+      "source": "preferences/PreferencesCopyGuest.cs",
+      "sourceSha256": "72AEB4A1DD9FDF526CE453994A7F79DD0012769B5FF1A12D8A856265AE82CDC9",
+      "assemblyIdentity": "PreferencesCopyGuest.exe",
+      "outputName": "PreferencesCopyGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.dll",
+          "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "2182D218E6CDE4514C68C8CFECE3F55D9A3E2A76F11DAD2CA612130E46B10BDB"
+    },
+    {
+      "name": "LifecycleCompatGuest",
+      "source": "lifecycle/LifecycleCompatGuest.cs",
+      "sourceSha256": "C08B70B9C06C66E7D9CAB761B78B605FF80E63CBCFD63E139848F8549FA12728",
+      "assemblyIdentity": "LifecycleCompatGuest.exe",
+      "outputName": "LifecycleCompatGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.dll",
+          "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "34A0536FA6A2CDA835324C5DE787A7555B13ABC5BB205F02A1B7B4D09D0EFE2D"
+    },
+    {
+      "name": "LocalContractGuest",
+      "source": "local-contract/LocalContractGuest.cs",
+      "sourceSha256": "08067AD5C96ACC6B547E1BAE74D9E8D9FFE6221DA3CC694FC97CA0EAA6DFF0E7",
+      "assemblyIdentity": "LocalContractGuest.exe",
+      "outputName": "LocalContractGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.dll",
+          "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "9FFB9D51CFBAEB8E747989ABF0353BBCEE2784C5E9C8F1009235F37B2FC82E93"
+    },
+    {
+      "name": "LifecycleCompatGuestV2",
+      "source": "lifecycle-v2/LifecycleCompatGuest.cs",
+      "sourceSha256": "9DDBA326A703836CF2E6BCB4873A1D215E9943F23719F9108E7803F6957DD8E7",
+      "assemblyIdentity": "LifecycleCompatGuest.exe",
+      "outputName": "LifecycleCompatGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.dll",
+          "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "96800F28107DF050D5175D92B50FE4CD83679584E3D77481F89334E214E859A5"
+    },
+    {
+      "name": "UpdateFeedbackCompatGuest",
+      "source": "update-feedback/UpdateFeedbackCompatGuest.cs",
+      "sourceSha256": "89DCE8008AD8E890EBFD65A54A89EAD634849D4F60FBB4B31DF91BE9BF1709AA",
+      "assemblyIdentity": "UpdateFeedbackCompatGuest.exe",
+      "outputName": "UpdateFeedbackCompatGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.dll",
+          "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "6844AD96F33889CDCD7668E175269C93A851CB89BED22B81582899795481163B"
+    }
+  ],
+  "packages": [
+    {
+      "label": "preferences",
+      "handoff": {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-preferences-copy-package-v2\\preferences-copy-supplement.zip",
+        "sha256": "5C2F3BAAB9B36FED8CF8538A337231A9A48CE533B73C61771492E248B18AD454",
+        "bytes": 8058974,
+        "members": 287,
+        "guest": "C:\\NookLab\\Audit\\apps\\5C2F3BAAB9B3",
+        "executable": "PreferencesCopyGuest.exe",
+        "args": [
+          "--stage",
+          "browser-preferences-copy"
+        ],
+        "report": "browser-preferences-copy-js-proxy.json",
+        "detail": "browser-preferences-copy-js-result.json",
+        "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "originalFailedTask": 966,
+        "originalFailureRetained": true,
+        "hostExecution": "Compiler/package only",
+        "unchangedSealedFiles": 276
+      },
+      "scriptSha256": "BA79FE6BC7D6FA5AD42A1FED0451880F96B4C6266D5233E4EE3ED0A30864E840",
+      "manifestSha256": "F641DA0D1BDEED598984FA1BE9F01449AF66912CDDB0EB0F4FF2A79DFC51B00A"
+    },
+    {
+      "label": "lifecycle",
+      "handoff": {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-lifecycle-compat-package\\lifecycle-compat-supplement.zip",
+        "sha256": "95475260F2E8DCA674C3660190CABE843FFAAA9744058BCA113EC605C3C54B19",
+        "bytes": 8059100,
+        "members": 286,
+        "guest": "C:\\NookLab\\Audit\\apps\\95475260F2E8",
+        "executable": "LifecycleCompatGuest.exe",
+        "args": [
+          "--stage",
+          "browser-mv3-compat"
+        ],
+        "report": "browser-mv3-compat-js-proxy.json",
+        "detail": "browser-mv3-compat-js-result.json",
+        "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "originalFailedTask": 967,
+        "originalFailureRetained": true,
+        "hostExecution": "Compiler/package only",
+        "unchangedSealedFiles": 276,
+        "unchangedUpdateIntegrationSha256": "3228D3CD22A36D62332BD99FFFEA223267F5AA4EDBA48CCD17C3BA93750918AB"
+      },
+      "scriptSha256": "3AEDA309240B1D0A6BEC304A45FDE911AAB8F945ACE3C59530F6B06A741BB1C2",
+      "manifestSha256": "E17D73D6A504915AAE2AA898645FE89D49B9597D17A9D1C7F8B8B312DF53BB2C"
+    },
+    {
+      "label": "local-contract",
+      "handoff": {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-local-contract-package\\local-contract-supplement.zip",
+        "sha256": "D245764DD46B24B296268E934A08D340812D3933150C39B3B7FF724C5FEF30DF",
+        "bytes": 8061575,
+        "members": 287,
+        "guest": "C:\\NookLab\\Audit\\apps\\D245764DD46B",
+        "executable": "LocalContractGuest.exe",
+        "args": [
+          "--stage",
+          "browser-local-contract"
+        ],
+        "report": "browser-local-contract-js-proxy.json",
+        "detail": "browser-local-contract-js-result.json",
+        "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "originalFailedTask": 969,
+        "originalFailureRetained": true,
+        "hostExecution": "Compiler/package only",
+        "unchangedSealedFiles": 277,
+        "healthyPopupAccepted": false
+      },
+      "scriptSha256": "E0D0B572A2F0F31FE42C8B486E5116A5C346C9A4BB207ED247C76E91E89C9A98",
+      "manifestSha256": "566D4D9FF8C4AE9C43BFCDD68620D7DF7B9443815CA1FBDDC993FCF7FB29A137"
+    },
+    {
+      "label": "lifecycle-v2",
+      "handoff": {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-lifecycle-compat-package-v2\\lifecycle-compat-supplement.zip",
+        "sha256": "8649745FDA5B5D1FE5007E139F23169359A8D92F0AA6A47E83FE0AC979E0F92F",
+        "bytes": 8059609,
+        "members": 286,
+        "guest": "C:\\NookLab\\Audit\\apps\\8649745FDA5B",
+        "executable": "LifecycleCompatGuest.exe",
+        "args": [
+          "--stage",
+          "browser-mv3-compat"
+        ],
+        "report": "browser-mv3-compat-js-proxy.json",
+        "detail": "browser-mv3-compat-js-result.json",
+        "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "originalFailedTask": 967,
+        "originalFailureRetained": true,
+        "priorSupplement1061RetainedFailed": true,
+        "hostExecution": "Compiler/package only",
+        "unchangedSealedFiles": 276,
+        "unchangedUpdateIntegrationSha256": "3228D3CD22A36D62332BD99FFFEA223267F5AA4EDBA48CCD17C3BA93750918AB"
+      },
+      "scriptSha256": "3AEDA309240B1D0A6BEC304A45FDE911AAB8F945ACE3C59530F6B06A741BB1C2",
+      "manifestSha256": "E27DEA9333949500CAD82A9ACC5AE83D6B87CCC9E20391C51B8268208468FEE2"
+    },
+    {
+      "label": "update-feedback",
+      "handoff": {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-update-feedback-compat\\update-feedback-compat.zip",
+        "sha256": "6BBD811C9F22A6C7F16CC2858C9F3D8110B712A1A760CD7803A1AB96BAAE5913",
+        "bytes": 8059231,
+        "members": 286,
+        "guest": "C:\\NookLab\\Audit\\apps\\6BBD811C9F22",
+        "executable": "UpdateFeedbackCompatGuest.exe",
+        "args": [
+          "--stage",
+          "browser-update-feedback-compat"
+        ],
+        "report": "browser-update-feedback-compat-js-proxy.json",
+        "detail": "browser-update-feedback-compat-js-result.json",
+        "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "originalFailedTask": 1111,
+        "originalFailureRetained": true,
+        "lifecycle1111PassedAndNotRerun": true,
+        "hostExecution": "Compiler/package only",
+        "unchangedSealedFiles": 276,
+        "originalIntegrationSha256": "3228D3CD22A36D62332BD99FFFEA223267F5AA4EDBA48CCD17C3BA93750918AB",
+        "revisedIntegrationSha256": "C8AB60F688A9763A9AF02B2A93D9C3DE8E24D173AA1FA970336768FA587BD3BC"
+      },
+      "scriptSha256": "A8BCC4D75AB0E469AC48C38F545B472A7EC7DFD38DEEB53D34146AE40C7FD859",
+      "manifestSha256": "88E54C049F4F27262FADC8EA8314FFE8435BEBACD4CF33507B9857308426B6EC"
+    }
+  ],
+  "baseFrozenJavascriptPackageSha256": "6417CA12B56B50BF73A192697CF6444AEE375E7C199C69283BF042D7BCA23B5F",
+  "hostProductExecution": false
+}

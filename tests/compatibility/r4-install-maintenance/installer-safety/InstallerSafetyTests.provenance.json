@@ -1,0 +1,36 @@
+{
+  "exeSha256": "CDE56807A8BF8DD9123EF68E63E0B0295785FCEB1E409A771168083BE2D2E211",
+  "sourceSealSha256": "8CEBE66FABC1C7D79CEB9863168F6F058AC7C09F78C0E5370D55AA343CDB956E",
+  "references": [
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+      "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Drawing.dll",
+      "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Windows.Forms.dll",
+      "sha256": "8C0F533E089647AEFFB3CE0868F01D696A3FD2893CED5C3570E8438C96613A98"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.IO.Compression.dll",
+      "sha256": "C68D37A11A072AFFBB50BBFA7299E6410811A24C946B11F9F430D0A5F66BD2B1"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\Microsoft.CSharp.dll",
+      "sha256": "32AA1DF7E38ADEE2251F1D022352C21942BDDB420FE9D45BD970948A071FACF1"
+    }
+  ],
+  "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00",
+  "origin": "Root compiled with tests/installer-safety/run.ps1 -CompileOnly; byte-identical executable reused; no host test execution."
+}

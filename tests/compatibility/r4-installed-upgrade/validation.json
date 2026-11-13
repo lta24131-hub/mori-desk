@@ -1,0 +1,167 @@
+{
+  "finalIndependentReview": "results-v2/final-journey-independent-review.json",
+  "finalIndependentReviewSha256": "2B7E2D093020FA2B6BA378B30D2ADC8E7575F3B19799C6245872839A8F921178",
+  "journeyComplete": true,
+  "results": [
+    {
+      "id": "1381-r4-seed42",
+      "status": "passed",
+      "passed": true,
+      "report": "fixtureseed42-result.json",
+      "sha256": "838A15A83EB9DFC31C4370C5F8C483EE55A633ADD1517C8BF8703115A441CB2C",
+      "elapsedSeconds": 5.6,
+      "error": null
+    },
+    {
+      "id": "1382-r4-launch42",
+      "status": "passed",
+      "passed": true,
+      "report": "launch42-result.json",
+      "sha256": "BF3D77E7B499ACA5B5602C571A6C377DFD1B40A66A51C651936F18821667A427",
+      "elapsedSeconds": 16.13,
+      "error": null
+    },
+    {
+      "id": "1383-r4-snapshot42",
+      "status": "passed",
+      "passed": true,
+      "report": "fixturesnapshot42-result.json",
+      "sha256": "B628029F7B102004CD74B71AF0D932917B550F45CE83E9C7F0A40AEDC84E62FD",
+      "elapsedSeconds": 3.52,
+      "error": null
+    },
+    {
+      "id": "1384-r4-real-upgrade",
+      "status": "passed",
+      "passed": true,
+      "report": "install45-result.json",
+      "sha256": "FDE2A72D1E4151E5473DF39A6714CBDFF69C10C858EF6ED4EEA84AC061F0B602",
+      "elapsedSeconds": 519.91,
+      "error": null
+    },
+    {
+      "id": "1385-r4-launch45",
+      "status": "passed",
+      "passed": true,
+      "report": "launch45-result.json",
+      "sha256": "A88EC49E80CAD2926CB83DE0441263109CBB10981C990DFFDE51ED31D5D242BE",
+      "elapsedSeconds": 17.19,
+      "error": null
+    },
+    {
+      "id": "1386-r4-verify45",
+      "status": "passed",
+      "passed": true,
+      "report": "fixtureverify45-result.json",
+      "sha256": "F53AE1973EE5A65538233EB7BEE078A1477F692A1B99E588517BE4CA3096F2D1",
+      "elapsedSeconds": 3.16,
+      "error": null
+    },
+    {
+      "id": "1387-r4-final-inventory",
+      "status": "passed",
+      "passed": true,
+      "report": "audit-installed-inventory-final-r4.json",
+      "sha256": "BF3B42C0B134C702BB2DFC8B62F2B90375C3A294D44864727A684AE3C2499127",
+      "elapsedSeconds": 4.26,
+      "error": null
+    }
+  ],
+  "rawOuterInnerReportsVerified": [
+    {
+      "outer": "inventory-before-results/1361-r4-before-preservation-inventory.json",
+      "outerSha256": "693EA1242DD7A8A5E8B8982F73594A8CEF475F3C000E201D04A066C574F2D8D2",
+      "inner": "inventory-before-results/audit-installed-inventory-before-r4.json",
+      "innerSha256": "6355E2D576A79F7F488AE0F5D236D609AE904CA83911296E8AE4CB0C9036376F"
+    },
+    {
+      "outer": "results-v2/1375-r4-preserve1304.json",
+      "outerSha256": "6D60595C62A64100962DF8FDA8BA1568CA74A900255CB988205E7DE1AAAAE259",
+      "inner": "results-v2/preserve-result.json",
+      "innerSha256": "4BB4309066ED3070F577467B0D1D8CB0A795C3EF3ACAC4EB06D7CA6E961B5BDA"
+    },
+    {
+      "outer": "results-v2/1376-r4-real-install42.json",
+      "outerSha256": "223D1C24C02D49A0B4F45ECCE02D99C6D9DB3DB5550E482951803D57EA5027C5",
+      "inner": "results-v2/install42-result.json",
+      "innerSha256": "A513B6454424F63506D2AD6473D531C1CE8304BB6C6C79C7DB4F1AF23A02C07A"
+    },
+    {
+      "outer": "results-v2/1377-r4-public42-browser-ui.json",
+      "outerSha256": "BC76CC1D2B5356D8811CBA12DBBF1166FFE9EA7644A1C98A82ECA789875D3ADF",
+      "inner": "results-v2/prepare-browser42-result.json",
+      "innerSha256": "DAD7C9FF2D5F7D4FAF48FB0C81F15CB5D9F36177AC1FA0048F0F2262C6C8284F"
+    },
+    {
+      "outer": "results-v2/1378-r4-public42-health.json",
+      "outerSha256": "1888B392BB4193479E4F22B14CF7635E506543B9429A4BA34B3481501AA08588",
+      "inner": "results-v2/healthy42-preflight-result.json",
+      "innerSha256": "DEDFB006BB35A263E463117DB3A8A35202F90B1BC4BE95CDEEE306B46E08820D"
+    },
+    {
+      "outer": "results-v2/1379-r4-healthy42-inventory.json",
+      "outerSha256": "AFC4D264BFAE0C615326D5E7CA4BB4B6F9BDCE57D07A1810520A452CC700DDC1",
+      "inner": "results-v2/audit-installed-inventory-healthy42-r4.json",
+      "innerSha256": "58EE312CA795D12E4E670FBDB31842F898A0E90F42A2F949EDAA9E7CE340DEB6"
+    },
+    {
+      "outer": "results-v2/1381-r4-seed42.json",
+      "outerSha256": "FB854B655595B5E1E25497B531B64B52679B6B85A81FC155B9F953D6081116FD",
+      "inner": "results-v2/fixtureseed42-result.json",
+      "innerSha256": "838A15A83EB9DFC31C4370C5F8C483EE55A633ADD1517C8BF8703115A441CB2C"
+    },
+    {
+      "outer": "results-v2/1382-r4-launch42.json",
+      "outerSha256": "4B09C069B56741ACF2471520D2B7C9DDA111052C92F1D708492FFA1D924EE4BC",
+      "inner": "results-v2/launch42-result.json",
+      "innerSha256": "BF3D77E7B499ACA5B5602C571A6C377DFD1B40A66A51C651936F18821667A427"
+    },
+    {
+      "outer": "results-v2/1383-r4-snapshot42.json",
+      "outerSha256": "05CB17DDBF3133FBA3030FDBFEFDC023590FC4F4DC56382000461DC79E9333FA",
+      "inner": "results-v2/fixturesnapshot42-result.json",
+      "innerSha256": "B628029F7B102004CD74B71AF0D932917B550F45CE83E9C7F0A40AEDC84E62FD"
+    },
+    {
+      "outer": "results-v2/1384-r4-real-upgrade.json",
+      "outerSha256": "02B54F4445DA36C379C5858751DA7A803B2D57EEA0720F43A7F9320178A3A209",
+      "inner": "results-v2/install45-result.json",
+      "innerSha256": "FDE2A72D1E4151E5473DF39A6714CBDFF69C10C858EF6ED4EEA84AC061F0B602"
+    },
+    {
+      "outer": "results-v2/1385-r4-launch45.json",
+      "outerSha256": "24254306C931C311F56DF65C4B7E7DB26E798BF8F6F91812AE2C0AC0989B9E3E",
+      "inner": "results-v2/launch45-result.json",
+      "innerSha256": "A88EC49E80CAD2926CB83DE0441263109CBB10981C990DFFDE51ED31D5D242BE"
+    },
+    {
+      "outer": "results-v2/1386-r4-verify45.json",
+      "outerSha256": "BC89597A7EC4B57488AD77015C38966CAA6B734C825D75C9A014764D08E97022",
+      "inner": "results-v2/fixtureverify45-result.json",
+      "innerSha256": "F53AE1973EE5A65538233EB7BEE078A1477F692A1B99E588517BE4CA3096F2D1"
+    },
+    {
+      "outer": "results-v2/1387-r4-final-inventory.json",
+      "outerSha256": "48BD7EA507DA4940E09ECA6E535F11D4DF8A264A5A469C54FD531067AF4995D8",
+      "inner": "results-v2/audit-installed-inventory-final-r4.json",
+      "innerSha256": "BF3B42C0B134C702BB2DFC8B62F2B90375C3A294D44864727A684AE3C2499127"
+    },
+    {
+      "outer": "results-v2/1397-r4-baseline-lease-release.json",
+      "outerSha256": "8E7F8CC85E6EE6673A4F83AEC1E8C27412F26BD3E83A1F9B3A15BCE663E90166",
+      "inner": "results-v2/baseline-display-resume-lease-release.request.json",
+      "innerSha256": "FF528E11036FB9B11E82459B6994A8A9284785E04FD0C627AEF936A51BE33708"
+    },
+    {
+      "outer": "results-v2/1397-r4-upgrade-lease-release.json",
+      "outerSha256": "C40B066D477D2DDEDDCC8D4590EA96DF6DA7C13A4C5A0C50A88857FC0B79CA8E",
+      "inner": "results-v2/upgrade-display-resume-lease-release.request.json",
+      "innerSha256": "58C0C31889CD6E6477A590AD848F6D007B29E3418724226711218AD3C6DD014A"
+    }
+  ],
+  "original1304RetainedFailed": true,
+  "originalLeaseReadinessFailuresRetained": true,
+  "actualBrowserCollectionClaim": false,
+  "physicalDesktopExecuted": false,
+  "archiveOperationTestsOrProductExecuted": false
+}

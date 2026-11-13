@@ -1,0 +1,8 @@
+{
+  "label": "r4-installer-safety",
+  "exe": "InstallerSafetyTests.exe",
+  "sha256": "CDE56807A8BF8DD9123EF68E63E0B0295785FCEB1E409A771168083BE2D2E211",
+  "args": [],
+  "successRegex": "^PASS (\\d+) installer safety checks;",
+  "timeoutSeconds": 300
+}

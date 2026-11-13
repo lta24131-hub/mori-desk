@@ -1,0 +1,12 @@
+{
+  "label": "conversion-quick-functional",
+  "exe": "QuickFunctionalRunner.exe",
+  "sha256": "D6A893FDDE1E62030851A79F3E1D6B899CDD5AEB9A7A19478F2AE98CC5296C28",
+  "args": [
+    "$app",
+    "$worker",
+    "$root"
+  ],
+  "successRegex": "^Quick real-worker closed-loop: (\\d+) passed; 0 failed\\.",
+  "timeoutSeconds": 600
+}

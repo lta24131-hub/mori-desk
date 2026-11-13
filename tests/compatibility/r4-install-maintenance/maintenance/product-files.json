@@ -1,0 +1,126 @@
+{
+  "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "files": [
+    {
+      "path": "ExCSS.dll",
+      "bytes": 343040,
+      "sha256": "F86616EA8327107F918FE4EB08040F6D50EA4D765F6F9EC521643EA2AAD8C480"
+    },
+    {
+      "path": "Magick.Native-Q8-x64.dll",
+      "bytes": 24753328,
+      "sha256": "E24D1B5ECF421C9A5EC4FD592B795DA228D7ADDE5964B1687BBCAF9C56151CC8"
+    },
+    {
+      "path": "Magick.NET-Q8-x64.dll",
+      "bytes": 991920,
+      "sha256": "E049FE2B776CA1151FEB36A7209E97439E94CF870B81485F4F8D67CF4CFE7C7C"
+    },
+    {
+      "path": "Magick.NET.Core.dll",
+      "bytes": 1533104,
+      "sha256": "477CA5CEA07E25BA4867F3DA12E374BC1E9C4F848135ECA556F4787F5C41D19C"
+    },
+    {
+      "path": "Microsoft.Bcl.HashCode.dll",
+      "bytes": 26920,
+      "sha256": "3A4E851EE5FC0F6182AA5A3D65DC56FCD6979B65334B5C3B92FBDC791457C0AB"
+    },
+    {
+      "path": "Microsoft.Web.WebView2.Core.dll",
+      "bytes": 603712,
+      "sha256": "88A3B62F45225A811CDB85DF6DFD95C2BFF9A0E43E3B04F813B125EACA56CC9F"
+    },
+    {
+      "path": "Microsoft.Web.WebView2.Wpf.dll",
+      "bytes": 83008,
+      "sha256": "1C5B6C792916D168093EF9B836F33E818D2D15D0C81F0864B5CDDFF97D913319"
+    },
+    {
+      "path": "Mori.exe",
+      "bytes": 6748672,
+      "sha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22"
+    },
+    {
+      "path": "Mori.exe.config",
+      "bytes": 1266,
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512"
+    },
+    {
+      "path": "Svg.dll",
+      "bytes": 698368,
+      "sha256": "59C0E607ADC9DD23AC979B665B149B12BC7B82F01B8631769F3AF8D85C3C3988"
+    },
+    {
+      "path": "SymSpell.dll",
+      "bytes": 23552,
+      "sha256": "9C2B4085A0C43D4E0FBD0452F714E0491ED0CE302BE9A94588B82E645EC7E3CD"
+    },
+    {
+      "path": "System.Buffers.dll",
+      "bytes": 23856,
+      "sha256": "3AF1E07305BED0ABE0CF32D9854E0A7F5F470216ADEE1B87D02350BE09D31B35"
+    },
+    {
+      "path": "System.Memory.dll",
+      "bytes": 145192,
+      "sha256": "B8FE216AFF0F6D162F8EEFE7BE1712162B7D8199E20CE2E70FFAC36C7CE20A4C"
+    },
+    {
+      "path": "System.Numerics.Vectors.dll",
+      "bytes": 110344,
+      "sha256": "22C84BE385FE8BA6D0E0138952748F28D781FCE36078B5A7AED91A6104BCD99B"
+    },
+    {
+      "path": "System.Runtime.CompilerServices.Unsafe.dll",
+      "bytes": 19224,
+      "sha256": "2D6F419D641682D8EFC4A40E850D2E85DE519D6823B93DAF2AEEE63206D4E32D"
+    },
+    {
+      "path": "Tesseract.dll",
+      "bytes": 133120,
+      "sha256": "BC2AD67AB5FB9E80E5E60F1A422A1F44F830FB1B9A77579E85A634B1A9630840"
+    },
+    {
+      "path": "UglyToad.PdfPig.Core.dll",
+      "bytes": 50176,
+      "sha256": "894BF5E8DAAC5E4F6FBD7E2EB26C6B2F39E42B3122E35FA69C6FA30469A43BB0"
+    },
+    {
+      "path": "UglyToad.PdfPig.dll",
+      "bytes": 4237312,
+      "sha256": "CD712F405CBD4400903D18F2855E0B2458ACB76D75019765F9FAAA2F3BA0717E"
+    },
+    {
+      "path": "UglyToad.PdfPig.DocumentLayoutAnalysis.dll",
+      "bytes": 246784,
+      "sha256": "AA79F1774B74E5BD6939E089BB7770FD62B8E8C22D444F5F736A7171C243E16C"
+    },
+    {
+      "path": "UglyToad.PdfPig.Fonts.dll",
+      "bytes": 1090048,
+      "sha256": "B066E7440E7D76D2B8229E9274E300DCFE7DCEC65DD578106E8A1BF2473BB911"
+    },
+    {
+      "path": "UglyToad.PdfPig.Package.dll",
+      "bytes": 4608,
+      "sha256": "EC4A85D737582D93917A4DFF811267723092E60F891916DD56DC94630417B5EE"
+    },
+    {
+      "path": "UglyToad.PdfPig.Tokenization.dll",
+      "bytes": 23040,
+      "sha256": "84315CE24887373ED9019442EDFCB1B7777E7782ED0C4BF69BE63E84941B43E0"
+    },
+    {
+      "path": "UglyToad.PdfPig.Tokens.dll",
+      "bytes": 48128,
+      "sha256": "D91A3F93CA27728709875EF71425D4C8E7165D5D3A7B13094EC976CFC22D305C"
+    },
+    {
+      "path": "WebView2Loader.dll",
+      "bytes": 165968,
+      "sha256": "462B36FD1BE6CA9F7563466A89E57C41EF4A4DEF3E0A84FA885D203AEA4A3AAF"
+    }
+  ],
+  "scope": "Root binaries only. Original embedded maintenance/artifact suites; synthetic VM fixtures only; no actual install or production startup queue."
+}

@@ -1,0 +1,5 @@
+# R3 isolated local bridge contract supplement
+
+Task 969 required installed-context bridge health to succeed while its unchanged C# fixture deliberately sets an isolated data root. The production guard correctly rejects that request before selecting a library. The independent script expects that explicit rejection, then retains original real MV3 native-host-not-found fallback, authenticated categories, mismatched media rejection, image save, duplicate handling, invalid-token rejection and original C# host final library validation. It leaves the original source and failed task untouched. Healthy popup and actual installed connection are explicitly not accepted by this scope. The separate actual BrowserExtensionStore update-host fixture covers its own positive control/update contract.
+
+No production C# or extension script is changed. Execute only through a reviewed pinned VM-only package and its Job wrapper, never on the physical machine. No result is yet claimed by the source archive.

@@ -1,0 +1,38 @@
+{
+  "origin": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-inventory\\package\\InstalledUpgradeInventoryGuest.cs",
+  "originSha256": "DE1297569B8FD77FDACF377F108E82D57D8E8E1BAADB66C72FA95A95A9CCE08B",
+  "sourceSha256": "FAEE92F5E6ECC2921C986F39F46924C17F3A1A3FB8E0E4A03B88A8A5DED3BCAB",
+  "outputSha256": "B4A4C6C74066BD536E8B7E67300A99F194D35BDAA9387F4EED5137A335C3E057",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/target:exe",
+    "/optimize+",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-healthy-upgrade\\package\\InstalledUpgradeInventoryGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-healthy-upgrade\\package\\InstalledUpgradeInventoryGuest.cs"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-healthy-upgrade\\package\\InstalledUpgradeInventoryGuest.cs",
+      "sha256": "FAEE92F5E6ECC2921C986F39F46924C17F3A1A3FB8E0E4A03B88A8A5DED3BCAB"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+    }
+  ],
+  "hostExecution": "Compiler/package only"
+}

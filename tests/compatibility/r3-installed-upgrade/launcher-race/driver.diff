@@ -1,0 +1,27 @@
+--- original-failed1143
++++ explicit-bootstrap-and-exited-only
+@@ -94,7 +94,23 @@
+   }
+   return new{actualInstallerEntry="no arguments",setupSha256=newer?NewSetup:OldSetup,elapsedSeconds=clock.Elapsed.TotalSeconds,uiSteps=step,transaction=evidence,oldFolder,oldFolderRemoved=oldFolder!=null&&!Directory.Exists(oldFolder),launcherPath=launcher,launcherSha256=Hash(launcher)};
+  }
+- static object Launch(bool newer){NoProduct();var active=Active(newer?"0.1.45.0":"0.1.42.0",newer?NewApp:OldApp);string executable=Path.Combine(Program,Text(active["executable"])),launcher=Path.Combine(Program,"Launcher","Mori.exe");Process child=null;using(var bootstrap=Process.Start(Start(launcher))){Wait(()=>{var candidates=Process.GetProcessesByName("Mori");try{foreach(var candidate in candidates){if(!candidate.HasExited&&candidate.MainModule.FileName.Equals(executable,StringComparison.OrdinalIgnoreCase)&&candidate.MainWindowHandle!=IntPtr.Zero&&IsWindowVisible(candidate.MainWindowHandle)&&IsWindowEnabled(candidate.MainWindowHandle)){child=candidate;return true;}}return false;}finally{foreach(var candidate in candidates)if(candidate!=child)candidate.Dispose();}},30000,"Fixed launcher did not open the expected native installed version.");Need(child!=null&&Hash(child.MainModule.FileName)==(newer?NewApp:OldApp),"Same fixed launcher opens exact expected installed payload.");bool contained;Need(IsProcessInJob(child.Handle,Job,out contained)&&contained,"Fixed-launcher application is contained in this run's Job.");int pid=child.Id;string title=child.MainWindowTitle;CloseApp(child,newer?NewApp:OldApp);child.Dispose();Wait(()=>bootstrap.HasExited,5000,"Fixed launcher process did not exit.");return new{launcher,launcherSha256=Hash(launcher),actualExecutable=executable,appSha256=newer?NewApp:OldApp,pid,title,normalClose=true};}}
++ // The fixed launcher and payload share the Mori process name. The known
++ // bootstrap is never a payload candidate. Other exited processes may vanish
++ // between HasExited and MainModule; live unreadable identities still fail.
++ static string CandidateImage(Process candidate,int bootstrapPid){
++  if(candidate.Id==bootstrapPid||candidate.HasExited)return null;
++  try{
++   var module=candidate.MainModule;
++   if(module==null){if(candidate.HasExited)return null;throw new InvalidDataException("Live launcher candidate has no main module; identity cannot be verified.");}
++   string path=module.FileName;
++   if(string.IsNullOrEmpty(path))throw new InvalidDataException("Live launcher candidate has no executable path; identity cannot be verified.");
++   return path;
++  }catch(Exception error){
++   if((error is InvalidOperationException||error is System.ComponentModel.Win32Exception||error is NullReferenceException)&&candidate.HasExited)return null;
++   throw;
++  }
++ }
++ static object Launch(bool newer){NoProduct();var active=Active(newer?"0.1.45.0":"0.1.42.0",newer?NewApp:OldApp);string executable=Path.Combine(Program,Text(active["executable"])),launcher=Path.Combine(Program,"Launcher","Mori.exe");Process child=null;using(var bootstrap=Process.Start(Start(launcher))){Wait(()=>{var candidates=Process.GetProcessesByName("Mori");try{foreach(var candidate in candidates){string image=CandidateImage(candidate,bootstrap.Id);if(image!=null&&image.Equals(executable,StringComparison.OrdinalIgnoreCase)&&candidate.MainWindowHandle!=IntPtr.Zero&&IsWindowVisible(candidate.MainWindowHandle)&&IsWindowEnabled(candidate.MainWindowHandle)){child=candidate;return true;}}return false;}finally{foreach(var candidate in candidates)if(candidate!=child)candidate.Dispose();}},30000,"Fixed launcher did not open the expected native installed version.");Need(child!=null&&Hash(child.MainModule.FileName)==(newer?NewApp:OldApp),"Same fixed launcher opens exact expected installed payload.");bool contained;Need(IsProcessInJob(child.Handle,Job,out contained)&&contained,"Fixed-launcher application is contained in this run's Job.");int pid=child.Id;string title=child.MainWindowTitle;CloseApp(child,newer?NewApp:OldApp);child.Dispose();Wait(()=>bootstrap.HasExited,5000,"Fixed launcher process did not exit.");return new{launcher,launcherSha256=Hash(launcher),actualExecutable=executable,appSha256=newer?NewApp:OldApp,pid,title,normalClose=true};}}
+  [STAThread]static int Main(string[] args){object result=null;Exception error=null;bool passed=false;try{Operation=args.Length>0?args[0]:"";Need((args.Length==2&&(Operation=="--install42"||Operation=="--install45"))||(args.Length==1&&(Operation=="--launch42"||Operation=="--launch45")),"Explicit installed test stage required.");Guest();using(var watchdog=new Timer(_=>Environment.Exit(124),null,780000,Timeout.Infinite)){result=args.Length==2?Install(Operation=="--install45",args[1]):Launch(Operation=="--launch45");Wait(OnlyHelper,12000,"Owned application descendants did not drain.");Need(OnlyHelper(),"All owned runtime descendants exited; only this helper remains.");passed=true;}}catch(Exception failure){error=failure;try{Forced=Job!=IntPtr.Zero&&!OnlyHelper();}catch{Forced=true;}}finally{if(Package!=null)try{Save(Path.Combine(Package,Operation.TrimStart('-')+"-result.json"),new{passed,operation=Operation,result,checks=Checks,uiActions=Actions,forcedCleanupAtProcessExit=Forced,jobActive=JobActive,jobTotal=JobTotal,jobActiveIncludesHelper=true,hostExecuted=false,installationStage=Operation=="--install42"||Operation=="--install45",error=error==null?null:error.ToString()});}catch{}}
+   return passed?0:1;}
+ }

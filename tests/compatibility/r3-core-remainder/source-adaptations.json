@@ -1,0 +1,80 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+  "changes": [
+    {
+      "original": "modules/library/src/SidebarSpacingTests.cs",
+      "originalSha256": "0CC6A98836ECE0543EA17E795EE19E9D11CED5921BF9014A25D4A920F2979395",
+      "adapted": "R3SidebarSpacingTests.cs",
+      "adaptedSha256": "47F4A903D52020B22FC691013712BA948F5A0092818F4CDBEF09CE30E89EF6B2",
+      "reason": "Old footer-only arithmetic predates separate collections/utilities. Preserve >220px category threshold, original 34px trash target, all original tree behavior; add visible focus/hit/non-overlap checks. Product resource read through its assembly."
+    },
+    {
+      "original": "modules/library/src/BatchTests.cs",
+      "originalSha256": "D4659653AEB8327CA0BE265D5B6ECF235EA4CA3144BC66946B7B8C2012A10A57",
+      "adapted": "R3BatchTests.cs",
+      "adaptedSha256": "1DE054755831E7CA2E0AB5336BD8706A6B456321C30FB655C319EF3444C6B6A5",
+      "reason": "Hidden BatchDelete no longer represents visible geometry. Preserve all mutation assertions, replace vacuous hidden geometry with every visible command plus keyboard, hit, non-overlap and deletion-menu checks. Measure detached whole real content at original widths."
+    },
+    {
+      "original": "modules/library/src/MediaNavigationTests.cs",
+      "originalSha256": "274CF19624FF17944F17321B8B3360CCF1CA33E844236971D1A2CD95108B4D16",
+      "adapted": "R3MediaNavigationTests.cs",
+      "adaptedSha256": "C5EE331A7726850C7EFBC2A693A617FD9C1F1B76F976E5582D12DADC5CDC0BE1",
+      "reason": "Old single flat navigation parent is obsolete. Preserve original classifications/routes, check current grouped visible navigation and execute each actual visible type-menu command."
+    },
+    {
+      "original": "modules/library/src/Tests.cs",
+      "originalSha256": "583826F095EEF575C2DC23CA0A05BA21B80C8F745A2EE3F2FA6C5095D2AEAF25",
+      "adapted": "R3CoreRemainderTests.cs",
+      "adaptedSha256": "D9D036E2AFDAB0A5B2B4898112863DB258F1D9957C8326F6BCB447C303E13D44",
+      "reason": "Extract exact Run remainder from SidebarSpacing through every later original call and byte-identical inline library read/write/backup/bridge block; only three UI-test call targets adapted. Original helper Check/Throws/Draw/Json and result handling retained.",
+      "orderedStages": [
+        "R3SidebarSpacingTests",
+        "TrashActionTests",
+        "FolderManagementTests",
+        "FolderBatchTests",
+        "GalleryHeadingTests",
+        "BookmarkTests",
+        "BookmarkIconTests",
+        "BookmarkPageTests",
+        "MenuLogicTests",
+        "R3MediaNavigationTests",
+        "MediaBadgeTests",
+        "R3BatchTests",
+        "VideoBrowserTests",
+        "TrayTests"
+      ],
+      "inlineOriginalSha256": "7F28A51274377938DF98DBC1DFC011FE40FC9B82DDCAF0B9AE7C400B0153E6A2"
+    }
+  ],
+  "claim": "External adapted remainder plus original unmodified stages. Not a passing original Mori.Tests.Run.",
+  "inlineOriginalPreserved": true,
+  "originalFailure": "Original VM run 865 retained failed at obsolete footer arithmetic; not superseded as a passing result.",
+  "sourceCopies": [
+    {
+      "file": "CoreRemainderGuest.cs",
+      "sha256": "733E02E00A1930D6DB3DE1D24B509E3EB1133405655ED3AECD1A134FD9215DE9"
+    },
+    {
+      "file": "R3BatchTests.cs",
+      "sha256": "1DE054755831E7CA2E0AB5336BD8706A6B456321C30FB655C319EF3444C6B6A5"
+    },
+    {
+      "file": "R3CoreRemainderRunner.cs",
+      "sha256": "1F3152FA71883DD98983E965FF19977AC0FACA0567D35706F270A0CEFCC4E0E7"
+    },
+    {
+      "file": "R3CoreRemainderTests.cs",
+      "sha256": "D9D036E2AFDAB0A5B2B4898112863DB258F1D9957C8326F6BCB447C303E13D44"
+    },
+    {
+      "file": "R3MediaNavigationTests.cs",
+      "sha256": "C5EE331A7726850C7EFBC2A693A617FD9C1F1B76F976E5582D12DADC5CDC0BE1"
+    },
+    {
+      "file": "R3SidebarSpacingTests.cs",
+      "sha256": "47F4A903D52020B22FC691013712BA948F5A0092818F4CDBEF09CE30E89EF6B2"
+    }
+  ]
+}

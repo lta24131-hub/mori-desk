@@ -1,0 +1,52 @@
+{
+  "complete": true,
+  "original1304RetainedFailed": true,
+  "results": [
+    {
+      "id": "1341-r3-readonly-capture-timing",
+      "operation": "capture",
+      "brokerStatus": "passed",
+      "exitCode": 0,
+      "diagnosticCompleted": true,
+      "purpose": "Read-only diagnostic, not installer qualification",
+      "filesystemCacheNotControlled": true,
+      "completedMethodResult": {
+        "milliseconds": 7608.9884,
+        "complete": true,
+        "entrypointsSwitched": true,
+        "reason": "ready",
+        "runningCount": 0,
+        "referenceCount": 1,
+        "protectedPathCount": 0,
+        "allManagedReferencesStable": true,
+        "oldPayloadRunning": 0,
+        "oldPayloadReferences": 0,
+        "actualProcessCondition": "No installed app/browser running; helper image is outside installation",
+        "productionGateNotBypassed": true
+      },
+      "timeout": null,
+      "diagnosticError": null
+    },
+    {
+      "id": "1342-r3-readonly-tree-timing",
+      "operation": "tree",
+      "brokerStatus": "passed",
+      "exitCode": 0,
+      "diagnosticCompleted": true,
+      "purpose": "Read-only diagnostic, not installer qualification",
+      "filesystemCacheNotControlled": true,
+      "completedMethodResult": {
+        "constructionMilliseconds": 89873.06760000001,
+        "disposeMilliseconds": 126.90950000000001,
+        "files": 1702,
+        "directories": 424,
+        "deletion": false,
+        "deleteAccessRequested": false,
+        "sourceWrites": false,
+        "exclusiveDeletionModeNotReproduced": true
+      },
+      "timeout": null,
+      "diagnosticError": null
+    }
+  ]
+}

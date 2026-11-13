@@ -1,0 +1,76 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "recipes": [
+    {
+      "name": "RegressionRunner",
+      "source": "RegressionRunner.cs",
+      "sourceSha256": "589F0605A0E014060E8B6CE8914A3FAE24930DE337B1CF84555A911BABB13C62",
+      "assemblyIdentity": "RegressionRunner.exe",
+      "outputName": "RegressionRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        }
+      ],
+      "originalOutputSha256": "AC4268244E33B313E6DE87FFEB0F959091CF42885172E2A2957AF59C81069D24",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-regression-log\\package\\RegressionRunner.cs",
+      "originalProvenanceSha256": "909314A1BD4589742313A769789685E63FD636E94002195EE677BAE7BE148572"
+    },
+    {
+      "name": "RegressionLogGuest",
+      "source": "RegressionLogGuest.cs",
+      "sourceSha256": "28A37BD554EE17013BFDC5276C4521ABC68B6CAD56C3727904A0D478ED9B3086",
+      "assemblyIdentity": "RegressionLogGuest.exe",
+      "outputName": "RegressionLogGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "2FB762D7C7E8D180C1B3B32C66BC7181983E2D7757A158A8D86F27B7739F20B1",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-regression-log\\package\\RegressionLogGuest.cs",
+      "originalProvenanceSha256": "188027592E567430F5504FF7847463AFF9B25491A458BFE1C5AD1D01E4B704E2"
+    }
+  ],
+  "reviewedPackage": {
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-regression-log\\regression-log-supplement.zip",
+    "sha256": "DEF0F294FC8F20790C3AA927A5F7EB67D2E97C7ECB0C50B15E40CCD51FBF5E3B",
+    "bytes": 44687,
+    "members": 11,
+    "guest": "C:\\NookLab\\Audit\\apps\\DEF0F294FC8F",
+    "executable": "RegressionLogGuest.exe",
+    "args": [
+      "--run",
+      "conversion-regressions"
+    ],
+    "report": "conversion-regressions.json",
+    "original933RetainedFailed": true,
+    "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+  },
+  "originalFailedTask": 933,
+  "change": "Only external stdout/stderr collection. Exact original runner binary/source and plan unchanged in actual reviewed VM package."
+}

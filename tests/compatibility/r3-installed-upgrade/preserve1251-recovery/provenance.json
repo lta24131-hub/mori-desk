@@ -1,0 +1,37 @@
+{
+  "sourceSha256": "B00F078A9C352ADA5CC1A7E402106620B59B2B0EC952B767ADCB78689484AFAE",
+  "outputSha256": "38DECCC25CA9E7453EB24032C9A18577682FF99FBFD3DF453A8E2363A5DD278D",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/target:exe",
+    "/optimize+",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-preserve1251-recovery\\package\\Preserve1251RecoveryGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-preserve1251-recovery\\package\\Preserve1251RecoveryGuest.cs"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-preserve1251-recovery\\package\\Preserve1251RecoveryGuest.cs",
+      "sha256": "B00F078A9C352ADA5CC1A7E402106620B59B2B0EC952B767ADCB78689484AFAE"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+    }
+  ],
+  "hostExecution": "Compiler only",
+  "original1251RetainedFailed": true
+}

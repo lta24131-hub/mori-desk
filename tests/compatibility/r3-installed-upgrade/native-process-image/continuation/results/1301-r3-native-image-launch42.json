@@ -1,0 +1,14 @@
+{
+  "id": "1301-r3-native-image-launch42",
+  "type": "run",
+  "status": "passed",
+  "pid": 4400,
+  "exitCode": 0,
+  "peakWorkingSetBytes": 40960000,
+  "reports": {
+    "launch42-result.json": "{\"passed\":true,\"operation\":\"--launch42\",\"result\":{\"launcher\":\"C:\\\\Users\\\\NookTester\\\\AppData\\\\Local\\\\Programs\\\\MoriDesk\\\\Launcher\\\\Mori.exe\",\"launcherSha256\":\"58F1D00650E3F7DD9EB93C7D382894BDDDD6B339053152D8E1979A5DBC2E0895\",\"actualExecutable\":\"C:\\\\Users\\\\NookTester\\\\AppData\\\\Local\\\\Programs\\\\MoriDesk\\\\0.1.42-20261113142121298-e4e817b1\\\\Mori.exe\",\"appSha256\":\"0023F5CF9C7B6021ED8071E9936EB20282C1FBBE467716B33146AA52110662EB\",\"pid\":4164,\"title\":\"Nook · 素材与工具\",\"normalClose\":true},\"checks\":[\"Native image-query supplement only launches exact installed42/45; never install, prepare, seed or preserve.\",\"Explicit installed test stage required.\",\"Dedicated NookTester QEMU VM required before any action.\",\"Hash-addressed driver package required.\",\"Exact dedicated-user physical profile.\",\"Existing root must be this user\\u0027s actual default root.\",\"Own helper and descendants in a kill-on-close Job before launch; inherited handle is disabled.\",\"No existing Mori process before a new installed stage.\",\"No existing Nook process before a new installed stage.\",\"No existing Nook-Setup process before a new installed stage.\",\"Strict committed executable location.\",\"Committed installed record matches the exact expected public/candidate binary.\",\"Same fixed launcher opens exact expected installed payload.\",\"Fixed-launcher application is contained in this run\\u0027s Job.\",\"Only the verified installed child may be closed.\",\"Verified installed app accepts normal native close.\",\"Installed app exits normally with code zero from its retained native handle.\",\"All owned runtime descendants exited; only this helper remains.\"],\"uiActions\":[],\"forcedCleanupAtProcessExit\":false,\"jobActive\":1,\"jobTotal\":3,\"jobActiveIncludesHelper\":true,\"hostExecuted\":false,\"installationStage\":false,\"processImageQuery\":\"QueryFullProcessImageNameW\",\"error\":null}"
+  },
+  "elapsedSeconds": 16.28,
+  "guestUtc": "2026-11-13T14:56:16.0422606Z",
+  "receivedUtc": "20261113T145617052834Z"
+}

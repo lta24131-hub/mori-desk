@@ -1,0 +1,1410 @@
+{
+  "schemaVersion": 1,
+  "state": "Prepared only; no test executed on host",
+  "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "scope": "Independent guard-negative plus original real local collector assertions. Production installed-context guard unchanged. Original969 remains failed; no healthy-popup or installed-connection acceptance.",
+  "nodeMinimumMajor": 20,
+  "upstreamCommit": "6f3f56241cccc8ada2c503df642566322dc67a3e",
+  "upstreamSourceProvenance": "D:\\Nook-DevTestVM\\audit\\20261020\\addon-20261020-094708\\outputs\\esearch-15.6.0-source\\src\\renderer\\clip\\clip_window.ts",
+  "inheritedCanvasDependencies": "C:\\NookLab\\Audit\\apps\\F5F88075D16C\\web-tests\\node_modules",
+  "files": [
+    {
+      "path": "Invoke-GuestJs.ps1",
+      "bytes": 6902,
+      "sha256": "E0D0B572A2F0F31FE42C8B486E5116A5C346C9A4BB207ED247C76E91E89C9A98"
+    },
+    {
+      "path": "repo/browser-extension/background.js",
+      "bytes": 33744,
+      "sha256": "15AB17B8B8627EC46A18D9678A79FC6ABBDEE1AB84C85CA80F55B5A748BDA884"
+    },
+    {
+      "path": "repo/browser-extension/bookmarks.js",
+      "bytes": 1025,
+      "sha256": "2D7E10C59E600ED2E7BC87243256DC24AEEE5EC9C6079603564579F084FA80EF"
+    },
+    {
+      "path": "repo/browser-extension/collector-text.js",
+      "bytes": 5146,
+      "sha256": "08CD374C3C83B1CF34E59AD4B4D9E9502412F4BEDD4BFAE38D838FC1608F697C"
+    },
+    {
+      "path": "repo/browser-extension/content.js",
+      "bytes": 72867,
+      "sha256": "C0202D5B3BA06BBDD58D357F5F9637AB7EB50798114A27044F437B182732CF5D"
+    },
+    {
+      "path": "repo/browser-extension/desktop-feedback.js",
+      "bytes": 2186,
+      "sha256": "BF732BB4E5984A7B3962A916B491E4A40B46E3AAD71EC5F92BCCA2CAB762122A"
+    },
+    {
+      "path": "repo/browser-extension/drag-geometry.js",
+      "bytes": 1524,
+      "sha256": "F0631E551F9755364F6608F2800265A05E067E885A86F690A77713F5015914E6"
+    },
+    {
+      "path": "repo/browser-extension/icon-128.png",
+      "bytes": 2362,
+      "sha256": "60DCF9E92646F48C145114B3A233915266213F06787F6161F75BF6585240DF24"
+    },
+    {
+      "path": "repo/browser-extension/icon-16.png",
+      "bytes": 307,
+      "sha256": "B24E36E249845644BE3059B858CDA3F60D9C2F2ACD2FB587B6982F897A2BC3AA"
+    },
+    {
+      "path": "repo/browser-extension/icon-32.png",
+      "bytes": 573,
+      "sha256": "24FDA89E52F3BCE009AB782B525B7DB2DB3DC2F335C08B6DA59179136EE0C423"
+    },
+    {
+      "path": "repo/browser-extension/icon-48.png",
+      "bytes": 906,
+      "sha256": "A5262ABD311285DD4E548FCB27DCEAF2A61A53F7AF35554A7578A8FFE9D9C37A"
+    },
+    {
+      "path": "repo/browser-extension/local-bridge.js",
+      "bytes": 1820,
+      "sha256": "B83AE1CF1B7C1E5AEE7D886C8D87E42D603698CC1D23F432F2FAB02B7B5450CB"
+    },
+    {
+      "path": "repo/browser-extension/manifest.json",
+      "bytes": 1304,
+      "sha256": "00992AB2AE5AA560BD355337C3BE6E617626099146A15893FB7DD88D774C263A"
+    },
+    {
+      "path": "repo/browser-extension/media-source.js",
+      "bytes": 16906,
+      "sha256": "AA50C2ECCB7CC941B8F97F3BA535F1F1A39C31BCF3F7CCB106A191E0C91B869F"
+    },
+    {
+      "path": "repo/browser-extension/popup.css",
+      "bytes": 6807,
+      "sha256": "403233C3ACB8451B124CEBEA367298090FD196DF62F3CEB191048012CD127E52"
+    },
+    {
+      "path": "repo/browser-extension/popup.html",
+      "bytes": 4668,
+      "sha256": "CE1723F13DEEADC748BE295D911536183E06B93CDC0719B83606F85467F359F3"
+    },
+    {
+      "path": "repo/browser-extension/popup.js",
+      "bytes": 16093,
+      "sha256": "652FF497E12AC4F43F791E6EDC5089DB5B94852B26D9541BCB18751B2716B5AF"
+    },
+    {
+      "path": "repo/browser-extension/preferences.js",
+      "bytes": 3151,
+      "sha256": "2A51A57455E1C0B919615F24A3F3F8AABDC371E57A52AAE519DE42A240440A97"
+    },
+    {
+      "path": "repo/browser-extension/runtime-client.js",
+      "bytes": 2881,
+      "sha256": "6B8C161FEB5F92BCE942179ACBF8A37C27DCE923FD3C0336FF28737DF0874D55"
+    },
+    {
+      "path": "repo/browser-extension/updater.js",
+      "bytes": 10937,
+      "sha256": "765F4056627FCB3D58C68715F067DCC88EC73BA606CF4DCDEAA6970271CE800D"
+    },
+    {
+      "path": "repo/dependencies/qingjie-icon.png",
+      "bytes": 5109,
+      "sha256": "173E9634425635D2282BBD0C96D7E5306CAF07E934C18B077C656337AB6BECDF"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/assets/fluent/checkmark.svg",
+      "bytes": 451,
+      "sha256": "CBE142BC09B399446E0281FFD1BBC320E1321F5CFCEE57192DCAA9F449B7F2DF"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/assets/fluent/LICENSE.txt",
+      "bytes": 1099,
+      "sha256": "9BE360C19BF5502C7927A6CA365A7504B620B408CDF6E3E2413FA63A325BD381"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/assets/fluent/SOURCE.txt",
+      "bytes": 525,
+      "sha256": "B297F0CFCED3BACB1B281F8F574552CE001BBDD5BB343DCFDEFD064727F72A11"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/main.ts",
+      "bytes": 41761,
+      "sha256": "CF2E18CC46F25B9B787F56A7549D4F79019396B6D11A7425F9DD1EE5EB725935"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/panel-layout.d.mts",
+      "bytes": 339,
+      "sha256": "8DA29AF09FC7B06A18F13436227CBF077139985532DC038D4BC2C96BF7437B9B"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/panel-layout.mjs",
+      "bytes": 4362,
+      "sha256": "D2B4D65013CDDFA508DFDBEED2A56A50BF50CE11DB40A86CEEA3D9F4EA06E9BA"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/prepare.mjs",
+      "bytes": 20944,
+      "sha256": "E5BF96F1BA4F8D60224037DF4C3F28E80E9B1E2D87E46A27720234315049F8CE"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/protocol.d.mts",
+      "bytes": 2813,
+      "sha256": "7EB8C0DF90725D7E60DF67EF38FA77BA3F32B729CC675865FAA710B31198D724"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/protocol.mjs",
+      "bytes": 21051,
+      "sha256": "3BBCB26B19B521E6007C4CF9196724BF0C3237C75BC4EC50706FDA594A66FA79"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/README.md",
+      "bytes": 13042,
+      "sha256": "E14A064D508F5F83F5B2BFBBF6296D3C13339137362165A15BF2D191695433E3"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/renderer-match.ts",
+      "bytes": 10380,
+      "sha256": "A71820F05C692D62C1D5888FE860BC1A88CC7A5858EB90AAECC6300FC3D86244"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/renderer-panel.ts",
+      "bytes": 5545,
+      "sha256": "4A4A5A7DCB17E00032E8847132187383D1E9F697133593EC30671BD1127B9C74"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/renderer-schedule.ts",
+      "bytes": 8841,
+      "sha256": "C1E185728390B13E82DB39294203CE2A50CA001C576BBCBC9CC408FF653C3CCA"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/renderer-session.ts",
+      "bytes": 21998,
+      "sha256": "4369F5CC49888D82AA05810A7E1B8AF4B3D7C691032C10DC1C0C0726C548F920"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/result-editor.css",
+      "bytes": 3430,
+      "sha256": "2E80482772A9E50FF46D540188331961162D90B72059766B0103F113D654821A"
+    },
+    {
+      "path": "repo/modules/scroll-capture/host/scroll-panel.css",
+      "bytes": 452,
+      "sha256": "EAE9B00164AADB5498E81A21BA1DFC5D43D9482687358987D5D68CDD1F66C010"
+    },
+    {
+      "path": "repo/modules/scroll-capture/package-runtime.mjs",
+      "bytes": 7822,
+      "sha256": "58AAAB62ADADEBEC96687EB1E244E746B36045BE42BAC39469C8192C1DF2BC1B"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/host-lifecycle.test.mjs",
+      "bytes": 76746,
+      "sha256": "3DB8C05808867B7E2A255167A814BF477CFF9BEC188FF6E20B173DF0E6C79631"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/package-runtime.test.mjs",
+      "bytes": 2121,
+      "sha256": "C634A883494E1DBA8AFB7FEE7DEFAE221F07534B4F36691482656AA0E3F16A27"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/panel-layout.test.mjs",
+      "bytes": 3418,
+      "sha256": "49B94ED154E21DAE77296DB59ECBD539E7171D12B59E0349AAE78B7122600F28"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/protocol.test.mjs",
+      "bytes": 29187,
+      "sha256": "9AF62B2364351EBE424635FDDBBD6B1E5BC363C9705730DF58F1109F4579E3F0"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/README.txt",
+      "bytes": 11927,
+      "sha256": "4827EDB3EF12A87248C82418BB43BF0DAA31B713C15BD2C62DC57E8B2EF14C64"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/reference-flow-integration.test.mjs",
+      "bytes": 27720,
+      "sha256": "0247D398F5CAF0B63F63FEC8A0210CCBDB7F2FEB8873B691B4E52809D914A64F"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/renderer-state.test.mjs",
+      "bytes": 37953,
+      "sha256": "52C64DD79B8D8F9588CDEE165DB41F352135ED622E41A1B9B37BD55873807C5D"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/scroll-match.test.mjs",
+      "bytes": 16773,
+      "sha256": "709C7F2E8C02F515A1917750074D9B5786C0EE21F5904B4B957E37ADC3FCA7A0"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/scroll-panel.test.mjs",
+      "bytes": 16840,
+      "sha256": "DD738855A8EE1FE9AA242ECD7064318738C212B5F41F64E2DD94EE40B400EB9A"
+    },
+    {
+      "path": "repo/modules/scroll-capture/tests/scroll-schedule.test.mjs",
+      "bytes": 16888,
+      "sha256": "C516488A48AE3E1069C70ED3AB2A12B944F8B12B6CC576863D78179174628FE8"
+    },
+    {
+      "path": "repo/node_modules/playwright/cli.js",
+      "bytes": 698,
+      "sha256": "5E79302A6AAD7D835D92D5AE6B4244C91CF61B28E94D7917279090E6C231F7A1"
+    },
+    {
+      "path": "repo/node_modules/playwright/index.d.ts",
+      "bytes": 636,
+      "sha256": "B07F64FF6EC710998A62B07377FBDA0AB4C313BA1F0055BFE9FAA22CFFEDD47C"
+    },
+    {
+      "path": "repo/node_modules/playwright/index.js",
+      "bytes": 648,
+      "sha256": "4E98F65F0A9D9BCAB8CFFC0C5CFDD87FD3F5B0BE74FC494FF166A466B204CD44"
+    },
+    {
+      "path": "repo/node_modules/playwright/index.mjs",
+      "bytes": 704,
+      "sha256": "A0F5715EA22354F922791A9C53DC012D5D5C067FF9CC4CD35FFB7CD272071A9F"
+    },
+    {
+      "path": "repo/node_modules/playwright/jsx-runtime.js",
+      "bytes": 942,
+      "sha256": "2FEFB7EC3A42DCF1CEA35CA7E3EB107507C4D80821B1D6ABF6CFC9BCA36498F0"
+    },
+    {
+      "path": "repo/node_modules/playwright/jsx-runtime.mjs",
+      "bytes": 764,
+      "sha256": "A6AE8DF3A36F154F433B01FE1592170500F5FBE7798F6DACDFEA5B492F31D1A6"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/agentParser.js",
+      "bytes": 3475,
+      "sha256": "A2F630C1C2C9EAFA0A3CA9CDBEAA26E74801615BC572E3FCE226ACB662CEB0EB"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/copilot-setup-steps.yml",
+      "bytes": 646,
+      "sha256": "7483C252E2225D90CF7B66B461772A9E16E189CD45F689F48519872571E1A345"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/generateAgents.js",
+      "bytes": 16958,
+      "sha256": "3BAE7BDE1D05C0FBAAA1A82CE7A39732FF52904DE575FE88E69C391A6C41478E"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-coverage.prompt.md",
+      "bytes": 1294,
+      "sha256": "8E8A32E98C7069C8AF29A088A91999C81DAFBEB09A144B143EBE888B48B94355"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-generate.prompt.md",
+      "bytes": 175,
+      "sha256": "6031C3EACF1E55D527A0397066B64D134D9F925FD7286BCC78646E714611DA10"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-generator.agent.md",
+      "bytes": 3336,
+      "sha256": "0A61B313FF2573198FC89C7AB5B7E7DB1C557193A470104AC90B2D6A0332BE80"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-heal.prompt.md",
+      "bytes": 105,
+      "sha256": "19F2BEA9648DDAC89B90B40A3F87B50C276D416677F8BB2FBCDAC894CDB6946B"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-healer.agent.md",
+      "bytes": 2891,
+      "sha256": "B3E1D85219DF5EAD7E3EF0DC69959B0263CC16E885F71D5B64BAFDF97E6F9215"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-plan.prompt.md",
+      "bytes": 196,
+      "sha256": "6CE2C51B356B4E89AC1E3C2B8B3FF0A390C7B518C1D4D24F019F9EB179CD6669"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/agents/playwright-test-planner.agent.md",
+      "bytes": 2808,
+      "sha256": "BF4BAA68205AA04C4512A80BCC6A5362D3AAA76AE9165F05A9D5A29E1D34C0FD"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/cli/reportActions.js",
+      "bytes": 3603,
+      "sha256": "4EECEEDF9588D69A153F018AA548E00B73E5F61CB39BB05F0FC87C06131AF2B3"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/cli/testActions.js",
+      "bytes": 9372,
+      "sha256": "44A4770714406134D1135B77D3B4388B557A7DECB7F24094E637B6A5D517DD48"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/common/index.js",
+      "bytes": 116916,
+      "sha256": "8F2588CCDB7CE2D245FDBE3222BA67817293799DFF1BA2E58303F0D558B6526F"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/common/index.js.txt",
+      "bytes": 1399,
+      "sha256": "8527825C8EFC985A83F7A2B9BAAAC44D20C39AA19EAD2CC6D574CDEDB758AA91"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/errorContext.js",
+      "bytes": 4552,
+      "sha256": "FFC1843CEBB3E90E1674C07EE2607A4A63152EFF609E5F9865BBB2F9EB02E9A1"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/globals.js",
+      "bytes": 1935,
+      "sha256": "F5922EB1FB6051900157492EB9C218E62D07378EED135BCA4B2F173ED1184D1C"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/index.js",
+      "bytes": 35668,
+      "sha256": "CB793062D359FD495F10E0916523F52C76A47FD0B6C4195451DABCD48638E862"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/isomorphic.js",
+      "bytes": 8191,
+      "sha256": "3D61508F951AA9518ADB4BF6594D61DFD1099C95A1A4F0AF809A58CCEBC59025"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/isomorphic.js.txt",
+      "bytes": 267,
+      "sha256": "36C16AE5721DFE8AC2555E84D26B5895B7CA113E7304BD3735A16D56B5A71B3C"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/loader/loaderProcessEntry.js",
+      "bytes": 1262,
+      "sha256": "45681332F4178770C204B33E5B8DCBBA940BAF3BC6FC86506BAB24027CB513F3"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/loader/loaderProcessEntry.js.txt",
+      "bytes": 234,
+      "sha256": "0FC4AD550D17A23E9F1CBC78F646E57461F4FEB22253DD5220034EF44091005C"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/matchers/expect.js",
+      "bytes": 546200,
+      "sha256": "B22E4F194830DCEB0EB67CEB44523F49BBF49F96FBA50CC097B677E94EF360D7"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/matchers/expect.js.LICENSE",
+      "bytes": 36528,
+      "sha256": "78B2F60563D28CB3F9EA17E4CDC0657681E641E2F72766771D9E2DA9CA94C065"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/matchers/expect.js.txt",
+      "bytes": 3357,
+      "sha256": "33FFAB6EBE6E66E7C056060F80E50E517EFABEABD39D092F5D3497F02A28CF44"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/browserBackend.js",
+      "bytes": 4889,
+      "sha256": "7143473E53C8B76720E42EFAB95F55227807590D2818104223D5DF6AC46B681E"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/generatorTools.js",
+      "bytes": 5427,
+      "sha256": "3C53FEAEB9FC2FF728F334CB31F9B7211E65B20C692C7585459C3C97BDD13A12"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/plannerTools.js",
+      "bytes": 6379,
+      "sha256": "715ABC888D9EA30B532B75C6F09AA34101AB15C1EEB959C50CF9DEDCF3A459AC"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/seed.js",
+      "bytes": 3239,
+      "sha256": "F36F7FB76D4ED33225E80BE208CCCC9757D363A9D1527CF560736C0F1E5EDD31"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/streams.js",
+      "bytes": 1577,
+      "sha256": "8AFFC240A6A90EE2DBDEDCDE9927018EFE426EC0D390BCD1EE4F0464E75ADC0F"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/testBackend.js",
+      "bytes": 4067,
+      "sha256": "DCD8D09366617F13213CE544EFB5FE47DF5A87258AE93545D4D0738623F43AD1"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/testContext.js",
+      "bytes": 11637,
+      "sha256": "74FF4273EA12E6353D4860C9452387B643D7D8899FBD4951389BA94D18DF5E37"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/testTool.js",
+      "bytes": 1104,
+      "sha256": "2A8F17D0A61CCB8A4CA9C52A3255D624DECA989C0B06281D579629C664F8CC8E"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/mcp/test/testTools.js",
+      "bytes": 3714,
+      "sha256": "14710B5F34246005D974762B83A2A50E5CC17130AF841CD3BC447811D69C6AF7"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/package.js",
+      "bytes": 2013,
+      "sha256": "544A18417EA51DD4C8A9F3DBC4E2B47E46C80F452E0CD23D55E9B3680BC6241E"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/program.js",
+      "bytes": 14316,
+      "sha256": "D453E49272D33D592CAC3C55E06536E5451BEC135FA8D80D6B134FD5E072C88B"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/runner/index.js",
+      "bytes": 304701,
+      "sha256": "6DCF135A144B0F243848128BB68E0A25898B8AD764A34326F36AB45D9A9E1685"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/runner/index.js.txt",
+      "bytes": 2918,
+      "sha256": "26875E6A0AD15371CB3C5DC79A8B1CB5A3388CA6D70458F2D44F6A52B105558C"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/transform/babelBundle.js",
+      "bytes": 2901663,
+      "sha256": "01511E45DB7646E2A12890DE8D7866CAA0754C8799DB6407A6345236F4BED0C4"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/transform/babelBundle.js.LICENSE",
+      "bytes": 123004,
+      "sha256": "6E396ADED640F0BD2671D57442575CE8172AA1371B2DECE6C5D4048F2F38F34C"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/transform/babelBundle.js.txt",
+      "bytes": 21645,
+      "sha256": "558B7F01E0E090114E1E0AEE9A5B913CD22185ADD68C508B3EA8234E129DD7C8"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/transform/esmLoader.js",
+      "bytes": 290393,
+      "sha256": "F4E708EA08083676777A7699C82417D16FA08113F197FBC070CCFFB9E8DB2BEB"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/transform/esmLoader.js.LICENSE",
+      "bytes": 17406,
+      "sha256": "3CEC0C446526A449E4613B0DEFEE0ADB585F88F1D7FDBA919421226D69BE078E"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/transform/esmLoader.js.txt",
+      "bytes": 2725,
+      "sha256": "94D16740D422F0B5A7C99FE7F38D6F6A5B35348EF6903EF662F1E019E42A4557"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/util.js",
+      "bytes": 14295,
+      "sha256": "874C55495773DA8C5A2EC46551C2265937BF08446231C09A8B5966E8BEA2B1F7"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/worker/workerProcessEntry.js",
+      "bytes": 75653,
+      "sha256": "CC8274565200E5F5AEECC80AEF9518526FF82A32C36E2A2B06E445C238CEBCC6"
+    },
+    {
+      "path": "repo/node_modules/playwright/lib/worker/workerProcessEntry.js.txt",
+      "bytes": 661,
+      "sha256": "8503383C20ECA96B7F79A65C33F2CF8C08A739C5E67CA10E3F04A6B53B31EA47"
+    },
+    {
+      "path": "repo/node_modules/playwright/LICENSE",
+      "bytes": 11601,
+      "sha256": "45873D00A0DD243596DEB4AA23B2493B3D1F0671921BF2538EA431D7380220EB"
+    },
+    {
+      "path": "repo/node_modules/playwright/NOTICE",
+      "bytes": 254,
+      "sha256": "6D602191187B35B9B01D2CFFA01C8469C2C8D9DE8A96F1BF868E0F264F51C81D"
+    },
+    {
+      "path": "repo/node_modules/playwright/package.json",
+      "bytes": 1416,
+      "sha256": "CA170EC143A88ED3043AC953EB3B2377B2B97304104F4E1E23316684CE2C35AF"
+    },
+    {
+      "path": "repo/node_modules/playwright/README.md",
+      "bytes": 11282,
+      "sha256": "B141B40BE2ABBBB6B111C5C270C674AC11AF9122B8C438ABB34484F5E8614C98"
+    },
+    {
+      "path": "repo/node_modules/playwright/test.d.ts",
+      "bytes": 673,
+      "sha256": "3F00324F263189B385C3A9383B1F4DAE6237697BCF0801F96AA35C340512D79C"
+    },
+    {
+      "path": "repo/node_modules/playwright/test.js",
+      "bytes": 806,
+      "sha256": "B97FA53A6AB864F51C9C48B5E4647D0ACAE45BA2948C5D78E38BFEB56755D974"
+    },
+    {
+      "path": "repo/node_modules/playwright/test.mjs",
+      "bytes": 1400,
+      "sha256": "1DEB265617D0E87B6D05BF8B3D5BF73CD4B788665C249C609A01B94CEFF2EEA1"
+    },
+    {
+      "path": "repo/node_modules/playwright/ThirdPartyNotices.txt",
+      "bytes": 705,
+      "sha256": "B17AC0BD6F4B8207E440639CC8E0BA1BF1D9EAF9B12236764AB93B346C7ABD8E"
+    },
+    {
+      "path": "repo/node_modules/playwright/types/test.d.ts",
+      "bytes": 395437,
+      "sha256": "138C4489023DA880E7219A31B8049EF9CBA13D90C5D7CF9538148001D7066F50"
+    },
+    {
+      "path": "repo/node_modules/playwright/types/testReporter.d.ts",
+      "bytes": 31392,
+      "sha256": "CC31504F31ABCD7263A1DAED018EF8109FA255464B0C0B962F39AB3548787F9E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/install_media_pack.ps1",
+      "bytes": 174,
+      "sha256": "BC20F049BADF021E3A53BDB4156603CAA5EF482C9A9A251F927605E676A44171"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/install_webkit_wsl.ps1",
+      "bytes": 1464,
+      "sha256": "BC61BEDA37A808EEF27D39CE684BAA792F6D17737A25A432B1A84D3B591AB815"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_chrome_beta_linux.sh",
+      "bytes": 1217,
+      "sha256": "DC8C22B9DDE76583CECE2857575B88094299615F3136A3C598149710C45DEE3A"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_chrome_beta_mac.sh",
+      "bytes": 563,
+      "sha256": "A92EAEB4EBCF5633A4E9C981481E14C80764FC81B6FCBC0565398E50FF319433"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_chrome_beta_win.ps1",
+      "bytes": 957,
+      "sha256": "B6D9E44742FEAFB98D5EDC56FA20042949973CF30D141A1C5B4FB384096967C5"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_chrome_stable_linux.sh",
+      "bytes": 1212,
+      "sha256": "DC72AB3567A4CE43BD8353D4ECF41F1D9C03E870169367CD3ED9043AABF67DD1"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_chrome_stable_mac.sh",
+      "bytes": 519,
+      "sha256": "BB43A96C192A6CC81524ADE0264686FFF7809C019A89F7DB0A9849635879C3BE"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_chrome_stable_win.ps1",
+      "bytes": 923,
+      "sha256": "3D96C4E2F4EBBB3FAD44CF3BA58D9CF90AF1C9FB3073E3B27D45A74CF005515B"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_beta_linux.sh",
+      "bytes": 1494,
+      "sha256": "10B26F35DBC2000B94EDF1172D803A29C5873A4EB8D523AFBC687997B642767E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_beta_mac.sh",
+      "bytes": 377,
+      "sha256": "0036D738BC90D686100D81F328BA0003BF07863F5500B792C8DA391D149750FA"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_beta_win.ps1",
+      "bytes": 874,
+      "sha256": "B173C378A59F0CC38033CEE702DE1F44F09276C9B2270D1A650EBE66EE312433"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_dev_linux.sh",
+      "bytes": 1489,
+      "sha256": "00E4947E7A4F8339C6DB09C87976D808583C07F9179E4AA7694D88614B82FE95"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_dev_mac.sh",
+      "bytes": 372,
+      "sha256": "6F899E3B311F742C24CA37FF9E32298E8290514FFC14BF588CC51556A29DA4C0"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_dev_win.ps1",
+      "bytes": 869,
+      "sha256": "46F7F98C81CB0ABE687D7F4A5AFEA9B897A38D2A6DD6F6662FBD847F7A22BD51"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_stable_linux.sh",
+      "bytes": 1507,
+      "sha256": "EC0A31A5F09C565E108473A1850895A4458AB00C713AC1DE3AA2001912E4668F"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_stable_mac.sh",
+      "bytes": 371,
+      "sha256": "3AF1E893527FF2257AA2DBC3B259A053B92F45C3EADB13E38EBA46E87902655D"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/bin/reinstall_msedge_stable_win.ps1",
+      "bytes": 856,
+      "sha256": "40BB5FCBFCEBBBE2CE43C6E736E7C5DEEFC5BE03B6E9C6914423C06EC1F591BE"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/browsers.json",
+      "bytes": 1780,
+      "sha256": "F306EED529599B1EAF2F8A85DB9DE2B23E1A3FE36C2B66434B7C9434FB627A99"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/cli.js",
+      "bytes": 839,
+      "sha256": "F1C4075AEF116C766092250D7F37B3249A7CEE6465D953207FC38C8F6145BECD"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/index.d.ts",
+      "bytes": 634,
+      "sha256": "7A8EC10B0834EB7183E4BFCD929838AC77583828E343211BB73676D1E47F6F01"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/index.js",
+      "bytes": 697,
+      "sha256": "A58FB2CEC4293E7DCF73C58A179898A4F3986666451A19DA4E731FA3AF63265B"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/index.mjs",
+      "bytes": 1063,
+      "sha256": "3D36E2132D3C8B62397D23F0BB4177336AAEE503203AE2A2C90FBEB5BF3317DD"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/bootstrap.js",
+      "bytes": 3481,
+      "sha256": "4637F4DBFEF9CFC01BAEB5F5D2CB63FA0901522C96915EA2227290558D27123E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/coreBundle.js",
+      "bytes": 3425603,
+      "sha256": "9393FA79E1C67C74EDC26B610D65A4F7ED73D345A762465CC88340A33A2454AC"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/entry/cliDaemon.js",
+      "bytes": 197,
+      "sha256": "062F256FB29A7BF91793A014B9C3F1F9CF2DC6B12E40A8A2EBBA88A630AE16A0"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/entry/dashboardApp.js",
+      "bytes": 108,
+      "sha256": "209962C6EAEEF11629F226D6A2AB33EC7A2480754242B6E19590A9E6EB71D126"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/entry/mcp.js",
+      "bytes": 442,
+      "sha256": "CC87DC0020CB41CAEBBF04F50E42BC7835B033A6D80E9C3F0A3D0B3DBDF341C7"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/entry/oopBrowserDownload.js",
+      "bytes": 120,
+      "sha256": "87567CDBD67DD2F50BB232D47D3784701ECE7C81E39C0287BB7D1B466B68CF06"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/package.js",
+      "bytes": 2112,
+      "sha256": "9F938E1D44A0DD231B1660CA62F7DAE964859B79CBDC370B8542C5D375CA3C05"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/server/chromium/appIcon.png",
+      "bytes": 16565,
+      "sha256": "6BA994F05C5CF18E22D9B6BEF9898FBDEC6AD4D4D77F5187D0609CB42D72D01E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/server/electron/loader.js",
+      "bytes": 5100,
+      "sha256": "8F4F2C20933E7BEF2BBED9A1B455278AD1461AA919B0386F360AEE5B2580149D"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/serverRegistry.js",
+      "bytes": 247102,
+      "sha256": "E9DB9D4EAA8C3690F700EA3047AF7B0B6E0B16937A969589678C51DB92272AE9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/serverRegistry.js.LICENSE",
+      "bytes": 18617,
+      "sha256": "5CF540FE55A2BA9BCF0EB76E739B454FAA8581E2F1A0F777602EF0855534302E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/channelSessions.js",
+      "bytes": 7087,
+      "sha256": "6B9C613E87340F48AD7182ADDD7495A8FF3FBE55FEB1BBD0CE04F59F1552E126"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/cli.js",
+      "bytes": 153,
+      "sha256": "DFDE8E9DFDE30C4B3914EB25BA1C5A8524EC64651D866171D75CD7B41A827180"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/help.json",
+      "bytes": 38111,
+      "sha256": "D63F1C7E006B1BDFBE656E6BEA2B4DCA9E1B6C17F8C806FDACA656FEF71D234D"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/minimist.js",
+      "bytes": 4106,
+      "sha256": "1D200627373A367E0097F1ABEAAA4D67CDE2C33F2E5EFCA5CB55222C7667ADC3"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/output.js",
+      "bytes": 11703,
+      "sha256": "2EACE914547A487B2AA1DC34AF787FE92168F0B7B3DDE24F2B127E817CC9B2B4"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/program.js",
+      "bytes": 16059,
+      "sha256": "4A3ECE6F75A707E6AF71C1DDE8650080E7819421594F251B9397E2E45E89CBB8"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/registry.js",
+      "bytes": 6662,
+      "sha256": "C11D278E05542808BA37BDB032018ECCF9DC78377F8025BD74FA906AE009CA30"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/cli-client/session.js",
+      "bytes": 9519,
+      "sha256": "716E87FC77251129ADF8C66374CCCC6788F76A02B4B33692C7E63A01A659CB5C"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/dashboard/appIcon.png",
+      "bytes": 18945,
+      "sha256": "38037BCF18C7F9B950DA2E1A2D8800D38FB27637CCDA293D38368A3704B67F18"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/element-attributes.md",
+      "bytes": 665,
+      "sha256": "BF19AA4671E0A50A0FEFA9C790F39124E803060EEFE395042B723C29FCB7FAA2"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/playwright-tests.md",
+      "bytes": 1690,
+      "sha256": "C5B0719FEF2CFDFF50BD744051B2F9AFC119775DB4B48E9B2882C1CF3886797C"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/request-mocking.md",
+      "bytes": 2182,
+      "sha256": "54E801C9663FC2B6D68CEB058CB1C360724C2499F42ACC7852A68E83E5B5F37C"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/running-code.md",
+      "bytes": 5642,
+      "sha256": "D95C539A5990B71D02D8BDF1D9414DF16191EB6CFF95B0063820518B7A13DCB2"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/session-management.md",
+      "bytes": 5671,
+      "sha256": "CD3E261B8763BF952F1E371B876CB78D054379AFEC85482F9250633E1B7E6C44"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/storage-state.md",
+      "bytes": 5198,
+      "sha256": "9AC47F9AE4A1AEDCD2077F8AC9AB1BA6BEE1962CB83FF51ADCD36FB6D83B5EC6"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/test-generation.md",
+      "bytes": 16114,
+      "sha256": "12F54CFA718D9E559BAD918120A4CA4F11C933167713D1B9C5F99872EDDAF749"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/tracing.md",
+      "bytes": 3440,
+      "sha256": "792E0AC7705E56AC48DF84C0F5400221CE86107897C671590A64A4EA6A82508E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/references/video-recording.md",
+      "bytes": 5387,
+      "sha256": "8555AB5400DF0D90E66318AACC0A8A4418FBF872E7463824D55D5C41615ABD83"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-cli/SKILL.md",
+      "bytes": 12587,
+      "sha256": "29C0B669A524D42B51934D7DB9144C1C07A566D0549AE6FB6CCD810E5A3CF61B"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-component-testing/references/gallery-spec.md",
+      "bytes": 6199,
+      "sha256": "0CA25DDE6112EB379F56EB618585B64DC2DFD13C2F7F956AC7EABBD76A68912B"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-component-testing/references/migration.md",
+      "bytes": 4758,
+      "sha256": "0AFDA2E933235AD5C538C914E75C2469C160CD3BE7650BD4EC86BEF9EFAE8D63"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-component-testing/references/react.md",
+      "bytes": 2921,
+      "sha256": "2A9661C3BFF8D12064D50AA71C4E0FE120BCF6E9F243F2506A1AD90B0EDF2F90"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-component-testing/references/vue.md",
+      "bytes": 3180,
+      "sha256": "5A01334A5521D6728F7D0E87751EFB0723D6A7E3F715F994FDF96B88853966C1"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-component-testing/SKILL.md",
+      "bytes": 10027,
+      "sha256": "77BC6F8D1DE57AC8F8996AE860C1CFC446F18F48E78CC643B43389E5A97D5C66"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/skills/playwright-trace/SKILL.md",
+      "bytes": 4712,
+      "sha256": "DF85506BFA8A445C961EFA1AC244CCA733667B717711BCC99C1F93994C29D5DC"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/utils/extension.js",
+      "bytes": 4260,
+      "sha256": "ED1A56CB9A6B4643A6A1DEA604C541A4E3A4BE8D8971EDCFE53C7DC9CCEEFE98"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/tools/utils/socketConnection.js",
+      "bytes": 3317,
+      "sha256": "973C2BEA70A1F1445F4673F99E9FA351E50A2EC9FD93D7381B2C41BB4DE764DD"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/utilsBundle.js",
+      "bytes": 3239355,
+      "sha256": "580F571BF063E2256B51B3946A035BC452FC0E22808D5547B198BAEA39923A32"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/utilsBundle.js.LICENSE",
+      "bytes": 122225,
+      "sha256": "57945338CBA4878E373646733528017FBE3DB1503EC2B431FD30D2A390C70C33"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/codicon-DCmgc-ay.ttf",
+      "bytes": 80340,
+      "sha256": "0F1D5219934E96E83B8DB162D60B4D8C09B5DE1E7D38031CBAFE4A3C0F2889C9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/firefox-1bWoP6pv.svg",
+      "bytes": 7488,
+      "sha256": "3F3742D1E78C0DB6C2D3531250F70C30675EE5310DE32FA89BEFAF738C54EFD0"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/firefox-beta-k3eOH_eK.svg",
+      "bytes": 9280,
+      "sha256": "7EAB5FFDC25903BA33A7202F7FFFA1999F119C7BE45A39E9E703C118904F917A"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/firefox-nightly-Cp5nfeDT.svg",
+      "bytes": 9143,
+      "sha256": "F311C074B0FA999FCD6B73441301FB54EE87A48FF3BF05F318647928110476DA"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/index-CyWAfh-p.js",
+      "bytes": 324278,
+      "sha256": "33ABC7596E49D241E5B397141073E73BB2FB7EEC9880BB1E0E2E6D0F673A150E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/index-DhC616m4.css",
+      "bytes": 131922,
+      "sha256": "B4ADAF3C09A3A3A4D17D0268255113D0BBACD2045CFAB47ED69A78E0B9BDBD78"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/assets/safari-na3_-uQk.svg",
+      "bytes": 5254,
+      "sha256": "80FD72CA5EB8545F1981277B31F4F92951D469D4EFEBD078E4086B676FE517DC"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/index.html",
+      "bytes": 1078,
+      "sha256": "3C127919B93D9A2A621EC5AA5BE8565680EDC6E961E62D028914549D22BCB218"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/dashboard/playwright-logo.svg",
+      "bytes": 5645,
+      "sha256": "511524A1C145819303A18FB71870A4307C3E740F9E9722F7686A2B42B0995B6C"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/htmlReport/index.html",
+      "bytes": 464,
+      "sha256": "CE7C098020A0EB9CE10EDD416245EA6DA50DFEAAB18DFD0A2176979D22643BE6"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/htmlReport/report.css",
+      "bytes": 99364,
+      "sha256": "AFA5C8F204098C79EB093E9354D82488A2CCAA771B45453CD4D1E9A075779CB8"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/htmlReport/report.js",
+      "bytes": 415216,
+      "sha256": "F0941744B2EF35B91EAFB3D6099F5D4ACB342DDBB3000FF293B6E3ABF80D29AC"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/assets/codeMirrorModule--QdMvsKi.css",
+      "bytes": 6251,
+      "sha256": "20BE824A82832B62CC04642D31DA3C609FD280B23F1CDCB1E622C4F40AAC5AB8"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/assets/codeMirrorModule-CwYYHbcZ.js",
+      "bytes": 307374,
+      "sha256": "B673ACF747A1667BBD90B96D9DE583D69905B0BD78A196B2A7979A573F5171FD"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/assets/codicon-DCmgc-ay.ttf",
+      "bytes": 80340,
+      "sha256": "0F1D5219934E96E83B8DB162D60B4D8C09B5DE1E7D38031CBAFE4A3C0F2889C9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/assets/index-DYjdXIbE.js",
+      "bytes": 358249,
+      "sha256": "F3C0288840BEDB5739649F7FE938A30F57469D46D6CA1E56EE885A0860B98DF9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/assets/index-l_lX622x.css",
+      "bytes": 85451,
+      "sha256": "01EECBEF954379CB99BF36502849FF6E503887BD8A131A5D02DD5D8C23B6106F"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/index.html",
+      "bytes": 1078,
+      "sha256": "D8A974540383C01C031DD7F317D4276675ECC562747986E6D70234751127E891"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/recorder/playwright-logo.svg",
+      "bytes": 5033,
+      "sha256": "6B0A4367BDEAB10995BC239278F04C68C10E48ADBEC15E799E01909A0D66DCB9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/assets/codeMirrorModule-rXmQmLUY.js",
+      "bytes": 307393,
+      "sha256": "BB0F7C41F9889E4195C2504878E38061288881F426498434C9955479828F7E66"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/assets/defaultSettingsView-B-dXF5JN.js",
+      "bytes": 643184,
+      "sha256": "2CE8BE133FE21A4ABD7D8330D9B443092DC2CE28826F191442C14989F9D55B15"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/assets/urlMatch-L3liM589.js",
+      "bytes": 2510,
+      "sha256": "1BC6321E32D11C31A452BC75896F0B344E6153321854D9F1658818BE7F845C16"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/assets/xtermModule-BuZfJS5v.js",
+      "bytes": 288730,
+      "sha256": "17584C22AD7D49F3C3C9E07E8B2655203CD33E60C1CB527356EABFDA6A59C830"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/codeMirrorModule.-QdMvsKi.css",
+      "bytes": 6251,
+      "sha256": "20BE824A82832B62CC04642D31DA3C609FD280B23F1CDCB1E622C4F40AAC5AB8"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/codicon.DCmgc-ay.ttf",
+      "bytes": 80340,
+      "sha256": "0F1D5219934E96E83B8DB162D60B4D8C09B5DE1E7D38031CBAFE4A3C0F2889C9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/defaultSettingsView.BLFoOugd.css",
+      "bytes": 105310,
+      "sha256": "72241B3112AB609CA0E06195E85E02CB373799217CD5F24A07D61D9273C4AD3E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/index.B_TqY17P.css",
+      "bytes": 2055,
+      "sha256": "08A212FCACAE1866F44F065654AFCC4C7D03409C68C74B3315C5BDA17A0CA003"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/index.html",
+      "bytes": 2363,
+      "sha256": "E2218AF9284B6E1C2EC3B547320857778A323FD1473D90620153E967223C5721"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/index.KZ4wOW1K.js",
+      "bytes": 6566,
+      "sha256": "53E2227532161670BC601E241A7A9AF00AC54826A9DD2EF9C15B8C1F77E92E63"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/manifest.webmanifest",
+      "bytes": 429,
+      "sha256": "D8540500603A32A39FE7E5A0375DC0F9EBAFD11118E06A846DB7EFC608223AB9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/playwright-logo.svg",
+      "bytes": 5033,
+      "sha256": "6B0A4367BDEAB10995BC239278F04C68C10E48ADBEC15E799E01909A0D66DCB9"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/snapshot.B_Jk1wbt.js",
+      "bytes": 650,
+      "sha256": "D4D09E05451D107D8E1A6BBD041405FE518B9FD2833890E4EBAAAD83B7F554F5"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/snapshot.html",
+      "bytes": 389,
+      "sha256": "C608C8899C95C5A74D3F556E20146C3D852B9DF85AE2854C659A7CC773C9B727"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/sw.bundle.js",
+      "bytes": 93459,
+      "sha256": "CFD6662A71914516EFE90A5A6F3DA2BBE5DB6E442939B868CA465F765D33723F"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/uiMode.C7UW1sC9.css",
+      "bytes": 54341,
+      "sha256": "C194E703AD4697E31C5E9B8D1E4F75F201A1FBE9940620FA6319DFA5543707B4"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/uiMode.Dzuouizj.js",
+      "bytes": 37932,
+      "sha256": "A584F96F0797144552430D7A04F7E3B84B1BAAA0B781A664B1512339EC1C760B"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/uiMode.html",
+      "bytes": 727,
+      "sha256": "32B260F173708FE088834EFE8EFF0F9D92AF0C7E2E6C987CD8E197F0A066742F"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/vite/traceViewer/xtermModule.kHJ-D0s7.css",
+      "bytes": 2853,
+      "sha256": "0DD60056134E6A2994A86B59A1E9789B9F04E92924DA109AEF8C923ACAF08CE5"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/webp_codec.LICENSE",
+      "bytes": 8841,
+      "sha256": "995C7EE35ACEB7666829B7A501CA89C0864E12B493C1174B155774AB1E03D831"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/webp_codec.wasm",
+      "bytes": 565369,
+      "sha256": "164CD9583A3E4D081F767D3B41FF0A730443DC7535FCC5CAFF83561463384B79"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/lib/xdg-open",
+      "bytes": 32416,
+      "sha256": "7D759D54F0D4CE1BEEB34EE62C587985B5042374E8DE237B0DCB8CD47AA698CF"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/LICENSE",
+      "bytes": 11601,
+      "sha256": "45873D00A0DD243596DEB4AA23B2493B3D1F0671921BF2538EA431D7380220EB"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/NOTICE",
+      "bytes": 254,
+      "sha256": "6D602191187B35B9B01D2CFFA01C8469C2C8D9DE8A96F1BF868E0F264F51C81D"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/package.json",
+      "bytes": 876,
+      "sha256": "07C47543631FEF9508760365DEE9FBE958C562093EC8D122543949ED231F233F"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/README.md",
+      "bytes": 120,
+      "sha256": "D16FF7F8E38FA1FC954F695AD551CDC118D9C9BDD5F3D83203901F4C317D7D7E"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/ThirdPartyNotices.txt",
+      "bytes": 676,
+      "sha256": "A549D329BAD8806FE279F0ECAE0FC0270DEC7E7C2DC8EC10F90E394F7C32B144"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/types/protocol.d.ts",
+      "bytes": 823302,
+      "sha256": "B836EED98B79FABB54F1DF73252A0CE178B8DF4A89794251ADE2FA0C5E52B678"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/types/structs.d.ts",
+      "bytes": 2455,
+      "sha256": "C9B9179B7291C8562EB0FB781219DDBDCF36149EBD7BD355E5B4A553D6B60B81"
+    },
+    {
+      "path": "repo/node_modules/playwright-core/types/types.d.ts",
+      "bytes": 1110840,
+      "sha256": "6C688250F2B7061CEC3A17AB8797671137B653F8C4E81A6DF3190CB112A7579A"
+    },
+    {
+      "path": "repo/node_modules/typescript/lib/typescript.js",
+      "bytes": 9066411,
+      "sha256": "DD17428736A07E1DB1A138D8A14295DDB2699BA780EE15038ACDD2C6DA5373A0"
+    },
+    {
+      "path": "repo/node_modules/typescript/LICENSE.txt",
+      "bytes": 9197,
+      "sha256": "A7D00BFD54525BC694B6E32F64C7EBCF5E6B7AE3657BE5CC12767BCE74654A47"
+    },
+    {
+      "path": "repo/node_modules/typescript/package.json",
+      "bytes": 3615,
+      "sha256": "EBB0CE176C85AC13CE82F5BE7E6F15114732BA0F064CCC893FD9051426D35D3A"
+    },
+    {
+      "path": "repo/outputs/esearch-15.6.0-source/src/renderer/clip/clip_window.ts",
+      "bytes": 144967,
+      "sha256": "A9AE3630D4A26ACFD092B13AA5B2E35F60C99DE1EB1B0F4E6E68A90E2DA94DEA"
+    },
+    {
+      "path": "repo/outputs/scroll-match-fixtures19/frame-0.rgba",
+      "bytes": 2039100,
+      "sha256": "2F6537E8D2C0F92D31AB27FCBAF66C3EDCA2994F19A089FF5D5B4A88CA763E97"
+    },
+    {
+      "path": "repo/outputs/scroll-match-fixtures19/frame-435.44.rgba",
+      "bytes": 2039100,
+      "sha256": "6B5A238422CD4F30C14DAD09A7A66A034D88B8EF90D5A5BBDB4D75EB6CB9A532"
+    },
+    {
+      "path": "repo/outputs/scroll-match-fixtures19/frame-48.rgba",
+      "bytes": 2039100,
+      "sha256": "7AB758D8F516CE7CC78D4044B759443737F6C38A93AF109443299E037493A382"
+    },
+    {
+      "path": "repo/outputs/scroll-match-fixtures19/frame-774.89.rgba",
+      "bytes": 2039100,
+      "sha256": "F1301FE892762D9B394AC02FEBA8BE7B21EA6117849BD2D8AD0281B1C40791BC"
+    },
+    {
+      "path": "repo/outputs/scroll-match-fixtures19/frame-96.rgba",
+      "bytes": 2039100,
+      "sha256": "CF5BC7809B04C79ED50952EEEDAF7B99FDE198CE23DAC4F628FE83D021B873F6"
+    },
+    {
+      "path": "repo/scroll-capture/node_modules/picture_match/dist/index.d.ts",
+      "bytes": 412,
+      "sha256": "9DBE40C95A11B50879D0A7B264D0E3F685CC6E7BFA3FB8D0CB85A7A2228AC4B8"
+    },
+    {
+      "path": "repo/scroll-capture/node_modules/picture_match/dist/index.js",
+      "bytes": 414,
+      "sha256": "F4DF89B3DA21D1844BF41894D94B781FD1B3765A985819D6EEE4FF38AD8E0E2B"
+    },
+    {
+      "path": "repo/scroll-capture/node_modules/picture_match/dist/pic_match-zHPXHzIr.js",
+      "bytes": 302457,
+      "sha256": "63A2B7E299BD86806B736B6E5A534DE8F9B95817BF1B2B4CC72B44B79FDEF969"
+    },
+    {
+      "path": "repo/scroll-capture/node_modules/picture_match/LICENSE",
+      "bytes": 9723,
+      "sha256": "62C7A1E35F56406896D7AA7CA52D0CC0D272AC022B5D2796E7D6905DB8A3636A"
+    },
+    {
+      "path": "repo/scroll-capture/node_modules/picture_match/package.json",
+      "bytes": 938,
+      "sha256": "FF1D78C6BCE02D75C17F0287387805C9F9133CF1164FA913C60CD1812E831D42"
+    },
+    {
+      "path": "repo/src/ModelWindow.cs",
+      "bytes": 8631,
+      "sha256": "BADA88B54C057020BCB4677129B8EC1338BEFAA722A954E90E98300300442BD7"
+    },
+    {
+      "path": "repo/tests/browser-collector-resilience.cjs",
+      "bytes": 23853,
+      "sha256": "3AF704CEC91AC2E77DA802A74C36C9E5E03F4CF93C9BB21C8DA7F2DD7A233C10"
+    },
+    {
+      "path": "repo/tests/browser-desktop-feedback.cjs",
+      "bytes": 5217,
+      "sha256": "255BFAFF807380DCBA3ED7F37E6A5220E5CDE687B2FAD7ADDA0CA0600E08FF5D"
+    },
+    {
+      "path": "repo/tests/browser-extension.cjs",
+      "bytes": 40734,
+      "sha256": "EBFF2AFB3B8B4E14AD98460570338F8C7D9C57D598F7B771CDA50178512217BC"
+    },
+    {
+      "path": "repo/tests/browser-fixture-diagnostics.cjs",
+      "bytes": 2609,
+      "sha256": "33A653DAF8A017534BDBADB03EA98C3A2640F01C60EFDA7AF65CD25904BFE052"
+    },
+    {
+      "path": "repo/tests/browser-lifecycle.cjs",
+      "bytes": 6751,
+      "sha256": "D8E2E7DECEC52BC338E0C76C67A214CBB17BF2528E621E618F2D143C221FA581"
+    },
+    {
+      "path": "repo/tests/browser-local-e2e.cjs",
+      "bytes": 7518,
+      "sha256": "1A9D6C4AD07427B7E4B34902254B27F685AA9233AF0D614FC12D00A05D5B7F06"
+    },
+    {
+      "path": "repo/tests/browser-preferences.cjs",
+      "bytes": 11467,
+      "sha256": "3C7CAC830A993423E6F030C51299B2B6E97C999CB1C130B28B892DF42979D13E"
+    },
+    {
+      "path": "repo/tests/browser-runtime.cjs",
+      "bytes": 5882,
+      "sha256": "9842AEB761BB44B212894AB4478FC9E270E970168DA72A7283308C96E3ED4781"
+    },
+    {
+      "path": "repo/tests/browser-theme.cjs",
+      "bytes": 19156,
+      "sha256": "6C5152341496466B4A5884C7BEF0831644D9245A67B2CF460290B086D3FE9F8E"
+    },
+    {
+      "path": "repo/tests/browser-update-host-e2e.cjs",
+      "bytes": 8221,
+      "sha256": "71271BC19B7780BA338BCB02DFE3855E58362F835F2D25D59A313917F9365FB4"
+    },
+    {
+      "path": "repo/tests/browser-update-integration.cjs",
+      "bytes": 12388,
+      "sha256": "3228D3CD22A36D62332BD99FFFEA223267F5AA4EDBA48CCD17C3BA93750918AB"
+    },
+    {
+      "path": "repo/tests/browser-updater.cjs",
+      "bytes": 14332,
+      "sha256": "9BFF021FC30357F7577E1D0E7C4B723046D486894CF18913D15E251D9BB74B7F"
+    },
+    {
+      "path": "repo/tests/media-source.cjs",
+      "bytes": 9628,
+      "sha256": "242B2E437F5D127A86236E4EE39C60A7E2C07E98C5D56C1C10A563F9F442F0FE"
+    },
+    {
+      "path": "repo/tests/native-suite.cjs",
+      "bytes": 2981,
+      "sha256": "D8985AAF32C2B480F9017B22CD3F12EBAF67D1BE10AADF697E4D31CCB6366246"
+    },
+    {
+      "path": "repo/web/canvas-src/index.html",
+      "bytes": 685,
+      "sha256": "936E33440B04C777776D774E516F38171E3FD36CD0855B65ADFB25E3710A5F3F"
+    },
+    {
+      "path": "repo/web/canvas-src/package.json",
+      "bytes": 683,
+      "sha256": "15BB0AE35DD03D108D5222C51DF282F545AA232EA70F604738267147A5A48F93"
+    },
+    {
+      "path": "repo/web/canvas-src/pnpm-lock.yaml",
+      "bytes": 140360,
+      "sha256": "EBEDE6EB15D39DC0162E225C9B0318C410C796E53A644BA7ED126AB5496AB79B"
+    },
+    {
+      "path": "repo/web/canvas-src/pnpm-workspace.yaml",
+      "bytes": 225,
+      "sha256": "95D763CB24ABA2DDDACBCBC4208209820AE37A694521F6A75E01E65367007B9C"
+    },
+    {
+      "path": "repo/web/canvas-src/src/assets.mjs",
+      "bytes": 1977,
+      "sha256": "DA7BC4B7C00373241EB832F460C08D04104530C998F5D41D73160DA03425D040"
+    },
+    {
+      "path": "repo/web/canvas-src/src/bridge.mjs",
+      "bytes": 10899,
+      "sha256": "E2670438AD56345623D23BF818CF5C74EA81A9937588AAAC6D2267B2AF451FFE"
+    },
+    {
+      "path": "repo/web/canvas-src/src/image-layout.mjs",
+      "bytes": 2018,
+      "sha256": "E6B5FC69F93160FF18C72FD8979B4EAD221490EFC4A340F39A0CFB82930C3D59"
+    },
+    {
+      "path": "repo/web/canvas-src/src/main.tsx",
+      "bytes": 20719,
+      "sha256": "D0C9D24F5C9D68EB137CA224AB8B1DA436B3C4CC58BC42D483A0F02F3A5B9347"
+    },
+    {
+      "path": "repo/web/canvas-src/src/policies.mjs",
+      "bytes": 994,
+      "sha256": "D2B5F11405B48B1FB3F747D53D44C1F8B7C07DC36DDC34DF7ABD2C6161222845"
+    },
+    {
+      "path": "repo/web/canvas-src/src/preferences.ts",
+      "bytes": 1626,
+      "sha256": "3C5CA07B2545D9400551A90C2ED00B5D4CAF93CB602F02F4D0C2E86BA8A47720"
+    },
+    {
+      "path": "repo/web/canvas-src/src/style-panel.tsx",
+      "bytes": 3023,
+      "sha256": "0C6F0E9A5A1C911FDDA3B8D541FAA388371550E90AB7C58737279E8E1D3A80D2"
+    },
+    {
+      "path": "repo/web/canvas-src/src/style.css",
+      "bytes": 3209,
+      "sha256": "0A759F79088A3CCC74FB2584605A596859DE0CA98A67C9010150E6EEE33A4017"
+    },
+    {
+      "path": "repo/web/canvas-src/src/thumbnail-queue.mjs",
+      "bytes": 1295,
+      "sha256": "DBDFAD2A22F012346EE13BE8A22A3316B14F805CD3353D12BB459DE6B8E12E37"
+    },
+    {
+      "path": "repo/web/canvas-src/src/thumbnail.ts",
+      "bytes": 1301,
+      "sha256": "88828BB34483132A6C90BFADBAC25C7A4A53ECF3CB8F7918E314A26D57EE1879"
+    },
+    {
+      "path": "repo/web/canvas-src/src/timers.mjs",
+      "bytes": 474,
+      "sha256": "95DE1EE79438F6D3BF8D2C2A2B8F10CE9DE093DCA775B2A693D1F8E227E5BFA7"
+    },
+    {
+      "path": "repo/web/canvas-src/src/wheel.ts",
+      "bytes": 2527,
+      "sha256": "58146C308B9C163E3EDE0C88E06C7BF3C682E6C1AAE86253ACF050DBD4C46FBE"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/assets.test.mjs",
+      "bytes": 2966,
+      "sha256": "8172C38BDFB0786588502E6A2F2CE58F0F2AD4C33FDA301B23663960DBB9C8FC"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/bridge.test.mjs",
+      "bytes": 15727,
+      "sha256": "C6BCE308A379034E7F28192CECA7DF5D065235AC08C8874A139CC2C47C21E6A3"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/browser-timers.test.mjs",
+      "bytes": 5448,
+      "sha256": "CF0A3997E95895FA45ECACD8962F9B03E1A87A85BB3BC68BE15A5916B8C75F44"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/editor-mount.test.tsx",
+      "bytes": 22517,
+      "sha256": "EAB5E4B9A6E5D7101924980F40C7A379904C53F825932555B4708D575BF7C0E2"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/image-layout.test.mjs",
+      "bytes": 1671,
+      "sha256": "9E4D63C4E559BD75482EB94865804ED41893D177B1176CAF0D489B618CC190C9"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/policies.test.mjs",
+      "bytes": 2530,
+      "sha256": "3C14D53055F8F89B86BE1601EF09FBFDE19049F478414474D3B43D33CDC783A9"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/sdk-test-setup.ts",
+      "bytes": 3643,
+      "sha256": "59D8047B63D0282CFC47FDD860BFAC3F99CC752BE1F423D3BF0B4DA5FAF50610"
+    },
+    {
+      "path": "repo/web/canvas-src/tests/thumbnail-queue.test.mjs",
+      "bytes": 2347,
+      "sha256": "0F641F1AC34F984C2DA6E5CA142D66DB4788B5207E0235E8707BF449682DBFDC"
+    },
+    {
+      "path": "repo/web/canvas-src/tsconfig.json",
+      "bytes": 378,
+      "sha256": "01FD8BFB1E9A8BD502103697D7AB3EAE0A8B8C65F02C90C34DB0AA787C951004"
+    },
+    {
+      "path": "repo/web/canvas-src/vite.config.ts",
+      "bytes": 489,
+      "sha256": "17AF6659E655ACB3257E7B30A34254CBFE5EC2A9EA34692F9173DBB5D4336727"
+    },
+    {
+      "path": "repo/web/canvas-src/vitest.config.ts",
+      "bytes": 295,
+      "sha256": "83F86805715C0AD430DC8CEAFB621F785A9D97C4E20FD4B26D010773AA6C51C5"
+    },
+    {
+      "path": "repo/web/model/desktop-theme.css",
+      "bytes": 6963,
+      "sha256": "200C34D1F59333FBC5C4E09B96CE857491E959345126A9296882D737A665D6B8"
+    },
+    {
+      "path": "repo/tests/browser-local-isolated-contract.cjs",
+      "bytes": 6232,
+      "sha256": "6B93F484574D91A8A625260E7DDE7A83484E540B71D93470598207D95F3F1C7B"
+    }
+  ],
+  "originalFailedTask": 969,
+  "originalTestSha256": "1A9D6C4AD07427B7E4B34902254B27F685AA9233AF0D614FC12D00A05D5B7F06",
+  "independentTestSha256": "6B93F484574D91A8A625260E7DDE7A83484E540B71D93470598207D95F3F1C7B"
+}

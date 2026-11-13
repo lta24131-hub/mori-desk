@@ -29,7 +29,8 @@ namespace MoriDeskInstaller {
    if(!folder.Success||!System.Version.TryParse(record.Version,out version)||version.ToString(3)!=record.Version||folder.Groups[1].Value!=record.Version||!DateTime.TryParseExact(folder.Groups[2].Value,"yyyyMMddHHmmssfff",CultureInfo.InvariantCulture,DateTimeStyles.None,out timestamp)||!StageDigest.IsMatch(record.PayloadSha256)||(record.Phase!="extracting"&&record.Phase!="sealed")||(record.Phase=="sealed"?(!StageDigest.IsMatch(record.ExecutableSha256)||!StageDigest.IsMatch(record.ManifestSha256)):(record.ExecutableSha256!=""||record.ManifestSha256!="")))throw new InvalidDataException("更新暂存记录身份无效。");
    return record;
   }
-  static string PlannedCandidate(){return Path.Combine(ProgramRoot,Version+"-"+DateTime.UtcNow.ToString("yyyyMMddHHmmssfff",CultureInfo.InvariantCulture)+"-"+Guid.NewGuid().ToString("N").Substring(0,8),"Mori.exe");}
+  internal static string CandidateDirectoryName(string version){return version+"-"+DateTime.UtcNow.ToString("yyyyMMddHHmmssfff",CultureInfo.InvariantCulture)+"-"+Guid.NewGuid().ToString("N").Substring(0,8);}
+  static string PlannedCandidate(){return Path.Combine(ProgramRoot,CandidateDirectoryName(Version),"Mori.exe");}
   static string ReadStageText(string session){
    UpdateSession(Path.Combine(session,"request.json"),UpdatesRoot);string file=Path.Combine(session,StageRecordName);PlainPath(file);
    using(var stream=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.Read)){

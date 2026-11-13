@@ -1,0 +1,9 @@
+{
+  "id": "1396-r4-baseline-retained-lease-ready-0",
+  "type": "read",
+  "status": "passed",
+  "text": "{\"vmGuard\":true,\"userGuard\":true,\"pid\":1156,\"maxSeconds\":3600,\"globalPowerPlanChanged\":false,\"productExecuted\":false,\"utc\":\"2026-11-13T15:50:19.5709915Z\"}",
+  "elapsedSeconds": 0.06,
+  "guestUtc": "2026-11-13T15:55:34.7685823Z",
+  "receivedUtc": "20261113T155535730599Z"
+}

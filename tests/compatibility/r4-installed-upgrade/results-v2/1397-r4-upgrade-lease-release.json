@@ -1,0 +1,14 @@
+{
+  "id": "1397-r4-upgrade-lease-release",
+  "type": "run",
+  "status": "passed",
+  "pid": 6244,
+  "exitCode": 0,
+  "peakWorkingSetBytes": 24289280,
+  "reports": {
+    "display-resume-lease-release.request.json": "{\"vmGuard\":true,\"userGuard\":true,\"package\":\"C:\\\\NookLab\\\\Audit\\\\apps\\\\982ECD28E958\",\"requesterPid\":6244,\"releaseOwnPackageOnly\":true,\"utc\":\"2026-11-13T16:18:23.0890932Z\"}"
+  },
+  "elapsedSeconds": 1.89,
+  "guestUtc": "2026-11-13T16:18:24.0944995Z",
+  "receivedUtc": "20261113T161825053485Z"
+}

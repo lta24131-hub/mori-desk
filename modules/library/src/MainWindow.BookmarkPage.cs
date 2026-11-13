@@ -66,9 +66,5 @@ namespace Mori {
    if(busy||!PrepareLibraryChange())return;string name=Prompt("新建网址文件夹","文件夹名称","");if(name==null)return;
    try{Edit("新建网址文件夹",()=>library.CreateFolder(name,parent,true));Refresh(false);}catch(Exception error){MessageBox.Show(Window,error.Message,"无法新建文件夹");}
   }
-  void ShowBookmarkMove(){
-   var menu=Theme.Menu(Window);Menu(menu,"未分类",()=>MoveSelectedBookmarks("","未分类"));foreach(var folder in library.Folders(true)){var f=folder;Menu(menu,FolderLabel(f,library.Folders(true)),()=>MoveSelectedBookmarks(f.Id,f.Name));}menu.PlacementTarget=B("Categorize");menu.IsOpen=true;
-  }
-  void MoveSelectedBookmarks(string id,string name){if(!PrepareLibraryChange())return;Edit("移动网址到："+name,()=>library.MoveBookmarks(selection,id));Refresh(true);}
  }
 }

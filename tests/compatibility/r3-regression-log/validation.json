@@ -1,0 +1,19 @@
+{
+  "original933Passed": false,
+  "originalRunnerExitCode": 0,
+  "originalOutputTruncated": true,
+  "supplement": {
+    "task": 1015,
+    "passed": true,
+    "checksPassed": 7121,
+    "reportSha256": "533994D96B359655133D7D3B52EBC40FCF0BF39FCA0D712687FE7EF33ED14F7F",
+    "completeStdoutSha256": "EDB50F6DEFC25D735800693942A1AB41E4F85B0A6E071BBE8C67B8C1E8346BDC",
+    "completeStdoutBytes": 637916,
+    "allChunkHashesAndLengthsVerified": true,
+    "originalRunnerUnchanged": true,
+    "childrenStopped": true,
+    "jobActiveProcessesAfterStop": 0,
+    "watchdogFired": false
+  },
+  "hostProductExecution": false
+}

@@ -1,0 +1,18 @@
+{
+  "original1143RetainedFailed": true,
+  "productionChanged": false,
+  "oldSuccessfulStagesNotRepeated": [
+    1140,
+    1141,
+    1142
+  ],
+  "allowedResumeStages": [
+    "--launch42",
+    "--snapshot42",
+    "--install45",
+    "--launch45",
+    "--verify45"
+  ],
+  "noThresholdChanged": true,
+  "physicalProductExecution": false
+}

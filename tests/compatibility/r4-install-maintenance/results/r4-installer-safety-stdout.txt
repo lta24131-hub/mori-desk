@@ -1,0 +1,4 @@
+Generated taskbar shortcut fixture retained at: C:\NookLab\Audit\s-5bafb1745f61\temp\Nook-taskbar-shortcut-9dcca23997aa46b9ad9d187e000d2776
+Generated cleanup progress fixtures retained at: C:\NookLab\Audit\s-5bafb1745f61\temp\Nook-cleanup-progress-5c61473b957d4b649f93747c5abe96e6
+Generated marker fixtures retained at: C:\NookLab\Audit\s-5bafb1745f61\temp\Nook-installer-marker-2755f49e079b495587d3dda9164e1994
+PASS 420 installer safety checks; no process inspection, registry writes or install performed.

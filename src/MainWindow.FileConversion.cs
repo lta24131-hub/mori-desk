@@ -18,7 +18,6 @@ namespace Mori {
   Grid fileConversionHost;
   FrameworkElement fileConversionDetails;
   ScrollViewer fileConversionScroll;
-  Button fileConversionTask;
   bool fileConversionVisible,fileConversionCollecting;
   bool quickConversionRunning;
   CancellationTokenSource quickConversionCancellation;
@@ -389,7 +388,6 @@ namespace Mori {
    panel.CopyResult=path=>{var files=new System.Collections.Specialized.StringCollection();files.Add(path);Clipboard.SetFileDropList(files);Status("已复制转换结果，可粘贴到其他软件");};
    panel.LocateResult=path=>LocateConvertedFile(origin,path);
    panel.CloseRequested=CollapseFileConversion;
-   panel.StateChanged+=UpdateFileConversionTask;
    ShowFileConversion();AddInitialConversionFiles(panel,inputs);
   }
   static string ConversionSourceStem(FileConversionCollectionSession.SourceInfo source){
@@ -427,20 +425,13 @@ namespace Mori {
    sidebars.SetVisible(false,true);UpdateDetailsToggle();
    fileConversionVisible=true;fileConversionDetails.Visibility=Visibility.Collapsed;fileConversionScroll.Visibility=Visibility.Visible;
    UpdateHomeInspector();
-   UpdateFileConversionTask();
   }
   internal void CollapseFileConversion(){
    if(fileConversionPanel==null)return;
    fileConversionVisible=false;fileConversionScroll.Visibility=Visibility.Collapsed;fileConversionDetails.Visibility=Visibility.Visible;
    sidebars.SetTemporaryRightWidth(null);
    UpdateHomeInspector();
-   UpdateFileConversionTask();Status(FileConversionWorking?"已收起；转换仍在继续，可从顶部“转换中”返回。":"已返回素材详情；可从顶部“转换”继续查看结果。");
-  }
-  void UpdateFileConversionTask(){
-   if(fileConversionTask==null)return;
-   fileConversionTask.Visibility=fileConversionPanel==null?Visibility.Collapsed:Visibility.Visible;
-   fileConversionTask.Content=FileConversionWorking?"转换中":"转换";
-   fileConversionTask.SetResourceReference(Button.BackgroundProperty,fileConversionVisible?"AccentSoft":"Panel");
+   Status(FileConversionWorking?"已收起；转换仍在继续。":"已返回素材详情；转换结果仍保留。");
   }
   bool InFileConversion(object source){
    if(!fileConversionVisible||fileConversionPanel==null)return false;
@@ -474,11 +465,11 @@ namespace Mori {
     // genuine exit needs a guard; cancelling explicitly happens in the panel.
     if(e.Cancel)return;
     if(quickFileConversionWindow!=null&&quickFileConversionWindow.Panel.IsBusy){
-     e.Cancel=true;exitRequested=false;QingJie.AppState.Quitting=false;
+     e.Cancel=true;exitRequested=false;DeskRuntime.ResumeAfterCancelledExit();
      Status("文件转换仍在进行，可继续浏览；请从“工具 → 格式转换”取消剩余任务后再退出。");return;
     }
     if(!FileConversionWorking)return;
-    e.Cancel=true;exitRequested=false;QingJie.AppState.Quitting=false;
+    e.Cancel=true;exitRequested=false;DeskRuntime.ResumeAfterCancelledExit();
     Status("转换仍在进行。请等待完成，或在“更多”中取消本次转换后退出。");
    };
    Window.Closed+=delegate{
@@ -559,7 +550,7 @@ namespace Mori {
   }
   async Task<ConversionCollectionResult> CollectConvertedFilesDetailedAsync(FileConversionCollectionSession origin,IList<ConvertedFile> results){
    if(busy||fileConversionCollecting)throw new InvalidOperationException("素材库正在处理其他操作。生成文件已保留，可稍后重试收藏。");
-   fileConversionCollecting=true;UpdateFileConversionTask();
+   fileConversionCollecting=true;
    try{
     var receipt=await origin.CollectAsync(results);
     if(receipt.CollectedPaths.Length>0){
@@ -568,7 +559,7 @@ namespace Mori {
      try{Refresh(false);}catch{receipt.Message+="；列表暂未刷新，请按 F5。";}
     }
     Status(receipt.Message);return receipt;
-   }finally{fileConversionCollecting=false;UpdateFileConversionTask();}
+   }finally{fileConversionCollecting=false;}
   }
  }
 }

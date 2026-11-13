@@ -1,0 +1,98 @@
+--- retained3ECC/InstalledUpgradeDriverGuest.cs
++++ InstalledUpgradePrepareGuest.cs
+@@ -97,16 +97,30 @@
+  // The fixed launcher and payload share the Mori process name. The known
+  // bootstrap is never a payload candidate. Other exited processes may vanish
+  // between HasExited and MainModule; live unreadable identities still fail.
++ [DllImport("kernel32.dll",EntryPoint="QueryFullProcessImageNameW",CharSet=CharSet.Unicode,SetLastError=true)]static extern bool QueryFullProcessImageName(IntPtr process,uint flags,StringBuilder path,ref uint length);
++ [DllImport("kernel32.dll",SetLastError=true)]static extern uint GetProcessId(IntPtr process);
++ // Native process-image query is bound to the retained candidate handle/PID.
++ // It does not enumerate Process.Modules while the child loader is starting.
++ static string NativeProcessImage(Process process){
++  IntPtr handle=process.Handle;uint pid=GetProcessId(handle);
++  if(pid==0)throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(),"Cannot identify the retained candidate process handle.");
++  if(pid!=(uint)process.Id)throw new InvalidDataException("Candidate handle no longer names the exact candidate PID.");
++  var path=new StringBuilder(32768);uint count=(uint)path.Capacity;
++  if(!QueryFullProcessImageName(handle,0,path,ref count))throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(),"Cannot query the exact candidate executable image.");
++  if(count==0||count>=path.Capacity||string.IsNullOrEmpty(path.ToString()))throw new InvalidDataException("Live launcher candidate has no executable path; identity cannot be verified.");
++  return path.ToString();
++ }
++ static void CloseLaunchApp(Process app,string expectedHash){Need(!app.HasExited&&Hash(NativeProcessImage(app))==expectedHash,"Only the verified installed child may be closed.");IntPtr handle=app.Handle;bool closeToTray=true;string settings=Path.Combine(Data,"settings.json");if(File.Exists(settings)){var value=Read(settings);object setting;if(value.TryGetValue("CloseToTray",out setting)&&setting is bool)closeToTray=(bool)setting;}
++  if(!closeToTray){Need(app.CloseMainWindow(),"Verified installed app accepts normal native close.");}
++  else{var root=AutomationElement.FromHandle(app.MainWindowHandle);var more=root.FindFirst(TreeScope.Descendants,new PropertyCondition(AutomationElement.AutomationIdProperty,"More"));Invoke(more,app.Id,"Open owned app More menu");AutomationElement exit=null;Wait(()=>{foreach(var window in Windows(app.Id)){exit=Find(window,"退出 Nook",ControlType.MenuItem);if(exit!=null)return true;}return false;},6000,"Owned exit menu item did not appear.");Invoke(exit,app.Id,"Exit Nook normally through its actual menu");}
++  Wait(()=>app.HasExited,15000,"Installed application refused normal close; preserve evidence.");uint exitCode;Need(GetExitCodeProcess(handle,out exitCode)&&exitCode==0,"Installed app exits normally with code zero from its retained native handle.");
++ }
+  static string CandidateImage(Process candidate,int bootstrapPid){
+   if(candidate.Id==bootstrapPid||candidate.HasExited)return null;
+   try{
+-   var module=candidate.MainModule;
+-   if(module==null){if(candidate.HasExited)return null;throw new InvalidDataException("Live launcher candidate has no main module; identity cannot be verified.");}
+-   string path=module.FileName;
+-   if(string.IsNullOrEmpty(path))throw new InvalidDataException("Live launcher candidate has no executable path; identity cannot be verified.");
+-   return path;
++   return NativeProcessImage(candidate);
+   }catch(Exception error){
+-   if((error is InvalidOperationException||error is System.ComponentModel.Win32Exception||error is NullReferenceException)&&candidate.HasExited)return null;
++   if((error is InvalidOperationException||error is System.ComponentModel.Win32Exception)&&candidate.HasExited)return null;
+    throw;
+   }
+  }
+@@ -137,13 +151,38 @@
+   }
+   return found;
+  }
++
++ // Verify the live owned dialog once before Close. During destruction, UIA
++ // identity is unavailable; completion uses only this retained native handle.
++ static long ClosePreparationSettings(AutomationElement settings,Process child,IntPtr main){
++  Need(!child.HasExited&&Hash(NativeProcessImage(child))==OldApp,"Only exact live public42 may close its owned Settings dialog.");
++  int pid=child.Id;var current=settings.Current;IntPtr window=new IntPtr(current.NativeWindowHandle);uint ownerPid,mainPid;
++  Need(window!=IntPtr.Zero&&IsWindow(window)&&GetWindowThreadProcessId(window,out ownerPid)!=0&&ownerPid==(uint)pid&&GetWindow(window,4)==main,"Retained Settings handle belongs to exact public42 PID and main-window owner.");
++  Need(IsWindow(main)&&GetWindowThreadProcessId(main,out mainPid)!=0&&mainPid==(uint)pid,"Retained Settings owner is the exact public42 main window.");
++  var title=new StringBuilder(512);GetWindowText(window,title,title.Capacity);
++  Need(current.ProcessId==pid&&current.Name=="Nook · 设置"&&current.ControlType==ControlType.Window&&title.ToString()=="Nook · 设置","Live Settings native and UIA identities agree before normal close.");
++  object pattern=null;Need(settings.TryGetCurrentPattern(WindowPattern.Pattern,out pattern),"Only owned public42 Settings dialog closes normally.");
++  ((WindowPattern)pattern).Close();
++  Wait(()=>{
++   bool closed=!IsWindow(window);
++   if(!closed){uint livePid;uint thread=GetWindowThreadProcessId(window,out livePid);
++    if(thread==0){if(!IsWindow(window))closed=true;else throw new InvalidDataException("Live retained Settings handle cannot be identified during normal close.");}
++    else closed=livePid!=(uint)pid;
++   }
++   uint liveMainPid;
++   return closed&&IsWindow(main)&&GetWindowThreadProcessId(main,out liveMainPid)!=0&&liveMainPid==(uint)pid&&IsWindowVisible(main)&&IsWindowEnabled(main);
++  },6000,"Retained Settings window did not close and restore its verified owner within the original budget.");
++  Need(!child.HasExited&&Hash(NativeProcessImage(child))==OldApp,"Public42 remains the same live process after Settings closes.");
++  Need(IsWindow(main)&&GetWindowThreadProcessId(main,out mainPid)!=0&&mainPid==(uint)pid&&IsWindowVisible(main)&&IsWindowEnabled(main),"Verified main window is visible and enabled after its Settings dialog closes.");
++  return window.ToInt64();
++ }
+  static object PrepareBrowser42(){
+   NoProduct();var active=Active("0.1.42.0",OldApp);string executable=Path.Combine(Program,Text(active["executable"])),launcher=Path.Combine(Program,"Launcher","Mori.exe"),browser=Path.Combine(Data,"browser");
+   Need(!File.Exists(Path.Combine(browser,"app.mori.desk.json"))&&!File.Exists(Path.Combine(browser,"extension-installs.json"))&&!Directory.Exists(Path.Combine(browser,"extension")),"New healthy baseline has no browser manifest/catalog/runtime to replace.");
+   foreach(string name in new[]{"chrome","msedge"}){var all=Process.GetProcessesByName(name);try{Need(all.Length==0,"No browser runs while the public42 UI prepares its own extension: "+name);}finally{foreach(var item in all)item.Dispose();}}
+   Process child=null;DateTime beforeClick=DateTime.MinValue;using(var bootstrap=Process.Start(Start(launcher))){
+    Wait(()=>{var candidates=Process.GetProcessesByName("Mori");try{foreach(var candidate in candidates){string image=CandidateImage(candidate,bootstrap.Id);if(image!=null&&image.Equals(executable,StringComparison.OrdinalIgnoreCase)&&candidate.MainWindowHandle!=IntPtr.Zero&&IsWindowVisible(candidate.MainWindowHandle)&&IsWindowEnabled(candidate.MainWindowHandle)){child=candidate;return true;}}return false;}finally{foreach(var candidate in candidates)if(candidate!=child)candidate.Dispose();}},30000,"Fixed launcher did not open public42 for browser preparation.");
+-   Need(child!=null&&Hash(child.MainModule.FileName)==OldApp,"Browser preparation belongs to exact genuine public42.");bool contained;Need(IsProcessInJob(child.Handle,Job,out contained)&&contained,"Public42 preparation child is owned by this helper Job.");
++   Need(child!=null&&Hash(NativeProcessImage(child))==OldApp,"Browser preparation belongs to exact genuine public42.");bool contained;Need(IsProcessInJob(child.Handle,Job,out contained)&&contained,"Public42 preparation child is owned by this helper Job.");
+    IntPtr mainHandle=child.MainWindowHandle;var main=AutomationElement.FromHandle(mainHandle);var settingsButton=main.FindFirst(TreeScope.Descendants,new PropertyCondition(AutomationElement.AutomationIdProperty,"Settings"));Invoke(settingsButton,child.Id,"Open public42 Settings");
+    AutomationElement settings=null;Wait(()=>{settings=PreparationSettings(child.Id,mainHandle,true);return settings!=null;},6000,"Public42 Settings dialog did not appear.");
+    Invoke(Find(settings,"浏览器收藏",ControlType.Button),child.Id,"Select public42 browser collection settings");
+@@ -152,12 +191,11 @@
+    string manifest=Path.Combine(browser,"app.mori.desk.json"),catalog=Path.Combine(browser,"extension-installs.json"),runtime=Path.Combine(browser,"extension","manifest.json"),connection=Path.Combine(browser,"connection-status.log");
+    Wait(()=>File.Exists(manifest)&&File.Exists(catalog)&&File.Exists(runtime)&&File.Exists(connection)&&File.GetLastWriteTimeUtc(connection)>=beforeClick&&File.ReadAllText(connection,Utf8).Contains(" listening"),30000,"Public42 UI did not prepare its manifest/catalog/runtime and local listening state.");
+    var native=Read(manifest);Need(Text(native["name"])=="app.mori.desk"&&Text(native["type"])=="stdio"&&Text(native["path"]).Equals(launcher,StringComparison.OrdinalIgnoreCase)&&File.Exists(launcher),"Public42 generated manifest targets existing stable launcher.");
+-   object pattern=null;Need(settings.Current.ProcessId==child.Id&&settings.TryGetCurrentPattern(WindowPattern.Pattern,out pattern),"Only owned public42 Settings dialog closes normally.");((WindowPattern)pattern).Close();
+-   Wait(()=>PreparationSettings(child.Id,mainHandle,false)==null,6000,"Settings did not close normally.");
+-   CloseApp(child,OldApp);child.Dispose();Wait(()=>bootstrap.HasExited,5000,"Fixed launcher did not exit after browser preparation.");
+-   return new{publicUiOnly=true,clickedInstallRepairOnce=true,realChromeLoaded=false,manifestSha256=Hash(manifest),catalogSha256=Hash(catalog),runtimeManifestSha256=Hash(runtime),localListeningObserved=true,normalClose=true};
+-  }
+- }
+- [STAThread]static int Main(string[] args){object result=null;Exception error=null;bool passed=false;try{Operation=args.Length>0?args[0]:"";Need(args.Length==1&&Operation=="--prepare-browser42","This supplement only retries public42 browser preparation; never install, launch-only, reseed or preserve.");Need((args.Length==2&&(Operation=="--install42"||Operation=="--install45"))||(args.Length==1&&(Operation=="--launch42"||Operation=="--launch45"||Operation=="--prepare-browser42")),"Explicit installed test stage required.");Guest();using(var watchdog=new Timer(_=>Environment.Exit(124),null,780000,Timeout.Infinite)){result=Operation=="--prepare-browser42"?PrepareBrowser42():args.Length==2?Install(Operation=="--install45",args[1]):Launch(Operation=="--launch45");Wait(OnlyHelper,12000,"Owned application descendants did not drain.");Need(OnlyHelper(),"All owned runtime descendants exited; only this helper remains.");passed=true;}}catch(Exception failure){error=failure;try{Forced=Job!=IntPtr.Zero&&!OnlyHelper();}catch{Forced=true;}}finally{if(Package!=null)try{Save(Path.Combine(Package,Operation.TrimStart('-')+"-result.json"),new{passed,operation=Operation,result,checks=Checks,uiActions=Actions,preparationNativeWindows=PreparationWindowsObserved.Values.ToArray(),forcedCleanupAtProcessExit=Forced,jobActive=JobActive,jobTotal=JobTotal,jobActiveIncludesHelper=true,hostExecuted=false,installationStage=Operation=="--install42"||Operation=="--install45",error=error==null?null:error.ToString()});}catch{}}
++   long closedSettingsHandle=ClosePreparationSettings(settings,child,mainHandle);
++   CloseLaunchApp(child,OldApp);child.Dispose();Wait(()=>bootstrap.HasExited,5000,"Fixed launcher did not exit after browser preparation.");
++   return new{publicUiOnly=true,clickedInstallRepairOnce=true,realChromeLoaded=false,manifestSha256=Hash(manifest),catalogSha256=Hash(catalog),runtimeManifestSha256=Hash(runtime),localListeningObserved=true,normalClose=true,settingsClosedHandle=closedSettingsHandle,settingsCloseProbe="native-handle-lifetime",processImageQuery="QueryFullProcessImageNameW"};
++  }
++ }
++ [STAThread]static int Main(string[] args){object result=null;Exception error=null;bool passed=false;try{Operation=args.Length>0?args[0]:"";Need(args.Length==1&&Operation=="--prepare-browser42","This reviewed helper only prepares a fresh public42 browser baseline; never install, launch-only, reseed or preserve.");Need((args.Length==2&&(Operation=="--install42"||Operation=="--install45"))||(args.Length==1&&(Operation=="--launch42"||Operation=="--launch45"||Operation=="--prepare-browser42")),"Explicit installed test stage required.");Guest();using(var watchdog=new Timer(_=>Environment.Exit(124),null,780000,Timeout.Infinite)){result=Operation=="--prepare-browser42"?PrepareBrowser42():args.Length==2?Install(Operation=="--install45",args[1]):Launch(Operation=="--launch45");Wait(OnlyHelper,12000,"Owned application descendants did not drain.");Need(OnlyHelper(),"All owned runtime descendants exited; only this helper remains.");passed=true;}}catch(Exception failure){error=failure;try{Forced=Job!=IntPtr.Zero&&!OnlyHelper();}catch{Forced=true;}}finally{if(Package!=null)try{Save(Path.Combine(Package,Operation.TrimStart('-')+"-result.json"),new{passed,operation=Operation,result,checks=Checks,uiActions=Actions,preparationNativeWindows=PreparationWindowsObserved.Values.ToArray(),forcedCleanupAtProcessExit=Forced,jobActive=JobActive,jobTotal=JobTotal,jobActiveIncludesHelper=true,hostExecuted=false,installationStage=Operation=="--install42"||Operation=="--install45",error=error==null?null:error.ToString()});}catch{}}
+   return passed?0:1;}
+ }

@@ -1,0 +1,9 @@
+{
+  "id": "1350-r4-native-maintenance-deploy",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\DADD17F52A1F",
+  "elapsedSeconds": 5.18,
+  "guestUtc": "2026-11-13T15:37:30.1737868Z",
+  "receivedUtc": "20261113T153731149801Z"
+}

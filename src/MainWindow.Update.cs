@@ -9,23 +9,39 @@ namespace Mori {
   bool updateExitInProgress;
   void InitializeAppUpdate(){
    AppUpdateCoordinator.Register(Window,()=>PreviewMode,ExitForUpdateAsync);
-   EventHandler rendered=null;rendered=(sender,args)=>{
+   EventHandler rendered=null;rendered=async (sender,args)=>{
     Window.ContentRendered-=rendered;
     if(!PreviewMode&&Entry.InteractiveShell&&Window.IsLoaded&&Window.IsVisible){
+     try{
      // ReportStartupReady consumes these one-use environment values. Keep
      // their exact session for cleanup, which must wait for installer commit.
      string request=Environment.GetEnvironmentVariable("NOOK_UPDATE_REQUEST"),version=Environment.GetEnvironmentVariable("NOOK_UPDATE_EXPECTED_VERSION");
-     bool updateLaunch=!string.IsNullOrEmpty(request)||!string.IsNullOrEmpty(version);
+     bool updateLaunch=!string.IsNullOrEmpty(request)||!string.IsNullOrEmpty(version),pendingCandidate=InstalledApplicationRouting.IsPendingCandidate;
      bool startupReady=AppUpdateCoordinator.ReportStartupReady(Window);
      // An invalid/replayed update session must not turn into an ordinary
      // startup cleanup when the readiness check has rejected it.
      if(updateLaunch&&!startupReady)return;
-     InstalledVersionMaintenance.Queue(request,version,library.Root,message=>{
-      if(!Window.Dispatcher.HasShutdownStarted)Window.Dispatcher.BeginInvoke(new Action(()=>Status(message)));
-     },()=>BrowserConnection.LocalState=="listening"||BrowserConnection.LocalState=="unpaired");
+     // Explorer repair can wait on installation/registry locks. Start it only
+     // after the real main window renders, away from its dispatcher. Capture
+     // candidate eligibility BEFORE ReportStartupReady consumes the session.
+     await RunStartupMaintenanceAsync(updateLaunch,pendingCandidate,()=>OpenWithRegistration.TryRepairCurrentInstallation(),()=>
+      InstalledVersionMaintenance.Queue(request,version,library.Root,message=>{
+       if(!Window.Dispatcher.HasShutdownStarted)Window.Dispatcher.BeginInvoke(new Action(()=>Status(message)));
+      },()=>BrowserConnection.LocalState=="listening"||BrowserConnection.LocalState=="unpaired"));}
+     catch(Exception error){System.Diagnostics.Trace.WriteLine("Nook startup maintenance deferred: "+error.GetType().Name);}
     }
    };
    Window.ContentRendered+=rendered;
+  }
+  internal static Task RunStartupMaintenanceAsync(bool updateLaunch,bool pendingCandidate,Action repair,Action maintenance){
+   if(repair==null||maintenance==null)throw new ArgumentNullException();
+   return Task.Run(()=>{
+    // An installer-owned candidate must never claim Explorer registrations,
+    // even after its one-use update environment has been consumed.
+    if(!updateLaunch&&!pendingCandidate)repair();
+    // Preserve ordering: old payload cleanup observes the repaired routes.
+    maintenance();
+   });
   }
   async Task<bool> ExitForUpdateAsync(string backupDirectory,Func<bool> installerReady,CancellationToken token){
    if(PreviewMode||busy||updateExitInProgress||token.IsCancellationRequested)return false;
@@ -38,7 +54,7 @@ namespace Mori {
     waitingCanvas=false;
     try{
      if(cancelled||token.IsCancellationRequested||!installerReady()){
-      args.Cancel=true;QingJie.AppState.Quitting=false;if(cancelled){detach();updateExitInProgress=false;}return;
+      args.Cancel=true;DeskRuntime.ResumeAfterCancelledExit();if(cancelled){detach();updateExitInProgress=false;}return;
      }
      if(!committed){
       // The usual debounce writers report failures without blocking close.
@@ -47,8 +63,8 @@ namespace Mori {
       var settings=Settings.Load();settings.ThumbnailSize=thumbnailSize;settings.LeftSidebarWidth=sidebars.Left;settings.RightSidebarWidth=sidebars.Right;settings.Save();
       AppUpdateMetadataBackup.Create(backupDirectory,Entry.DataRoot,library.Root,path=>library.Db.Exec("VACUUM INTO "+Database.Q(path)));committed=true;
      }
-     if(token.IsCancellationRequested||!installerReady()){args.Cancel=true;QingJie.AppState.Quitting=false;}
-    }catch(Exception error){args.Cancel=true;QingJie.AppState.Quitting=false;Status("更新前备份未完成，未退出："+error.Message);}
+     if(token.IsCancellationRequested||!installerReady()){args.Cancel=true;DeskRuntime.ResumeAfterCancelledExit();}
+    }catch(Exception error){args.Cancel=true;DeskRuntime.ResumeAfterCancelledExit();Status("更新前备份未完成，未退出："+error.Message);}
    };
    onClosed=(s,e)=>{closed=true;detach();};Window.Closing+=closing;Window.Closed+=onClosed;
    try{
@@ -68,7 +84,7 @@ namespace Mori {
    }
    finally{
     cancelled=!closed;
-    if(!closed){QingJie.AppState.Quitting=false;exitRequested=false;}
+    if(!closed){DeskRuntime.ResumeAfterCancelledExit();exitRequested=false;}
     // If a deferred canvas save is still in flight, retain a one-use guard:
     // its late Window.Close callback must not exit after update cancellation.
     if(!waitingCanvas||closed||matureCanvas==null||matureCanvas.CanImportImages){detach();updateExitInProgress=false;}

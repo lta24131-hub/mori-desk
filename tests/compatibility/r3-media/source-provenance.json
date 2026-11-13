@@ -1,0 +1,446 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "scope": "Exact R3 package source copies except the explicitly recorded post-894 CoreAudio IID correction. Not part of default product compile.",
+  "recipes": [
+    {
+      "name": "R3MediaProbeRunner",
+      "source": "R3MediaProbeRunner.cs",
+      "sourceSha256": "43884A57A059EB3C041B880D8E3880DFBC601A05EA3189467E91F34DC8958F78",
+      "assemblyIdentity": "QingJie.Tests.exe",
+      "outputName": "R3MediaProbeRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "build",
+          "relative": "Mori.exe",
+          "sha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+        },
+        {
+          "root": "build",
+          "relative": "Microsoft.Web.WebView2.Core.dll",
+          "sha256": "88A3B62F45225A811CDB85DF6DFD95C2BFF9A0E43E3B04F813B125EACA56CC9F"
+        },
+        {
+          "root": "build",
+          "relative": "Microsoft.Web.WebView2.Wpf.dll",
+          "sha256": "1C5B6C792916D168093EF9B836F33E818D2D15D0C81F0864B5CDDFF97D913319"
+        }
+      ],
+      "originalOutputSha256": "9F384F6BC0C0967B64CF21FB07B579EF73DD55C60B8CA2E37562322DC3AAD0DF",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-probes\\package\\R3MediaProbeRunner.cs",
+      "originalProvenanceSha256": "7EA22FA6D8FDB65A1EE4BEA8DF77648B9D662A348D89DD21C83A281D4821AF48"
+    },
+    {
+      "name": "MediaProbeGuest",
+      "source": "MediaProbeGuest.cs",
+      "sourceSha256": "FEB3BBAF869E48CDB4F81F7B3DC557724DB973508909E7360D60A2FCDC979F4D",
+      "assemblyIdentity": "MediaProbeGuest.exe",
+      "outputName": "MediaProbeGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "8925D22E84CFCDA536DA7F9CD4FE374E8FA2BC6403187B23435EAAFBBB42C7EA",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-probes\\package\\MediaProbeGuest.cs",
+      "originalProvenanceSha256": "9736EF84D5346B67C4FEAADA327628A6AD3A89F576FF7BE70EB091DA04B40763"
+    },
+    {
+      "name": "MediaPlaybackRunner",
+      "source": "MediaPlaybackRunner.cs",
+      "sourceSha256": "D8CBFB4610DD46DA7DF35200B30B9ED407CFA68DB51F88A85695755998DE7BEA",
+      "assemblyIdentity": "MediaPlaybackRunner.exe",
+      "outputName": "MediaPlaybackRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        }
+      ],
+      "originalOutputSha256": "8E127C1A9BD14CDF149BC80E0AD8C2D9466B62FA9059FAD4A597F38C8BC2A96B",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-supplement\\package\\MediaPlaybackRunner.cs",
+      "originalProvenanceSha256": "C53D383F66793FD012F5C4B95C242F1283D8F2707105E353D323127912F2EE00"
+    },
+    {
+      "name": "MediaSupplementGuest",
+      "source": "MediaSupplementGuest.cs",
+      "sourceSha256": "66A69014E57D0603608A84C4F02C0AB9A8EB7121B4DA71A71F4ED522A9E0BA0A",
+      "assemblyIdentity": "MediaSupplementGuest.exe",
+      "outputName": "MediaSupplementGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "43D937F9BD1B11D0B9E894C40A3ADC0B418B376933B518743D1C294BB9EF5EEF",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-supplement\\package\\MediaSupplementGuest.cs",
+      "originalProvenanceSha256": "68DAFDD14F01B624E8FF2DAE6A6F02FC4DA3489982FEDDAB5DB8478051E462D6"
+    },
+    {
+      "name": "AudioEndpointGuest",
+      "source": "AudioEndpointGuest.cs",
+      "sourceSha256": "0968E610CA710C96E68C15D3BBA94D4B3CF89B0A554CEAF73CEC100B1B74303D",
+      "assemblyIdentity": "AudioEndpointGuest.exe",
+      "outputName": "AudioEndpointGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "AB7F6EFDEAE139F2E19AA9ACDE3B32169B6CF1C8FDC406DCBA0AFDC8CD6564D1",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-audio-endpoints\\package\\AudioEndpointGuest.cs",
+      "originalProvenanceSha256": "8DB597A67FB4BC1B94C6A71941C95878A20509D0EC4718334887EBA41C52264D",
+      "originalPackageSourceSha256": "06DE708358E38FAA470556CF29D7F7680E5270484D5695CE78771A322EE113C3",
+      "exactSourceFromOriginalPackage": false,
+      "sourceChanges": "Correct IMMDeviceCollection IID from official Windows SDK header after task 894 helper failure. Product unchanged.",
+      "correctionAuthority": "https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/um/mmdeviceapi.h",
+      "validation": "Corrected source compiled only; not executed in VM. OriginalOutputSha256 belongs to historical invalid-IID source, not corrected source."
+    },
+    {
+      "name": "MediaFixtureGuest",
+      "source": "MediaFixtureGuest.cs",
+      "sourceSha256": "4CB6197AD46B5B630D93485A14178A73FDDE104A34E4AF06856D55B552C01694",
+      "assemblyIdentity": "MediaFixtureGuest.exe",
+      "outputName": "MediaFixtureGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "A78A0A0F6B0C6C273CE27E2013CCE0BB39F2450138225DDEFE5E0DF6E1648B35",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-generator-v2\\package\\MediaFixtureGuest.cs",
+      "originalProvenanceSha256": "F4D12DFBD1DA19CFD5174F99D05C3287634851289C3DC94A07137F33D2177BB9"
+    },
+    {
+      "name": "R3MediaFunctionalRunner",
+      "source": "R3MediaFunctionalRunner.cs",
+      "sourceSha256": "4C751FBF58231596D988CEE4FF87857F2B375E5DC170BB4BAEF672035D11C2AC",
+      "assemblyIdentity": "QingJie.Tests.exe",
+      "outputName": "R3MediaFunctionalRunner.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "build",
+          "relative": "Mori.exe",
+          "sha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+        },
+        {
+          "root": "build",
+          "relative": "Microsoft.Web.WebView2.Core.dll",
+          "sha256": "88A3B62F45225A811CDB85DF6DFD95C2BFF9A0E43E3B04F813B125EACA56CC9F"
+        },
+        {
+          "root": "build",
+          "relative": "Microsoft.Web.WebView2.Wpf.dll",
+          "sha256": "1C5B6C792916D168093EF9B836F33E818D2D15D0C81F0864B5CDDFF97D913319"
+        }
+      ],
+      "originalOutputSha256": "45E3C757974D39CB8C27AFB46A7F842CB05ECFA586D00E7B75B92D000AF494BB",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-functional\\package\\R3MediaFunctionalRunner.cs",
+      "originalProvenanceSha256": "2E66E0E8CA882D481C883CBEE757784B660B49FD1C72DFB978EE57A534E782BE",
+      "exactSourceFromOriginalPackage": true
+    },
+    {
+      "name": "MediaFunctionalGuest",
+      "source": "MediaFunctionalGuest.cs",
+      "sourceSha256": "2085D35D006BF7337BDEBA939A308B3FA9B8A48BD750FEA98A41245908BEF107",
+      "assemblyIdentity": "MediaFunctionalGuest.exe",
+      "outputName": "MediaFunctionalGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "475876A22DE80B2A50110B372AC9F39FD1A43F236352B9DF6193D10A72B22ADC",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-functional\\package\\MediaFunctionalGuest.cs",
+      "originalProvenanceSha256": "02DCB9D674BB351AAED7F9743C6BD81222F251B8C7F8F7B9F96B0F54E4C80A1E",
+      "exactSourceFromOriginalPackage": true
+    }
+  ],
+  "reviewedPackages": {
+    "originalMp4": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-supplement\\actual-media-supplement.zip",
+      "bytes": 1924954,
+      "sha256": "76D90129C8BD86CEB977D3616500413EE2B05F247C9F5AECF670EE1A476BD476",
+      "members": 12,
+      "guest": "C:\\NookLab\\Audit\\apps\\76D90129C8BD",
+      "executable": "MediaSupplementGuest.exe",
+      "args": [
+        "--run",
+        "library-media"
+      ],
+      "report": "library-media.json",
+      "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+      "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+      "videoSha256": "0430D51A7C8EF567F00130EB303DBC0236DAD1972CF54467C9FE3554C2666B1B"
+    },
+    "audioEnvironmentMp4Retry": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-audio-retry\\actual-media-audio-retry.zip",
+      "bytes": 1926269,
+      "sha256": "0405866CCAC034C43B037A62FBB3C4A49F5456E883B868133B8EC1B5C31AEF29",
+      "members": 13,
+      "guest": "C:\\NookLab\\Audit\\apps\\0405866CCAC0",
+      "executable": "MediaSupplementGuest.exe",
+      "args": [
+        "--run",
+        "library-media"
+      ],
+      "report": "library-media.json",
+      "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+      "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+      "videoSha256": "0430D51A7C8EF567F00130EB303DBC0236DAD1972CF54467C9FE3554C2666B1B",
+      "originalFailureRetained": 888,
+      "runAuthorized": false,
+      "precondition": "Root approval and retained CoreAudio active render endpoint evidence"
+    },
+    "diagnosticAndWebm": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-probes\\media-probes.zip",
+      "sha256": "18E84ADD89715EADC52F897D444D9907E230BA339438214F98BED90922AF41C5",
+      "bytes": 64294,
+      "members": 12,
+      "guest": "C:\\NookLab\\Audit\\apps\\18E84ADD8971",
+      "executable": "MediaProbeGuest.exe",
+      "commands": [
+        [
+          "--run",
+          "mp4-diagnostic"
+        ],
+        [
+          "--run",
+          "actual-webm"
+        ]
+      ],
+      "reports": [
+        "mp4-diagnostic.json",
+        "actual-webm.json"
+      ],
+      "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+      "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C"
+    },
+    "endpoint": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-audio-endpoints\\audio-endpoints.zip",
+      "bytes": 18061,
+      "sha256": "646F5CB6EA9CE6D01828D7128CE173C05FB3EC14D0A4267B84180967554C7F02",
+      "members": 4,
+      "guest": "C:\\NookLab\\Audit\\apps\\646F5CB6EA9C",
+      "executable": "AudioEndpointGuest.exe",
+      "args": [
+        "--read-render-endpoints"
+      ],
+      "report": "audio-render-endpoints.json",
+      "productExecuted": false,
+      "readOnlyEnvironmentInventory": true,
+      "requiresRootApproval": true
+    },
+    "fixtureGenerator": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-generator-v2\\media-fixture-generator.zip",
+      "bytes": 109439554,
+      "sha256": "A4548CA73B4CB92BE3E1B293A236BAEDF54937F0C642ED00A5CB90C102FFD8E5",
+      "members": 19,
+      "executable": "MediaFixtureGuest.exe",
+      "args": [
+        "--run"
+      ],
+      "report": "media-fixture-result.json",
+      "guest": "C:\\NookLab\\Audit\\apps\\A4548CA73B4C",
+      "scope": "Dedicated VM only; generates exact synthetic 640x360/12-second/30fps/H264/yuv420p/AAC fixture, verifies ffprobe, returns SHA and separate <=128KiB base64 JSON part files; no product or real media"
+    },
+    "boundedNativeMp4Functional": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-functional\\native-mp4-functional.zip",
+      "sha256": "8D0F3E6A0CC36FAAC78D4CFF1DCC683223941019AF632D7950A0B6B5207B1B99",
+      "bytes": 61340,
+      "members": 11,
+      "guest": "C:\\NookLab\\Audit\\apps\\8D0F3E6A0CC3",
+      "executable": "MediaFunctionalGuest.exe",
+      "args": [
+        "--run",
+        "native-mp4-functional"
+      ],
+      "report": "native-mp4-functional.json",
+      "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+      "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+      "originalFailedTasks": [
+        888,
+        896
+      ],
+      "fixedTimingRequirementPassed": false
+    },
+    "displayAwakeRetry": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-media-display-retry\\native-mp4-display-retry.zip",
+      "sha256": "72BE6BFA9081977D2D460980F7FF4E65BCC749BF0AECAE48EC552774BCBFED72",
+      "bytes": 62624,
+      "members": 12,
+      "guest": "C:\\NookLab\\Audit\\apps\\72BE6BFA9081",
+      "executable": "MediaFunctionalGuest.exe",
+      "args": [
+        "--run",
+        "native-mp4-functional"
+      ],
+      "report": "native-mp4-functional.json",
+      "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+      "fullTarget": "C:\\NookLab\\Audit\\apps\\72F61B078B2C",
+      "originalFailedTasks": [
+        888,
+        896
+      ],
+      "fixedTimingRequirementPassed": false,
+      "original991RetainedFailed": true,
+      "requiresRootApproval": true
+    }
+  },
+  "physicalProductExecution": false
+}

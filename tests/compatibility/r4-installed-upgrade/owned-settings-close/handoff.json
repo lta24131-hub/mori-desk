@@ -1,0 +1,20 @@
+{
+  "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-owned-prepare-v3\\owned-prepare-v3.zip",
+  "sha256": "2B168852E834B2D8950146FB3B33C34627E43FED1505FD19447F3F51AA90BFEE",
+  "guest": "C:\\NookLab\\Audit\\apps\\2B168852E834",
+  "executable": "InstalledUpgradePrepareGuest.exe",
+  "args": [
+    "--prepare-browser42"
+  ],
+  "report": "prepare-browser42-result.json",
+  "sourceSha256": "8A156067C7A891E158FDA13E9F46355CA672912458BA50D15C73A2827AB375E6",
+  "exeSha256": "BA897156FCB619F36234EB97C367EA607127493A0882124A2FB79DDB2ACD87EE",
+  "original1276RetainedFailed": true,
+  "freshPublic42AndEmptyBrowserRequired": true,
+  "existing1304StateMustNotRunThisHelper": true,
+  "originalTimeoutsUnchanged": true,
+  "normalSettingsCloseRequired": true,
+  "normalAppCloseRequired": true,
+  "hostExecution": "Compiler/package only; no helper/product execution",
+  "runAuthorized": false
+}

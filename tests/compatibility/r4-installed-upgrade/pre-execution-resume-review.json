@@ -1,0 +1,16 @@
+{
+  "approved": true,
+  "planSha256": "FA17553EFE8FA8AF3AA5BD134C9C72FDDF9EE3041EC8D61960C2123C3128837E",
+  "controllerSha256": "0A62394B57A81B295D7E0D1C237041BEC76CF4DE79E2B6808351D435751D6C97",
+  "originalReviewSha256": "5FA221E40644A042308A87524CB08107CD57F8E64BC6A6B45E2DBB121854FFE7",
+  "scope": "Resume product-unstarted baseline only after retained pid1156 lease receipt and age<1200s checks; original ready-read and premature release failures retained. Separate results-v2; original stage assertions/helpers unchanged. Upgrade remains gated by independent healthy42 evidence.",
+  "changesReviewed": [
+    "One-shot receipt read changed to bounded35s readiness observation.",
+    "No repeated setup or lease launch during baseline resume.",
+    "Original baseline result list must remain empty.",
+    "Normal finally release after actual phase; unique release IDs."
+  ],
+  "originalProductStagesExecuted": 0,
+  "leaseReceiptSha256": "F9520F1E3A458436630229680FAA7F7968F20262092AC67FE6BB9B05BC5E96BE",
+  "hostProductExecuted": false
+}

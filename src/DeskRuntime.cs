@@ -49,6 +49,14 @@ namespace MoriDesk {
   }
   static IntPtr Hotkey(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){if(message!=0x312||AppState.Hotkeys==null)return IntPtr.Zero;int action=AppState.Hotkeys.ActionFor(w.ToInt32());if(action<0)return IntPtr.Zero;handled=true;if(AppState.ShortcutRecorder!=null){AppState.ShortcutRecorder(AppState.Hotkeys.KeyFor(w.ToInt32()));return IntPtr.Zero;}if(action==0)AppState.BeginCapture(null,true);if(action==1)AppState.Paste();if(action==2)AppState.ShowTranslator();if(action==3)AppState.TogglePins();return IntPtr.Zero;}
   public static bool PrepareExit(Window owner){if(!ownsPins||AppState.Pins==null)return true;if(AppState.Captures.Count>0&&MessageBox.Show(owner,"还有未完成的截图，退出将关闭当前截图。已保存的贴图会保留。是否退出？","退出 Nook",MessageBoxButton.YesNo,MessageBoxImage.Question)!=MessageBoxResult.Yes)return false;try{AppState.Pins.PersistAll();AppState.Quitting=true;pinLifetime.Cancel();return true;}catch(Exception ex){MessageBox.Show(owner,"贴图状态保存失败，暂未退出："+ex.Message);return false;}}
+  internal static void ResumeAfterCancelledExit(){
+   if(!ownsPins||SessionEnding)return;
+   // A later Closing handler can reject an already-prepared exit. Keep the
+   // old generation cancelled so in-flight work cannot present late windows,
+   // but let subsequent paste/capture requests use a fresh lifetime.
+   if(pinLifetime.IsCancellationRequested){pinLifetime.Dispose();pinLifetime=new System.Threading.CancellationTokenSource();}
+   AppState.Quitting=false;
+  }
   public static void PrepareSessionEnd(){if(!ownsPins||AppState.Pins==null)return;SessionEnding=true;AppState.Quitting=true;pinLifetime.Cancel();try{AppState.Pins.PersistAll();}catch(Exception error){AppState.Pins.LogFailure("SessionEnding",error);}}
   public static bool RequireTools(){if(Started)return true;if(Notify!=null)Notify(failure??"请在正在使用截图工具的 Nook 窗口操作，或完全退出该窗口；此窗口会自动接管。关闭右上角 × 只是收进托盘。");return false;}
   static void ReleaseTools(){pinLifetime.Cancel();if(imagePins!=null){imagePins.Dispose();imagePins=null;}if(retry!=null){retry.Stop();retry=null;}if(AppState.Hotkeys!=null){AppState.Hotkeys.Dispose();AppState.Hotkeys=null;}if(source!=null){source.Dispose();source=null;}if(lease!=null){lease.Dispose();lease=null;}Started=false;}

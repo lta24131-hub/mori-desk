@@ -1,0 +1,50 @@
+{
+  "original888Passed": false,
+  "diagnostic891ProductPassed": null,
+  "audioRetry": {
+    "task": 896,
+    "passed": false,
+    "reportSha256": "5376E3E58081910C5DDBFB60D787E68E1E91236DC8DA7EA1C1E6572D4C1EAE69",
+    "reason": "Unmodified native MP4 resume condition failed after original fixed 700ms wait. Endpoint readiness was not proven; original 888 retained."
+  },
+  "actualWebm": {
+    "task": 898,
+    "passed": true,
+    "checksPassed": 46,
+    "videoSha256": "EE60748C818A71B27EC39A96A32F06C90FE6AEEAED602F8BBDBEF55F3C81C77A",
+    "reportSha256": "5DC7597DE5CB3AC1F45632D5651F9BCBE66F731C25BA7EA452966FE776D5031E",
+    "checksSha256": "FBF9508E7030585879D12D6A662441FDA4421971FA3A17C01516E75CF824710F",
+    "scope": "Original BrowserVideoTests.Run full generated 640x360 VP8/Vorbis real-WebM branch. No condition weakened; includes thumbnail/frame/playback/seek/loop/hide-show/volume/runtime exit."
+  },
+  "endpoint": {
+    "task894": "failed; historical helper had wrong IMMDeviceCollection IID",
+    "correctedSource": "compile only, no VM execution",
+    "productInference": "none"
+  },
+  "physicalProductExecution": false,
+  "boundedMp4Functional": {
+    "task": 991,
+    "passed": false,
+    "reportSha256": "9D29B5D32B5A378C5E19271B58EF11240EA9CE46BE5E5AC25D00AB9A13BBDF12",
+    "reason": "Captured MediaElement screen image was blank; loop/hide assertions were not reached. Original native clock checks passed but this is not complete functional validation."
+  },
+  "displayAwakeRetry": {
+    "task": 1007,
+    "passed": true,
+    "checksPassed": 20,
+    "reportSha256": "C3B11527CE1BCC3B25C5A6262AEA7EF6B9B5B880319ABE84E919A536BF40B731",
+    "evidenceSha256": "A9AF6082DD6BAA2C84C229D06096328BAC31DA1380E2157E6A19CE5D3C87A430",
+    "frameSha256": "DA23E79F5E0A4AEF362913E257656840F6F31897342A6A6509B9D849D6F131E8",
+    "frameVisuallyVerified": "640x360 colored test bars, diagonal pattern and 00:00:03.467 timecode; nonblank actual displayed MediaElement frame",
+    "sameHelperAndAssertions": true,
+    "original991RetainedFailed": true,
+    "original888RetainedFailed": true,
+    "original896RetainedFailed": true,
+    "fixed700msTimingAccepted": false,
+    "jobActiveAfterStop": 0,
+    "watchdogFired": false,
+    "packageSha256": "72BE6BFA9081977D2D460980F7FF4E65BCC749BF0AECAE48EC552774BCBFED72",
+    "visibilityScope": "Production SetVisible(false/true) timer/native decoder contract; not OS window hide/minimize",
+    "scope": "Bounded native MP4 function with actual visible frame; original 700ms resume condition remains failed"
+  }
+}

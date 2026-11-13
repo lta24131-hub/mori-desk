@@ -1,0 +1,2857 @@
+{
+  "schemaVersion": 2,
+  "generatedUtc": "2026-11-13T16:20:08.278248+00:00",
+  "candidate": "R4",
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "candidateSetupSha256": "366A3208B1BEC55594CF7B8E07F9050AC48A3895BD9DD311D5504A1005AC5772",
+  "candidateStatus": "bounded-validation-complete",
+  "publicationStatus": "awaiting-publisher",
+  "scope": "Limited VM validation and bounded source/dependency reuse. Not a claim that every feature, format, performance target or physical desktop journey passed.",
+  "directR4": {
+    "nativeContracts": {
+      "passed": true,
+      "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+      "stages": [
+        {
+          "id": "1351-r4-native-maintenance",
+          "outerSha256": "F4482275B5E16DEE57D198694EEB8CE75879F0D4A9900F47E6370077BD274AFA",
+          "innerSha256": "1E41C053C8BF52C96E019C20E91A2A8FA8A84F161CAFA4D1D911A636C9563A3A",
+          "checks": 102,
+          "elapsedSeconds": 11.44,
+          "childrenStopped": true,
+          "watchdogFired": false,
+          "jobActiveAfterStop": 0
+        },
+        {
+          "id": "1353-r4-native-installerSafety",
+          "outerSha256": "A912C249E4A2C80A1A24D3E4481157318B39337DAABB89BF8E22D6408DE6E265",
+          "innerSha256": "5376DF2D9AF61CEFFD3E41BD3F530E8EA6BE982E06D2ECCC42F273D497D554E8",
+          "checks": 420,
+          "elapsedSeconds": 9.18,
+          "childrenStopped": true,
+          "watchdogFired": false,
+          "jobActiveAfterStop": 0
+        }
+      ],
+      "checks": 522,
+      "distinctNamedProductStages": 3,
+      "rawInnerOuterAndProgressMatch": true,
+      "outputExtractionDifferences": [
+        {
+          "file": "r4-installer-safety-stdout.txt",
+          "extractedLength": 515,
+          "brokerOriginalLength": 511,
+          "difference": "Only Windows text-write LF to CRLF expansion; broker raw report remains authoritative."
+        }
+      ],
+      "maintenanceStdoutStderr": "Broker missing markers; assertions are recorded in complete inner progressTail. These markers are not timeout events.",
+      "limitations": [
+        "VM native contract tests only; no actual installation, upgrade, browser collection or physical desktop acceptance.",
+        "R3 1304 installation failure remains failed; these passes do not supersede a real R4 upgrade."
+      ],
+      "hostExecuted": false
+    },
+    "actualHealthyPublic42Baseline": {
+      "passed": true,
+      "stages": [
+        {
+          "taskId": "1375-r4-preserve1304",
+          "outerReportSha256": "6D60595C62A64100962DF8FDA8BA1568CA74A900255CB988205E7DE1AAAAE259",
+          "reportSha256": "4BB4309066ED3070F577467B0D1D8CB0A795C3EF3ACAC4EB06D7CA6E961B5BDA",
+          "passed": true,
+          "checks": 60,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1376-r4-real-install42",
+          "outerReportSha256": "223D1C24C02D49A0B4F45ECCE02D99C6D9DB3DB5550E482951803D57EA5027C5",
+          "reportSha256": "A513B6454424F63506D2AD6473D531C1CE8304BB6C6C79C7DB4F1AF23A02C07A",
+          "passed": true,
+          "checks": 30,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1377-r4-public42-browser-ui",
+          "outerReportSha256": "BC76CC1D2B5356D8811CBA12DBBF1166FFE9EA7644A1C98A82ECA789875D3ADF",
+          "reportSha256": "DAD7C9FF2D5F7D4FAF48FB0C81F15CB5D9F36177AC1FA0048F0F2262C6C8284F",
+          "passed": true,
+          "checks": 37,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1378-r4-public42-health",
+          "outerReportSha256": "1888B392BB4193479E4F22B14CF7635E506543B9429A4BA34B3481501AA08588",
+          "reportSha256": "DEDFB006BB35A263E463117DB3A8A35202F90B1BC4BE95CDEEE306B46E08820D",
+          "passed": true,
+          "checks": 92,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1379-r4-healthy42-inventory",
+          "outerReportSha256": "AFC4D264BFAE0C615326D5E7CA4BB4B6F9BDCE57D07A1810520A452CC700DDC1",
+          "reportSha256": "58EE312CA795D12E4E670FBDB31842F898A0E90F42A2F949EDAA9E7CE340DEB6",
+          "passed": true,
+          "checks": 0,
+          "outerExitCode": 0
+        }
+      ],
+      "allRawBrokerAndExtractedBytesMatch": true,
+      "actualPublic42InstallAccepted": true,
+      "actualPublic42OwnedSettingsNormalClose": true,
+      "actualPublic42NormalExitAndJobDrain": true,
+      "original1304Preserved": true,
+      "sourceAndShortcutMovesVerified": true,
+      "productionHealthAndIndependentInventoryAgree": true,
+      "actualChromeCollectionAccepted": false,
+      "healthyBaselineScopeAccepted": true,
+      "displayLeaseReleasedNormally": true,
+      "scope": "Dedicated VM baseline only; generated fixtures and no physical desktop execution. Original R3 failures and first R4 lease readiness failure retained."
+    },
+    "actualUpgrade": {
+      "schemaVersion": 1,
+      "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+      "candidateSetupSha256": "366A3208B1BEC55594CF7B8E07F9050AC48A3895BD9DD311D5504A1005AC5772",
+      "scope": "Actual public42-to-frozen-R4 installation in dedicated VM using generated fixtures; no physical desktop, taskbar click or real Chrome collection acceptance.",
+      "stages": [
+        {
+          "taskId": "1381-r4-seed42",
+          "outerReportSha256": "FB854B655595B5E1E25497B531B64B52679B6B85A81FC155B9F953D6081116FD",
+          "reportSha256": "838A15A83EB9DFC31C4370C5F8C483EE55A633ADD1517C8BF8703115A441CB2C",
+          "passed": true,
+          "checks": 27,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1382-r4-launch42",
+          "outerReportSha256": "4B09C069B56741ACF2471520D2B7C9DDA111052C92F1D708492FFA1D924EE4BC",
+          "reportSha256": "BF3D77E7B499ACA5B5602C571A6C377DFD1B40A66A51C651936F18821667A427",
+          "passed": true,
+          "checks": 17,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1383-r4-snapshot42",
+          "outerReportSha256": "05CB17DDBF3133FBA3030FDBFEFDC023590FC4F4DC56382000461DC79E9333FA",
+          "reportSha256": "B628029F7B102004CD74B71AF0D932917B550F45CE83E9C7F0A40AEDC84E62FD",
+          "passed": true,
+          "checks": 28,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1384-r4-real-upgrade",
+          "outerReportSha256": "02B54F4445DA36C379C5858751DA7A803B2D57EEA0720F43A7F9320178A3A209",
+          "reportSha256": "FDE2A72D1E4151E5473DF39A6714CBDFF69C10C858EF6ED4EEA84AC061F0B602",
+          "passed": true,
+          "checks": 38,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1385-r4-launch45",
+          "outerReportSha256": "24254306C931C311F56DF65C4B7E7DB26E798BF8F6F91812AE2C0AC0989B9E3E",
+          "reportSha256": "A88EC49E80CAD2926CB83DE0441263109CBB10981C990DFFDE51ED31D5D242BE",
+          "passed": true,
+          "checks": 17,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1386-r4-verify45",
+          "outerReportSha256": "BC89597A7EC4B57488AD77015C38966CAA6B734C825D75C9A014764D08E97022",
+          "reportSha256": "F53AE1973EE5A65538233EB7BEE078A1477F692A1B99E588517BE4CA3096F2D1",
+          "passed": true,
+          "checks": 30,
+          "outerExitCode": 0
+        },
+        {
+          "taskId": "1387-r4-final-inventory",
+          "outerReportSha256": "48BD7EA507DA4940E09ECA6E535F11D4DF8A264A5A469C54FD531067AF4995D8",
+          "reportSha256": "BF3B42C0B134C702BB2DFC8B62F2B90375C3A294D44864727A684AE3C2499127",
+          "passed": true,
+          "checks": 0,
+          "outerExitCode": 0
+        }
+      ],
+      "baselineReviewSha256": "28D71C986608B530B22B4CD95D78014DF6378621C6F9888AD2BFE2431C7F4535",
+      "healthyGateSha256": "48D26C109B72450EF2580D2F011C51B9B0C1987E3ED6A5C505DA26E3D0BE66CA",
+      "upgradeProgressSha256": "17A7C0FC2836EAF9E41148F36D530A70CAABA4E508ADC20992FF0097000BA9E1",
+      "allRawBrokerAndExtractedBytesMatch": true,
+      "actualNoArgumentInstaller": true,
+      "actualWizardSteps": 4,
+      "startupReceiptAndNativeWindowVerified": true,
+      "old42DirectoryRemoved": true,
+      "productCleanupComplete": true,
+      "sameFixedLauncherSha256": "58F1D00650E3F7DD9EB93C7D382894BDDDD6B339053152D8E1979A5DBC2E0895",
+      "normalExitAndOwnedJobDrainVerified": true,
+      "generatedAssetCount": 1,
+      "generatedCanvasImages": 1,
+      "generatedPinCount": 1,
+      "pinActive": false,
+      "nondefaultStoragePathsPreserved": true,
+      "settingsMembershipCanvasPinAndOriginalResourceBytesPreserved": true,
+      "finalInventoryNoProcesses": true,
+      "displayLeasesReleasedNormally": true,
+      "original1304RetainedFailed": true,
+      "actualUpgradeScopePassed": true,
+      "installationElapsedSeconds": 509.14808719999996,
+      "installationFirstCommittedSeconds": 384.633066,
+      "realChromeCollectionAccepted": false,
+      "hostProductExecuted": false
+    },
+    "nativeReviewSha256": "EE2E1B842CA188033A94B0B7821B69FE251AE567574CBD6383004C82B348C03E",
+    "baselineReviewSha256": "28D71C986608B530B22B4CD95D78014DF6378621C6F9888AD2BFE2431C7F4535",
+    "upgradeReviewSha256": "2B7E2D093020FA2B6BA378B30D2ADC8E7575F3B19799C6245872839A8F921178"
+  },
+  "sourceReuseReview": "r4-source-reuse-review.json",
+  "sourceReuseReviewSha256": "3E454988BD1CD6921AA6EF7BF42E5C5ABE6ACED969B19F65D660D85F3BD70461",
+  "historicalR3SnapshotSha256": "C449283B47CD26694E88DED2ED77820AF59604D3A147C4726A8548CACE941DBA",
+  "historicalR3": {
+    "schemaVersion": 1,
+    "generatedUtc": "2026-11-13T15:10:02.450417+00:00",
+    "candidateStatus": "installation-not-qualified",
+    "publicationStatus": "withheld",
+    "installationBoundary": "Healthy public42-to-R3 attempt 1304 still failed old-version directory removal. Follow-on launch45 and final fixture verification did not run.",
+    "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "scope": "Public test-plan accounting only. Not a software coverage percentage, reliability guarantee, installation approval, or publication approval. Original failures remain distinct from supplements.",
+    "namedPlanAccounting": {
+      "actualR3ExecutedStages": 38,
+      "historicalScopeReviewedStages": 59,
+      "unaccountedStages": [],
+      "policy": "Disjoint plan-unit accounting only; historical scope review is not R3 execution or overall software coverage."
+    },
+    "namedStages": [
+      {
+        "name": "IterationTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "BrowserLocalBridgeTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "BrowserCollectionFeedbackTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "BrowserDesktopFeedbackTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "BrowserExtensionManagerTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ScreenshotCollectionTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "LaunchTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ReferenceTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "LibraryConsistencyTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "901-r3-suite-02-retry",
+            "reportSha256": "D1737D0C9622F4FFC3FD9FA8999D94F257A9F6292C0172D906E7996F223B7621",
+            "group": "suite-02-retry",
+            "stage": "MoriDesk.LibraryConsistencyTests.Run",
+            "checks": 36,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ReferenceThumbnailFreshnessTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "901-r3-suite-02-retry",
+            "reportSha256": "D1737D0C9622F4FFC3FD9FA8999D94F257A9F6292C0172D906E7996F223B7621",
+            "group": "suite-02-retry",
+            "stage": "MoriDesk.ReferenceThumbnailFreshnessTests.Run",
+            "checks": 13,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "MetadataRefreshCacheTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "902-r3-suite-03-retry",
+            "reportSha256": "C574882F09012DD1794061E188E1E85EF4A3995A9C0323EB227EFDE86FCB96FE",
+            "group": "suite-03-retry",
+            "stage": "MoriDesk.MetadataRefreshCacheTests.Run",
+            "checks": 9,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "InspectorDraftTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "902-r3-suite-03-retry",
+            "reportSha256": "C574882F09012DD1794061E188E1E85EF4A3995A9C0323EB227EFDE86FCB96FE",
+            "group": "suite-03-retry",
+            "stage": "MoriDesk.InspectorDraftTests.Run",
+            "checks": 17,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "BoardTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "902-r3-suite-03-retry",
+            "reportSha256": "C574882F09012DD1794061E188E1E85EF4A3995A9C0323EB227EFDE86FCB96FE",
+            "group": "suite-03-retry",
+            "stage": "MoriDesk.BoardTests.Run",
+            "checks": 43,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ClassicTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "902-r3-suite-03-retry",
+            "reportSha256": "C574882F09012DD1794061E188E1E85EF4A3995A9C0323EB227EFDE86FCB96FE",
+            "group": "suite-03-retry",
+            "stage": "MoriDesk.ClassicTests.Run",
+            "checks": 34,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "LocalCollectionTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "902-r3-suite-03-retry",
+            "reportSha256": "C574882F09012DD1794061E188E1E85EF4A3995A9C0323EB227EFDE86FCB96FE",
+            "group": "suite-03-retry",
+            "stage": "MoriDesk.LocalCollectionTests.Run",
+            "checks": 38,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "OverviewVisibilityTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "903-r3-suite-04-retry",
+            "reportSha256": "461BF4E5CB15A7805B20748B12472E3CA4D70EC57CF2D1872F4EAB822524DC21",
+            "group": "suite-04-retry",
+            "stage": "MoriDesk.OverviewVisibilityTests.Run",
+            "checks": 36,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "DesktopDropTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "903-r3-suite-04-retry",
+            "reportSha256": "461BF4E5CB15A7805B20748B12472E3CA4D70EC57CF2D1872F4EAB822524DC21",
+            "group": "suite-04-retry",
+            "stage": "MoriDesk.DesktopDropTests.Run",
+            "checks": 38,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "DeskSettingsTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "903-r3-suite-04-retry",
+            "reportSha256": "461BF4E5CB15A7805B20748B12472E3CA4D70EC57CF2D1872F4EAB822524DC21",
+            "group": "suite-04-retry",
+            "stage": "MoriDesk.DeskSettingsTests.Run",
+            "checks": 69,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "LibraryRestoreTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "903-r3-suite-04-retry",
+            "reportSha256": "461BF4E5CB15A7805B20748B12472E3CA4D70EC57CF2D1872F4EAB822524DC21",
+            "group": "suite-04-retry",
+            "stage": "MoriDesk.LibraryRestoreTests.Run",
+            "checks": 92,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "LibraryRouteChangeTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "903-r3-suite-04-retry",
+            "reportSha256": "461BF4E5CB15A7805B20748B12472E3CA4D70EC57CF2D1872F4EAB822524DC21",
+            "group": "suite-04-retry",
+            "stage": "MoriDesk.LibraryRouteChangeTests.Run",
+            "checks": 15,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "InitialWindowPlacementTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "InspectorConcurrentMetadataTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ImageWorkRegressionTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "866-r3-full-suite-06",
+            "reportSha256": "C6DF9C5C4A356D3F33BEFB4F30DE14AB484C39EAEBDEDDFC3C69F9CB2EB2DF11",
+            "group": "suite-06",
+            "stage": "MoriDesk.ImageWorkRegressionTests.Run",
+            "checks": 26,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "BrandingTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "AppUpdateServiceTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "AppUpdatePanelTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "AppUpdateCoordinatorTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "InstalledVersionMaintenanceTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "UpdateArtifactMaintenanceTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "InstalledTaskbarIdentityTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ReferenceEagleMetadataTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ExportNamingTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ImageBrowserLifecycleTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ImageViewerExperienceTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "904-r3-suite-09-retry",
+            "reportSha256": "AB4896E3445A99157C38C46A67A2145E774A0A1D2E038C2C2CECB79CF40B0718",
+            "group": "suite-09-retry",
+            "stage": "MoriDesk.ImageViewerExperienceTests.Run",
+            "checks": 30,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ImageViewerDetailTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "904-r3-suite-09-retry",
+            "reportSha256": "AB4896E3445A99157C38C46A67A2145E774A0A1D2E038C2C2CECB79CF40B0718",
+            "group": "suite-09-retry",
+            "stage": "MoriDesk.ImageViewerDetailTests.Run",
+            "checks": 25,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "GalleryNavigationTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "904-r3-suite-09-retry",
+            "reportSha256": "AB4896E3445A99157C38C46A67A2145E774A0A1D2E038C2C2CECB79CF40B0718",
+            "group": "suite-09-retry",
+            "stage": "MoriDesk.GalleryNavigationTests.Run",
+            "checks": 15,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "HomepageUsabilityTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "904-r3-suite-09-retry",
+            "reportSha256": "AB4896E3445A99157C38C46A67A2145E774A0A1D2E038C2C2CECB79CF40B0718",
+            "group": "suite-09-retry",
+            "stage": "MoriDesk.HomepageUsabilityTests.Run",
+            "checks": 337,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "GallerySelectionStabilityTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "SelectionLookupTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "867-r3-full-suite-10",
+            "reportSha256": "6F4DA1251177A443BB770524C8FF21F19D29AD675085893DAD4C2B69A28C552C",
+            "group": "suite-10",
+            "stage": "MoriDesk.SelectionLookupTests.Run",
+            "checks": 17,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "SvgWorkerProtocolTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "867-r3-full-suite-10",
+            "reportSha256": "6F4DA1251177A443BB770524C8FF21F19D29AD675085893DAD4C2B69A28C552C",
+            "group": "suite-10",
+            "stage": "MoriDesk.SvgWorkerProtocolTests.Run",
+            "checks": 12,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "SvgCancellationTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "867-r3-full-suite-10",
+            "reportSha256": "6F4DA1251177A443BB770524C8FF21F19D29AD675085893DAD4C2B69A28C552C",
+            "group": "suite-10",
+            "stage": "MoriDesk.SvgCancellationTests.Run",
+            "checks": 27,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "HomepageRedesignTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "867-r3-full-suite-10",
+            "reportSha256": "6F4DA1251177A443BB770524C8FF21F19D29AD675085893DAD4C2B69A28C552C",
+            "group": "suite-10",
+            "stage": "MoriDesk.HomepageRedesignTests.Run",
+            "checks": 281,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "OpenWithRegistrationTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "867-r3-full-suite-10",
+            "reportSha256": "6F4DA1251177A443BB770524C8FF21F19D29AD675085893DAD4C2B69A28C552C",
+            "group": "suite-10",
+            "stage": "MoriDesk.OpenWithRegistrationTests.Run",
+            "checks": 276,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ThemePaletteTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "EmbeddedThemeTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CaptureThemeTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "BrowseSettingsTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ThumbnailBuildGateTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "VideoControlsTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MissingReferenceTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "ScreenColorTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MediaBadgeTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "DocumentContentTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "PsdCompositeTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "868-r3-full-suite-13",
+            "reportSha256": "16BE5E48DBF4F95BEB9A10089F56C2E87E133CBB772388048C74BBEF92E5F8DF",
+            "group": "suite-13",
+            "stage": "MoriDesk.PsdCompositeTests.Run",
+            "checks": 57,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PsdEmbeddedThumbnailTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "868-r3-full-suite-13",
+            "reportSha256": "16BE5E48DBF4F95BEB9A10089F56C2E87E133CBB772388048C74BBEF92E5F8DF",
+            "group": "suite-13",
+            "stage": "MoriDesk.PsdEmbeddedThumbnailTests.Run",
+            "checks": 54,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PdfPreviewTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "868-r3-full-suite-13",
+            "reportSha256": "16BE5E48DBF4F95BEB9A10089F56C2E87E133CBB772388048C74BBEF92E5F8DF",
+            "group": "suite-13",
+            "stage": "Mori.PdfPreviewTests.Run",
+            "checks": 35,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "FormatPreviewTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "868-r3-full-suite-13",
+            "reportSha256": "16BE5E48DBF4F95BEB9A10089F56C2E87E133CBB772388048C74BBEF92E5F8DF",
+            "group": "suite-13",
+            "stage": "MoriDesk.FormatPreviewTests.Run",
+            "checks": 194,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PdfContinuousTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "868-r3-full-suite-13",
+            "reportSha256": "16BE5E48DBF4F95BEB9A10089F56C2E87E133CBB772388048C74BBEF92E5F8DF",
+            "group": "suite-13",
+            "stage": "MoriDesk.PdfContinuousTests.Run",
+            "checks": 104,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PreviewBundleTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "869-r3-full-suite-14",
+            "reportSha256": "05EF6A8BD1F353DCD8B7C9C924ABA4472ADBC41C616032FFF0CF999E56610C17",
+            "group": "suite-14",
+            "stage": "MoriDesk.PreviewBundleTests.Run",
+            "checks": 32,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ImageCodecTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "869-r3-full-suite-14",
+            "reportSha256": "05EF6A8BD1F353DCD8B7C9C924ABA4472ADBC41C616032FFF0CF999E56610C17",
+            "group": "suite-14",
+            "stage": "MoriDesk.ImageCodecTests.Run",
+            "checks": 45,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PdfTextTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "869-r3-full-suite-14",
+            "reportSha256": "05EF6A8BD1F353DCD8B7C9C924ABA4472ADBC41C616032FFF0CF999E56610C17",
+            "group": "suite-14",
+            "stage": "MoriDesk.PdfTextTests.Run",
+            "checks": 104,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PdfIsolationTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "864-r3-full-pdf-isolation",
+            "reportSha256": "86877911656BDCECDEFA4441BFD6AC9300D547F4CDBE40A2CEE818F872C84805",
+            "group": "r2-pdf-isolation",
+            "stage": "MoriDesk.PdfIsolationTests.Run",
+            "checks": 17,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          },
+          {
+            "taskId": "869-r3-full-suite-14",
+            "reportSha256": "05EF6A8BD1F353DCD8B7C9C924ABA4472ADBC41C616032FFF0CF999E56610C17",
+            "group": "suite-14",
+            "stage": "MoriDesk.PdfIsolationTests.Run",
+            "checks": 17,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "WallpaperTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "869-r3-full-suite-14",
+            "reportSha256": "05EF6A8BD1F353DCD8B7C9C924ABA4472ADBC41C616032FFF0CF999E56610C17",
+            "group": "suite-14",
+            "stage": "MoriDesk.WallpaperTests.Run",
+            "checks": 63,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "SimpleBrowserTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "BrowserWorkspaceTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "FreeCanvasTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasProjectMemoryTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasToolbarTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasProjectsPageTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasDestinationTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasProjectGalleryTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasFallbackSafetyTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasProjectRefreshTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "GeneralPerformanceTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "870-r3-full-suite-17",
+            "reportSha256": "36141DBBDA8C79455EBD4363239DA18802B2EE4A1FBA9544B916B8E1CF17183E",
+            "group": "suite-17",
+            "stage": "MoriDesk.GeneralPerformanceTests.Run",
+            "checks": 26,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ThumbnailThroughputTests.Scheduling",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "871-r3-full-suite-18",
+            "reportSha256": "1F964B824CABA18257644FB5042B6E08CD154B0197A8E11A443167613A160947",
+            "group": "suite-18",
+            "stage": "MoriDesk.ThumbnailThroughputTests.Scheduling",
+            "checks": 28,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "ThumbnailThroughputTests.Raster",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "871-r3-full-suite-18",
+            "reportSha256": "1F964B824CABA18257644FB5042B6E08CD154B0197A8E11A443167613A160947",
+            "group": "suite-18",
+            "stage": "MoriDesk.ThumbnailThroughputTests.Raster",
+            "checks": 27,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "WorkerStartupTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "852-r3-worker-startup",
+            "reportSha256": "CA3C07B17D195F8B1334F37D2EC138CAD1E4EC62BB28F5BF7778F9047B3DE824",
+            "group": "r2-worker-startup",
+            "stage": "MoriDesk.WorkerStartupTests.Run",
+            "checks": 12,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          },
+          {
+            "taskId": "871-r3-full-suite-18",
+            "reportSha256": "1F964B824CABA18257644FB5042B6E08CD154B0197A8E11A443167613A160947",
+            "group": "suite-18",
+            "stage": "MoriDesk.WorkerStartupTests.Run",
+            "checks": 12,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "PreviewWorkerSchedulingTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "853-r3-preview-scheduling",
+            "reportSha256": "D1BB78D3F29E7DB736C9CA2980640992F52438827C9EB902ED20C5D6F265176B",
+            "group": "r2-preview-scheduling",
+            "stage": "MoriDesk.PreviewWorkerSchedulingTests.Run",
+            "checks": 3,
+            "verifiedStagePassed": false,
+            "cleanupVerified": true
+          },
+          {
+            "taskId": "863-r3-full-preview-scheduling",
+            "reportSha256": "78D4F2480C042B9BC73E6AEA0B1D42E4EA94AF93ED6257C33464AA36C45AE336",
+            "group": "r2-preview-scheduling",
+            "stage": "MoriDesk.PreviewWorkerSchedulingTests.Run",
+            "checks": 14,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      },
+      {
+        "name": "CanvasTextLayoutTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasLineSelectionTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CanvasStyleEditingTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MatureCanvasStoreTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MatureCanvasImageMetadataTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MatureCanvasCloseFailureTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MatureCanvasHostTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MatureCanvasInteractionTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "AppearanceSettingsTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "CustomizationTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "PreviewPreferencesTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "DesktopImagePinTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "PreviewClipboardTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "PinLifecycleTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "PinRuntimeTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "PinHistoryIndexTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "TextWindowPinOutputTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "MiddleDragPanTests.Run",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "WorkerExitSamplingTests.Run",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "851-r3-worker-exit",
+            "reportSha256": "3026DD9D9255F2B74A8EA9EFC67F38F2DA5B48858FAB261D70665E052556ACD0",
+            "group": "r2-worker-exit",
+            "stage": "MoriDesk.WorkerExitSamplingTests.Run",
+            "checks": 28,
+            "verifiedStagePassed": true,
+            "cleanupVerified": true
+          }
+        ]
+      }
+    ],
+    "prelude": {
+      "status": "passed",
+      "attempts": [
+        {
+          "taskId": "905-r3-suite-prelude",
+          "reportSha256": "094D2E1F9581D8BAD59D3CC7AE143D17DC1F49CB4962E937A1147816286E60E9",
+          "group": "suite-prelude",
+          "stage": "MoriDesk.SuitePrelude.Run",
+          "checks": 70,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    "external": [
+      {
+        "label": "translation-context",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "923-r3-translation-context",
+            "reportSha256": "69CF2D33106E80B1FDE6D98220C7CF5964B6E0B5BAA007B9CC959DA185A8346C",
+            "group": null,
+            "checks": 183,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "translation-layout",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "924-r3-translation-layout",
+            "reportSha256": "7C48D93F4091D2A762AB4349196C5CC8BB3D0BD44E9E55CED1EFD39F3E6A9134",
+            "group": null,
+            "checks": 139,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "ocr-plan",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "925-r3-ocr-plan",
+            "reportSha256": "2291DCFBD01EEBFD0518589415EFBD803D9FDD253EC7A52379BAF1F69BA921BB",
+            "group": null,
+            "checks": 275,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "installer-safety",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "926-r3-installer-safety",
+            "reportSha256": "2A6C86FE294F5A43F8262A17AD0A970E9019AE50EE29CE7E3E7C2E6DD64F301C",
+            "group": null,
+            "checks": 411,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "canvas-previews",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "927-r3-canvas-previews",
+            "reportSha256": "FD672E5B0CBC18420760179EE677CCE7D935DDFDF35FF9D3158E38D3E67433DB",
+            "group": null,
+            "checks": 58,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-client",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "928-r3-conversion-client",
+            "reportSha256": "47D31AF2598201078EB3D74DE588E116BB1C56DB8E93689FF824DC52D77DBD76",
+            "group": null,
+            "checks": 130,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-integration",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "929-r3-conversion-integration",
+            "reportSha256": "BB1CB178A3574F8F91AA07CEFC5F3B53599A3BAF1455FD56AAF3D163FDF0FF7B",
+            "group": null,
+            "checks": 30,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-ui",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "930-r3-conversion-ui",
+            "reportSha256": "E09FFB41D1745DAAF22DE179C968860120301AD0AEA61BE0EB530EE65F056FE4",
+            "group": null,
+            "checks": 465,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-quick",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "931-r3-conversion-quick",
+            "reportSha256": "618F50C1AC253B581A166D25E539A138249438AACDFE0C15D79C3DBF54165785",
+            "group": null,
+            "checks": null,
+            "evidenceKind": "original helper",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          },
+          {
+            "taskId": "1005-r3-quick-overload",
+            "reportSha256": "DEA89F219AEA5A421BA377B676A77175F05967CCD3A400CD214665436894584B",
+            "group": null,
+            "checks": null,
+            "evidenceKind": "reviewed exact-overload supplemental",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-documents",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "932-r3-conversion-documents",
+            "reportSha256": "14F172D392AFBA40DC0CD1731DBFD80B0DD06E7B68FBB01B66FE6B5C1D5187DE",
+            "group": null,
+            "checks": null,
+            "evidenceKind": "original helper",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-regressions",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "933-r3-conversion-regressions",
+            "reportSha256": "67F2B7508E55598485828710BCCC6A9614AF992DCE6C31DE03DC0097B6379023",
+            "group": null,
+            "checks": null,
+            "evidenceKind": "original helper",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false,
+            "outputComplete": false,
+            "streamedLogHashesVerified": null
+          },
+          {
+            "taskId": "1015-r3-regression-log",
+            "reportSha256": "533994D96B359655133D7D3B52EBC40FCF0BF39FCA0D712687FE7EF33ED14F7F",
+            "group": null,
+            "checks": 7121,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": true
+          }
+        ]
+      },
+      {
+        "label": "conversion-component-client",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "934-r3-conversion-component-client",
+            "reportSha256": "89BF55752D8AAED1C09BE4674914E412D3DB2248F4AD745052B4033532D49A94",
+            "group": null,
+            "checks": 85,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-components",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "935-r3-conversion-components",
+            "reportSha256": "0902E5C5124D7B5BC1C38A44241DEEAB0B5C173F9E6952DC6F085E69BE162A2F",
+            "group": null,
+            "checks": 72,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-storage",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "936-r3-conversion-storage",
+            "reportSha256": "CA350D380910680BDD8379AFBDB94C90AABA200F5D5DA1E6D1E8F866383644E6",
+            "group": null,
+            "checks": 111,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "conversion-storage-ui",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "937-r3-conversion-storage-ui",
+            "reportSha256": "BC265C32C891D2EBDE512BA69ED2F552B1E45518905EF9061DD9BE584385D514",
+            "group": null,
+            "checks": 49,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-01",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "938-r3-capture-01",
+            "reportSha256": "414BA65355C366321E7CA0150FC1BD05A7AE85B4D5E68831F35FE022DE22B381",
+            "group": null,
+            "checks": 526,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-02",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "939-r3-capture-02",
+            "reportSha256": "F2AF9035219B6DD76E7E79CA791C590611866AE361377492734EDD5CE3B24340",
+            "group": null,
+            "checks": 279,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-03",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "921-r3-capture-03",
+            "reportSha256": "43F4A92C548E8E422954CD51BD62FEB2EC2D27E90686D7BCFF13FC3C1AFFA394",
+            "group": null,
+            "checks": 1305,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-04",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "922-r3-capture-04",
+            "reportSha256": "8250EC022A7C99DED5D662E34764A82024C36EBC875231FED5C31258E4E89023",
+            "group": null,
+            "checks": 1860,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-05",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "940-r3-capture-05",
+            "reportSha256": "9F2AA2BB5FFBDAC7F2B0703E691A14E03E07CA746899A57D7D62B24C7A7C59AB",
+            "group": null,
+            "checks": 447,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-06",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "941-r3-capture-06",
+            "reportSha256": "9EBF248F8A77B3F5017D3CCE9CB1009D9AC9D89CD9B1FC224D64D5118F9AB910",
+            "group": null,
+            "checks": 198,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-07",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "942-r3-capture-07",
+            "reportSha256": "0375E508B91AA5D1D8F5922C1B09BF65B0C8C96EDC6293388EDF9377A57606B1",
+            "group": null,
+            "checks": 1192,
+            "evidenceKind": "original helper",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      },
+      {
+        "label": "capture-08",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "943-r3-capture-08",
+            "reportSha256": "53EEDEB62774FC625FFEFC64422711D128437634B57C6225BBE5AAD126F32622",
+            "group": null,
+            "checks": null,
+            "evidenceKind": "original helper",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false,
+            "outputComplete": true,
+            "streamedLogHashesVerified": null
+          }
+        ]
+      }
+    ],
+    "functionalSupplements": [
+      {
+        "label": "conversion-quick-functional",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "1081-r3-quick-functional",
+            "reportSha256": "120248301A9B5A9395B6909FD2FBF81E1AF29CE4EDB56202E88F25154BFEEA15",
+            "group": null,
+            "checks": 100,
+            "evidenceKind": "separate VM functional supplement; original 20-second timing not accepted",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true,
+            "outputComplete": true
+          }
+        ],
+        "originalFailedTasks": [
+          931,
+          1005
+        ],
+        "ordinary20SecondTimingAccepted": false,
+        "scope": "Original real quick-conversion result assertions with existing 120-second VM wait option, unchanged 45-second production capability limit and 600-second outer deadline. Original timing failure retained."
+      }
+    ],
+    "javascript": [
+      {
+        "stage": "browser-pure",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "961-r3-browser-pure",
+            "reportSha256": "FE130BEF460DE12CE2052BE52FAEBAD09BB719CCF4BCC212AFF64A30AF706855",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "stage": "scroll",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "962-r3-scroll",
+            "reportSha256": "B8D5F8226F2E22D4A555ADA93F90F9F76539BA833C4C1E4E0ABC81D43E988480",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "stage": "canvas-node",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "963-r3-canvas-node",
+            "reportSha256": "FA62299B03C15A55FD490F4623AD7B86843449D5756296472F51062665831805",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "stage": "canvas-sdk",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "964-r3-canvas-sdk",
+            "reportSha256": "83E65692B665B5841355E87FEE85BFB00B85CF6C7FD5D29D373850DCF9CD9D71",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "stage": "canvas-typecheck",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "965-r3-canvas-typecheck",
+            "reportSha256": "57A90BFE7824BFC80C2399B1FAAF4E3DBFDB79ECB9C8D1CD718E15BB09E0B1ED",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "stage": "browser-dom",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "966-r3-browser-dom",
+            "reportSha256": "B94257D1193B7BDE4A35F917478A20A50E3578968B9258363D27BBB6FEF10607",
+            "group": null,
+            "verifiedPassed": false,
+            "reportedPassed": false
+          }
+        ]
+      },
+      {
+        "stage": "browser-mv3",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "967-r3-browser-mv3",
+            "reportSha256": "F02B3C15A7847A47766F4616CC3BD3A947B9A6C77F1700F14AEE8AD08EA8CFB6",
+            "group": null,
+            "verifiedPassed": false,
+            "reportedPassed": false
+          }
+        ]
+      },
+      {
+        "stage": "native-protocol",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "968-r3-native-protocol",
+            "reportSha256": "1D1A55DF5CACA5207CE4F8EE317B7CEA430E0EFC00C1BA2BACA15B70A3206A44",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "stage": "browser-local",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "969-r3-browser-local",
+            "reportSha256": "AF983A0BEF847A6F4C98A8BE369596748AA3CBEBC120EFE59A055290F81C0E4A",
+            "group": null,
+            "verifiedPassed": false,
+            "reportedPassed": false
+          }
+        ]
+      },
+      {
+        "stage": "browser-update-host",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "970-r3-browser-update-host",
+            "reportSha256": "59D419F8AB2614498BC6329F2EB502D5FD43BF5740A2E84AE80B6CF94438C404",
+            "group": null,
+            "verifiedPassed": true,
+            "reportedPassed": true
+          }
+        ]
+      }
+    ],
+    "javascriptSupplements": [
+      {
+        "stage": "browser-preferences-copy",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "1051-r3-browser-compat",
+            "reportSha256": "AD6E5DF5C6A96E6B024CFBE401A20AB7E1F31460480B9B9A477EFB26642E2FD6",
+            "group": null,
+            "counts": {
+              "tests": 9,
+              "pass": 9,
+              "fail": 0,
+              "skipped": 0,
+              "cancelled": 0
+            },
+            "evidenceKind": "independently reviewed JS supplemental contract",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true
+          }
+        ],
+        "reviewedManifestSha256": "F641DA0D1BDEED598984FA1BE9F01449AF66912CDDB0EB0F4FF2A79DFC51B00A",
+        "originalFailedTask": 966,
+        "originalFailureRetained": true,
+        "scope": "Original nine preferences tests with two current status-label expectations; no real-site or installed-extension claim."
+      },
+      {
+        "stage": "browser-mv3-compat",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "1061-r3-browser-compat",
+            "reportSha256": "1B4AC9B14081E3ECE308EF077A9B776717D5173C9B92AFD03F22714EC30C921C",
+            "group": null,
+            "counts": null,
+            "evidenceKind": "independently reviewed JS supplemental contract",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false
+          }
+        ],
+        "reviewedManifestSha256": "E17D73D6A504915AAE2AA898645FE89D49B9597D17A9D1C7F8B8B312DF53BB2C",
+        "originalFailedTask": 967,
+        "originalFailureRetained": true,
+        "scope": "Reviewed busy-preserve/idle-replace lifecycle plus original update integration; original failure retained."
+      },
+      {
+        "stage": "browser-mv3-compat-feedback-v2",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "1111-r3-lifecycle-v2",
+            "reportSha256": "E6960A3DBDD8A2B3FC819F25056EB441846D19A6C351F52D5DF47DE0EB830BB7",
+            "group": null,
+            "counts": null,
+            "evidenceKind": "independently reviewed JS supplemental contract",
+            "verifiedPassed": false,
+            "reportedPassed": false,
+            "cleanupVerified": true,
+            "allExitCodesZero": false
+          }
+        ],
+        "reviewedManifestSha256": "E27DEA9333949500CAD82A9ACC5AE83D6B87CCC9E20391C51B8268208468FEE2",
+        "originalFailedTask": 1061,
+        "originalFailureRetained": true,
+        "scope": "Serial complete native-call recording; terminal success within original budget; exact saving feedback, one save, success feedback contract plus original update integration. Original 967 and 1061 retained."
+      },
+      {
+        "stage": "browser-update-feedback-compat",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "1232-r3-isolated-supplement",
+            "reportSha256": "687016CFDD3D1092BB02B0551B65A10C2D07A3941B0E04FBD8C90041DA3B3702",
+            "group": null,
+            "counts": null,
+            "evidenceKind": "independently reviewed JS supplemental contract",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true
+          }
+        ],
+        "reviewedManifestSha256": "88E54C049F4F27262FADC8EA8314FFE8435BEBACD4CF33507B9857308426B6EC",
+        "originalFailedTask": 1111,
+        "originalFailureRetained": true,
+        "scope": "Explicit progress/save/success fixture contract with original actual MV3 update assertions and 300-second bound. Original 1111 failed group retained; its completed lifecycle is separately reviewed."
+      },
+      {
+        "stage": "browser-local-contract",
+        "status": "passed",
+        "attempts": [
+          {
+            "taskId": "1071-r3-local-contract",
+            "reportSha256": "1881E49CC12D70E50EA2686E653A5CBDBFC5E98B80236F20B3FD2308F26419E4",
+            "group": null,
+            "counts": null,
+            "evidenceKind": "independently reviewed JS supplemental contract",
+            "verifiedPassed": true,
+            "reportedPassed": true,
+            "cleanupVerified": true,
+            "allExitCodesZero": true
+          }
+        ],
+        "reviewedManifestSha256": "566D4D9FF8C4AE9C43BFCDD68620D7DF7B9443815CA1FBDDC993FCF7FB29A137",
+        "originalFailedTask": 969,
+        "originalFailureRetained": true,
+        "scope": "Isolated health rejection and actual local collection contract only; healthy installed popup is not accepted."
+      }
+    ],
+    "nativeJourneyObservations": [
+      {
+        "name": "cancelled_exit_and_paste",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "4k_pixel_reuse",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "library_handoff",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "911-r3-library-handoff",
+            "reportSha256": "C959BD5083B9AA5195E7D8669BD34F0B51C830B13393D2F77DB2B9AB0A6DEDA8",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "canvas_save_close_reopen",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "913-r3-canvas-web",
+            "reportSha256": "3821D4464B7FB85171D930F19FA3531D47554C8AC98772104452F4952C221180",
+            "group": null,
+            "reportedPassed": false
+          },
+          {
+            "taskId": "981-r3-canvas-comparison",
+            "reportSha256": "6EFAD035240619A637275CA04BB85942B813D51D85DA797492AFCCD0A19322BD",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "draft44_pin_data_roundtrip",
+        "status": "not_run",
+        "attempts": []
+      }
+    ],
+    "upgradeObservations": [
+      {
+        "name": "inventory",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "1101-r3-fresh-inventory-before42",
+            "reportSha256": "1450987DB542FA8B379AFB164F3668BAE41EB75831924338A32A50A5A551E318",
+            "group": null,
+            "reportedPassed": null
+          }
+        ]
+      },
+      {
+        "name": "preserve_prior_vm_state",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "1251-r3-healthy-preserve-reviewed-vm-state",
+            "reportSha256": "92AF77452376C59EC45EF1865A2CEA15FF3D270FE906B47A7FC690310D5AB103",
+            "group": null,
+            "reportedPassed": false
+          },
+          {
+            "taskId": "1140-r3-upgrade-preserve-reviewed-vm-state",
+            "reportSha256": "382311C5FCA1B018918EAA1179EE47ADF0D09087744FEBFFB1CF71EBFD5A9698",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "actual_public42_install",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "1252-r3-healthy-install42",
+            "reportSha256": "83ABE38775B19128B07F92101C70F2E9DDCF601596B72C234B126CF6FEBD4D47",
+            "group": null,
+            "reportedPassed": true
+          },
+          {
+            "taskId": "1141-r3-upgrade-install42",
+            "reportSha256": "C252857FA5DAEFC0FBB250598EA9F3BA374006529DF73B1CAD2F01F7B6AA593A",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "seed_public42",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "1261-r3-healthy-seed42",
+            "reportSha256": "E69BE13766CCB9654B5CDDF158B95C030CCF15000D0F81B3ED5422A17A9B202E",
+            "group": null,
+            "reportedPassed": true
+          },
+          {
+            "taskId": "1142-r3-upgrade-seed42",
+            "reportSha256": "06362A8A0546CB357981CD8D90E47D1B46117EB7D1F4D8D4E5B88416BE2D64E4",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "launch_public42",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "1262-r3-healthy-launch42",
+            "reportSha256": "E58B1BEE8CEBAB69EA0FF333D3E717CFB1E4FDBDE8F09D5136E3BCEC176EA13D",
+            "group": null,
+            "reportedPassed": false
+          },
+          {
+            "taskId": "1143-r3-upgrade-launch42",
+            "reportSha256": "081A2BE449D290EDE0EE884A5771F62C708E8CEC27D8E927F0AB3C4D10408B80",
+            "group": null,
+            "reportedPassed": false
+          },
+          {
+            "taskId": "1211-r3-recovery-launch42",
+            "reportSha256": "13AEA9B79DD6AAC2A35DD4F335B5DCBFC2760F3865F6DCDAF39D1A99B7A0CB7B",
+            "group": null,
+            "reportedPassed": true
+          },
+          {
+            "taskId": "1301-r3-native-image-launch42",
+            "reportSha256": "ADCD6A2A851CB17AF684346172FE72FCF9B6AFC76CF9513D19737D349D8C63AE",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "snapshot_public42",
+        "status": "reported_pass_needs_scope_review",
+        "attempts": [
+          {
+            "taskId": "1213-r3-recovery-snapshot42",
+            "reportSha256": "796C1FBE8692941C1B6D9A39679F47BE1FA33A8A22845F40F55E8D4F003D4ABE",
+            "group": null,
+            "reportedPassed": true
+          },
+          {
+            "taskId": "1303-r3-native-image-snapshot42",
+            "reportSha256": "3D5913BBD788E8EF564182DB1494C51B68F269A1ED4204CC3BE537625F6EA37E",
+            "group": null,
+            "reportedPassed": true
+          }
+        ]
+      },
+      {
+        "name": "actual_final45_install",
+        "status": "failed_or_incomplete",
+        "attempts": [
+          {
+            "taskId": "1215-r3-recovery-install45",
+            "reportSha256": "63F25DB880FBBD0E47D9EA20B6D1D23F152B56C77EA84B1D761E55E3482D91CA",
+            "group": null,
+            "reportedPassed": false
+          },
+          {
+            "taskId": "1304-r3-native-image-install45",
+            "reportSha256": "ECD090910BE2CBF731DE9ED6C647DFCA0072C8AF5A79FFDC9E6ED6E0E5BCED2E",
+            "group": null,
+            "reportedPassed": false
+          }
+        ]
+      },
+      {
+        "name": "verify_preserved_data45",
+        "status": "not_run",
+        "attempts": []
+      },
+      {
+        "name": "launch_final45",
+        "status": "not_run",
+        "attempts": []
+      }
+    ],
+    "observationBoundary": "Native and upgrade observation statuses require independent journey review in the human-readable validation record; they are not automated final acceptance.",
+    "validationRecord": "../../Nook0.1.45楠岃瘉璁板綍.md",
+    "independentlyReviewedObservations": [
+      {
+        "scopeName": "visible-native-mp4-functional",
+        "taskId": "1007-r3-mp4-awake",
+        "reportSha256": "C3B11527CE1BCC3B25C5A6262AEA7EF6B9B5B880319ABE84E919A536BF40B731",
+        "evidenceSha256": "A9AF6082DD6BAA2C84C229D06096328BAC31DA1380E2157E6A19CE5D3C87A430",
+        "frameSha256": "DA23E79F5E0A4AEF362913E257656840F6F31897342A6A6509B9D849D6F131E8",
+        "checks": 20,
+        "exactR3AndOriginalMp4Verified": true,
+        "allThreeExitCodesZero": true,
+        "actualMediaEndedEvent": true,
+        "visibilityContract": "Calls production player.SetVisible(false/true); timer/native decoder pause and resume checked. This is not OS window hide/minimize testing.",
+        "disposedAndClosed": true,
+        "sourceBytesPreserved": true,
+        "jobActiveAfterStop": 0,
+        "outputTruncated": false,
+        "watchdogFired": false,
+        "originalFailuresRetained": [
+          888,
+          896,
+          991
+        ],
+        "fixed700msTimingAccepted": false,
+        "functionalScopePassed": true
+      },
+      {
+        "scopeName": "capture-default-budget-diagnostic",
+        "taskId": "1091-r3-capture-diagnostic",
+        "reportSha256": "99878D085A3B0F15C50A47F626167669F736634094B9C6B6DC26A5B9AF2FE161",
+        "allEvidenceByteLengthsAndHashesVerified": true,
+        "pngSha256": "50EDF3ED5484B43577CDDFCD19ED4B77601D28E74346B65AD1A55F1B88FBCBAD",
+        "allThreeExitCodesZero": true,
+        "jobActiveAfterStop": 0,
+        "diagnosticCompleted": true,
+        "productPassed": null,
+        "original943RetainedFailed": true,
+        "default55": {
+          "uiThread": 1,
+          "workerThread": 4,
+          "offUiThread": true,
+          "elapsedMilliseconds": 142.06810000000002,
+          "budgetMilliseconds": 55,
+          "Count": 0,
+          "PrepareMilliseconds": 23,
+          "ScanMilliseconds": 35,
+          "ProcessedRows": 209,
+          "TimedOut": true,
+          "PixelFormatConverted": true,
+          "PreparationCompleted": true,
+          "ReadFailed": false,
+          "imageFrozen": true,
+          "imagePixelFormat": "Pbgra32",
+          "originalFifthConditionObserved": false
+        },
+        "explicit2000GeometryCount": 2,
+        "scope": "Default budget really timed out on a background worker; same image later explicit-budget geometry works. Does not establish unchanged-budget pass or isolate cold/warm effects."
+      },
+      {
+        "scopeName": "component-store-contract",
+        "taskId": "951-r3-component-contract",
+        "reportSha256": "164EA5568F454D0B723F2DCF7451E33EC31FF352A2920BECBFFEEF1D8318F906",
+        "resultSha256": "D3382EC914C70874CAAF6E35B02666174408453B4010EE4B420497ECDABCCBEF",
+        "payloadInventorySha256": "4A31CF85C1FBA50F520B58989D66292235BD1137641FD380966EB35ACFD696D6",
+        "testSha256": "9ABA9538C4FB64FB92FC7D183322E720A4834B4A0869F4946F18DA8137B7A3C5",
+        "checksPassed": 132,
+        "skippedScenarios": 1,
+        "skipReason": "Synthetic symlink cleanup was not exercised because the test account lacked link creation privilege.",
+        "allThreeExitCodesZero": true,
+        "jobActiveAfterStop": 0,
+        "outputComplete": true,
+        "watchdogFired": false,
+        "actualChildInJob": true,
+        "functionalScopePassed": true,
+        "scope": "Component store and synthetic HTTP download/hash/extraction/transaction integrity contracts. No real network, third-party engine installation/execution, or desktop.",
+        "runtimeEquivalence": "Eight source files and 241 shared runtime files were independently matched to frozen component inputs."
+      },
+      {
+        "scopeName": "browser-lifecycle-completed-with-failed-integration",
+        "taskId": "1111-r3-lifecycle-v2",
+        "reportSha256": "D098FBABE5A580640640E49D28502D2550EC16FE10036EFEF27F85F8C2929666",
+        "manifestSha256": "E27DEA9333949500CAD82A9ACC5AE83D6B87CCC9E20391C51B8268208468FEE2",
+        "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "groupPassed": false,
+        "groupExitCodes": [
+          1,
+          1
+        ],
+        "lifecycleScopePassed": true,
+        "lifecycleElapsedSeconds": 25.0113636,
+        "lifecycleFullCompletionMarker": true,
+        "allLogOriginalBytesVerified": true,
+        "integrationPassed": false,
+        "integrationFailure": "Original fixture rejects collectionFeedback as not save; no complete update journey accepted.",
+        "jobActiveAfterStop": 0,
+        "childrenStopped": true,
+        "originalFailedTasksRetained": [
+          967,
+          1061,
+          1111
+        ],
+        "scope": "Actual isolated MV3 lifecycle and single synthetic save contract; no installed host/native connection or real-site claim."
+      },
+      {
+        "scopeName": "capture-fallback-asynchronous-lifecycle",
+        "taskId": "1229-r3-isolated-supplement",
+        "outerReportSha256": "9F5C7A2906D01D960812AE9CDDD77D72E48B13908DB47736F93944A9FE937C97",
+        "reportSha256": "09E2D053EF6F6B142BB983EC6B4EE297591189CB00E7D9B371DD5953B27D1E6F",
+        "testSha256": "ACF0F43EFF904EABC95DEB65026C5488C315199736F7DAB9CACA2AAB6BACEDC4",
+        "evidenceSha256": "E9AD9BC76B6EF520FB344FA131B6E0D834B4252B68A5F00CF346D168A5E0D8AB",
+        "evidenceBytes": 1428,
+        "allReturnedEvidenceBytesVerified": true,
+        "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "checksPassed": 24,
+        "allThreeExitCodesZero": true,
+        "jobActiveAfterStop": 0,
+        "childrenStopped": true,
+        "outputComplete": true,
+        "watchdogFired": false,
+        "functionalScopePassed": true,
+        "fixed55PerformancePassed": false,
+        "productPassed": null,
+        "originalFailedTasksRetained": [
+          943
+        ],
+        "diagnosticTaskRetained": 1091,
+        "scope": "Independent test-only zero-budget timed-out geometry injected into an unshown fixture to verify native-window/manual-drag fallback. Actual production 55ms asynchronous lifecycle checks pending reuse, preserved hover and manual crop, cancellation and closure. No real desktop gestures, visible screenshot UI, OCR, or original timing pass.",
+        "actual55Hover": {
+          "Count": 1,
+          "PrepareMilliseconds": 6,
+          "ScanMilliseconds": 51,
+          "ProcessedRows": 209,
+          "TimedOut": true,
+          "PixelFormatConverted": true,
+          "PreparationCompleted": true,
+          "ReadFailed": false,
+          "scope": "Production PrepareVisualTargets path with unchanged55ms budget; no positive region count or timing performance claim"
+        },
+        "actual55ConfirmedSelection": {
+          "Count": 2,
+          "PrepareMilliseconds": 3,
+          "ScanMilliseconds": 17,
+          "ProcessedRows": 399,
+          "TimedOut": false,
+          "PixelFormatConverted": true,
+          "PreparationCompleted": true,
+          "ReadFailed": false
+        }
+      },
+      {
+        "scopeName": "browser-update-feedback-compat",
+        "taskId": "1232-r3-isolated-supplement",
+        "outerReportSha256": "74FF8043496A8FC4F7C3392954CBC96DD8FD06AE61149AB678BEDBC083C9784D",
+        "reportSha256": "687016CFDD3D1092BB02B0551B65A10C2D07A3941B0E04FBD8C90041DA3B3702",
+        "forwardedResultSha256": "D76ACA325B63DF85637219673097B36464FFD5C7927AC8AC76478D6336C60B52",
+        "guestOriginalResultSha256Reported": "6AEC686F62FBC78CE07A240FADEBBD189887055A7B321C300CEFA53B18778426",
+        "resultHashBoundary": "Proxy deserializes the original PowerShell report and reserializes it. Returned proxy and forwarded result bytes and semantic equality are verified; original pretty-printed result bytes were not independently fetched.",
+        "manifestSha256": "88E54C049F4F27262FADC8EA8314FFE8435BEBACD4CF33507B9857308426B6EC",
+        "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+        "allForwardedReportAndLogBytesVerified": true,
+        "logEvidence": {
+          "stdout": {
+            "sha256": "9FB776774D550817C1ECA56AA1AA12E05C039FD996D156B349C1F5CE52BB6B9D",
+            "bytes": 517
+          },
+          "stderr": {
+            "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+            "bytes": 0
+          }
+        },
+        "completedPassMarkers": 6,
+        "allExitCodesZero": true,
+        "integrationElapsedSeconds": 28.5552207,
+        "scriptProcessCleanupVerified": false,
+        "proxyJobCleanupVerified": true,
+        "jobActiveAfterStop": 0,
+        "jobTotalProcesses": 22,
+        "childrenStopped": true,
+        "functionalScopePassed": true,
+        "originalFailedTasksRetained": [
+          1111
+        ],
+        "previousLifecycleRerun": false,
+        "scope": "Actual isolated headless Edge MV3 update integration with the reviewed explicit progress/save/success fixture contract. Original busy drag, unsaved edit, held save, worker reload, identity/preferences, open-page repair, exactly-one-save and 300-second bound retained. This is not healthy installed host/native connection, physical Chrome, or real website acceptance."
+      },
+      {
+        "scopeName": "preservation-helper-original-failure",
+        "taskId": "1251-r3-healthy-preserve-reviewed-vm-state",
+        "outerReportSha256": "BCA540941DE19E4FF72AB2F7EEBC10194E59DCDE63917421AC010F94D5043182",
+        "reportSha256": "92AF77452376C59EC45EF1865A2CEA15FF3D270FE906B47A7FC690310D5AB103",
+        "allReturnedReportBytesVerified": true,
+        "passed": false,
+        "failureClass": "Test-only preservation helper destination path exceeds .NET legacy path limit after same-volume program directory move.",
+        "oldUpgradeFailureRetained": 1215,
+        "requiresManualReviewAfterPartialFailure": true,
+        "mayContinueInstallation": false,
+        "noDeletionReported": true,
+        "hostExecuted": false,
+        "reportedMovedItems": 3,
+        "programFilesCountBeforeMove": 3707,
+        "shortcutHashesVerifiedBeforeFailure": true,
+        "programPostMoveVerificationCompleted": false,
+        "dataMoveReached": false,
+        "healthyBaselineInstallationStarted": false,
+        "sourceReviewBoundary": "The exact failing filename is not in this exception. Tree(destination) calls NoLinks(Path.GetFullPath) after Directory.Move. The two shortcut hash checks succeeded; destination program tree reconciliation still requires a read-only recovery review.",
+        "scope": "Failure evidence only. Not permission to retry preservation, finish moving data, install, or delete anything."
+      },
+      {
+        "scopeName": "preservation-helper-recovery",
+        "taskId": "1271-r3-preserve-recovery",
+        "outerReportSha256": "FA97FDA7CE310C133D4A21EF17CA917B28DF95CEB2877D9B3EF2805F283ED091",
+        "reportSha256": "4C926D2F12BED310D40773D15B584D45BCF6E8B880BB576E6460D59A61318B7C",
+        "allReturnedReportBytesVerified": true,
+        "outerExitCode": 0,
+        "checksPassed": 86,
+        "passed": true,
+        "mayContinueInstallation": true,
+        "original1251RetainedFailed": true,
+        "programFiles": 3707,
+        "dataFiles": 36,
+        "wholeTreeMetadataPreserved": true,
+        "shortcutsAndInventoriedMetadataHashesPreserved": true,
+        "committedR3HashPreserved": true,
+        "noDeletion": true,
+        "registryChanged": false,
+        "hostExecuted": false,
+        "scope": "One-shot dedicated VM preservation recovery only. Exact partial state moved to a shorter fixed root, original program and data relative path/length/timestamp trees verified, shortcuts and inventoried settings/pins plus committed R3 content hashes verified. This does not prove all-file content hashes or an installation.",
+        "controllerSha256": "F42C94B96E66E1A822387D5E7BA21E6CE8D59F9FDF49444BFF356D1FD5CDFA49",
+        "controllerScopeReviewed": "Continues original frozen plan stages 1 through 3 only, with exact passed recovery hash and a fresh separate progress record; original1251 failure record is not rewritten."
+      },
+      {
+        "scopeName": "healthy-baseline-install-and-first-preparation",
+        "stages": [
+          {
+            "taskId": "1252-r3-healthy-install42",
+            "outerReportSha256": "BD8FBC308D4444B15AB50270A63E0749356819B3764A53A4662DD86020479C78",
+            "reportSha256": "83ABE38775B19128B07F92101C70F2E9DDCF601596B72C234B126CF6FEBD4D47",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 0,
+            "passed": true,
+            "jobActive": 1,
+            "forcedCleanupAtProcessExit": false,
+            "checks": 30
+          },
+          {
+            "taskId": "1253-r3-healthy-prepare-browser42",
+            "outerReportSha256": "262C933BB280A359AAB3182EF1F8FBACA3BBCEB9B7CD383BFDC28BE1250C4F58",
+            "reportSha256": "DA04448ACBB26116361F912046E3C5335ACEAD20B2B079F9A45BDE681BE1D9CC",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 1,
+            "passed": false,
+            "jobActive": 2,
+            "forcedCleanupAtProcessExit": true,
+            "checks": 18
+          }
+        ],
+        "actualPublic42InstallAccepted": true,
+        "public42SetupAndAppIdentityVerified": true,
+        "normalCloseAndDrainAfterInstall": true,
+        "prepare1253Accepted": false,
+        "prepare1253InstallRepairReached": false,
+        "prepare1253NormalClose": false,
+        "healthStageExecuted": false,
+        "healthyGateAccepted": false,
+        "scope": "Actual public42 installation completed; initial browser preparation only invoked Settings then hit its unchanged 6-second discovery timeout. No browser preparation, healthy baseline, actual45 upgrade or data retention acceptance follows from this report. Original1253 retained; helper Job cleanup is forced, not normal close."
+      },
+      {
+        "scopeName": "prepared-state-with-failed-post-close-check",
+        "stages": [
+          {
+            "taskId": "1276-r3-owned-prepare",
+            "outerReportSha256": "903E3757EA1691BD648ED4628E64169F85C7C98146BFB522F2C2A761BC165E3D",
+            "reportSha256": "072EE496759AD1399A01D34591C12B8E7AAA15509E0C66EA66A07F7404F71083",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 1,
+            "passed": false,
+            "checks": 25
+          },
+          {
+            "taskId": "1279-r3-original-health42",
+            "outerReportSha256": "9C82C6C84C3725EC1FA94D5BF1EC1AB0984CA7E4D1AA812B50C64646C099965D",
+            "reportSha256": "465BD84876BB7EAA419CD0E8D76BA67F731CB6C25BE6D082BBFBE77B7239A0AD",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 0,
+            "passed": true,
+            "checks": 92
+          }
+        ],
+        "original1253RetainedFailed": true,
+        "original1276RetainedFailed": true,
+        "preparationStepFactsAccepted": true,
+        "exactPublic42InstallRepairClickedOnce": true,
+        "manifestCatalogRuntimeAndListeningWaitCompleted": true,
+        "manifestTargetsStableLauncher": true,
+        "preparationNormalCloseAccepted": false,
+        "preparationCleanupForced": true,
+        "productionHealthPassed": true,
+        "public42AppSha256": "0023F5CF9C7B6021ED8071E9936EB20282C1FBBE467716B33146AA52110662EB",
+        "launcherSha256": "58F1D00650E3F7DD9EB93C7D382894BDDDD6B339053152D8E1979A5DBC2E0895",
+        "manifestSha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D",
+        "catalogSha256": "980C9CE160A936010612E685BA7DF7C709F234D012474B294678FF96A322EC61",
+        "currentUserNativeRegistrations": 4,
+        "runtimeFiles": 19,
+        "productionSnapshot": {
+          "complete": true,
+          "entrypointsSwitched": true,
+          "reason": "ready",
+          "runningCount": 0,
+          "referenceCount": 1,
+          "protectedPathCount": 0
+        },
+        "freshIndependentInventoryRequired": true,
+        "healthyBaselineFinalAccepted": false,
+        "realChromeCollectionAccepted": false,
+        "scope": "Original1276 remains failed: supported public42 UI setup completed the file/listening/manifest checks, then post-Close UIA identity verification failed and the helper Job forced cleanup. Original production health1279 independently passed exact identity, registrations, runtime and complete ready snapshot. Final healthy baseline requires separate fresh inventory; normal app launch-close must be proven separately."
+      },
+      {
+        "scopeName": "healthy-baseline-fresh-independent-inventory",
+        "inventoryTaskId": "1256-r3-healthy42-independent-inventory",
+        "inventorySha256": "1DD0822CD7EE7F2D49995B8C1A307C7076424BBB880DFEF78B7D9D93EE2BACFD",
+        "inventoryOuterReportSha256": "4A3A06414166A124193CD41135BC19B84F4570110ED28FCBAB8EA5B65A6FF7C0",
+        "healthTaskId": "1279-r3-original-health42",
+        "healthSha256": "465BD84876BB7EAA419CD0E8D76BA67F731CB6C25BE6D082BBFBE77B7239A0AD",
+        "preparationReviewSha256": "9FD5EBBEEB03780B805ED2F0D536BA2B59D51E14E4E0F1F494E1B57B2DFBB03A",
+        "freshInventoryAfterHealth": true,
+        "allReturnedInventoryBytesVerified": true,
+        "exactPublic42AndStableLauncherVerified": true,
+        "actualNativeManifestIdentityAgrees": true,
+        "currentUserNativeRegistrations": 4,
+        "sourceAndRegistryReferencesCoherent": true,
+        "originalProductionSnapshotReady": true,
+        "runningProcesses": [],
+        "healthyBaselineScopeAccepted": true,
+        "original1253RetainedFailed": true,
+        "original1276RetainedFailed": true,
+        "preparationNormalCloseAccepted": false,
+        "normalLaunchCloseStillRequired": true,
+        "realBrowserCollectionAccepted": false,
+        "scope": "Fresh independent inventory agrees with original production public42 health after supported UI setup. This accepts healthy installed-file/registration state only. Original preparation close failure remains failed; the next original launch stage must separately verify normal app exit before final upgrade acceptance."
+      },
+      {
+        "scopeName": "seed-and-original-native-launch-helper-failure",
+        "stages": [
+          {
+            "taskId": "1261-r3-healthy-seed42",
+            "outerReportSha256": "C19015D0510338BEFA79747B10B042B7C87D13388DC2AA7EDFB2D70A7B9D3899",
+            "reportSha256": "E69BE13766CCB9654B5CDDF158B95C030CCF15000D0F81B3ED5422A17A9B202E",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 0,
+            "passed": true
+          },
+          {
+            "taskId": "1262-r3-healthy-launch42",
+            "outerReportSha256": "0CF59808A8DC8BE3074523057ED4E7E8FD8F23AA70500DCE1C6A4844E26E330C",
+            "reportSha256": "E58B1BEE8CEBAB69EA0FF333D3E717CFB1E4FDBDE8F09D5136E3BCEC176EA13D",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 1,
+            "passed": false
+          }
+        ],
+        "actualPublic42SeedPassed": true,
+        "original1262RetainedFailed": true,
+        "normalLaunchAccepted": false,
+        "normalCloseAccepted": false,
+        "cleanupForced": true,
+        "jobActiveBeforeForcedCleanup": 2,
+        "jobIncludesHelper": true,
+        "actual45UpgradeStarted": false,
+        "scope": "Generated fixture seeded with exact installed public42 model. Original1262 failed in test-helper startup ProcessModule.FileName identity sampling before any UI action; original launch/normal-close conditions were not reached. Failure is retained; later launch must prove exact identity, Job containment and normal close without reseeding."
+      },
+      {
+        "scopeName": "healthy-upgrade-failure-readonly-diagnostics",
+        "taskId": "1325-r3-after1304-cleanup-evidence",
+        "outerReportSha256": "6C86D303F9AF4F2E295A8CC10B1DF889862A66F54803F0401FC1D954ED3DCCFD",
+        "reportSha256": "3E748004D7360E7675827F5F75948D2DB92073B128B586E61A6EA49ACC86657E",
+        "exportProgressSha256": "DB141368E26FB9096419129CE7D78814F5FA3AD0ABAF59BF0A6774FD03076F68",
+        "allReturnedReportAndArtifactBytesVerified": true,
+        "artifactCount": 22,
+        "existingArtifacts": 18,
+        "missingArtifacts": 4,
+        "outerExitCode": 0,
+        "helperPassed": true,
+        "artifacts": [
+          {
+            "name": "current-native-manifest.json",
+            "exists": true,
+            "bytes": 236,
+            "sha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "current-browser-tree.json",
+            "exists": true,
+            "bytes": 3335,
+            "sha256": "B1AD7DF58B0FB37178151AFEA23EFC765C8F7E5AECF6AEF99E5E090523BA8186",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "active-install.json",
+            "exists": true,
+            "bytes": 306,
+            "sha256": "E8E28898DA231CA9C2A8E2CC51AAEB17B904AA234E099678AEB1A0D8D1A2667C",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-installer-cleanup.json",
+            "exists": true,
+            "bytes": 354,
+            "sha256": "B91B38B9AAC7CF686A8C74FC2C0FFC07939B7877DA2FAA418DD63440ED85D305",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-result.json",
+            "exists": true,
+            "bytes": 181,
+            "sha256": "9511D4022EF175260DF7AC994F1A6BC68C2EA09C96DF550C9F90EA9E185E74AE",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-startup-ready.json",
+            "exists": true,
+            "bytes": 218,
+            "sha256": "70E05E4FACA4C471F855FB6D4B0B3EA40D943E2E363997F272C9422CFB861D5E",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-ready.json",
+            "exists": true,
+            "bytes": 76,
+            "sha256": "9EF72BAE4D3D40C012825AF2D4D88D89116954542E4CC9DF656DBF0D7FBC29FF",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-candidate.json",
+            "exists": true,
+            "bytes": 240,
+            "sha256": "C3D2BC5CA3DD88EA2D835B1FB667FB6C2D1E4AE9C5032DA38086A3AF612CCD79",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-request.json",
+            "exists": true,
+            "bytes": 252,
+            "sha256": "3C4B5D49BCC84A0BED9B17D676B5BBA01D158CB727E351E5C6F345F088B3AAE5",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-staging.json",
+            "exists": true,
+            "bytes": 356,
+            "sha256": "C89CBA9A43EBC9618D19EE2F1EC1C593BD6AD798DCBFA1B5CF33F759A1497830",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-activation-attempted.json",
+            "exists": true,
+            "bytes": 339,
+            "sha256": "BFD351C45354E4FE2257850AC6A8851A327A3C573525AA319B95EA3325F84157",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "session-cancel.request",
+            "exists": false
+          },
+          {
+            "name": "version-cleanup.json",
+            "exists": false
+          },
+          {
+            "name": "staging-cleanup.json",
+            "exists": true,
+            "bytes": 90,
+            "sha256": "48A230EBBC7F3D804215DC2BF0103A8A0B721F65845C81793DFB5EF5BE7C2D79",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "old-installed-files.json",
+            "exists": true,
+            "bytes": 234820,
+            "sha256": "F5CDFC58C2F0F6434BBC64D8C4727C0C426BAF8FE100456ED69248EFC44244FD",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "old-cleanup-progress.json",
+            "exists": false
+          },
+          {
+            "name": "old-payload-tree.json",
+            "exists": true,
+            "bytes": 334127,
+            "sha256": "D9443D78DB35F5340034E26FBAB7CAA02DDAFEFD8C6433DB5F9BE8A3F80084E9",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "current-installed-files.json",
+            "exists": true,
+            "bytes": 236379,
+            "sha256": "F2BA148D797FA93357A3046F4B6E3CC5D444344DACC19646795E3C5E4B1DBDEA",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "current-cleanup-progress.json",
+            "exists": false
+          },
+          {
+            "name": "current-payload-tree.json",
+            "exists": true,
+            "bytes": 336252,
+            "sha256": "672588E58C16C0DF100C241CAB65A9D448D718ED2216909DA76F9BFE17549A1D",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "cleanup-root-metadata.json",
+            "exists": true,
+            "bytes": 998,
+            "sha256": "179F8D735A1AAF1826DCAFBA617181EE54F334EBD5AE6AAAB7728C4352A8A46F",
+            "allReturnedChunkBytesVerified": true
+          },
+          {
+            "name": "cleanup-journal-000.txt",
+            "exists": true,
+            "bytes": 34,
+            "sha256": "DF58DEF3750BEBA80CA8DC67D7F38EA5BBAD696C3D1C8C8A4D6D8E9BA89A2203",
+            "allReturnedChunkBytesVerified": true
+          }
+        ],
+        "facts": {
+          "cleanupFinished": false,
+          "cleanupState": null,
+          "cleanupSequence": 2,
+          "cleanupLastStage": "checking-entrypoints-and-browser",
+          "versionCleanupReportExists": false,
+          "oldVersionCleanupProgressExists": false,
+          "currentVersionCleanupProgressExists": false,
+          "activeRecordCandidateIdentityMatchesFrozenR3": true,
+          "installedResultAndStartupReceiptAgree": true,
+          "currentNativeManifestUnchangedFromHealthy42": true,
+          "currentNativeManifestSha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D",
+          "preflight42Snapshot": {
+            "complete": true,
+            "entrypointsSwitched": true,
+            "reason": "ready",
+            "runningCount": 0,
+            "referenceCount": 1,
+            "protectedPathCount": 0
+          },
+          "candidateCleanupSnapshotAvailable": false,
+          "cleanupJournalOnlyOwnershipHeader": true,
+          "journalDirectoryRecordedUtc": "2026-11-13T15:04:47.7527608Z",
+          "finishWizardActionUtc": "2026-11-13T15:05:48.4000967Z",
+          "journalDirectoryToWizardFinishSeconds": 60.647336,
+          "oldPayload": {
+            "entries": 2125,
+            "files": 1702,
+            "directories": 423,
+            "fileBytes": 775442740,
+            "readOnlyEntries": 0,
+            "reparseEntries": 0
+          },
+          "currentPayload": {
+            "entries": 2140,
+            "files": 1716,
+            "directories": 424,
+            "fileBytes": 777245151,
+            "readOnlyEntries": 0,
+            "reparseEntries": 0
+          },
+          "actualCleanupCompletionAccepted": false
+        },
+        "inference": "The healthy42 preflight was ready, but this attempt never emitted a final candidate cleanup status or version maintenance report. The cleanup journal shows entry into the cleanup engine; source inspection places it after integration readiness and shell repair. No complete candidate snapshot is available. The installer may stop waiting after 90 seconds without progress during pre-deletion verification. Filesystem export cannot distinguish an unfinished state capture, locked-tree inventory, or another unreported operation; do not label it a proven missing-manifest failure or completed deferred cleanup.",
+        "sourceWrites": false,
+        "productExecuted": false,
+        "hostExecuted": false,
+        "original1304RetainedFailed": true,
+        "scope": "Readonly post-failure export; validates recorded artifacts and metadata, not a fresh candidate execution, full-file payload hash proof, current registry snapshot, or cleanup repair."
+      },
+      {
+        "scopeName": "actual-healthy-public42-to-r3-upgrade-failed",
+        "schemaVersion": 1,
+        "scope": "Actual public42 to frozen R3 replacement attempt in dedicated VM, after independently accepted installed-file/registration baseline. Previous failure cannot be attributed only to the earlier unhealthy baseline. Installation acceptance remains failed; root cause needs exported transaction evidence.",
+        "stages": [
+          {
+            "taskId": "1301-r3-native-image-launch42",
+            "outerReportSha256": "43B741FFD6710825BA7EC62D9920F36CEC7A3435CA7E54E3806A854FFB736C76",
+            "reportSha256": "ADCD6A2A851CB17AF684346172FE72FCF9B6AFC76CF9513D19737D349D8C63AE",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 0,
+            "passed": true,
+            "checks": 18,
+            "elapsedSeconds": 16.28
+          },
+          {
+            "taskId": "1303-r3-native-image-snapshot42",
+            "outerReportSha256": "4B6A7198E4C642CDA6C94D8A825D4158BBE55D2BE177CCB7A45C000603DD1159",
+            "reportSha256": "3D5913BBD788E8EF564182DB1494C51B68F269A1ED4204CC3BE537625F6EA37E",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 0,
+            "passed": true,
+            "checks": 28,
+            "elapsedSeconds": 3.54
+          },
+          {
+            "taskId": "1304-r3-native-image-install45",
+            "outerReportSha256": "F14E96859A8CFBA06D2E1725CF48310933302F3E9F9CACFCBBCB2F43A1251ECA",
+            "reportSha256": "ECD090910BE2CBF731DE9ED6C647DFCA0072C8AF5A79FFDC9E6ED6E0E5BCED2E",
+            "allReturnedReportBytesVerified": true,
+            "outerExitCode": 1,
+            "passed": false,
+            "checks": 32,
+            "elapsedSeconds": 564.09
+          }
+        ],
+        "launchHelperSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+        "controllerSha256": "D10850F4EA4C3BB8DAA71C2ABEA7FB126300AE5E99C801F9F1831AC07A13EAA9",
+        "gateSha256": "139B363D08D49ECD153716365EB295957300360AD8DB960A6A69004DF981252C",
+        "progressSha256": "29D350C6F528ADF9D13E32DBD8F7E169C65E1B969F4140CD8A73782BFEA47B91",
+        "healthyBaselineAcceptedBeforeAttempt": true,
+        "actualPublic42LaunchAndNormalCloseAccepted": true,
+        "actualPublic42ModelSnapshotPassed": true,
+        "actualNoArgumentInstallerFourWizardStepsCompleted": true,
+        "installerExitCodeZero": true,
+        "newCandidateAndStartupIdentityAssertionsCompleted": true,
+        "fixedLauncherBytesPreservedAssertionCompleted": true,
+        "old42RemovalAssertionPassed": false,
+        "postInstallNormalCloseAccepted": false,
+        "cleanupForced": true,
+        "jobActiveBeforeForcedCleanup": 2,
+        "jobIncludesHelper": true,
+        "actual45LaunchStageRun": false,
+        "final45FixtureVerificationRun": false,
+        "finalDataPreservationAccepted": false,
+        "actualUpgradeScopePassed": false,
+        "original1215RetainedFailed": true,
+        "original1262RetainedFailed": true,
+        "original1304RetainedFailed": true,
+        "sourceOrProductChanged": false,
+        "hostExecuted": false
+      }
+    ]
+  },
+  "historicalR3ReadonlyTiming": {
+    "reviewSha256": "053717C2927D353BE74352A8B048CD3F57FCAC8E7061DC8CF24963206A7089A9",
+    "evidence": {
+      "schemaVersion": 1,
+      "packageSha256": "AA4B02D80BF085786EA5527C418050E8C98C7158B1486985FCEF9C213EBDB548",
+      "helperReviewSha256": "75EBE56FCDFCC137787098B2149DC0EEF592F30C48A9483A58D1135E2619F8DF",
+      "progressSha256": "FCE0F40345E1A5DB3C2459943B8B1806D4D08592D07AA2539FAF4FC718BED299",
+      "stages": [
+        {
+          "taskId": "1341-r3-readonly-capture-timing",
+          "operation": "capture",
+          "outerReportSha256": "249B58A728886946DCC1E851AD1DDFED9FE9738682888F40F4DA34E40E34D34C",
+          "reportSha256": "D7F79D15229CAFA4B71F720E4C116F99B9F7D171CA5CADF652B3A834F2180C3F",
+          "allReturnedReportBytesVerified": true,
+          "outerExitCode": 0,
+          "diagnosticCompleted": true,
+          "watchdogFired": false,
+          "brokerElapsedSeconds": 11.41,
+          "helperTotalMs": 10075.9563,
+          "reports": [
+            {
+              "name": "capture-timing-result.json",
+              "returnedBytes": 2037,
+              "sha256": "D7F79D15229CAFA4B71F720E4C116F99B9F7D171CA5CADF652B3A834F2180C3F",
+              "missingFromGuest": false
+            },
+            {
+              "name": "capture-00-identity-verified.json",
+              "returnedBytes": 715,
+              "sha256": "99299C5E70834D8F722226F0B719FA1E1DCB5E8587E24B3B51D609596FECE481",
+              "missingFromGuest": false
+            },
+            {
+              "name": "capture-01-capture-start.json",
+              "returnedBytes": 149,
+              "sha256": "823D6EC560083E2702D80550DB9EAA80AE319C932279D1F5ADDBC6320FE6CAC4",
+              "missingFromGuest": false
+            },
+            {
+              "name": "capture-02-capture-finished.json",
+              "returnedBytes": 459,
+              "sha256": "9B5ED0F13B99798CB60BB1696635B27ECBEFD197B7ED2D7B9B6894A7A3467107",
+              "missingFromGuest": false
+            },
+            {
+              "name": "capture-timeout.json",
+              "returnedBytes": 47,
+              "sha256": "D8D2990E94747557F5C35E06219AE6A6E1EFF48EE31CEA631D520355F29A488A",
+              "missingFromGuest": true
+            }
+          ]
+        },
+        {
+          "taskId": "1342-r3-readonly-tree-timing",
+          "operation": "tree",
+          "outerReportSha256": "FF35509A6526F92C6221279FF82E951C0AEF56531DC6EAFBD009EA151785BEA1",
+          "reportSha256": "219BADF55D5C6689DBE4DC71B509866339CFB43E0BF1023CC3D721F03E476E8D",
+          "allReturnedReportBytesVerified": true,
+          "outerExitCode": 0,
+          "diagnosticCompleted": true,
+          "watchdogFired": false,
+          "brokerElapsedSeconds": 92.98,
+          "helperTotalMs": 92147.27720000001,
+          "reports": [
+            {
+              "name": "tree-timing-result.json",
+              "returnedBytes": 1808,
+              "sha256": "219BADF55D5C6689DBE4DC71B509866339CFB43E0BF1023CC3D721F03E476E8D",
+              "missingFromGuest": false
+            },
+            {
+              "name": "tree-00-identity-verified.json",
+              "returnedBytes": 725,
+              "sha256": "D6100D34C08B90C7A470933524955CD61D2303F7D501888782B0E85F14BD3156",
+              "missingFromGuest": false
+            },
+            {
+              "name": "tree-01-tree-start.json",
+              "returnedBytes": 258,
+              "sha256": "2ED4D32605BA522F047AD34AD41C8C72C5D1D5F35236D9F60B7CA8AADFA5372D",
+              "missingFromGuest": false
+            },
+            {
+              "name": "tree-02-tree-constructed.json",
+              "returnedBytes": 243,
+              "sha256": "9EF0EC3AB42B46D87105A30BF095BBD7D6ECE1E7D851701CF2865648E28A8464",
+              "missingFromGuest": false
+            },
+            {
+              "name": "tree-03-tree-dispose-start.json",
+              "returnedBytes": 122,
+              "sha256": "846B970010E619B1C6E618A71080A7F30DC4943928A1ECD98BEBDBF3917E42FB",
+              "missingFromGuest": false
+            },
+            {
+              "name": "tree-04-tree-disposed.json",
+              "returnedBytes": 151,
+              "sha256": "05EF542C00A9EA5FED90F31E3E9D43110447525BE2812DC98C4390E59BA246E8",
+              "missingFromGuest": false
+            },
+            {
+              "name": "tree-timeout.json",
+              "returnedBytes": 44,
+              "sha256": "05724405DFA3CD39A300A7B213E3DAB5ED3471DB67266599CD0E05094B438232",
+              "missingFromGuest": true
+            }
+          ]
+        }
+      ],
+      "exactFrozenR3IdentityVerified": true,
+      "completedCapture": {
+        "milliseconds": 7608.9884,
+        "complete": true,
+        "entrypointsSwitched": true,
+        "reason": "ready",
+        "runningCount": 0,
+        "referenceCount": 1,
+        "protectedPathCount": 0,
+        "allManagedReferencesStable": true,
+        "oldPayloadRunning": 0,
+        "oldPayloadReferences": 0,
+        "actualProcessCondition": "No installed app/browser running; helper image is outside installation",
+        "productionGateNotBypassed": true
+      },
+      "completedReadLockTree": {
+        "constructionMilliseconds": 89873.06760000001,
+        "disposeMilliseconds": 126.90950000000001,
+        "files": 1702,
+        "directories": 424,
+        "deletion": false,
+        "deleteAccessRequested": false,
+        "sourceWrites": false,
+        "exclusiveDeletionModeNotReproduced": true
+      },
+      "allStageEvidenceBytesVerified": true,
+      "diagnosticScopePassed": true,
+      "actualUpgradeScopePassed": false,
+      "original1304RetainedFailed": true,
+      "sourceWrites": false,
+      "productEntryPointInvoked": false,
+      "registrationWrites": false,
+      "cleanupInvoked": false,
+      "hostExecuted": false,
+      "limitations": [
+        "Installed application and browsers were stopped; original live-installer conditions not reproduced.",
+        "Fresh helper processes use default MTA but OS filesystem caches are uncontrolled and selected identity files are hashed first.",
+        "LockedTree(false) requests read locking only, includes root directory, and does not measure DELETE access, deletion-exclusive sharing, full payload hashing or actual deletion.",
+        "Completed stage timings are not an installer benchmark and cannot relabel the retained1304 upgrade failure as passed."
+      ],
+      "inference": "On the preserved payload, the actual production read-lock tree constructor alone took 89873.0676ms before any internal file-hash progress could be emitted; actual production Capture completed ready in7608.9884ms. This supports the source-level gap between long pre-progress verification and the installer90s idle policy, while not proving each original live-stage duration or the exclusive-delete path."
+    }
+  },
+  "validationRecord": "../../Nook0.1.45验证记录.md",
+  "limitations": [
+    "R3 38 actual named stages and59 bounded historical R1 reviews remain their original identities; not R4 re-execution.",
+    "MP4 resume700ms, conversion first-query20s, capture analysis55ms original timing gates remain unpassed.",
+    "OCR plan/layout/context checks are not actual OCR or online translation accuracy and not a WeChat comparison.",
+    "Missing real Office engines and one privileged symlink test remain explicit limitations.",
+    "No physical desktop/browser acceptance, every-format coverage, every canvas gesture or long-term memory benchmark.",
+    "R3 installation1304 and original helper/readiness failures are preserved; R4 actual installation is a separate new outcome."
+  ]
+}

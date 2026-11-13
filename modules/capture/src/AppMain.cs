@@ -44,6 +44,7 @@ namespace QingJie {
         static System.Windows.Threading.DispatcherTimer captureDelay;
         static CaptureWindow selectedCapture;
         static bool endingCapture;
+        static bool pastingPin;
         static EventHandler captureDisplayChanged;
         static readonly ScrollCaptureWarmCoordinator scrollWarm=new ScrollCaptureWarmCoordinator(ticket=>new ScrollCaptureWarmLease(AppDomain.CurrentDomain.BaseDirectory,ticket));
         static bool scrollWarmExitHooked;
@@ -158,7 +159,17 @@ namespace QingJie {
                 });};delay.Start();
             }catch{CaptureStartupTiming.Mark(timing,CaptureStartupStage.Failed);if(captureDelay!=null){captureDelay.Stop();captureDelay=null;}captureStart.Complete(ticket);throw;}
         }
-        public static void Paste(bool recover=true){try{if(recover&&Pins.Recover())return;if(Clipboard.ContainsImage())Pins.New(Clipboard.GetImage());else Notify("没有可找回的贴图。先截图并复制，再按 "+Settings.Shortcuts.Pin+" 贴到屏幕。");}catch(Exception ex){Notify("贴图失败："+ex.Message);}}
+        public static async void Paste(bool recover=true){
+            if(Quitting)return;if(pastingPin){Notify("正在贴图，请稍候。");return;}pastingPin=true;
+            try{
+                var store=Pins;if(store==null){Notify("贴图功能尚未就绪，请稍后再试。");return;}
+                if(recover&&store.Recover())return;
+                var image=Clipboard.ContainsImage()?Clipboard.GetImage():null;
+                if(image==null){Notify("没有可找回的贴图。先截图并复制，再按 "+Settings.Shortcuts.Pin+" 贴到屏幕。");return;}
+                await store.NewAsync(image,MoriDesk.DeskRuntime.PinCancellation);
+            }catch(OperationCanceledException){}catch(Exception ex){if(!Quitting)Notify("贴图失败："+ex.Message);}
+            finally{pastingPin=false;}
+        }
         public static void TogglePins(){try{if(Pins==null){Notify("贴图功能尚未就绪，请稍后再试。");return;}bool? visible=Pins.ToggleVisibility();Notify(!visible.HasValue?"当前没有贴图，按 "+Settings.Shortcuts.Pin+" 找回贴图或粘贴图片。":visible.Value?"已显示全部贴图。":"已隐藏全部贴图，再按 "+Settings.Shortcuts.TogglePins+" 显示。");}catch(Exception ex){Notify("切换贴图失败："+ex.Message);}}
         public static void ShowWelcome(){if(Welcome==null){Welcome=new WelcomeWindow();Welcome.Closed+=(s,e)=>Welcome=null;}Welcome.Show();Welcome.Activate();}
     }

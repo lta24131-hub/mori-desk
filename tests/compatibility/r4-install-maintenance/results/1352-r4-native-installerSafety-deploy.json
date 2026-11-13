@@ -1,0 +1,9 @@
+{
+  "id": "1352-r4-native-installerSafety-deploy",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\7175954244B6",
+  "elapsedSeconds": 0.68,
+  "guestUtc": "2026-11-13T15:37:49.5724370Z",
+  "receivedUtc": "20261113T153750535453Z"
+}

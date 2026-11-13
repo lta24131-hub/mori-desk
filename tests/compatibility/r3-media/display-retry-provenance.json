@@ -1,0 +1,74 @@
+{
+  "purpose": "One controlled retry of exact original visible MP4 functional helper after new VM display-sleep evidence; not a weakened or rewritten test",
+  "originalFailedTask": 991,
+  "originalFailedPackageSha256": "8D0F3E6A0CC36FAAC78D4CFF1DCC683223941019AF632D7950A0B6B5207B1B99",
+  "originalFailureRetained": true,
+  "original888And896TimingFailuresRetained": true,
+  "newEvidence": "After 991 the independent VM QMP screen was black; after Shift display wake it showed the unlocked desktop. This is an environment observation, not proof that it caused the white MediaElement frame.",
+  "preconditions": [
+    "Single VM queue owner wakes the VM display",
+    "QMP screenshot confirms visible unlocked desktop immediately before run",
+    "Keep VM display awake during this one controlled run"
+  ],
+  "unchangedMembers": [
+    {
+      "path": "MediaFunctionalGuest.cs",
+      "sha256": "2085D35D006BF7337BDEBA939A308B3FA9B8A48BD750FEA98A41245908BEF107",
+      "bytes": 16340
+    },
+    {
+      "path": "MediaFunctionalGuest.exe",
+      "sha256": "475876A22DE80B2A50110B372AC9F39FD1A43F236352B9DF6193D10A72B22ADC",
+      "bytes": 27648
+    },
+    {
+      "path": "MediaFunctionalGuest.exe.config",
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512",
+      "bytes": 1266
+    },
+    {
+      "path": "MediaFunctionalGuest.exe.provenance.json",
+      "sha256": "02DCB9D674BB351AAED7F9743C6BD81222F251B8C7F8F7B9F96B0F54E4C80A1E",
+      "bytes": 1816
+    },
+    {
+      "path": "Mori.exe",
+      "sha256": "475876A22DE80B2A50110B372AC9F39FD1A43F236352B9DF6193D10A72B22ADC",
+      "bytes": 27648
+    },
+    {
+      "path": "Mori.exe.config",
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512",
+      "bytes": 1266
+    },
+    {
+      "path": "plans/native-mp4-functional.json",
+      "sha256": "F7BB1D62ADA690346681C1FC73D6E962D2FBF1EAE49C1BCFD9B7AB2AC0457909",
+      "bytes": 362
+    },
+    {
+      "path": "R3MediaFunctionalRunner.cs",
+      "sha256": "4C751FBF58231596D988CEE4FF87857F2B375E5DC170BB4BAEF672035D11C2AC",
+      "bytes": 14177
+    },
+    {
+      "path": "R3MediaFunctionalRunner.exe",
+      "sha256": "45E3C757974D39CB8C27AFB46A7F842CB05ECFA586D00E7B75B92D000AF494BB",
+      "bytes": 39936
+    },
+    {
+      "path": "R3MediaFunctionalRunner.exe.provenance.json",
+      "sha256": "2E66E0E8CA882D481C883CBEE757784B660B49FD1C72DFB978EE57A534E782BE",
+      "bytes": 4320
+    },
+    {
+      "path": "scope.json",
+      "sha256": "93F433C39E19A920778E099D537CBCCE90DF7FEE5E67150D88B80DF9801997EE",
+      "bytes": 898
+    }
+  ],
+  "productChanged": false,
+  "helperChanged": false,
+  "assertionsChanged": false,
+  "noRepeatedRetries": true
+}

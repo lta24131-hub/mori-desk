@@ -1,0 +1,9 @@
+{
+  "id": "1395-r4-lease-failure-read-1",
+  "type": "read",
+  "status": "passed",
+  "text": "missing: apps\\F863774650CF\\display-resume-lease-released.json",
+  "elapsedSeconds": 0,
+  "guestUtc": "2026-11-13T15:52:06.9737488Z",
+  "receivedUtc": "20261113T155207928690Z"
+}

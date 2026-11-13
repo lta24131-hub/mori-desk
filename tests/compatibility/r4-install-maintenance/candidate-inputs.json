@@ -1,0 +1,1697 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.45.0",
+  "candidate": "R4",
+  "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "sourceCommit": "4a8ea1afb336b29b75849aba32e6652ae4b5af16",
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\assets\\mori.ico",
+      "sha256": "CB31D21B316A32AC059B9AC5BC11195FF6BD1AE48195F6656EEEAAF1F2324FF3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\app.manifest",
+      "sha256": "4F0FCB30E1655D25947A5BE4B5F231989F8D6C372E1390D23B6A7F08F7A341A7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\assets\\legacy-installed-payloads.json",
+      "sha256": "5E4FF8FF802BA165EA8B09FAF92A410DCB4607326AF52A8F86B4BF246C4B39C7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BoardPage.xaml",
+      "sha256": "685BE7A7B0D6FD83E192B2B4843DD5B30C730166DAA52468E7FE590A086866F5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ReferencePage.xaml",
+      "sha256": "40A351590C08ECE4877972AEB1CB21014467E378AE69485A589AE7CFFFAF844F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\Main.xaml",
+      "sha256": "87367D735C4EAD838C86382A11B2C508D246F9BFE2149723C18B41BA34785066"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\assets\\video-player.html",
+      "sha256": "65CA2B5524F426B6CD3FE4C4DBD0A19A798EACFD93D43090F497FCB45753481E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\assets\\nook-256.png",
+      "sha256": "2350BEF57E46E3EF3ADEAA871949C6E56DF9037F2785C6C2A87F2A0D0A940481"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\offline\\catalog.json",
+      "sha256": "8C042B4367B928DD5E84589B02AFA4AE7415058087335184D98AB636CE61A14D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\offline\\worker.py",
+      "sha256": "73F6417DE32CF11A7C5C0F768FED4665C07285A4C03BA44432DDCD4990A70FBA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\data\\frequency_dictionary_en_82_765.txt",
+      "sha256": "34D7E924FED49A52CF7B6765EBBA989C2EC66CDA9F76A052158D1B017A0DA8B8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\AssetSearch.cs",
+      "sha256": "AFA77B6692E158C5A943789F155C533764E781D02B7186035454068C99F6A7F6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BatchTests.cs",
+      "sha256": "D4659653AEB8327CA0BE265D5B6ECF235EA4CA3144BC66946B7B8C2012A10A57"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BookmarkFileImport.cs",
+      "sha256": "5581377CF3B3FC46D19B213A64FEB595F794E2B817F0CC4DF424FFA53544340F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BookmarkIcon.cs",
+      "sha256": "A2A8D7C0986CA62F65802E89064F97DCD5B2810A915C78F8FC92658BA56AD812"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BookmarkIconTests.cs",
+      "sha256": "DCB27C6A0610511A8112485FE9B4140C4D51E7BA56B8B8BA32D3BBB5D600BE96"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BookmarkPageTests.cs",
+      "sha256": "B21FF3CA422280D7E0AA282365E59D5419860A82CF6FBBFAF6B1C10332389E26"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BookmarkTests.cs",
+      "sha256": "126757628E340C8CFD0C1207948C5E1EAE409395BB78E42A0D502AABDDE48B75"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BrowserBookmarkImport.cs",
+      "sha256": "43AD83652C8FAA392D016F1DC6C4CABA18C77E3E8A0A75F8412DB4D8E382671F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BrowserVideo.cs",
+      "sha256": "C4FB3D237DBD2548B2B2EF051C32DB5530948CBD15BC6A62129FD0291093BA2A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BrowserVideoPoster.cs",
+      "sha256": "BD52B987B27FE124604500F4837722DFB0D5835747A5540A9B9FD560334640CC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\BrowserVideoTests.cs",
+      "sha256": "78D15CF333E3F8E08284AB59CCCFE3DC92A89DD93BFA8B39288329A65046DF23"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\CategoryPicker.cs",
+      "sha256": "4DC28B2D259F007A6B62FCE3DDA7261043010E541FBFBD29C7AA7A9CE3BAC263"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ClipboardImageFile.cs",
+      "sha256": "C74BACB248BC61DF9868054B54EB633FF1B3AD09C1C017AED4471D474C31A30E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\CreationMetadataTests.cs",
+      "sha256": "2C90195257AFF3B2E4136B08996949B14A46C8D994EFF6E9CFE0305C5664B2CF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Database.cs",
+      "sha256": "B65CA819AB27DED3E58B3B95957C355BE6894CB82BA65B0BBAB087BDF90284FE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\DecodedThumbnailCache.cs",
+      "sha256": "899AA536DB03150D454E0F307DBC4A180579EB76BBF9AD7E508F196574D5DC7C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\DocumentContent.cs",
+      "sha256": "8A2DF75D0F1BD3A447696FA59CA8E6A9792FEAB4911621DDAFFF696841FECF54"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\DocumentPreview.Controls.cs",
+      "sha256": "7C4C16A06D8360FF0D62B9AC0939319A094D9E962FD301BA6AE983485ADDE0EE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\DuplicateTests.cs",
+      "sha256": "CB8EBB0791A0598AC95B15BC94511ED358ED25ADCA9F881CD7CEAADBCD2D9B6F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\DuplicateWindow.cs",
+      "sha256": "B5E980C7E8FA628D54B0F9C4E9C8E51C14B074C7284B8EA7A284A96340290308"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\EagleFileImportTests.cs",
+      "sha256": "5D7540D0F611B5A555377FAE8B93D9606184DE92A0181B7647984BAAB85273DB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\FilePreview.cs",
+      "sha256": "0FB4E0343D9925F00F12372F4184D11726A0ED0FDA2DC7A6FEFDA62470394204"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\FolderBatchTests.cs",
+      "sha256": "BF9DBF4C0A12C5BE6BDCF9B95B786A39B0327125188A467F7691D6D4AFA6EF7F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\FolderManagementTests.cs",
+      "sha256": "FB36464898FD89D035AC09D598EF7B6F03591DB101ECDCF7BF8792FA69387C93"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\FormatPreviewInfo.cs",
+      "sha256": "D7E2BF3B971169F88FB2A96B65CFDE78727D9922CEA1FAEBBA44961E31EDF82C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\GalleryHeadingTests.cs",
+      "sha256": "141D1BC2C9EF9ABADE7472233910F9E55B0CD26155CBA26741E683456806BDE4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\GalleryLayout.cs",
+      "sha256": "5C75EB3B8AAB85B36A5BA2A266AFA94A4F4AAEFB0AC7EFC436F24FE31048532D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\GalleryLayoutTests.cs",
+      "sha256": "9FDE37941A69D6F9EAE4D96FCA913659E12A77AB66FB464E47E9678A949236E3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\GalleryMenuTests.cs",
+      "sha256": "1C32F3706469FD3F25C33D016AA4B999A0793166A77ECC624F02E39BF2DCC6A1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ImageCodec.cs",
+      "sha256": "53F7780584FB28D1DBB647705FB1773E289074E4005CF47CA76606096D723861"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ImageCodecWorker.cs",
+      "sha256": "DEBAC24C882998A7EB199B86998B17AFD432CD9A339199995E21CA2B2909ED34"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ImageSimilarityIndex.cs",
+      "sha256": "7C8E28A803DF50A1E15A758CC1428ABBD541C934604CE927CDE3E8E13EA42E7F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.Batch.cs",
+      "sha256": "0C6FDCC574D04F1D18FB4D5E6359F3ABA348416BAB19C603A808557C4A99B358"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.BookmarkFolders.cs",
+      "sha256": "A89EDACA74E145A79FF3CCAFC2DC10A82BD269EED34196032F50548EF45FBB08"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.Bookmarks.cs",
+      "sha256": "D5185C9A4D8CEB6B3FE2A07B421CEB820C33FBC738886B7ACBD0B1EFC9C9004B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.cs",
+      "sha256": "F5B083E3DDD8A155DC622ABFB23FEB95F5B829B0E1A60F639224D393AFF867BE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.Deletions.cs",
+      "sha256": "6CF44CF7526099648D0EF9E063FD76AD08C3A9C0EEE25DECCF615F95B1D7882A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.FolderBatch.cs",
+      "sha256": "881FFB5C3CE80764B98F1D77EA03CFEC00AF6C1FA023CA446BB50065FA4BBFD7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.Restore.cs",
+      "sha256": "4FEBAFACDA492C09D56520DB5189153E1CCBAE65D861D3B144766B3AE169A59B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Library.ThumbnailRecovery.cs",
+      "sha256": "9994407B0890252DC250A06C26FDC135A5C5ABC7FC0D1936CC5BCB370AFC61B8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\LibraryActivation.cs",
+      "sha256": "9EB1E1B974E294D98357F83D70375093F5F3D00BCB5F08FA36A9AD0E42293AEA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\LibraryTransfer.cs",
+      "sha256": "E94F7236295C41E68C713722E1E8C92A17F186D7DC67F3DDDF2BDE259086BADF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\LibraryTransferTests.cs",
+      "sha256": "548B5F4F38B34D2A5291853A7752A4699D3E5B5A9A2CD991FF20BC6AAB3392FF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\LibraryWriteGuard.cs",
+      "sha256": "633A884B229DA0EAF033B5D698E46460ABBA2D3E0650526B23A11C7E160D97FA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.Batch.cs",
+      "sha256": "9372184B07FB9450FD95FC2532A101067AF77AEA3490AC6588B1BD9906DB0D76"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.BookmarkImport.cs",
+      "sha256": "745795B08F9FEF46C1A2796891F545EA6925E9C91962738DFD2EA6DE89158190"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.BookmarkPage.cs",
+      "sha256": "1E9BF0316DC733F748AB800B7AADBF4AB752EF19F7BE4628C8C3C605F1F19E3A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.Bookmarks.cs",
+      "sha256": "9A2B0CCDFCB93C61116C84A3B44149EBD26BA6F7F5FBD5FFCE200753C9A5A35B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.cs",
+      "sha256": "3E418E067F3615B3020035F8FBC3647C5C6F90E3841021EF6EED05EE99842FD6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.FolderBatch.cs",
+      "sha256": "736343B473AAEB40786136F45D02BDFB31F1742C4889D0614094039ACF1F3F8E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.Folders.cs",
+      "sha256": "AF95D4A7D3032D640AB68AC9754A2462EC65B566DAEEE8149CE4A4AA124382B7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.GalleryMenu.cs",
+      "sha256": "D5A98F9DA423F024DAC49DDAA1B70F9C0C256CC318F46955C5125BB695C0D201"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.GalleryNavigation.cs",
+      "sha256": "F7AA80A0D3F5DAA667B016CB868E1C319E0FFFA89CAE7761950553FAE8E6E65A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.ImageViewer.cs",
+      "sha256": "E1D1F536BF0D8FFCFEA8BF147D47FC785F7281BDF0E7AF40A448BDC7C75864C7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.InspectorPreview.cs",
+      "sha256": "F971091F21D83F88421609B099EA2E65C8BFCDEB3377EDAA3294569EC950E2F4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.LibraryWrite.cs",
+      "sha256": "E1D4F5C26BAEF41B6E18C36978B773F01B117412F112A0A519C445D6F391F43F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.MenuLogic.cs",
+      "sha256": "711F875B246D9F76F3AB7BD49DB8B84404596ED9A07FF4D47BFBCE1AF117053C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.MetadataCache.cs",
+      "sha256": "64152DB5A96A6B849AF164EF062AD9178B002C5C3AF2BAD8C9141C8D769B6972"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.Presentation.cs",
+      "sha256": "7F124F829A8FE057A2713F9AFF18C45BB76CE645DA040564F824E0F65EB541DE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.SelectionLookup.cs",
+      "sha256": "61B20B5C525AD221D1589321AC20A80AE5447D15D2DF09DA3769EB3A91403C75"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.Tray.cs",
+      "sha256": "4E2C198D27A3067183E0052C6EAC805ED02F0082640A8D363BA145D89B69575C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MainWindow.Undo.cs",
+      "sha256": "F1BE5DD81188387A4698557E9D938F07D422DC24C648E9F1E379E59D0AAF9DF3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MediaBadgeTests.cs",
+      "sha256": "6C942A7255414E7AB4AEAA03BDC80DF51C89DCD958312872BABEA2C1F377F946"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MediaNavigationTests.cs",
+      "sha256": "274CF19624FF17944F17321B8B3360CCF1CA33E844236971D1A2CD95108B4D16"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MediaTypes.cs",
+      "sha256": "62455343AA2BDD50ED69885D9421F78F33FC08F1BF766AE99B84757D6995ECAF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MenuLogicTests.cs",
+      "sha256": "006BE0D635D05E04420644407204F8B6019D7DA5B71B9794371899130BC74BBD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MiddleDragPan.cs",
+      "sha256": "10AA6F90C5D468D1DFF9D1B90C1CD132A6D910DFAA01799261294B5B2D5B0B77"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\MiddleScroll.cs",
+      "sha256": "D3D09BF3E4752B82A6F94ABF88E0E373E376929A72E4FDE2AD01C9FE1E52B526"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\NativeBridge.cs",
+      "sha256": "65A2AF6A36B1B40DB1CD217151EF7CE033FC03D1E58CBC33C5388F4A88503DC4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfContinuousView.cs",
+      "sha256": "91B657D11D0A9996EE8176D3859B7BF3EA9D62E843921620C9B2F004E2D7BF79"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfNativePreview.cs",
+      "sha256": "F1F405F7C585DE042CCF3D012B27609CE9EA8D5C396680A82C602893D86FA60F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfPreview.cs",
+      "sha256": "A0DFD80E857AD4284B3F781F7FA1C60EA2D9BF7CB61F7FC755ADD3113DB3377A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfPreviewTests.cs",
+      "sha256": "EC85EB682EE6E6421C10097621FA59D2DA0DECD50812588F14B20ECED3D31E1C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfRenderWorker.cs",
+      "sha256": "29CAF2BBC3ED1D049675842D9A65F13E268F751320F928A0192C2960678CC493"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfText.cs",
+      "sha256": "16C03A7C6705730D8E71F1D4462A88042C60F378EF14D60C25220AA5825A5556"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfTextCodec.cs",
+      "sha256": "B995978C91EDF244F10544CF82A93E4538485554D98EB10BB521612BAB848F1C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfTextSelection.cs",
+      "sha256": "D8F9B8B0E328832C17A4BC42D35B121AE18963D1F45F2F7A7FB68D9341F59E9B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PdfThumbnailPane.cs",
+      "sha256": "91CB04608807F7C4F5E51BB906956F197AACBF300401DCC4F22D9654E297B1B6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreferenceTests.cs",
+      "sha256": "C0EA54CE116DA3FC15EF86CDE09C237DF0F63DF015EFC194B5C9B597175CEFDD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewBackground.cs",
+      "sha256": "8F9C41EA79D73738D1C4B16979C1EF72F3C7FD789F388AA3A2A138C8FE867ED2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewBackgroundTests.cs",
+      "sha256": "DE4FE489AAD1745DAF36516640E2A3E42A55B196513A616C2D62D19DF6F145DC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewImage.cs",
+      "sha256": "79C7BC76E642BD4E962F8742F103B81079438091BD91536EA165C77DBC244DA9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewImageTests.cs",
+      "sha256": "BDE0F4F01D344C3F74205F1CE81161750FEC2F73D47ACC576277152CFEE7E9F5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewRenderingTests.cs",
+      "sha256": "2FE3C2A1AF464E0F004CFC9C054C216DCC298EE550F6296BAF0685393EE3EA51"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewThumbnail.cs",
+      "sha256": "3FFF9262DBB030D048650864500799D5545FADE614F6E5A79FB3A1E10E9F5B81"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewViewport.cs",
+      "sha256": "E58428BD916E70D1F26936EA31C75B9DD4BA04261C97AF5A258D71AB7D0C3B50"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewViewportTests.cs",
+      "sha256": "7D4BEA0655A1945AB6944F093973DF5E57DA64C25C79BEFB8D1A45EA04A05B70"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PreviewWindow.cs",
+      "sha256": "8B66F6DE2498FE7BCBE341D62D098871B70105D409C0F68FAE19D9CDF944C16D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Program.cs",
+      "sha256": "D470590DB1C2A5626797EFD8FE9879C0546034D8C53DE81AF5EAB9F184969EF4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PsdComposite.cs",
+      "sha256": "6FD9041B75A7238491FF170956341D47E7C900F68F218F24969DA90878E757F0"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\PsdEmbeddedThumbnail.cs",
+      "sha256": "D9331850695F2850EA15AA458F04B9AF2C6D05475AA9CD596B0B3075FD280E47"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SelectionTests.cs",
+      "sha256": "C10F9A97D50A1269F0506B5CD158BD3D23832B6B1645463570C8157E170C5D13"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Settings.Customization.cs",
+      "sha256": "BDCEBC67192F9FCC6DE4D7AE1E2C4A76692DDD2DA873C2622E5FE6676EEA9251"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Settings.Persistence.cs",
+      "sha256": "4258099140013549D38D70D54036B2B1527D3E4EC90FE83FA700FB5DDF824230"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Settings.Storage.cs",
+      "sha256": "D02B533A36439E888406736B79A66C5AD9044EE233FC7B551547E57EFD4454B2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SettingsWindow.cs",
+      "sha256": "7537E5C8FC3173C466021B42B62543E385DAB4EFFA9E902CC08933059DE83B7C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SidebarLayout.cs",
+      "sha256": "906702DAA42D3828C16169DAD18016D8EE0BA9C2578E61749B382F7085F04223"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SidebarLayoutTests.cs",
+      "sha256": "0B50DF4984EB3B131627C6B57EFF3CFB96ECF657ECFAEFAA9C9584613C5690CF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SidebarSpacingTests.cs",
+      "sha256": "0CC6A98836ECE0543EA17E795EE19E9D11CED5921BF9014A25D4A920F2979395"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SourceLink.cs",
+      "sha256": "1A670C7050AE68261328C729D84862C5ED9C82B3970E8BC76A1EE3C43ABED861"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\StartupRegistration.cs",
+      "sha256": "227E1098113AAEDF1A61F3EB7D6B12AE26B8479936E8F3D0FB84E84D9010A642"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\StorageSettingsTests.cs",
+      "sha256": "673C8A28D5CCBE6BDAE439091AABBC2AC8A0D737CEA98348CB4F784D358640C0"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SvgRaster.cs",
+      "sha256": "5CA35FC8E004A6B2D986D4E48AF57AFA3CF55062E73ABA83329F7FB78DED2B6A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\SvgTests.cs",
+      "sha256": "368A36DF3B3B8283988BB84AB3A0FC42C59F3B4E8C4176586AFC5C453C6120E9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Tests.cs",
+      "sha256": "583826F095EEF575C2DC23CA0A05BA21B80C8F745A2EE3F2FA6C5095D2AEAF25"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\Theme.cs",
+      "sha256": "102C31CBF4ED1E104E5501F8ED4468AB7F09F70ADF9F670B7F611789662B2782"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ThemeTests.cs",
+      "sha256": "E3E2BF3B9DB740C23571FFF11503295D61A68C7F75A25C7F28DC5001FC5F67D7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ThumbnailBuildGate.cs",
+      "sha256": "BFD9B2A0C17DB8B44FA287C1071531F6A2E3070B28E3F71342A9008D363715C7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ThumbnailGateTests.cs",
+      "sha256": "8581EA359D4404C22D18F0BFC8FDCC50945B25290A8D4CC8341AF5202ACA9C4A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\ThumbnailImage.cs",
+      "sha256": "C2A3A882AD1039A2EED182155781DAC71AC155CCD0BCC5E42C9D66FE164AF049"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\TransferWindow.cs",
+      "sha256": "C312C032835FC31E322278D458FC3A062FD1C1756432A55FBCF831D5E7D55094"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\TrashAction.cs",
+      "sha256": "C5F73D9F0865614DE53798C2B062FFE3DE4B50F05BAAD0BBA9CA321EB657AF1A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\TrashActionTests.cs",
+      "sha256": "A34FF1FAACC22C5B77F80DA37816E11335C9A4FA8F8AB7C314D66C68A43191B2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\TrayHost.cs",
+      "sha256": "F69D988E7E6483BDC674A733DAF15D43F79E91F35F58F6AA9E559BB535B590B9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\TrayTests.cs",
+      "sha256": "22F2B916F6CA9983EDB7FB83D5E3FCFF71252EDC4D7EADD5EEE9953CA71FD84F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\UiIcons.cs",
+      "sha256": "6CB06D724841057C87BDD9788F0FBF9CB4AB917EDE0302B887C0AC1601E8B8E1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\UndoHistory.cs",
+      "sha256": "80951BC3E62C0117BF8C1A57530D36659DC240D8CDE7A7C7DAFA697844DFDBBE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\UndoHistoryTests.cs",
+      "sha256": "617DEF9C6D4B54AB62B6326D63C593733C249ADA7A48C4235CECB60AAF8D4FB5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\VideoBrowserTests.cs",
+      "sha256": "25E62B06B4E172B113158A41ABAAE778546E894F7584D7A956E0778677DDEBCD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\VideoControlsTests.cs",
+      "sha256": "79EE00F9A285FA49325951DFF778A57CD98096139142B196E0F11779DCFB9928"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\VideoPlayer.cs",
+      "sha256": "5B2721764117F4E7B4A8CDE983DF71D7BCEC89FC6CAD28687FDAB60E15F988D1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\VideoThumbnail.cs",
+      "sha256": "D7BD19EA8F4D1B2D64E8BA1FC141F35FED27096534E424F91DBA635C53EF1A3A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\WebMediaFormat.cs",
+      "sha256": "05161AA61CDCA17A1AD80246E96D483811AD946B372B19FABC476019D1DDDEB7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\library\\src\\WorkerIo.cs",
+      "sha256": "0A2C3A1B2CCDF1B09B18E3B4A491E45030B1FAE671C67D852F6A98FDA2D4ACE3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\AdvancedScreenCapture.cs",
+      "sha256": "F7311C8F9E6BCCA6006ADF4C40E5E815BBF384552F4C9A0BD4DB061456D367A7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\Annotation.cs",
+      "sha256": "B5E51C14A21C396F074D619496D93BC251B5FBF176AB394F3AB1EAA19FED72BB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\AppMain.cs",
+      "sha256": "0C9A6C71CEC1F8CD1671F414225880A8AC1532B1FC88119B3F72982E0F030176"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureAnnotationGeometry.cs",
+      "sha256": "B35FFAD4CCA0EE2D0D95BC78F571189E014A9442FC8A0E32A5CAD82AC10A99A1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureArrowGeometry.cs",
+      "sha256": "D4A17E61D56146814586B73AB2ABEA2ED084F30C3E017934EA4801EB89517D0A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureFeatures.cs",
+      "sha256": "72556171893C0CCA4C9B90C3A0237C310F5404534A9B18C67DE75B4410B791D5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureFeaturesPanel.cs",
+      "sha256": "FFF51B13F67F3C874111FCEF2BB10A2DF713E0758CEFC23DBDEE9912780D6D84"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureStartupTiming.cs",
+      "sha256": "BAA187600BE20144F0D8D9FE545CBEC6E0B9FAB7A3975070110F0324CB3F430C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureTargets.cs",
+      "sha256": "4FA7A2ED4002671EC73A0FAF97E8CD951C9F2816A7E9CC0DDC61FBE8EB2BDF20"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureVisualRegions.cs",
+      "sha256": "1D6BF4698DFED96A665E1F53EAFB233DCF65EDBA76081CC3F9B66CC003AE62B5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Annotations.cs",
+      "sha256": "581875D22372A88AEA664606F618723FEFCD91049F3C5D5B7260B7FD1E0EB8F6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.cs",
+      "sha256": "A2E715A8688827A38894024B678BDEBE5BD62256D38FB205829463D5ECC78332"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Input.cs",
+      "sha256": "8B6FDD2579B6437198236A97854D6F56134EC65FC8DF21099575330C8A488B4D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Monitors.cs",
+      "sha256": "4B2F20D64B0E775C8D3A280A04B0B24FFDAE111EB0AC57B16B0DA9D71508A50F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Output.cs",
+      "sha256": "144D092265E7EA0FF984B47CCA6DB69A1D5A9CB587F39BAB09FDE5CB8A6AEAFF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Scrolling.cs",
+      "sha256": "DED170623D51C8F5B7CB7163FCB65011217D7B6D94B3D90EB9DC97FA9C84F46D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Selection.cs",
+      "sha256": "0955B93B01591314C760B775D0A42F6B7EA9B8E1858BADF37546F7ABAE60CFAB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Stroke.cs",
+      "sha256": "FC3B16293A3DA3D383AABB76B396F364EE59D603255B1106EB8B0072881DA0EA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Text.cs",
+      "sha256": "8E19E6C8D1D3AF0F2C6715BB35079272EC6DBDDFEC61467AD9FC2D075F4743C5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\CaptureWindow.Toolbar.cs",
+      "sha256": "B533182A594054E014A8EC38C71C052C2E941442EDF84BAD00E4AF5ACE56F431"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\Core.cs",
+      "sha256": "F37EFC53676A0A29E6017E7AA9E433FC93118E7DAF3A35B18412F086D9AA2EA1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\EnglishOcr.cs",
+      "sha256": "F48F6C9735EE5DEF2002DC3758B206768226B397C0E60E16C7BBD61A32284878"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ExternalScrollCaptureSession.cs",
+      "sha256": "48791D0C6E59BF35F90460C59ED2CA873147B06A0BF840AE7748FC1C7B29CF43"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\GoogleTranslation.cs",
+      "sha256": "7D9EB948D58FB9040E83701F05EA74378858C52794A375F6A4B90A782ADE4712"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\Hotkeys.cs",
+      "sha256": "2F27377EA1EA4C1A194E860B8824BA22334B0CC0ED632C27CB2DCCCA908659D8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ImageTranslation.cs",
+      "sha256": "1B044EE9CDCDCACDD0CF1F716CFC822FF7264170AC444E22E0CA694DB5C412C6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ImageTranslationSweep.cs",
+      "sha256": "4AD719F22F477810DE6C27A2A9D59570425E85A7DB94CC0D84424478B9CC3000"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrCorrection.cs",
+      "sha256": "82FB7C4CD847E47419A56F718797A14ABB4248DD06169990B1DEA0E8F45A70B1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrHighlights.cs",
+      "sha256": "2DB98E1BF320120A5D65C87657952D4A3F92F3CE253ECE07CEF991F5EC0EA577"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrLanguagePacks.cs",
+      "sha256": "2A1082B8CE2DF9B7C72E9D20F84824F4FB04DD190F50BC85EEF4073E7763EBC4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrLanguagePanel.cs",
+      "sha256": "B033D25163FFB479D7F35E9BC0DFFAB1385B072590632AED6AD81221BDCFF1A5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrLanguageSelection.cs",
+      "sha256": "2CC3C2FF0D5A8733348E80DF5F30C4F5D31D0B045174E698D0B11C7F0A0C6F79"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrPixels.cs",
+      "sha256": "95E63FF366F1202D74B26797BE7CCECEB0B1AA756AEE0558C0445CA98CD05048"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrResultCache.cs",
+      "sha256": "2C0ED12D8A8C4DF145AA4D2F2CB4999A5BB7F719D056F34036B6308B2A38BF78"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrService.cs",
+      "sha256": "70979C1D37A44549BB70BE2A5112FBC8ACC8049BA9D77A80AD81960C4E6AB0F4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrTranslationInput.cs",
+      "sha256": "EB11E519A6F36F8D263B1EAF951F89705321C558D341118F3EE3C2872214D50A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OcrWorker.cs",
+      "sha256": "CB6CA1616F9AFC19A644B41AD7AF63FB4C36CEB9CB07FAA52C452CF4769CB0BD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OfflinePackPanel.cs",
+      "sha256": "B0CF4CEF2D17191C548EEBE16AC3D7259727752559D54B8D7810032A13B70F6C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OfflinePacks.cs",
+      "sha256": "905C13D5CB36718AF316DD8CF866FB7FE85973AD62A1664A5BE78BC79BC918C8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\OfflineTranslation.cs",
+      "sha256": "E46838DACAF9A4EAED67AA3A77A63888E8355EF95A3B91B9CEC1564197099CF2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\PinFrame.cs",
+      "sha256": "C38CCD9086615312396F59657DB9374D7E61573BAEE510926F5252426C22F6B3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\PinStore.cs",
+      "sha256": "5397B96F0CA6CF0809195AD523FCC2022E44020F04E207248CF621E3B210FF89"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\PinTransforms.cs",
+      "sha256": "FAAD6C26B19F2F6E54DE126B06791E7DA2C3ED17F04EAE65B3F24F9ED752EF34"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ScrollCapturePreviewWindow.cs",
+      "sha256": "5026DC0C5DD16787122B300FD2B1C2F75B8E3AD22A166E931101BE111A3A7911"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ScrollCaptureSession.cs",
+      "sha256": "6E070CB5497DD9504CD45B58A55267D8CA412BD26C41E90A506299ABF981CAA7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ScrollCaptureStartupTiming.cs",
+      "sha256": "7C793096BEFC754D7ECE9ADBDC3A24970F7B07537CEB820287026CDA68E90BD7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ScrollCaptureStitcher.cs",
+      "sha256": "041DF38EE6B5ADEF7F5C3FED0C8C95D7D2B2E5214CA6A497F232A5DBDC7C2D37"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\ScrollCaptureWarmLease.cs",
+      "sha256": "60CD140A918697F9B547837EA0050E624B2FA0B220076BEF86B61DDE6554680A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\SettingsWindow.cs",
+      "sha256": "2A1395B5149317C7C40F29F283E518AAE08D1CBB70015937F5E1826ED38ED71E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\StartupRegistration.cs",
+      "sha256": "AF15133A522CD9C510781B437BFE68D2AEF8C9110FCEB423C47786268B119BD3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\TextPreviewScale.cs",
+      "sha256": "46F720BACCC06CE6417DC280929E71259C9D1FB1DC678AAA6F4B265DA6497FA7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\TextWindow.cs",
+      "sha256": "1AC4AC735D4007EA0CFFD2680E592E0DB09949EA1D0F80EFC67AD10208DC807F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\Translation.cs",
+      "sha256": "A54C5947B1DD45545D5066C1A641D4C1007DA51C26FAD38D6B9E9264A96B99F7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\TranslationCache.cs",
+      "sha256": "3057FFC8171ACDF5CE4129971FDBE0A5E76368C03C4817B8BFD11176C4329088"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\Ui.cs",
+      "sha256": "7C588842E4E4F302E70302CDE4570D9A407B0C3F41EB24241F50CF6DB480036B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\WindowBackdrop.cs",
+      "sha256": "C5BA537A5F750E65B064D87A4ACED094669FC544496DD0D1BC6AC506BAB6CA91"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\modules\\capture\\src\\WriteTranslationWindow.cs",
+      "sha256": "0AE86F41B559ADCD61FDD5E05D8C7CF0B8F10B55F38ED2E80BEE1D51F954F468"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\AppearanceSettingsPanel.cs",
+      "sha256": "0F0BEBE1B15E897B4E2495FE42A8A82C3B081F4B7E0053705FCD6F5B744BC797"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\AppUpdateCoordinator.cs",
+      "sha256": "D29EC741C4F17B5583EBC6C8EE0D9DE3EB48D85E65A1474B386EF9FEFC741B63"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\AppUpdateCredentials.cs",
+      "sha256": "C5BBAA56D4055D9D72364877DCABFD74CE0719E961CA9EB76201721E75475C04"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\AppUpdateMetadataBackup.cs",
+      "sha256": "B5B9E5E3CD128D1EF42EADAC7E7A5322AB793F5072A8DBDB5E9EB67112A1EFE8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\AppUpdatePanel.cs",
+      "sha256": "8633C5A8533BA996D711FDD1BF46D08FDFE7517D47789A912F2589B27EF071CC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\AppUpdateService.cs",
+      "sha256": "8899005755CA33AB75F379C89AFEA4C2DD75F01A67F3874FCCBD7428807B901C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BoardImage.cs",
+      "sha256": "206D97AC68409F1DE9F855C11F644BC62DDE193C38CEC60FEAB4C0505D5652CF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BoardPage.cs",
+      "sha256": "503965A4A70CD3EC6BED758FB0AE16A909B296C99F71D679D989BBC944711E3C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BoardStore.cs",
+      "sha256": "89AFE6B321B89D62C5136C1C9D8C03EF80CE9F6A12A2B216D0BE4CA4963667AF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserBridgeHost.cs",
+      "sha256": "1B0F1240E7F9B5C8D6C5F6109D07252B1532611336D6DE8D5EE33EC885FFD09C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserCollectionFeedback.cs",
+      "sha256": "8EF353BCEDFF4BE446FBD8ADD75DA506710F08C46F3322951F1B9FAB342E64F5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserConnection.cs",
+      "sha256": "34E8EBEFB7D588F18E9BD98FE658B91291E69F780E7ED97F3388F7BDF02BAC5C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserDesktopFeedback.cs",
+      "sha256": "F4B8D7EEFA6AB1115EA3D104B6DF5873A9AEB44E66F182105D7043D4394E9917"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserExtensionManager.cs",
+      "sha256": "BB2222CEAFF692CD36124E56DD0BDBFFD04B808F55206E663841576841032105"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserLocalBridge.cs",
+      "sha256": "4B0FF9260B5FD6C9D5AE1C4E18E808CE6BF483617B87E7965DE716A77C1123F7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowserSettingsPresentation.cs",
+      "sha256": "8FFDC7542357946F2AC865E333E637F7219D0F589446D4EDAD6086FB9F6ACA8A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\BrowseSettingsPanel.cs",
+      "sha256": "DB82379C558157B76971008AB83CB5A0C14EA2ED63547015E7EE3E75894E93B7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CanvasDestinationWindow.cs",
+      "sha256": "9839855DC12B51DA92AB26C0AF8FFDC64A17BA866D5635E2F492E245FB4CB654"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CanvasIcons.cs",
+      "sha256": "0EB25EA26AEAFBF60E2939CB18CF63F901D62B2EE05892BDBF6D072EE2BFEBFC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CanvasProjectsPage.cs",
+      "sha256": "A7357510F106C9D8213AAC6FE237868392DCEE7299D24E36EF4C2EF4CF282A81"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CanvasProjectThumbnail.cs",
+      "sha256": "B49521CC0CBB204AB8F940C3710EBC0734947E35DDCB3E4DD024DDE83DAC8FE9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CanvasProjectThumbnail.Fallback.cs",
+      "sha256": "40EFE92C405217BA4778A66C4B0850678A7F502CD12C1976969537FCC990EE56"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CanvasSettingsPanel.cs",
+      "sha256": "1F98E68363B82EE62119974DBCB686F6C4F2510A50C2A1E3D2A5635D218657BC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CaptureLease.cs",
+      "sha256": "E46F0D76D2B0966306A30B88222181C516E80F9CE6377A4BA019E6ED840DA5A1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\CollectionNotificationDisplay.cs",
+      "sha256": "3F150A0401AA72B8763DD0176F3B21C12CF3D627C4A46173E2CD4345E4FD996B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ConversionComponentClient.cs",
+      "sha256": "0564FC24DA16ACAD0740768E1C4DD27344B16B5E13C252D316D6CBC10461D61D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ConversionComponentsPanel.cs",
+      "sha256": "178AC353D6F375A48AFC33785F4CB638FAC0D1A77CE7B98C0AA22B03A6AE0174"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ConversionFormats.cs",
+      "sha256": "D2841E4238AE41190BF9C8508ABE912520264E069D25BD03E87090BE29293F2B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\DeskRuntime.cs",
+      "sha256": "B75530A8990D91834CFE598AD37196D92304A81E7E3B34D6D56913E37239780E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\DeskSettingsWindow.cs",
+      "sha256": "99EDB5B4733C6F3783C15EA8E8F336A9C0782B50F443DDCF6BD5FCA4AE2AA8BD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\DesktopDropLog.cs",
+      "sha256": "7FEB287C486F01ABBD27BE8EAD5740F1BA1953E7F28945BD2A1A9833E355D223"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\DesktopImageDrop.cs",
+      "sha256": "5D8518C12BE8E9384834026FEBA60203040B236C1E7EA06F6CAEBBC68E79EFA9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\DesktopImagePins.cs",
+      "sha256": "753DBAC568DED834EBC4AAD48E0F63737976C1F08E7306983B8CDD9A905F342F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\Entry.cs",
+      "sha256": "F0ADD922431FF9861F668883D4E8CB922A77A280BC2105EDE4EC323EB4D13897"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FileConversionClient.cs",
+      "sha256": "0DFDAA6154CED8DF3299141C0281622A164F778EFA557AE6C8FAF706CF15852F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FileConversionCollection.cs",
+      "sha256": "799051503E93416070DA966C69A4CCBA7C2DCFEB935EEF06F453050C001EA54F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FileConversionPanel.cs",
+      "sha256": "FE38EEEE50FED55863887564ADAD6650EB32F3827020A45A72E25ADE5349856A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FileConversionWindow.cs",
+      "sha256": "E2037D39935425F0B8C7199C8454AB744D70B4C23132E4C9D27CB2BC45586322"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FileFormats.cs",
+      "sha256": "4CDFDDDAFBD05BDE5C9F5EE146FC68D0518644A78BE9C25ADFF8187876E96CCB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FilePreviewHost.cs",
+      "sha256": "56568C8945EB225870BB05BEFF9B0D41C59D95A9B19079AEBB19516AD4CEAFC3"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FileRouter.cs",
+      "sha256": "1C7B39F0469371ED6041CA575994FDF4EB364780731CF89DFFB179FE98E71612"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FreeCanvasStore.cs",
+      "sha256": "680B4B3F42553CE1B0A604856C36266C4606F38713936195DCA907C58D7ECDF8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\FreeCanvasWindow.cs",
+      "sha256": "868D1F3640D6CAA2D594147B2E15F454F903C3B6B7A58D9998247351FC7027DF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ImageBrowser.Controls.cs",
+      "sha256": "1DA7C4D6C1BD7E355B21D28C106A95DFE3445107640525E517CC15BD58F6546F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ImageBrowser.cs",
+      "sha256": "CF0A873A27F1A9A92DA595C7B4532F1A78C2EB3F9D2DB1E3C066665A66B7C109"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ImageDirectory.cs",
+      "sha256": "F2DD3A561E0F392BD0B7CC44E3F0ECFC0F5FD2590CB62107D2B0EFC735838D39"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ImagePinBridge.cs",
+      "sha256": "4C115BDBF245084DB10060D2FB2F078BB4EFCB42AF1E849E2C1FABC6E6F6A2D9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InitialWindowPlacement.cs",
+      "sha256": "55713E445D644405C3CBE5E8E8AEC6D17FBEF0E6E40791C87B40D00C706DF8CF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledApplicationLauncher.cs",
+      "sha256": "768D67C4BA034493CCCEE4EA75458B35CBABE64038F8C20CE11F257D702920DE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledApplicationRouting.cs",
+      "sha256": "1F9C25137CED8C9D1AAC2747359F817B0647879B27F74A4CEB641602CB0C1F3A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledApplicationState.cs",
+      "sha256": "ABF519972B6F5D13DF4B240209FF7E33F422E608F8E6FDC264B26EFAC556914D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledCleanupState.cs",
+      "sha256": "FA260C9CF8AD7B1836C787C2B6F0D7BC605CADAFCE34B77E855BB9450D860425"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledLegacyPayloadCatalog.cs",
+      "sha256": "EB0CE66243A319965B99E318445DB107EE298440BFA5B1A671A4BD48D36A0CD9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledTaskbarIdentity.cs",
+      "sha256": "5701045487CBE6006ACCB7F66122ABF4AEA15BC4C432C56B2AB57905D02A88F7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledVersionMaintenance.cs",
+      "sha256": "2071C682FF071D5884A53C06CF7FC36A065397E65F16B6AC812E1772AA27EC68"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\LaunchRequest.cs",
+      "sha256": "05CC19AF413C80A2D1DA408896E53DD7D2219022D77C7DF3C678952AC72CD8C2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\Library.FileConversion.cs",
+      "sha256": "89C791AC38E121081569C5115699ABB2CE2B7C384EDB7E5ADF3D116C051FB8E6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\Library.LocalCollections.cs",
+      "sha256": "8FB2EFF4CF45143FEC59A3261F5D3C3E154B33AEE3A9BE0A6D9BF816263204B5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\Library.OverviewVisibility.cs",
+      "sha256": "332D8ACB41EA361F58A1E4062B5302889995EA7D4A8CB9FC2D11D077E9B4CE85"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\Library.ReferenceAssets.cs",
+      "sha256": "602ED87CBAE2072A90D2A6CFFC7194F7A5EC2C5C9B5708AE48C902FE59F290F2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Board.cs",
+      "sha256": "FA2734CD930DA38350071412D06CAAF51FDF43590B6317972C6C7A87CDE61F2E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Browser.cs",
+      "sha256": "3A252FA364F1093EC64795742BADF841EBF88CBE8C1EDEB42B8D5A63874F40C4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Classic.cs",
+      "sha256": "52D1EE28D5034C7445B5050318F42A88570BFE1DB0C1B0A01DEC26B16F398835"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Desk.cs",
+      "sha256": "C5239221F593FB4059D2FFFC7546175CCF38B78EECB0FA9956663801EC70DF46"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.DesktopDrop.cs",
+      "sha256": "07C0F7190F26339D48C40499FA94BE30A2ABE3F492EA6F9639C574904E5960ED"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.FileConversion.cs",
+      "sha256": "2C91047CC19B912564EC6EC588A29361F3D82C3AF23B86F326D7678AA5644361"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.FreeCanvas.cs",
+      "sha256": "EAD09AD07EF460FF6EFEDF53E9ACDA2AABDF9FFD52EA4DCEF5D68323322DDF8A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.HomeLayout.cs",
+      "sha256": "EDA8445C980BC6B04B385E5B5E3BF6049D56D152FDBD6A4D41652FB10575BCBE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.LocalCollections.cs",
+      "sha256": "0E2A44C55595F4FEA416EED2D61C06A3BF2046766BDE5A43AD02969F6CA8BC0F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.OverviewVisibility.cs",
+      "sha256": "F3B0FE151708CDFBEA0B102BCC480E823C1779D23578D987EA3363071E2345CA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.ParentNavigation.cs",
+      "sha256": "5892E0BC50D60CF780C78F9781E7D6EA86E6CCA94E21DCD1CBF7F7EAB7BE5021"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Preferences.cs",
+      "sha256": "4BA3AF6D25049BA248C9E7B9811FE0D76F95E3E2AB149EA8138899D34F8DAEEA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.ReferenceRecovery.cs",
+      "sha256": "6B92937FF1F4C77E509800BF3CDF1F75F4BC9BA661465AF62770FFE99FFCFBAF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Taskbar.cs",
+      "sha256": "DE5F4A15AE984F8385CC23551D12A2EC0739586878ED8AB6A2B26A99F0F56A78"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Toolbox.cs",
+      "sha256": "EDAB20EEF0107452E4E79C29E9B394E56BDA52E8948DB47D1FD7951FBE5829FA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Update.cs",
+      "sha256": "42822DF4B2B68B9C6DDD60250F192DE5E49450A34766E7CF5F8DF0EA9BA0D496"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MainWindow.Wallpaper.cs",
+      "sha256": "4AAF72793724A948893D7760CCEE982C43894F8EDC3C8DD71E99C562717F9AC0"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MatureCanvasStore.cs",
+      "sha256": "D5C18593CF8A65303455C4773011B90A3AC8FE1BB743966F7C5263C1F195E9EE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MatureCanvasWindow.cs",
+      "sha256": "6E9924F90CAD529C82E882900CCA1E4CE1D5178A848F430367959BA674819657"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\MissingLocalFile.cs",
+      "sha256": "0E7D20DD4E63772AEAE20EA2A4BD22E9369B625679847AAE49B2096F35AA3C1A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ModelWindow.cs",
+      "sha256": "BADA88B54C057020BCB4677129B8EC1338BEFAA722A954E90E98300300442BD7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\OpenWithRegistration.cs",
+      "sha256": "995FBB5C04334F250EA0DD2C77E55210D2A67CE32BC254DD66FD03EE9C4F2CFF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\PhysicalUserContext.cs",
+      "sha256": "24277DA8C835FFB2022265232A5450661A85C3B06655FA6903968870DD9D12EF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\PreviewClipboard.cs",
+      "sha256": "6634DC9C59696819857B28B08790BEA3ED23C1A5345C47A29AA98CB9801E48FF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\PreviewSettingsPanel.cs",
+      "sha256": "A3B57C870597CF6BA75D36E6AFDFAB4C9DAE48D67CB881DA47A77BE67E87FB15"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\QuickFileConversionWindow.cs",
+      "sha256": "D07245FD485A0352AA22EAB29679F072DDFB18421021F4E22AED23A85504A281"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\QuickImageConversion.cs",
+      "sha256": "32E132BAE88D7FCFB4913E2023C2AFDA33D922EFE99F340BC9E8E5D39A30C58B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ReferencePage.cs",
+      "sha256": "E58EA373807EEAD6408EBEFE5D9234706D103EE921D0074729DCBBD85CB1A39C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ReferenceStore.cs",
+      "sha256": "9E57918CA15440E9DAABBC97F84D97B1697EF316BCFAB6610FA77190E41816D2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ReferenceVisuals.cs",
+      "sha256": "AF40591957C298656D3F14907316955CD0068CE60DBAAC689E870F171BFA53F1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ScreenshotCollector.cs",
+      "sha256": "22485A054707409A5DE8C1A615A674D0BA9BA0764B8FC169C5E34FD940DE6373"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ShellTaskbarProperties.cs",
+      "sha256": "C786CA014D0899DB7C801036BABB6DE71AC0C3DAC39D5FCC4F3E2D83C28E9563"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\ShellVisualRegistration.cs",
+      "sha256": "14B63831235D0C6B3A16893DEA1F10F77AC6D262BD031C170A5AEB8F1DC668EE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\SimpleBrowserPane.cs",
+      "sha256": "7E81DB4FF0CF837EFA8C4C1132091A344DA5EB2A6EF31E3E98221B05D3E97499"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\UpdateArtifactMaintenance.cs",
+      "sha256": "EC681375DECEA53B44EAD5C15B793867FEE34E9F23C9D8760B7CACB7B8CE63FA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\VirtualImageFile.cs",
+      "sha256": "709D5A91C42FB44C1DD5D3201BBD11E212045159CF23759E9AA1E04106E1AC24"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\WallpaperService.cs",
+      "sha256": "C39DB91BAF3E25C8CF5022AFC3D81350B30E8DCAD112B99B91EE8F2D25EE1A73"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\AppearanceSettingsTests.cs",
+      "sha256": "AD7FBF755836DF35CFD2E47A25EDEFB310DF110E73B61FB0AB164676C64BE832"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\AppUpdateCoordinatorTests.cs",
+      "sha256": "3CA864CDBE8AD2CA889A166BEDAF68A55F5BC360B00CB2A0D3AA2ED6BF97088F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\AppUpdatePanelTests.cs",
+      "sha256": "64A95ED3294F14512896D6CE815117FA6481C966701442505740CCC1C1D3EF8D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\AppUpdateServiceTests.cs",
+      "sha256": "D026F65B61B9668DA57CF8ADF3359F3DD31C93E4819D753CE993C896DED1BC3B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\AssetSearchTests.cs",
+      "sha256": "C42DA785624C9F5602BBB7D542FADCAE6EB47A4087D6037DE812025B4D3FA00C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BoardTests.cs",
+      "sha256": "D437371B0DD7DFF6F30BB6E2170002B27916E71DE80A03A8E9244ECA3A71C32F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrandingTests.cs",
+      "sha256": "E3A8AA9FE464358418C0AA8CACE4A2DF39C0D8B944E679C02911FA6374CA4268"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserBridgeFixture.cs",
+      "sha256": "ACB425995F43DEBE08A1EF49C8C362535C336FA2E5B07775D4E353FB1221602C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserCollectionFeedbackTests.cs",
+      "sha256": "E73231698E202880221C55E781490B82BA07376C3185140DE521A568E0368139"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserDesktopFeedbackTests.cs",
+      "sha256": "1EA85B9CE77304B962E8A9974D33948F55FD3B48E92E51CDA9DE433515FAC36A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserExtensionManagerTests.cs",
+      "sha256": "459F7C5ACF3A971070AA974898D5B27BB8C6AD3650622CC0D3B3E0086F82B040"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserLocalBridgeTests.cs",
+      "sha256": "9DC5B3598CED3B88B7B86F681A0B75066FA16D1E4BA21B7CF4AE49FD6C86A15A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserUpdateHostFixture.cs",
+      "sha256": "802C6BF1B7CE099E425637423D9DBDC77F521298EBCBCEB4390B20B4B8119A8B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowserWorkspaceTests.cs",
+      "sha256": "786BCD0CEB9097CF10D47F34B5E1370E6EB11B39EAB17A1D60ED5236E0A4BB1D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\BrowseSettingsTests.cs",
+      "sha256": "FB8FCE700426527AA350666620C395C844EFBA443FBB190DB8C9F2FE520D4978"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasDestinationTests.cs",
+      "sha256": "3757D540334A03AD8B2E2D2BA2991B1C26F34601E23A9A4A86CA7F87F2D34339"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasDrawingTests.cs",
+      "sha256": "7D2417DFFB7C1636AFA5B348B4F582170D5EE9908E1B58BEECC2B3A11BB4579E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasFallbackSafetyTests.cs",
+      "sha256": "829C368BD2B09D1029548351378DE841F86E0D9051BCA94A27C090D540DF03E1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasLineSelectionTests.cs",
+      "sha256": "5B8CF94C931CC1909A7DF97F668F5C56286E362ABEED06B30F5250115A8112BD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasPageTestSupport.cs",
+      "sha256": "4A9A63BF2863131F3BDF2649BB6191C68C0BFE816977F59E1FCA1ECC81A1AE0F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasPreviewBackgroundTests.cs",
+      "sha256": "8343B5E1ECCD11204FE6B6B9DB2B15E15BFCFAC88ECDF79DD67962770953A890"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasProjectGalleryTests.cs",
+      "sha256": "8661F3E17DFADA3D8D6395BB48CD3D4077B5138809F058E389AD8BA9940616FC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasProjectMemoryTests.cs",
+      "sha256": "01B32E8A392C4A9D598DF786E8F59E4C441B698D1C7B02F18692B7AC8F6BD735"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasProjectRefreshTests.cs",
+      "sha256": "F46853FC5EB18BDE7F353E308DAF65DB7E81B2EEC918CA97C52691EA5ACBF5D1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasProjectsPageTests.cs",
+      "sha256": "C5D5ADF2BC411BB342AFB70CBEE44CBC1F227E46EB08049A821A99F063507A2A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasStyleEditingTests.cs",
+      "sha256": "361DA97A3AF04BC5A974D01AE96D43C95D8C3250D918084D181EEB1F93119B37"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasTextLayoutTests.cs",
+      "sha256": "7FFD9A231D89EF5CA6D44FC0E4B4995E37FB2D2526A5F1B4CB273078DD3C1EAB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CanvasToolbarTests.cs",
+      "sha256": "4E2F59A868AC5AAB2F2DD4261166A6A795D069A58CCC94DCF0DBCC61B97E4B12"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CaptureDesktopAcceptance.cs",
+      "sha256": "D6585EBF12CC589F11C477C97000C2EE30E9068766EABDDF468DDEC5AC7CB57C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CaptureStartGateTests.cs",
+      "sha256": "AB1AC14AAB022A2BCBF3F098A01B61BA3B7DD360548F39E79A75AB5E129453E1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CaptureThemeTests.cs",
+      "sha256": "5CDD539BE8CD8670B26AABD1620AFBEB8C289537C948F3170B9DA02AC3612200"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CaptureToolbarLayoutTests.cs",
+      "sha256": "0219F3D1025C7E8AB9EC77DE3D7362F7B2698230D7871DE30505499052D50E97"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ClassicTests.cs",
+      "sha256": "D9E157CBB80ADF514FA1BE59259EB9EBBC94E2E225F883B621CBEF4FF74143B2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ConversionStorageUiTests.cs",
+      "sha256": "1E3C8BA5CAC4EB17C4089E804A5564CEF367E6B8DCBB074F82C562CE6894BEE1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\CustomizationTests.cs",
+      "sha256": "95ECE7B70FC14D75F7E58CC0E1B344C8C027CD51E43C1D9208DAFF7D9CA05556"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\DeskSettingsTests.cs",
+      "sha256": "4091E69960B75D76E193CBF9022DD8EC555BBD65CE9463C35D3837FF8F49218F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\DesktopDropFixture.cs",
+      "sha256": "F658168540F01F54D91553CAE40A64902203F22B0164B91A59295F53F5FC1F3D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\DesktopDropTests.cs",
+      "sha256": "3C464D4F1A20331659342B6F697AF70C7D58853EA7C82C6DB2FD7F941B579A09"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\DesktopImagePinTests.cs",
+      "sha256": "2DBD0CA962B07E2F9822DD180D8C16755318F89A8F25A90542FB6507C5A16C68"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\DocumentContentTests.cs",
+      "sha256": "7937F36FC97D72DF5AC9AE99AB43C7692FFB402725C6DC25DBF0DC685CF6BF6D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\EmbeddedThemeTests.cs",
+      "sha256": "2695C2E24844D0C2BE3056FB517712419E9D6A5B2A6C2F14117EE0BD981ACF85"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ExportNamingTests.cs",
+      "sha256": "EF75CFDD61D2416A01CFF93562E1BEF15EA1AA30659CF9EABF2856FC6C26C50F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ExternalFileOpenTests.cs",
+      "sha256": "8754714231A11862CB54E35D867F4E2C94DADFF039D9DFBCD9F4304D58929D2A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\FileConversionCollectionTests.cs",
+      "sha256": "27D48FD860DD5C1E99A30713FC9A74E66322C266A574E05343F4669ABD648558"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\FileConversionComponentsTests.cs",
+      "sha256": "C7B7B22572DF11EBE1447356C0A6DA163E7A411960C9E0409146B9E2E037FB9F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\FileConversionUiTests.cs",
+      "sha256": "371ECFFAB82DEF85723BDBC79EDAF5C73800E8EDA48A6A3B776D45BAE4F798A6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\FormatPreviewTests.cs",
+      "sha256": "55F45C33EE1CAD7D5287802880B70E9067E556A63B394176CC3DB4FB938C1EA2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\FreeCanvasDesignFormatTests.cs",
+      "sha256": "9596AC9E81520FA87ED0B6C4AD824417467CF96158A1E9804A33C78D5E11C496"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\FreeCanvasTests.cs",
+      "sha256": "7339EEF4DB1145AF7228B7BDFDEB9E6AD28ACE7216B28B733308CC41756555DE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\GalleryNavigationTests.cs",
+      "sha256": "A85B074E1204B818855AA42FA514ADA6BD07D68810D032E1B56E86527ABC78D6"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\GallerySelectionStabilityTests.cs",
+      "sha256": "0D4439AA569B99C92DABC1DEE1E2FF568C7E99609A63E246FEEBD5013F24C446"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\GeneralPerformanceTests.cs",
+      "sha256": "D6CEC5FA18F3D108D202A5112321DF0128E5678D4B72AAEA06E0A09B0EF9EE8B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\HomepageRedesignTests.cs",
+      "sha256": "A9DDAA7AA20A3027EAEE19C993EDBAD606A479DAE81B4ED85454A6A953570A17"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\HomepageUsabilityTests.cs",
+      "sha256": "75B92C18A632F80C9FF33668FB91852AD0A5BB7D1F0900172B2820828EE270BC"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageBrowserLifecycleTests.cs",
+      "sha256": "C5BF91481323B60AD00E10A3411074CC4673BD5628CE43308497889D00E55B79"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageCodecFixtures.cs",
+      "sha256": "DEC7227DA1C2C1E9D29E2E8BC56D6EEDFA9100CF21572C64B83664FF27A7D0FD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageCodecPreflightTests.cs",
+      "sha256": "A84985CEC753F524641296627C692AE7639137332FF108A3D37B0DDF6E6C8F49"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageCodecTests.cs",
+      "sha256": "5F7CA26BE9449FCADB9321FB7E3AFA2C6D264E9D11710FBC9B03BDA8864C60B8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageViewerDetailTests.cs",
+      "sha256": "23755E8B0DD1B6BDE7281A6D6AA626ECAC900D6B650C595BFC38E3EAEB4B0DFA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageViewerExperienceTests.cs",
+      "sha256": "CC22F691A292A55304DFAA765427A29F88A7058253FF8523D9DE08B35181F9C7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ImageWorkRegressionTests.cs",
+      "sha256": "0E3E4B9B057B33B839A40ACC3F7C2F5D54415A14CDF89F9E71771645ED7ADA2F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\InitialWindowPlacementTests.cs",
+      "sha256": "0605A11E4DB7F5E5D46901FBEB37D39A75DB2A83575C84DC932084000D44B5BF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\InspectorConcurrentMetadataTests.cs",
+      "sha256": "443CF3BA37DC2B3D2F1E1A4C4641EAD48434E071E6938B380EBCB310E2D45C58"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\InspectorDraftTests.cs",
+      "sha256": "B8E65DF2060FD2EA3B2391F812B64981460E257C3EF543044918FEBA7D8D6E3E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\InstalledApplicationRoutingTests.cs",
+      "sha256": "0468F2458F92B7087B932EFA2613F3506EC1AD67A31B0F56A862A28DEB8013DB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\InstalledTaskbarIdentityTests.cs",
+      "sha256": "E6436423193E8785B0DC8923413CF4FB214447472D3323E41DBF6B147F3B6EA7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\InstalledVersionMaintenanceTests.cs",
+      "sha256": "197773123FA4F52B804CE6ACE413AC232BA5BED5959B37F0E710ECDC8AF5E585"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\IntegrationTests.cs",
+      "sha256": "FC8BB6E6834B59E897B204D517C8C6E311E9F36BF16BA6C4E558E714648B34CF"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\IterationTests.cs",
+      "sha256": "892FAAF7E84A1127D98324550A767A47F625572E8C89BB51CD70027D2B24260D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\LaunchTests.cs",
+      "sha256": "15FFF069F23D7A0F1ADC9F91E8BBD77FFEAB8B5B85D395F4F3F32AC449C2656C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\LibraryConsistencyTests.cs",
+      "sha256": "7A513ECA3B7A99CDD0DA3BB64F3975EB801E35D535B79A921E58376A4B913BF8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\LibraryRestoreTests.cs",
+      "sha256": "9E85A35D5E3B0A6F5EC6E61B941327F3E17242A7D060406B6C2E20EC1D9CACF0"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\LibraryRouteChangeTests.cs",
+      "sha256": "47D7C8D33DC1763929DA6425A121691C46A0B13869D76BA397F26A8C2837BA42"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\LocalCollectionTests.cs",
+      "sha256": "CC7C376E15AFCCC8D48C30785E18B64BCB3FCDB3685EA975CC124A513FF1CE0F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MainWindowRouteProbeTests.cs",
+      "sha256": "F9F2830CFCCADA86460F0F5DB601A642E11175260D3AC620DDF846257E4D2A6B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MatureCanvasCloseFailureTests.cs",
+      "sha256": "D9C497D93B31B64E139979439D806C4E0096543CE8990021784E47A3417FADB5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MatureCanvasFixture.cs",
+      "sha256": "6D5568A648BA59AD4DD1492563CBA0F3601FDD1C5A627743857A42FA1A1287E8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MatureCanvasHostTests.cs",
+      "sha256": "FE1A2B5FADD100F21806789015D53DA437583AA62F74201EF242E05BD31113B1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MatureCanvasImageMetadataTests.cs",
+      "sha256": "B3A4DA9C8567DCD99941CD4CEC40A478E1B7ED7781ED58ABB2F6D3FD75785494"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MatureCanvasInteractionTests.cs",
+      "sha256": "720018846EF6B47541B41E2F2F0B25191DA4EAE8842475A76637421F44E71537"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MatureCanvasStoreTests.cs",
+      "sha256": "2E5E48E43FE32FD635DBA22328EA46CCA169FC6BD9A998C51ECC180BFA852677"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MetadataRefreshCacheTests.cs",
+      "sha256": "A8CAD7ED033B76F04EEEA2D1D67BB85417E28680C9919BCCBD4517ED4701E416"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MiddleDragPanTests.cs",
+      "sha256": "58E50F9ED5A5E711C8749DF2DD360EC1E0958F8137BD91B868E3A7651C529FC2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\MissingReferenceTests.cs",
+      "sha256": "354F12ABDF16E3C98B2CFB12D9A5F87B9C1E13C9BE1A0912EE89064D807CFF46"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\OpenWithRegistrationTests.cs",
+      "sha256": "F43F03E1BC22F8B4AF4A0E3A6D927BEB54408E7C48ABD650B899D2E405E81CB7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\OverviewVisibilityTests.cs",
+      "sha256": "243CDF9C23639B12A366CBB438D5ABB5DA6DD889B4B2EEE71D9AA2C34B600A73"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ParentNavigationTests.cs",
+      "sha256": "626E9B1E349DE067914B0BF3CEB74E3A99A6BFAF8134671FBEA53F7BD40F5326"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PdfContinuousTests.cs",
+      "sha256": "93C4D7C14C54B7C2BEFC87A27947AB73A078DA30C258FB1147795106C7A6DF8A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PdfIsolationTests.cs",
+      "sha256": "6A160E0D2A06733D9AA5F5DDF7173E9D56777AC9DB9629D29842D3F80F991A36"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PdfReaderExperienceTests.cs",
+      "sha256": "9ACAC9EFEF41BBE0EE4CB884300213AA9E10A0EF9B4D07C0565C4D26284CAB1D"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PdfTextCodecTests.cs",
+      "sha256": "E952C227C3F11006B04B60A7ED92CD1B5955E62FD14584E8AB373529E776E5C9"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PdfTextTests.cs",
+      "sha256": "5BC80867308211B8FAF362CE10011EF8D4263592796E4DB0F6C752AFE3D816BD"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PhysicalUserContextTests.cs",
+      "sha256": "1C23155ACA92B80624E119028A78912FECC97E31A8DD09FAC15D7A49B4FB3171"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PinHistoryIndexTests.cs",
+      "sha256": "D2E52BCC678229FBDBDA290A4D48258FA9C0CC9E0CF32B4F1CBD08E7061500E5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PinInteractionTests.cs",
+      "sha256": "C65BEF605FDA83D7C2B1BAEED8389D622D1F661699AF06E233B8BB3DA61F2054"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PinLifecycleTests.cs",
+      "sha256": "D659F807AA145D6CA6DF2A3B75BDDC27B4E5E522CCCD44135EC26914883AC729"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PinRuntimeTests.cs",
+      "sha256": "7EE721ABD0CE186534B32C3B30ACFACC407C803A0C29A15F63178909173E1FA7"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PreviewActionHintsTests.cs",
+      "sha256": "AE55063D6452D34F85B7DBA8FA011B4BC02B67FA2DB25E8EC7096A99D6C8D270"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PreviewBundleTests.cs",
+      "sha256": "2D8A002F7A59A566EBE3471B0E7FC70FE07C6CBD1719E58BD254CF9374F613CE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PreviewClipboardTests.cs",
+      "sha256": "F5DEA697F439D3550E1080FCE9C697A27568F5C4A6AC30808558AB0DE5C1A19C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PreviewPreferencesTests.cs",
+      "sha256": "FFBEBB9012C4FEB050D8CE7A82C78AF59B1211B5465683D125A88496DADED1ED"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PreviewWorkerSchedulingTests.cs",
+      "sha256": "5444685BCBF20482A366438AE92DDE3791DD4AC9069621323AFE69113F92F3F5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PsdCompositeTests.cs",
+      "sha256": "918C2CF738410A65E788D1A0516992C0250238DC15376982DC6889C99158EF02"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\PsdEmbeddedThumbnailTests.cs",
+      "sha256": "0A0D2A9E553E6A3B434E650159D9134FE4BCF9F91F6ADB3DC7942F78B502D607"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\QuickConversionTests.cs",
+      "sha256": "08B86696851C6C22D5A0A47FDE6616A904CD501D35BE9C587D01DE6229906EAB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ReferenceEagleMetadataTests.cs",
+      "sha256": "8B6918BFF4863BE2B4BC0CF5428FAE00DDB7C8FE53DF54D4A5172DD83F0F357E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ReferenceTests.cs",
+      "sha256": "7974029BCF0B97D438415536C6D08EC02CBDC6E1785B5E2D341C5598B1CE547C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ReferenceThumbnailFreshnessTests.cs",
+      "sha256": "C386C8727F41CFB423B4DD9912068EF6C3EA777A8D61263FE28982B95AAF071B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ScreenColorTests.cs",
+      "sha256": "1FBA73F194E5C6C9DE0533FB49CDDF577487D685C5E8A0B27356A6353330C6CB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ScreenshotCollectionTests.cs",
+      "sha256": "CE7779C6139BCEE849682361F3EF17043426279373CEF971249AD2D1BA9E5FB8"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ScrollCaptureDesktopAcceptance.cs",
+      "sha256": "F0C9F2032EDA1B08652770E90F33F5B0F4058ED5F721383497CC677591C58A33"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\SelectionCanvasTests.cs",
+      "sha256": "AA8BCAB4BFA64BF6C936205B6D954EEC08F5E3BD8FD2EA8D34E4511DE4B04659"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\SelectionLookupTests.cs",
+      "sha256": "885E08D83447F0BD1C39212EF72028B0D9740738038A230B8B9E6302411BB7F1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\SimpleBrowserTests.cs",
+      "sha256": "65BA75DCC986F4587D5CEC20750782FE69AAF1D1D77557230AF951B161678DF5"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\SuiteTests.cs",
+      "sha256": "03CA27C7233C71F29F6E4FEB6CA33C18E665C746A5597A9254891AF86B2666E1"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\SvgCancellationTests.cs",
+      "sha256": "C8941880863C45E232E5A09A5D30419C793FB4E2EED6850F8B9C45DE9ADF8758"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\SvgWorkerProtocolTests.cs",
+      "sha256": "6F96CAA88FB3968B585EE12AFEFCD7EA07ECA3B88BE06487D7D1205ECEB2F458"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\TextWindowPinOutputTests.cs",
+      "sha256": "462FDF648795EEA6EAECC29139A637863DE0D89404FCAAA663AF5664A6A9141C"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ThemePaletteTests.cs",
+      "sha256": "9263DEF718839D141D211F4C1FD9C971BBD0BF345F37BF16D24F76A37009490A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ThumbnailBuildGateTests.cs",
+      "sha256": "FF1E1CC40E791F240F6E8CCE373886076226BC26BDFCABA2FDF2E34306218A3E"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ThumbnailDecodedCacheTests.cs",
+      "sha256": "597BF3F19E7B047CEBC5A5A489B81E0C31D7B31FEFA0D23D8E9F47F5CB538F24"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ThumbnailPresentationTests.cs",
+      "sha256": "79D95CB1B3FF4EEBE9516A7CCAE7F2E592820B61FAC52BA46D57712D486A9F62"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ThumbnailRecoveryTests.cs",
+      "sha256": "C90B73B49F02D6F0015CA094DB0B232C69BB29E6BA6696E4C4190E2656CD3E42"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\ThumbnailThroughputTests.cs",
+      "sha256": "DB6FBDBA5D3B5B67F5CFA4FAEF2A9B81A77CEC8C5ACCA32B9E0A2DF63E74640F"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\UpdateArtifactMaintenanceTests.cs",
+      "sha256": "E3C84D7945BB2AC1D937EC3206518C0512B1B48E9FD0D86DCAEEF66AF51D66B4"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\VideoPosterRecoveryTests.cs",
+      "sha256": "153C45D72D639C919CE9E0A83F1B6BA04B8A9B9C2153CC7C132EA3B19AF1F7CB"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\viewer-lifecycle-probe.cs",
+      "sha256": "66394FD79454E4436F725F3C7ECB69929A684EC607CC523A4AB35BE68087036A"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\WallpaperTests.cs",
+      "sha256": "668B46846BFECAD4D6ED0883422C8CF1F796CA68E9FC025D17C5002E98F8E9E2"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\WebMediaFixtures.cs",
+      "sha256": "C42DF2F43C18B4B327C14B57E5D4C23F91A0ACBD6D1EFFAC8C3E345B266383FA"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\WebMediaFormatTests.cs",
+      "sha256": "84AC8F05172BAA49FDDA816529D82B09989A0838B3673444C4A270E6292C6613"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\WorkerExitSamplingTests.cs",
+      "sha256": "293A9A65095D777DA0C5329E87DD264E7EED3A2A0576E541F4F17F00CB5FFC34"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\tests\\WorkerStartupTests.cs",
+      "sha256": "2D3770BFA7BCDF25A8D5E74DD2E038F7CAFE05C4C6C63743F0ACEB293711A6CE"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\installer\\InstalledVersionCleanup.cs",
+      "sha256": "6BB0250BEDF207884DDB80C75BFF931301A19F2CCC4A128DFEDCD7114A2187D3"
+    }
+  ]
+}

@@ -1,0 +1,533 @@
+{
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "scope": "Exact source bytes from reviewed R3 helper packages. Not part of the default product compile.",
+  "recipes": [
+    {
+      "name": "InstalledUpgradeDriverGuest",
+      "source": "InstalledUpgradeDriverGuest.cs",
+      "sourceSha256": "B7B111F1936A5D8BE2B45632273653788FC309F1EFD211E300F7D4EAB7C2AF2D",
+      "assemblyIdentity": "InstalledUpgradeDriverGuest.exe",
+      "outputName": "InstalledUpgradeDriverGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "F3C7CBF3FDC408236419CEF77DF2A4D8626474D7DD455FEBE001B9ADA4EDD7E8",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeDriverGuest.cs",
+      "originalProvenanceSha256": "CA4F7832466154D71FB5487CF1607241C4B0AAD4B43CF050EA959EC7B9EAA63E"
+    },
+    {
+      "name": "InstalledUpgradeFixtureGuest",
+      "source": "InstalledUpgradeFixtureGuest.cs",
+      "sourceSha256": "3CA6E9868751904E6D915F818E49AEE4F621109709FB0463777A8A82C38B14DF",
+      "assemblyIdentity": "InstalledUpgradeFixtureGuest.exe",
+      "outputName": "InstalledUpgradeFixtureGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        }
+      ],
+      "originalOutputSha256": "EB3D10D439483951136EEC98D3EA41C0ABEA9526FDFF5F6C80CD8BC8A6610EE8",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradeFixtureGuest.cs",
+      "originalProvenanceSha256": "E9C9B72F2FC22DAB66A8A14ADA50441ABE1459FE4CE6233DADF2048FE52D81E7"
+    },
+    {
+      "name": "InstalledUpgradePreserveGuest",
+      "source": "InstalledUpgradePreserveGuest.cs",
+      "sourceSha256": "1462B78A0282BA8E227ACA71AAF763EC51796D98C14AC98CCCABCCE619462AF4",
+      "assemblyIdentity": "InstalledUpgradePreserveGuest.exe",
+      "outputName": "InstalledUpgradePreserveGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "BC83758CC3970FE2C2FD971EA11B684922D831D7497E376845BB5F4740915A70",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradePreserveGuest.cs",
+      "originalProvenanceSha256": "F5560A25FF82E022812145A914AF485E0355720348E1C7FE21D5F2BB1AE464AF"
+    },
+    {
+      "name": "InstalledUpgradeInventoryGuest",
+      "source": "InstalledUpgradeInventoryGuest.cs",
+      "sourceSha256": "DE1297569B8FD77FDACF377F108E82D57D8E8E1BAADB66C72FA95A95A9CCE08B",
+      "assemblyIdentity": "InstalledUpgradeInventoryGuest.exe",
+      "outputName": "InstalledUpgradeInventoryGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "F83AAC5EC6D34CDA768B9AE4447BE1ED69B26C08AF3756B79D02B9E7D5AD4460",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-inventory\\package\\InstalledUpgradeInventoryGuest.cs",
+      "originalProvenanceSha256": "8B1856CCA17A93448E94DECDC3579AD9826F160DB133822FAF47128EB1EB39F7"
+    },
+    {
+      "name": "InstalledUpgradeDriverGuestLauncherRace",
+      "source": "launcher-race/InstalledUpgradeDriverGuest.cs",
+      "sourceSha256": "8DCD6CF7BBCCFA49E7B63224FAB9BEBC086E894154693FDFDCF82ED80F22638A",
+      "assemblyIdentity": "InstalledUpgradeDriverGuest.exe",
+      "outputName": "InstalledUpgradeDriverGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "1D3CEC7A0964E156AB1B7E23EE13CD7019132B762CE5A0D156EB0E0A0A18B852"
+    },
+    {
+      "name": "InstalledUpgradeDriverGuestHealthyBaseline",
+      "source": "healthy-baseline/InstalledUpgradeDriverGuest.cs",
+      "sourceSha256": "4C6F18CB11C91C3279065E8D5B37374FEEA7BE904AB54984559ADF074AA89354",
+      "assemblyIdentity": "InstalledUpgradeDriverGuest.exe",
+      "outputName": "InstalledUpgradeDriverGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "CEBF18090E67B8636EEB8B1E028B126A4384FD9F1E57C0B4C825CBAF56F41725",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeDriverGuest.cs",
+      "originalProvenanceSha256": "5485BBE9D4C0D54A5D7976EB53DB50666B039601ABE62862D5670CE6A9A82E33"
+    },
+    {
+      "name": "InstalledUpgradeFixtureGuestHealthyBaseline",
+      "source": "healthy-baseline/InstalledUpgradeFixtureGuest.cs",
+      "sourceSha256": "B15C61002C5F39138803DBDA8425A475C7A8EC2569E01A20CE92D43BE013921B",
+      "assemblyIdentity": "InstalledUpgradeFixtureGuest.exe",
+      "outputName": "InstalledUpgradeFixtureGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        }
+      ],
+      "originalOutputSha256": "663B072C769D445AFCB4EA5FBA05D68598B9DB6A3163233B8E0005A0021DBED3",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeFixtureGuest.cs",
+      "originalProvenanceSha256": "8983D8AD4F76E7A0D16AC6F0E0046DA097AC9CD7E0DA2A61176978A934880315"
+    },
+    {
+      "name": "InstalledUpgradePreserveGuestHealthyBaseline",
+      "source": "healthy-baseline/InstalledUpgradePreserveGuest.cs",
+      "sourceSha256": "ECFF4EA1CE537479935ECBC5DB5FC075A7EB27977966ACCEF1601D75FBBA7EFF",
+      "assemblyIdentity": "InstalledUpgradePreserveGuest.exe",
+      "outputName": "InstalledUpgradePreserveGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "2DCB3143604F688233F32C62F7B29A5181EFFB92A9FF9B3AB3C51E8258F03BAC",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradePreserveGuest.cs",
+      "originalProvenanceSha256": "B953CBB2A0D37D798EF81080B3D3D42A33EF4BDC5D5F9CD20F810C505A71743A"
+    },
+    {
+      "name": "InstalledUpgradeHealthGuestHealthyBaseline",
+      "source": "healthy-baseline/InstalledUpgradeHealthGuest.cs",
+      "sourceSha256": "6B4D1A18D721F604918344E52DC9C11C6A1FC4533D458CF3BCE2CDCC16FA10D3",
+      "assemblyIdentity": "InstalledUpgradeHealthGuest.exe",
+      "outputName": "InstalledUpgradeHealthGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "BEA8ACBA8DB6DB9A63DCFF8A92C347AC5622FBA3385046412B05B00A5B3B0399",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradeHealthGuest.cs",
+      "originalProvenanceSha256": "EC95C7605B8A61126E40E1CB83D22D0AC930F1862D9DC7FBEF14B8B04F769343"
+    },
+    {
+      "name": "Preserve1251RecoveryGuest",
+      "source": "preserve1251-recovery/Preserve1251RecoveryGuest.cs",
+      "sourceSha256": "B00F078A9C352ADA5CC1A7E402106620B59B2B0EC952B767ADCB78689484AFAE",
+      "assemblyIdentity": "Preserve1251RecoveryGuest.exe",
+      "outputName": "Preserve1251RecoveryGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "38DECCC25CA9E7453EB24032C9A18577682FF99FBFD3DF453A8E2363A5DD278D",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-preserve1251-recovery\\package\\Preserve1251RecoveryGuest.cs",
+      "originalProvenanceSha256": "5F692BB8EC97E8C9B58AE95E005C418CDFB9A3D4BEE71CDD1130A5CF0B60255A"
+    },
+    {
+      "name": "InstalledUpgradeDriverOwnedSettings",
+      "source": "owned-settings-dialog/InstalledUpgradeDriverGuest.cs",
+      "sourceSha256": "634DD34E836ED08DD1C55AC80776B2D404BE43BD5EEBFD08195CBCFA85E5036D",
+      "assemblyIdentity": "InstalledUpgradeDriverGuest.exe",
+      "outputName": "InstalledUpgradeDriverGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "6C71E191AD383268D80A7AB9464F501380628E3D56CFE17CAD6A5FC6EF6C62A1",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-prepare-owned-dialog\\package\\InstalledUpgradeDriverGuest.cs",
+      "originalProvenanceSha256": "02BB868C67D2B667221BF8B6B8D939AFD7038F50A0DDE2803D537F971751A369"
+    },
+    {
+      "name": "InstalledUpgradeNativeLaunchGuest",
+      "source": "native-process-image/InstalledUpgradeLaunchGuest.cs",
+      "sourceSha256": "371B26653C5506338A99903D7AC76BDD50514F9DDB34AB14D960EA4E1975F705",
+      "assemblyIdentity": "InstalledUpgradeLaunchGuest.exe",
+      "outputName": "InstalledUpgradeLaunchGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationClient.dll",
+          "sha256": "C0AB986E5064199D604944C14A007E64A0E6AB5C3DCE0F89E6241A0BA8D4BC9E"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/UIAutomationTypes.dll",
+          "sha256": "83D5BBE0DF665C6D6B78E1156FD096520E22E7B75257346A665C8CE97CE5FEF5"
+        }
+      ],
+      "originalOutputSha256": "78635AB0695903FD4CEAC27DE0D5952C4F9BC0CACD6953C514BA0726B5A27E88",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-native-launch-v3\\package\\InstalledUpgradeLaunchGuest.cs",
+      "originalProvenanceSha256": "43635BC835EFBEFDE4CFA42E3A81C02C9A6D9D6A66DEE4D519FEE1BFC81DCBB0"
+    },
+    {
+      "name": "CleanupEvidenceGuest",
+      "source": "after1304-evidence/CleanupEvidenceGuest.cs",
+      "sourceSha256": "2A48AB6E71F9EB38245ED581859710BD9943B31D2A3BBE5A86200A13F56A052F",
+      "assemblyIdentity": "CleanupEvidenceGuest.exe",
+      "outputName": "CleanupEvidenceGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "F6FD607619B9C40288884C2FE674C7D4E3990BF6DB08323E0A2568C8D9BE86F1",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-evidence\\CleanupEvidenceGuest.cs",
+      "originalProvenanceSha256": "6DC7B672293690F16E83A99530425A007842E47E9DDFC6306A1BC2E8E07707D0"
+    },
+    {
+      "name": "CleanupTimingGuest",
+      "source": "after1304-timing/CleanupTimingGuest.cs",
+      "sourceSha256": "546C021814CC88B09A997AFBF7419973AF47105FF4C960A4299485986A6159BE",
+      "assemblyIdentity": "CleanupTimingGuest.exe",
+      "outputName": "CleanupTimingGuest.exe",
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "A69385509EF1CEA30A03C36E9F4BE4818F27B9D3B3D98238779437C60848171A",
+      "originalSourcePath": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-after1304-readonly-timing\\CleanupTimingGuest.cs",
+      "originalProvenanceSha256": "B20AEC2016EAEE104018B53E2D0EC85D98A4E119C295E028C636DA1804D5B31F"
+    }
+  ],
+  "reviewedPackages": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-release45\\upgrade-journey\\setup42-package.zip",
+      "bytes": 349626494,
+      "sha256": "52758D725C767FF4CC52D1ABC2D2178475E59362B4148EE97A311CCC360B1335",
+      "members": 1,
+      "guest": "C:\\NookLab\\Audit\\apps\\52758D725C76",
+      "entrySha256": "DABCF2BA17300A7CE5B64AD342188207C81CBACE35E14AA28E67753A1F4F666B"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\setup45-r3-package.zip",
+      "bytes": 350492286,
+      "sha256": "FC2DECB42A44CC9D5173F470056D9AE134E9A040E3DA0AF334E14356E6951FDC",
+      "members": 1,
+      "guest": "C:\\NookLab\\Audit\\apps\\FC2DECB42A44",
+      "entrySha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994"
+    },
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\upgrade-helpers-r3.zip",
+      "bytes": 91366,
+      "sha256": "CE69BF0D653EC203B2AB5830080C9BE91847DAD8886404778EA2F9B7A5E59D35",
+      "members": 13,
+      "guest": "C:\\NookLab\\Audit\\apps\\CE69BF0D653E"
+    }
+  ],
+  "physicalProductExecution": false,
+  "launcherRaceSupplement": {
+    "handoff": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-launcher-race\\upgrade-launcher-race.zip",
+      "sha256": "CDCCBB0C706F0A0B40C51B4EC9289853EFD8567AFF5ACCB0899AB605E2ABA9D3",
+      "bytes": 48151,
+      "members": 6,
+      "guest": "C:\\NookLab\\Audit\\apps\\CDCCBB0C706F",
+      "executable": "InstalledUpgradeDriverGuest.exe",
+      "originalSourceSha256": "B7B111F1936A5D8BE2B45632273653788FC309F1EFD211E300F7D4EAB7C2AF2D",
+      "sourceSha256": "8DCD6CF7BBCCFA49E7B63224FAB9BEBC086E894154693FDFDCF82ED80F22638A",
+      "exeSha256": "1D3CEC7A0964E156AB1B7E23EE13CD7019132B762CE5A0D156EB0E0A0A18B852",
+      "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+      "setupSha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994",
+      "original1143RetainedFailed": true,
+      "hostExecution": "Compiler/package only",
+      "runAuthorized": false
+    },
+    "reviewSha256": "45E6FA9B9AC48C60E36E2E72BEEB8462A385335808DA6C0A76500AEA38F7F6A2",
+    "original1143RetainedFailed": true
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "stages": [
+    {
+      "taskId": "1276-r3-owned-prepare",
+      "outerReportSha256": "903E3757EA1691BD648ED4628E64169F85C7C98146BFB522F2C2A761BC165E3D",
+      "reportSha256": "072EE496759AD1399A01D34591C12B8E7AAA15509E0C66EA66A07F7404F71083",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 1,
+      "passed": false,
+      "checks": 25
+    },
+    {
+      "taskId": "1279-r3-original-health42",
+      "outerReportSha256": "9C82C6C84C3725EC1FA94D5BF1EC1AB0984CA7E4D1AA812B50C64646C099965D",
+      "reportSha256": "465BD84876BB7EAA419CD0E8D76BA67F731CB6C25BE6D082BBFBE77B7239A0AD",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "passed": true,
+      "checks": 92
+    }
+  ],
+  "original1253RetainedFailed": true,
+  "original1276RetainedFailed": true,
+  "preparationStepFactsAccepted": true,
+  "exactPublic42InstallRepairClickedOnce": true,
+  "manifestCatalogRuntimeAndListeningWaitCompleted": true,
+  "manifestTargetsStableLauncher": true,
+  "preparationNormalCloseAccepted": false,
+  "preparationCleanupForced": true,
+  "productionHealthPassed": true,
+  "public42AppSha256": "0023F5CF9C7B6021ED8071E9936EB20282C1FBBE467716B33146AA52110662EB",
+  "launcherSha256": "58F1D00650E3F7DD9EB93C7D382894BDDDD6B339053152D8E1979A5DBC2E0895",
+  "manifestSha256": "88B16F5CF0FFCA079092B5000E01E82AAA0981E418B51ED810023BA5A972BE8D",
+  "catalogSha256": "980C9CE160A936010612E685BA7DF7C709F234D012474B294678FF96A322EC61",
+  "currentUserNativeRegistrations": 4,
+  "runtimeFiles": 19,
+  "productionSnapshot": {
+    "complete": true,
+    "entrypointsSwitched": true,
+    "reason": "ready",
+    "runningCount": 0,
+    "referenceCount": 1,
+    "protectedPathCount": 0
+  },
+  "freshIndependentInventoryRequired": true,
+  "healthyBaselineFinalAccepted": false,
+  "realChromeCollectionAccepted": false,
+  "scope": "Original1276 remains failed: supported public42 UI setup completed the file/listening/manifest checks, then post-Close UIA identity verification failed and the helper Job forced cleanup. Original production health1279 independently passed exact identity, registrations, runtime and complete ready snapshot. Final healthy baseline requires separate fresh inventory; normal app launch-close must be proven separately."
+}

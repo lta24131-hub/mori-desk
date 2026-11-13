@@ -1,0 +1,51 @@
+--- original969
++++ independent-isolated-contract
+@@ -1,3 +1,4 @@
++// Independent 969 supplement: installed-context guard must reject isolated health; original real collection assertions retained.
+ // Only synthetic extension/profile/library fixtures. Never the user's profile.
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+ const {spawn}=require('node:child_process');
+@@ -27,7 +28,9 @@
+     assert(worker.url().includes(id));
+     diagnostics.setPhase('edge-worker-ready-local-save-and-permission-checks');
+     const health=await worker.evaluate(()=>native({action:'bridgeStatus'}));
+-    assert.equal(health.ok,true,JSON.stringify(health));assert.equal(health.transport,'local');
++    assert.equal(health.ok,false,JSON.stringify(health));assert.equal(health.transport,'local');
++    assert.match(health.error,/当前进程使用独立数据目录/);assert.match(health.error,/不能安装或确认正式版更新/);
++    console.log('ISOLATED_HEALTH_REJECTION '+JSON.stringify(health));
+     assert.match(health.nativeDiagnostic,/not found/);
+     const folders=await worker.evaluate(()=>native({action:'folders'}));
+     assert.equal(folders.ok,true,JSON.stringify(folders));assert.equal(folders.transport,'local');
+@@ -42,29 +45,11 @@
+     assert.equal(result.saved.ok,true,JSON.stringify(result.saved));assert.equal(result.saved.transport,'local');assert.equal(result.duplicate.choiceRequired,true);
+     await worker.evaluate(token=>discardChoice(token,'test'),result.duplicate.choiceToken);
+     const rejected=await worker.evaluate(()=>fetch('http://127.0.0.1:47891/mori/v1',{method:'POST',headers:{'Content-Type':'application/json','X-Mori-Token':'0'.repeat(64)},body:'{"action":"folders"}'}).then(r=>r.status));assert.equal(rejected,403);
+-    // A normal extension tab is deliberately NOT a trusted action popup.
+-    // Keep that production security boundary; exercise the real action instead.
+-    // Some headless Edge versions cannot expose an action target to Playwright.
+-    // Record this UI limit separately from the strict real transport assertions.
+-    diagnostics.setPhase('transport-assertions-complete-checking-action-popup');
+-    const popupObserved=browser.waitForEvent('page',{timeout:10000}).catch(()=>null);
+-    let popupApiError=null;
+-    try {await worker.evaluate(()=>chrome.action.openPopup());}catch(error){popupApiError=error.message;}
+-    popup=await popupObserved;
+-    const popupContexts=await worker.evaluate(async()=>chrome.runtime.getContexts?chrome.runtime.getContexts({contextTypes:['POPUP']}).then(items=>items.map(item=>({contextType:item.contextType,documentUrl:item.documentUrl}))):null).catch(()=>null);
+-    if(popup){
+-      await popup.waitForURL('chrome-extension://'+id+'/popup.html',{timeout:10000});
+-      assert.equal(popup.url(),'chrome-extension://'+id+'/popup.html');
+-      await popup.waitForFunction(()=>/^(已连接 Nook|Connected to Nook)$/.test(document.querySelector('#status').textContent));
+-      assert.match(await popup.locator('#status').getAttribute('title'),/备用通道/);
+-      console.log('ACTION_POPUP_UI '+JSON.stringify({status:'passed',playwrightPageObserved:true,actualActionPopupContextPresent:popupContexts?.some(item=>item.documentUrl==='chrome-extension://'+id+'/popup.html')??null,popupContexts}));
+-      await popup.close();popup=null;
+-    }else{
+-      console.log('ACTION_POPUP_UI '+JSON.stringify({status:'not-observed',playwrightPageObserved:false,actualActionPopupContextPresent:popupContexts?.some(item=>item.documentUrl==='chrome-extension://'+id+'/popup.html')??null,popupContexts,reason:popupApiError||'Headless Edge did not expose the action popup as a page. Popup UI is not accepted by this run.'}));
+-    }
++    console.log('ACTION_POPUP_UI '+JSON.stringify({status:'not-accepted',reason:'This isolated fixture intentionally rejects installed-context health; no healthy popup or real installed connection is claimed.'}));
+     diagnostics.setPhase('assertions-complete-awaiting-host-validation');
+     host.stdin.end('\n');const [code]=await diagnostics.exit;assert.equal(code,0,JSON.stringify(diagnostics.snapshot()));
+-    console.log('PASS CORE: real MV3 worker/native host-not-found -> authenticated local health/category/image/duplicate; invalid key denied; host validated the saved library. See ACTION_POPUP_UI for the separate UI result.');
++    assert.match(diagnostics.stdout,/PASS saved original, source and category; duplicate not added/);
++    console.log('PASS ISOLATED CONTRACT: real MV3 native-host-not-found fallback; installed health safely rejected; actual category/image/duplicate and invalid-key checks; original host validated one saved library item. No healthy popup acceptance.');
+   }catch(error){
+     if(popup)try{console.error('POPUP_DIAGNOSTIC '+JSON.stringify(await popup.locator('#status').evaluate(node=>({text:node.textContent,title:node.title,language:document.documentElement.lang}))));}catch{}
+     console.error('FIXTURE_FAILURE '+JSON.stringify(diagnostics.snapshot()));throw error;

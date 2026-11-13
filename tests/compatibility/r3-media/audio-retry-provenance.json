@@ -1,0 +1,79 @@
+{
+  "originalFailureRetained": {
+    "task": 888,
+    "packageSha256": "76D90129C8BD86CEB977D3616500413EE2B05F247C9F5AECF670EE1A476BD476",
+    "result": "FAILED at original play resumes from new seek point assertion"
+  },
+  "purpose": "Fresh independent rerun only after root-approved VM silent render endpoint is confirmed. No original runner, assertion, fixture, timeout, product, or dependency changes.",
+  "executionPrecondition": "Root approval; QEMU none output backend with intel-hda/hda-output; read-only Windows CoreAudio active default render endpoint and audio service evidence retained by VM owner.",
+  "expectedEnvironmentChangeOnly": [
+    "VM intel-hda controller",
+    "VM hda-output endpoint",
+    "QEMU none audio backend"
+  ],
+  "originalMembersExact": [
+    {
+      "name": "fixtures/library-video.mp4",
+      "bytes": 1906003,
+      "sha256": "0430D51A7C8EF567F00130EB303DBC0236DAD1972CF54467C9FE3554C2666B1B"
+    },
+    {
+      "name": "inventory.json",
+      "bytes": 1101,
+      "sha256": "CA7E5F80AD8F2DFEC01F9687DA81AB5B017CE6E9F39ADD636C7382B17D76FC3E"
+    },
+    {
+      "name": "MediaPlaybackRunner.cs",
+      "bytes": 3076,
+      "sha256": "D8CBFB4610DD46DA7DF35200B30B9ED407CFA68DB51F88A85695755998DE7BEA"
+    },
+    {
+      "name": "MediaPlaybackRunner.exe",
+      "bytes": 8192,
+      "sha256": "8E127C1A9BD14CDF149BC80E0AD8C2D9466B62FA9059FAD4A597F38C8BC2A96B"
+    },
+    {
+      "name": "MediaPlaybackRunner.provenance.json",
+      "bytes": 2400,
+      "sha256": "C53D383F66793FD012F5C4B95C242F1283D8F2707105E353D323127912F2EE00"
+    },
+    {
+      "name": "MediaSupplementGuest.cs",
+      "bytes": 14913,
+      "sha256": "66A69014E57D0603608A84C4F02C0AB9A8EB7121B4DA71A71F4ED522A9E0BA0A"
+    },
+    {
+      "name": "MediaSupplementGuest.exe",
+      "bytes": 24576,
+      "sha256": "43D937F9BD1B11D0B9E894C40A3ADC0B418B376933B518743D1C294BB9EF5EEF"
+    },
+    {
+      "name": "MediaSupplementGuest.exe.config",
+      "bytes": 1266,
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512"
+    },
+    {
+      "name": "MediaSupplementGuest.provenance.json",
+      "bytes": 1941,
+      "sha256": "68DAFDD14F01B624E8FF2DAE6A6F02FC4DA3489982FEDDAB5DB8478051E462D6"
+    },
+    {
+      "name": "Mori.exe",
+      "bytes": 24576,
+      "sha256": "43D937F9BD1B11D0B9E894C40A3ADC0B418B376933B518743D1C294BB9EF5EEF"
+    },
+    {
+      "name": "Mori.exe.config",
+      "bytes": 1266,
+      "sha256": "0416F7A9CCAB10D10716D9EEC63390806820DE1A717030E6ADACFB086A79D512"
+    },
+    {
+      "name": "plans/library-media.json",
+      "bytes": 437,
+      "sha256": "DC097D34E154EBC4AA3CCB6E16D6BA8B3838315A4F48BB9022C612B7F8992893"
+    }
+  ],
+  "productChanged": false,
+  "testChanged": false,
+  "hostProductOrTestExecution": false
+}

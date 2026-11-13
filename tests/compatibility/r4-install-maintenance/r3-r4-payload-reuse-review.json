@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "scope": "Metadata comparison of already sealed R3/R4 build/payload inventories; no runtime equivalence claim for changed Mori.exe",
+  "inventories": {
+    "r3": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-release45-r3\\release-payload-identity.json",
+      "sha256": "F985187574098F47D180B66FC27910593C44EF1D401823E62B5D9E0D0F1CB797"
+    },
+    "r4": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-release45-r4\\release-payload-identity.json",
+      "sha256": "F38C254835BC46D4671E374BA71538E149734F7662760B9017396A4F79CEF970"
+    }
+  },
+  "apps": {
+    "r3": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "r4": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22"
+  },
+  "build": {
+    "oldCount": 1668,
+    "newCount": 1668,
+    "unchangedCount": 1666,
+    "changed": [
+      {
+        "path": "Mori.exe",
+        "old": {
+          "bytes": 6748160,
+          "sha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+        },
+        "new": {
+          "bytes": 6748672,
+          "sha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22"
+        }
+      },
+      {
+        "path": "compile.rsp",
+        "old": {
+          "bytes": 42524,
+          "sha256": "72BC4CC33CA6AAD8ADA710F250E3B5AD964196C5590AA73E22EB77C95698D315"
+        },
+        "new": {
+          "bytes": 42524,
+          "sha256": "4DFEE4071A440A1AE9173A4C0B343978CB820AFC44F540502643013DD505B3EA"
+        }
+      }
+    ],
+    "removed": [],
+    "added": []
+  },
+  "payload": {
+    "oldCount": 1714,
+    "newCount": 1716,
+    "unchangedCount": 1709,
+    "changed": [
+      {
+        "path": "Mori.exe",
+        "old": {
+          "bytes": 6748160,
+          "sha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6"
+        },
+        "new": {
+          "bytes": 6748672,
+          "sha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22"
+        }
+      },
+      {
+        "path": "README.md",
+        "old": {
+          "bytes": 9964,
+          "sha256": "BA0D9CCDE81B6C73CFA303A3F7F4DD1F2006A2D1825576FDD695FE5D1EDA4218"
+        },
+        "new": {
+          "bytes": 10116,
+          "sha256": "C5DF97A50CD71E93C7176B434752AEEE2DD894D6FECB3DF753B5C593142D22E9"
+        }
+      },
+      {
+        "path": "RELEASE-NOTES.md",
+        "old": {
+          "bytes": 84374,
+          "sha256": "9D82FB71E706DB4D39D5820FC1745FF8AC3863C8D9EC63E3052E99488E89818D"
+        },
+        "new": {
+          "bytes": 84567,
+          "sha256": "E28A9A9FCC1621FCA0FDF588414067AC30DFAE8872F67B6B859168106CD3EA70"
+        }
+      },
+      {
+        "path": "docs/Nook0.1.45验证记录.md",
+        "old": {
+          "bytes": 43039,
+          "sha256": "757EABEAEE9212106E6A3D37686072F6CC7F9FD10321761268A8FDBBAFC74D6A"
+        },
+        "new": {
+          "bytes": 20485,
+          "sha256": "91E654066BB7958DB23EC45D9DF5E49CC000026EAAEF2EB9D43F9D1D4C09BA15"
+        }
+      },
+      {
+        "path": "docs/data-contract-reviews/20261113-pin-async-materialization.json",
+        "old": {
+          "bytes": 9764,
+          "sha256": "D02ED7FE544424E261D05D06605D4CD02DDA030322824604D40A4E3EDC5F89B5"
+        },
+        "new": {
+          "bytes": 10544,
+          "sha256": "BD2C69A77C4E03DE0D3BD467A269AAFA70BBCF756A1BC20C3F691FFFC0F32329"
+        }
+      }
+    ],
+    "removed": [],
+    "added": [
+      "docs/validation/0.1.45/evidence-summary.json",
+      "docs/validation/0.1.45/source-reuse-review.json"
+    ]
+  },
+  "candidateInputs": {
+    "oldCount": 422,
+    "newCount": 422,
+    "unchangedCount": 420,
+    "changed": [
+      {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\installer\\InstalledVersionCleanup.cs",
+        "old": "6EB57C5ECA58505A1C98E6D7713E5E21A633E5DECA58304B8325E4BB17721ECE",
+        "new": "6BB0250BEDF207884DDB80C75BFF931301A19F2CCC4A128DFEDCD7114A2187D3"
+      },
+      {
+        "path": "D:\\Nook-DevTestVM\\audit\\20261026-file-previews-source\\src\\InstalledVersionMaintenance.cs",
+        "old": "B769B4CBA988805060FC50776F13594814471D7AACB2088CF1D4931C9EF52106",
+        "new": "2071C682FF071D5884A53C06CF7FC36A065397E65F16B6AC812E1772AA27EC68"
+      }
+    ],
+    "removed": [],
+    "added": []
+  },
+  "rootDlls": {
+    "count": 22,
+    "allUnchanged": true
+  },
+  "runtimeCodeAndData": {
+    "files": 770,
+    "allUnchanged": true
+  },
+  "dependencyDirectories": {
+    "browser-extension/": {
+      "files": 19,
+      "unchanged": true
+    },
+    "file-conversion/": {
+      "files": 336,
+      "unchanged": true
+    }
+  },
+  "reuseBoundary": [
+    "R3 component-only/browser/canvas/translation dependencies retain byte-identical packaged inputs.",
+    "420/422 main-application build inputs are identical; only cleanup progress and maintenance-stage reporting changed.",
+    "R3 functional evidence can be retained with explicit source/payload equivalence; this is not an R4 runtime test pass.",
+    "R4 installer safety and embedded maintenance regression plus actual public42-to-R4 upgrade remain required; original R3 installation failure remains failed."
+  ],
+  "physicalProductExecuted": false,
+  "resourcePayloadReextracted": false,
+  "sourceOrIndexEdited": false
+}

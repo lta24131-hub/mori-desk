@@ -1,0 +1,12 @@
+{
+  "purpose": "Independent healthy public42 baseline after observed fixture-native-registration contamination",
+  "original1215RetainedFailed": true,
+  "productionChanged": false,
+  "registryWrittenOnlyByPublic42Ui": true,
+  "actualChromeLoaded": false,
+  "fixtureRoot": "C:\\NookLab\\Upgrade42To45-20261113-r3-healthy",
+  "preservedRoot": "C:\\NookLab\\Audit\\upgrade42to45-preserved-20261113-r3-healthy",
+  "noPayloadDeletedByHelper": true,
+  "failurePolicy": "Stop on failure; retain failed reports and state. No automatic retry/reseed/rollback.",
+  "physicalProductExecution": false
+}

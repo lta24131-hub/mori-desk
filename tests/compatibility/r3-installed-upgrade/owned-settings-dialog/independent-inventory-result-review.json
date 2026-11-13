@@ -1,0 +1,23 @@
+{
+  "inventoryTaskId": "1256-r3-healthy42-independent-inventory",
+  "inventorySha256": "1DD0822CD7EE7F2D49995B8C1A307C7076424BBB880DFEF78B7D9D93EE2BACFD",
+  "inventoryOuterReportSha256": "4A3A06414166A124193CD41135BC19B84F4570110ED28FCBAB8EA5B65A6FF7C0",
+  "healthTaskId": "1279-r3-original-health42",
+  "healthSha256": "465BD84876BB7EAA419CD0E8D76BA67F731CB6C25BE6D082BBFBE77B7239A0AD",
+  "preparationReviewSha256": "9FD5EBBEEB03780B805ED2F0D536BA2B59D51E14E4E0F1F494E1B57B2DFBB03A",
+  "freshInventoryAfterHealth": true,
+  "allReturnedInventoryBytesVerified": true,
+  "exactPublic42AndStableLauncherVerified": true,
+  "actualNativeManifestIdentityAgrees": true,
+  "currentUserNativeRegistrations": 4,
+  "sourceAndRegistryReferencesCoherent": true,
+  "originalProductionSnapshotReady": true,
+  "runningProcesses": [],
+  "healthyBaselineScopeAccepted": true,
+  "original1253RetainedFailed": true,
+  "original1276RetainedFailed": true,
+  "preparationNormalCloseAccepted": false,
+  "normalLaunchCloseStillRequired": true,
+  "realBrowserCollectionAccepted": false,
+  "scope": "Fresh independent inventory agrees with original production public42 health after supported UI setup. This accepts healthy installed-file/registration state only. Original preparation close failure remains failed; the next original launch stage must separately verify normal app exit before final upgrade acceptance."
+}

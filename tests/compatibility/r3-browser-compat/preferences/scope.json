@@ -1,0 +1,11 @@
+{
+  "originalFailedTask": 966,
+  "originalFailureRetained": true,
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "unchangedSealedFiles": 276,
+  "stage": "browser-preferences-copy",
+  "onlyNinePreferencesTests": true,
+  "resilienceRerun": false,
+  "physicalTestsExecuted": false,
+  "productionChanged": false
+}

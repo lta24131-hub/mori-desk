@@ -1,0 +1,3 @@
+Historical dedicated-VM read-only diagnostic, not installation qualification. Original 1304 remains failed. The helper is pinned to the preserved R3 and public42 installation identities. It neither repairs nor deletes those installations. Source and returned evidence are preserved byte-for-byte; no binaries, credentials or VM broker configuration are included. Rebuilding or executing requires fresh identity review and independent authorization.
+
+Task 1325 exports 22 records (18 present, 4 absent). Cleanup status is unfinished with sequence 2 and no version-cleanup report. The cleanup journal contains only its ownership header. The old42 tree was still present; inventory metadata is not a full content-hash proof.

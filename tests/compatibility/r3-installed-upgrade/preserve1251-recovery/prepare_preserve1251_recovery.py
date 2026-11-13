@@ -1,0 +1,79 @@
+"""Compile a narrowly bound recovery for the observed partial preservation."""
+import hashlib,json,pathlib,subprocess,zipfile
+BASE=pathlib.Path(__file__).resolve().parent
+EVIDENCE=BASE/'r3-after1251-evidence'/'results'
+OUT=BASE/'r3-preserve1251-recovery'
+def sha(p):return hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest().upper()
+def read(p):return json.loads(pathlib.Path(p).read_text(encoding='utf-8-sig'))
+def write(p,v):pathlib.Path(p).write_text(json.dumps(v,ensure_ascii=False,indent=2),encoding='utf-8')
+assert not OUT.exists()
+names=['preservation-plan.json','reviewed-inventory.json','move-1.json','move-2.json','move-3.json','verified-1.json','verified-2.json']
+for name in names:assert (EVIDENCE/name).is_file(),name
+expected_hashes=['65A18E97DFA5B984E071399BC21BE9F5C0B72AC96B9BFFDF2F3F5B1494221D64','0855004079C283FE406B4EDCB529EB12A22CFE715F0A0A2161D0AEFE41695DDE','2467433D35B06063333C7E0C2F080B7566B96120FC7174000F0ACE06809A56BB','3A82D0DD4B8F14F4377E1598E8ADEAE6A5F311C13062343AF0D85104715B5CBF','04B8C896EF0899BC4F056F8CDC7EE582072EA81293A95B02993F61B260B71609','6967467268438611C77D7CDB105F3138350D8CEC5B23A326C821AD536C2A8EF9','70AB8C56C08DBD1C557B0DA46401680D51780AB8ED110E213F002446F122A016']
+for name,digest in zip(names,expected_hashes):assert sha(EVIDENCE/name)==digest,name
+plan=read(EVIDENCE/'preservation-plan.json');assert len(plan['programTree'])==3707 and len(plan['dataTree'])==36
+assert plan['inventorySha256']=='0855004079C283FE406B4EDCB529EB12A22CFE715F0A0A2161D0AEFE41695DDE'
+assert sha(EVIDENCE/'reviewed-inventory.json')==plan['inventorySha256']
+OUT.mkdir();PKG=OUT/'package';PKG.mkdir()
+source=r'''using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Management;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Web.Script.Serialization;
+// Exact partial1251 recovery only. No product execution, registry writes,
+// deletes, overwrite, long-path switch, automatic replay or rollback.
+internal static class Preserve1251RecoveryGuest {
+ const string Old=@"C:\NookLab\Audit\upgrade42to45-preserved-20261113-r3-healthy",Target=@"C:\NookLab\Preserve1251",Data=@"C:\Users\NookTester\AppData\Local\MoriDesk",Program=@"C:\Users\NookTester\AppData\Local\Programs\MoriDesk";
+ static readonly UTF8Encoding Utf8=new UTF8Encoding(false,true);
+ static readonly JavaScriptSerializer Json=new JavaScriptSerializer{MaxJsonLength=16*1024*1024,RecursionLimit=40};
+ static readonly Dictionary<string,string> Records=new Dictionary<string,string>(StringComparer.Ordinal){__RECORDS__};
+ static readonly List<string> Checks=new List<string>();static readonly List<object> Moves=new List<object>();static string Package;static bool Mutated;static int ProgramFiles,DataFiles;
+ static string Text(object value){return Convert.ToString(value);}
+ static void Need(bool ok,string reason){if(!ok)throw new InvalidDataException(reason);Checks.Add(reason);}
+ static bool Missing(string path){try{File.GetAttributes(path);return false;}catch(FileNotFoundException){return true;}catch(DirectoryNotFoundException){return true;}}
+ static void Plain(string path){for(string p=Path.GetFullPath(path);!string.IsNullOrEmpty(p);p=Path.GetDirectoryName(p))if(!Missing(p)&&(File.GetAttributes(p)&FileAttributes.ReparsePoint)!=0)throw new IOException("Linked recovery path refused.");}
+ static string Hash(string path){Plain(path);using(var f=File.OpenRead(path))using(var h=SHA256.Create())return BitConverter.ToString(h.ComputeHash(f)).Replace("-","");}
+ static Dictionary<string,object> Read(string file){Plain(file);Need(new FileInfo(file).Length<16*1024*1024,"Bounded recovery record.");return Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(file,Utf8));}
+ static object[] Items(object value){return ((IEnumerable)value).Cast<object>().ToArray();}
+ static Dictionary<string,object> Map(object value){var map=value as Dictionary<string,object>;Need(map!=null,"Expected structured evidence.");return map;}
+ static void Save(string file,object value){Plain(file);using(var stream=new FileStream(file,FileMode.CreateNew,FileAccess.Write,FileShare.Read))using(var writer=new StreamWriter(stream,Utf8)){writer.Write(Json.Serialize(value));writer.Flush();stream.Flush(true);}}
+ static void NoProcesses(){foreach(string name in new[]{"Mori","Nook","Nook-Setup","chrome","msedge"}){var all=Process.GetProcessesByName(name);try{Need(all.Length==0,"No app/browser process during exact preservation recovery: "+name);}finally{foreach(var p in all)p.Dispose();}}}
+ static string[] Tree(string root){Plain(root);Need(Directory.Exists(root),"Expected preserved/source directory exists.");var entries=new List<string>();var pending=new Stack<string>();pending.Push(root);int folders=0;long bytes=0;while(pending.Count>0){string folder=pending.Pop();Plain(folder);if(++folders>30000)throw new IOException("Bounded preservation folder count exceeded.");foreach(string file in Directory.GetFiles(folder)){Plain(file);var info=new FileInfo(file);bytes+=info.Length;if(entries.Count>=100000||bytes>30L*1024*1024*1024)throw new IOException("Preserved tree exceeds bound.");entries.Add(file.Substring(root.Length)+"|"+info.Length+"|"+info.LastWriteTimeUtc.Ticks);}foreach(string child in Directory.GetDirectories(folder)){Plain(child);pending.Push(child);}}return entries.OrderBy(x=>x,StringComparer.Ordinal).ToArray();}
+ static void Guard(){bool vm=false;using(var query=new ManagementObjectSearcher("SELECT Manufacturer,Model FROM Win32_ComputerSystem"))foreach(ManagementObject row in query.Get())using(row)vm|=Regex.IsMatch(Text(row["Manufacturer"])+" "+Text(row["Model"]),"QEMU|KVM|Bochs",RegexOptions.IgnoreCase);Need(vm&&Environment.UserName.Equals("NookTester",StringComparison.OrdinalIgnoreCase),"Dedicated NookTester QEMU only before writes.");Need(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)==@"C:\Users\NookTester\AppData\Local","Actual dedicated profile.");Package=Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory).TrimEnd('\\');Need(Regex.IsMatch(Package,@"\AC:\\NookLab\\Audit\\apps\\[A-Fa-f0-9]{12}\z"),"Hash-addressed output only.");foreach(string p in new[]{Package,Old,Target,Data,Program})Plain(p);NoProcesses();}
+ static void CheckRecords(string root){foreach(var pair in Records)Need(Hash(Path.Combine(root,pair.Key))==pair.Value,"Exact original1251 record retained: "+pair.Key);}
+ static void Run(){
+  Need(Directory.Exists(Old)&&Missing(Target)&&Missing(Program)&&Directory.Exists(Data),"Exact observed partial state; new short target absent, Program moved and Data still at source.");Need(Directory.Exists(Path.Combine(Old,"prior-program"))&&Missing(Path.Combine(Old,"prior-data"))&&Missing(Path.Combine(Old,"preservation-complete.json"))&&Missing(Path.Combine(Old,"verified-3.json")),"Partial1251 only; never replay completed preservation.");
+  var allowed=new HashSet<string>(Records.Keys,StringComparer.OrdinalIgnoreCase);foreach(string name in new[]{"prior-program","desktop-Nook.lnk","startmenu-Nook.lnk"})allowed.Add(name);var actual=Directory.GetFileSystemEntries(Old).Select(Path.GetFileName).ToArray();Need(actual.Length==allowed.Count&&actual.All(allowed.Contains),"Exact original partial-root inventory; no unknown entry moved.");CheckRecords(Old);
+  var plan=Read(Path.Combine(Old,"preservation-plan.json"));var inventory=Read(Path.Combine(Old,"reviewed-inventory.json"));Need(Text(plan["programRoot"])==Program&&Text(plan["dataRoot"])==Data&&Text(plan["inventorySha256"])==Records["reviewed-inventory.json"]&&!Convert.ToBoolean(plan["registryModified"])&&!Convert.ToBoolean(plan["externalConfiguredPathsMoved"]),"Exact original1251 plan boundaries and untouched registry/external routes.");Need(Text(inventory["programRoot"])==Program&&Text(inventory["dataRoot"])==Data&&Items(inventory["running"]).Length==0,"Original bound pre-preservation inventory.");
+  string[] programs=Items(plan["programTree"]).Select(Text).ToArray(),data=Items(plan["dataTree"]).Select(Text).ToArray();ProgramFiles=programs.Length;DataFiles=data.Length;Need(programs.Length==3707&&data.Length==36,"Exact original program and data inventories.");var originalMoves=new List<object>();for(int i=1;i<=3;i++)originalMoves.Add(Read(Path.Combine(Old,"move-"+i+".json")));var programMove=Map(originalMoves[2]);Need(Text(programMove["source"])==Program&&Text(programMove["destination"])==Path.Combine(Old,"prior-program")&&Convert.ToInt32(programMove["files"])==programs.Length&&Text(programMove["status"])=="moved-awaiting-verification","Original program move receipt is awaiting verification, not replay.");
+  var shortcuts=Items(plan["shortcuts"]).Select(Map).ToArray();Need(shortcuts.Length==2,"Exactly two original shortcuts.");foreach(var shortcut in shortcuts){string src=Text(shortcut["source"]),dest=Text(shortcut["destination"]);Need((src==Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),"Nook.lnk")||src==Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"Nook","Nook.lnk"))&&dest.StartsWith(Old+"\\",StringComparison.OrdinalIgnoreCase)&&new[]{"desktop-Nook.lnk","startmenu-Nook.lnk"}.Contains(Path.GetFileName(dest)),"Exact original shortcut paths.");Need(Missing(src)&&Hash(dest)==Text(shortcut["sha256"]),"Moved original shortcut bytes remain exact before shortening root.");}
+  Need(Path.GetPathRoot(Old)==Path.GetPathRoot(Target)&&Path.GetPathRoot(Data)==Path.GetPathRoot(Target)&&Path.GetFullPath(Target)==Target&&Target.StartsWith(@"C:\NookLab\",StringComparison.OrdinalIgnoreCase),"Fixed same-volume short target is within explicitly authorized VM area.");Need((Target+"\\prior-program").Length<Program.Length&&(Target+"\\prior-data").Length<Data.Length,"New preserved roots are shorter than the previously enumerable original roots.");
+  NoProcesses();Need(Missing(Target)&&Missing(Program)&&Directory.Exists(Data),"Revalidate absent target and exact sources immediately before rename.");Save(Path.Combine(Package,"recovery-plan.json"),new{originalTask=1251,oldRoot=Old,newRoot=Target,records=Records,programFiles=programs.Length,dataFiles=data.Length,noDeletion=true,registryChanged=false});
+  Directory.Move(Old,Target);Mutated=true;Moves.Add(new{source=Old,destination=Target,kind="same-volume-root-rename"});Save(Path.Combine(Package,"recovery-move-root.json"),Moves.Last());Need(Missing(Old)&&Directory.Exists(Target),"Whole original failure-preservation root moved once to short location.");CheckRecords(Target);
+  Need(Tree(Path.Combine(Target,"prior-program")).SequenceEqual(programs),"Every original program relative path, length and timestamp verified at short path.");foreach(var shortcut in shortcuts)Need(Hash(Path.Combine(Target,Path.GetFileName(Text(shortcut["destination"]))))==Text(shortcut["sha256"]),"Both original shortcut hashes verified after root rename.");
+  var committed=Map(inventory["committedState"]);string relative=Text(committed["executable"]);Need(Regex.IsMatch(relative,@"\A0\.1\.45-[A-Za-z0-9.-]+\\Mori\.exe\z")&&Hash(Path.Combine(Target,"prior-program",relative)).Equals(Text(committed["sha256"]),StringComparison.OrdinalIgnoreCase),"Preserved current R3 executable still has exact inventoried bytes.");foreach(var item in Items(inventory["metadata"]).Select(Map)){if(!Convert.ToBoolean(item["exists"]))continue;string path=Text(item["path"]);Need(path.StartsWith(Data+"\\",StringComparison.OrdinalIgnoreCase)&&Hash(path)==Text(item["sha256"]),"Existing data metadata hashes remain exact before its move.");}
+  Need(Tree(Data).SequenceEqual(data),"Every original data relative path, length and timestamp unchanged before move.");string destData=Path.Combine(Target,"prior-data");Plain(destData);Need(Missing(destData)&&Missing(Program)&&Directory.Exists(Data),"Exact new data destination absent; current Program still absent.");NoProcesses();Directory.Move(Data,destData);Moves.Add(new{source=Data,destination=destData,kind="same-volume-original-data-move"});Save(Path.Combine(Package,"recovery-move-data.json"),Moves.Last());Need(Missing(Data)&&Tree(destData).SequenceEqual(data),"Every original data path, length and timestamp preserved at short destination.");foreach(var item in Items(inventory["metadata"]).Select(Map)){if(!Convert.ToBoolean(item["exists"]))continue;Need(Hash(Path.Combine(destData,Text(item["path"]).Substring(Data.Length+1)))==Text(item["sha256"]),"Original settings/pin metadata hashes also survive data move.");}CheckRecords(Target);Need(Missing(Program)&&Missing(Data),"Default roots free only after both exact preserved trees verified.");Save(Path.Combine(Target,"recovery1251-complete.json"),new{passed=true,original1251RemainsFailed=true,originalRoot=Old,newRoot=Target,records=Records,moves=Moves,programFiles=programs.Length,dataFiles=data.Length,noDeletion=true,registryUnchanged=true,externalConfiguredPathsPreservedInPlace=true});
+ }
+ [STAThread]static int Main(string[] args){bool passed=false;Exception error=null;try{Need(args.Length==1&&args[0]=="--finish-preserve1251-at-short-root","Explicit one-shot partial1251 recovery required.");Guard();using(var watchdog=new Timer(_=>Environment.Exit(124),null,180000,Timeout.Infinite)){Run();passed=true;}}catch(Exception e){error=e;}finally{if(Package!=null)Save(Path.Combine(Package,"preserve-recovery-result.json"),new{passed,checks=Checks,moves=Moves,oldRoot=Old,newRoot=Target,programRoot=Program,dataRoot=Data,priorProgramRoot=Path.Combine(Target,"prior-program"),priorDataRoot=Path.Combine(Target,"prior-data"),programFiles=ProgramFiles,dataFiles=DataFiles,noDeletion=true,registryChanged=false,hostExecuted=false,original1251RetainedFailed=true,requiresManualReviewAfterPartialFailure=!passed&&Mutated,mayContinueInstallation=passed,error=error==null?null:error.ToString()});}return passed?0:1;}
+}
+'''
+source=source.replace('__RECORDS__',','.join('{"'+name+'","'+sha(EVIDENCE/name)+'"}' for name in names))
+src=PKG/'Preserve1251RecoveryGuest.cs';src.write_text(source,encoding='utf-8-sig')
+refs=[pathlib.Path(item['path']) for item in read(BASE/'r3-upgrade-journey/helpers/InstalledUpgradePreserveGuest.provenance.json')['inputs'][1:]]
+exe=PKG/'Preserve1251RecoveryGuest.exe';compiler=pathlib.Path(r'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe')
+cmd=[str(compiler),'/nologo','/target:exe','/optimize+','/platform:x64','/codepage:65001','/out:'+str(exe)]+['/r:'+str(p) for p in refs]+[str(src)]
+run=subprocess.run(cmd,capture_output=True,text=True);(OUT/'compile.log').write_text(run.stdout+run.stderr,encoding='utf-8');assert run.returncode==0,run.stdout+run.stderr
+write(PKG/'provenance.json',dict(sourceSha256=sha(src),outputSha256=sha(exe),command=cmd,inputs=[dict(path=str(p),sha256=sha(p)) for p in [src]+refs],hostExecution='Compiler only',original1251RetainedFailed=True))
+zip_path=OUT/'preserve1251-recovery.zip'
+with zipfile.ZipFile(zip_path,'x',zipfile.ZIP_DEFLATED,compresslevel=1) as z:
+    for p in sorted(PKG.iterdir()):z.write(p,p.name)
+with zipfile.ZipFile(zip_path) as z:assert z.testzip() is None
+handoff=dict(path=str(zip_path),sha256=sha(zip_path),guest='C:\\NookLab\\Audit\\apps\\'+sha(zip_path)[:12],executable=exe.name,args=['--finish-preserve1251-at-short-root'],report='preserve-recovery-result.json',sourceSha256=sha(src),exeSha256=sha(exe),boundRecords={name:sha(EVIDENCE/name) for name in names},hostExecution='Compiler/package only',runAuthorized=False)
+write(OUT/'handoff.json',handoff);print(json.dumps(handoff,indent=2))

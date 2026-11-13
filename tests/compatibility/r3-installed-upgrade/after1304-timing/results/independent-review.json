@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "packageSha256": "AA4B02D80BF085786EA5527C418050E8C98C7158B1486985FCEF9C213EBDB548",
+  "helperReviewSha256": "75EBE56FCDFCC137787098B2149DC0EEF592F30C48A9483A58D1135E2619F8DF",
+  "progressSha256": "FCE0F40345E1A5DB3C2459943B8B1806D4D08592D07AA2539FAF4FC718BED299",
+  "stages": [
+    {
+      "taskId": "1341-r3-readonly-capture-timing",
+      "operation": "capture",
+      "outerReportSha256": "249B58A728886946DCC1E851AD1DDFED9FE9738682888F40F4DA34E40E34D34C",
+      "reportSha256": "D7F79D15229CAFA4B71F720E4C116F99B9F7D171CA5CADF652B3A834F2180C3F",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "diagnosticCompleted": true,
+      "watchdogFired": false,
+      "brokerElapsedSeconds": 11.41,
+      "helperTotalMs": 10075.9563,
+      "reports": [
+        {
+          "name": "capture-timing-result.json",
+          "returnedBytes": 2037,
+          "sha256": "D7F79D15229CAFA4B71F720E4C116F99B9F7D171CA5CADF652B3A834F2180C3F",
+          "missingFromGuest": false
+        },
+        {
+          "name": "capture-00-identity-verified.json",
+          "returnedBytes": 715,
+          "sha256": "99299C5E70834D8F722226F0B719FA1E1DCB5E8587E24B3B51D609596FECE481",
+          "missingFromGuest": false
+        },
+        {
+          "name": "capture-01-capture-start.json",
+          "returnedBytes": 149,
+          "sha256": "823D6EC560083E2702D80550DB9EAA80AE319C932279D1F5ADDBC6320FE6CAC4",
+          "missingFromGuest": false
+        },
+        {
+          "name": "capture-02-capture-finished.json",
+          "returnedBytes": 459,
+          "sha256": "9B5ED0F13B99798CB60BB1696635B27ECBEFD197B7ED2D7B9B6894A7A3467107",
+          "missingFromGuest": false
+        },
+        {
+          "name": "capture-timeout.json",
+          "returnedBytes": 47,
+          "sha256": "D8D2990E94747557F5C35E06219AE6A6E1EFF48EE31CEA631D520355F29A488A",
+          "missingFromGuest": true
+        }
+      ]
+    },
+    {
+      "taskId": "1342-r3-readonly-tree-timing",
+      "operation": "tree",
+      "outerReportSha256": "FF35509A6526F92C6221279FF82E951C0AEF56531DC6EAFBD009EA151785BEA1",
+      "reportSha256": "219BADF55D5C6689DBE4DC71B509866339CFB43E0BF1023CC3D721F03E476E8D",
+      "allReturnedReportBytesVerified": true,
+      "outerExitCode": 0,
+      "diagnosticCompleted": true,
+      "watchdogFired": false,
+      "brokerElapsedSeconds": 92.98,
+      "helperTotalMs": 92147.27720000001,
+      "reports": [
+        {
+          "name": "tree-timing-result.json",
+          "returnedBytes": 1808,
+          "sha256": "219BADF55D5C6689DBE4DC71B509866339CFB43E0BF1023CC3D721F03E476E8D",
+          "missingFromGuest": false
+        },
+        {
+          "name": "tree-00-identity-verified.json",
+          "returnedBytes": 725,
+          "sha256": "D6100D34C08B90C7A470933524955CD61D2303F7D501888782B0E85F14BD3156",
+          "missingFromGuest": false
+        },
+        {
+          "name": "tree-01-tree-start.json",
+          "returnedBytes": 258,
+          "sha256": "2ED4D32605BA522F047AD34AD41C8C72C5D1D5F35236D9F60B7CA8AADFA5372D",
+          "missingFromGuest": false
+        },
+        {
+          "name": "tree-02-tree-constructed.json",
+          "returnedBytes": 243,
+          "sha256": "9EF0EC3AB42B46D87105A30BF095BBD7D6ECE1E7D851701CF2865648E28A8464",
+          "missingFromGuest": false
+        },
+        {
+          "name": "tree-03-tree-dispose-start.json",
+          "returnedBytes": 122,
+          "sha256": "846B970010E619B1C6E618A71080A7F30DC4943928A1ECD98BEBDBF3917E42FB",
+          "missingFromGuest": false
+        },
+        {
+          "name": "tree-04-tree-disposed.json",
+          "returnedBytes": 151,
+          "sha256": "05EF542C00A9EA5FED90F31E3E9D43110447525BE2812DC98C4390E59BA246E8",
+          "missingFromGuest": false
+        },
+        {
+          "name": "tree-timeout.json",
+          "returnedBytes": 44,
+          "sha256": "05724405DFA3CD39A300A7B213E3DAB5ED3471DB67266599CD0E05094B438232",
+          "missingFromGuest": true
+        }
+      ]
+    }
+  ],
+  "exactFrozenR3IdentityVerified": true,
+  "completedCapture": {
+    "milliseconds": 7608.9884,
+    "complete": true,
+    "entrypointsSwitched": true,
+    "reason": "ready",
+    "runningCount": 0,
+    "referenceCount": 1,
+    "protectedPathCount": 0,
+    "allManagedReferencesStable": true,
+    "oldPayloadRunning": 0,
+    "oldPayloadReferences": 0,
+    "actualProcessCondition": "No installed app/browser running; helper image is outside installation",
+    "productionGateNotBypassed": true
+  },
+  "completedReadLockTree": {
+    "constructionMilliseconds": 89873.06760000001,
+    "disposeMilliseconds": 126.90950000000001,
+    "files": 1702,
+    "directories": 424,
+    "deletion": false,
+    "deleteAccessRequested": false,
+    "sourceWrites": false,
+    "exclusiveDeletionModeNotReproduced": true
+  },
+  "allStageEvidenceBytesVerified": true,
+  "diagnosticScopePassed": true,
+  "actualUpgradeScopePassed": false,
+  "original1304RetainedFailed": true,
+  "sourceWrites": false,
+  "productEntryPointInvoked": false,
+  "registrationWrites": false,
+  "cleanupInvoked": false,
+  "hostExecuted": false,
+  "limitations": [
+    "Installed application and browsers were stopped; original live-installer conditions not reproduced.",
+    "Fresh helper processes use default MTA but OS filesystem caches are uncontrolled and selected identity files are hashed first.",
+    "LockedTree(false) requests read locking only, includes root directory, and does not measure DELETE access, deletion-exclusive sharing, full payload hashing or actual deletion.",
+    "Completed stage timings are not an installer benchmark and cannot relabel the retained1304 upgrade failure as passed."
+  ],
+  "inference": "On the preserved payload, the actual production read-lock tree constructor alone took 89873.0676ms before any internal file-hash progress could be emitted; actual production Capture completed ready in7608.9884ms. This supports the source-level gap between long pre-progress verification and the installer90s idle policy, while not proving each original live-stage duration or the exclusive-delete path."
+}

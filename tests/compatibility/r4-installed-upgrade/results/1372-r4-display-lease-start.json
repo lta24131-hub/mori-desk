@@ -1,0 +1,9 @@
+{
+  "id": "1372-r4-display-lease-start",
+  "type": "launch",
+  "status": "passed",
+  "pid": 1156,
+  "elapsedSeconds": 0.53,
+  "guestUtc": "2026-11-13T15:50:10.1684840Z",
+  "receivedUtc": "20261113T155011125059Z"
+}

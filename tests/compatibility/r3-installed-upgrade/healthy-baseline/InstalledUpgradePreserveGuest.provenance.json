@@ -1,0 +1,42 @@
+{
+  "originalSource": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\helpers\\InstalledUpgradePreserveGuest.cs",
+  "originalSourceSha256": "1462B78A0282BA8E227ACA71AAF763EC51796D98C14AC98CCCABCCE619462AF4",
+  "sourceSha256": "ECFF4EA1CE537479935ECBC5DB5FC075A7EB27977966ACCEF1601D75FBBA7EFF",
+  "command": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/target:exe",
+    "/optimize+",
+    "/platform:x64",
+    "/codepage:65001",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradePreserveGuest.exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradePreserveGuest.cs"
+  ],
+  "inputs": [
+    {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\package\\InstalledUpgradePreserveGuest.cs",
+      "sha256": "ECFF4EA1CE537479935ECBC5DB5FC075A7EB27977966ACCEF1601D75FBBA7EFF",
+      "bytes": 12747
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+      "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D",
+      "bytes": 1551104
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC",
+      "bytes": 412080
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3",
+      "bytes": 1846016
+    }
+  ],
+  "outputSha256": "2DCB3143604F688233F32C62F7B29A5181EFFB92A9FF9B3AB3C51E8258F03BAC",
+  "hostExecution": "Compiler only"
+}

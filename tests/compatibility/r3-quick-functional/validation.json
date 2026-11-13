@@ -1,0 +1,166 @@
+{
+  "status": "functional-pass-ordinary-timing-not-passed",
+  "task": 1081,
+  "packageSha256": "2CD7C0E415F1668C66D68B87F454F196F0D5E4DF27A444B0C93EFA2EAB86C3C6",
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "originalFailedTasks": [
+    931,
+    1005
+  ],
+  "original20SecondTimingPassed": false,
+  "assertionsPassed": 100,
+  "workerExitCodes": [
+    0,
+    0
+  ],
+  "jobActiveAfterStop": 0,
+  "truncated": false,
+  "watchdogFired": false,
+  "physicalRuntime": false,
+  "actualInstallation": false,
+  "outputSha256": "DEDA59D4B9E0F31B4B5A902854E7A2625F24DBD66922A9736B71B81A7AB9F9B7",
+  "resultSha256": "120248301A9B5A9395B6909FD2FBF81E1AF29CE4EDB56202E88F25154BFEEA15",
+  "phaseCount": 32,
+  "phases": [
+    {
+      "phase": "capabilities target=jpg source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 20770
+    },
+    {
+      "phase": "convert-collect target=jpg source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 5664
+    },
+    {
+      "phase": "capabilities target=webp source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 3950
+    },
+    {
+      "phase": "convert-collect target=webp source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 4994
+    },
+    {
+      "phase": "capabilities target=bmp source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 4048
+    },
+    {
+      "phase": "convert-collect target=bmp source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 5189
+    },
+    {
+      "phase": "capabilities target=tiff source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 3996
+    },
+    {
+      "phase": "convert-collect target=tiff source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 5275
+    },
+    {
+      "phase": "capabilities target=gif source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 3984
+    },
+    {
+      "phase": "convert-collect target=gif source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 5021
+    },
+    {
+      "phase": "capabilities target=pdf source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 4010
+    },
+    {
+      "phase": "convert-collect target=pdf source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 7220
+    },
+    {
+      "phase": "capabilities target=jpg source=产品.v2--4b407d0f16.png,产品.v2--6a1339bd43.jpg",
+      "elapsedMs": 4402
+    },
+    {
+      "phase": "convert-collect target=jpg source=产品.v2--4b407d0f16.png,产品.v2--6a1339bd43.jpg",
+      "elapsedMs": 5128
+    },
+    {
+      "phase": "capabilities target=png source=项目.v2--5e16d47e6d.pdf",
+      "elapsedMs": 4062
+    },
+    {
+      "phase": "convert-collect target=png source=项目.v2--5e16d47e6d.pdf",
+      "elapsedMs": 5936
+    },
+    {
+      "phase": "capabilities target=png source=项目.v2--6110545c18.pdf",
+      "elapsedMs": 4051
+    },
+    {
+      "phase": "convert-collect target=png source=项目.v2--6110545c18.pdf",
+      "elapsedMs": 6442
+    },
+    {
+      "phase": "frame-capabilities source=gif",
+      "elapsedMs": 4629
+    },
+    {
+      "phase": "capabilities target=png source=gif-source--6b91566842.gif",
+      "elapsedMs": 3863
+    },
+    {
+      "phase": "convert-collect target=png source=gif-source--6b91566842.gif",
+      "elapsedMs": 5389
+    },
+    {
+      "phase": "capabilities target=webp source=gif-source--6b91566842.gif",
+      "elapsedMs": 3800
+    },
+    {
+      "phase": "convert-collect target=webp source=gif-source--6b91566842.gif",
+      "elapsedMs": 4985
+    },
+    {
+      "phase": "frame-capabilities source=tiff",
+      "elapsedMs": 4010
+    },
+    {
+      "phase": "capabilities target=png source=tiff-source--106a92854d.tiff",
+      "elapsedMs": 3960
+    },
+    {
+      "phase": "convert-collect target=png source=tiff-source--106a92854d.tiff",
+      "elapsedMs": 5155
+    },
+    {
+      "phase": "frame-capabilities source=psd",
+      "elapsedMs": 3962
+    },
+    {
+      "phase": "capabilities target=png source=psd-source--ed4ceb713a.psd",
+      "elapsedMs": 3885
+    },
+    {
+      "phase": "convert-collect target=png source=psd-source--ed4ceb713a.psd",
+      "elapsedMs": 4982
+    },
+    {
+      "phase": "frame-capabilities source=apng-png",
+      "elapsedMs": 4071
+    },
+    {
+      "phase": "capabilities target=jpg source=apng-png-source--c4e18fd245.png",
+      "elapsedMs": 3853
+    },
+    {
+      "phase": "convert-collect target=jpg source=apng-png-source--c4e18fd245.png",
+      "elapsedMs": 5578
+    }
+  ],
+  "phasesAboveOrdinary20Seconds": [
+    {
+      "phase": "capabilities target=jpg source=产品.v2--4b407d0f16.png",
+      "elapsedMs": 20770
+    }
+  ],
+  "scope": "Original frozen result assertions using existing explicit VM 120-second functional wait and phase trace; production capability timeout remains 45 seconds, outer bound 600 seconds. Original ordinary 20-second failure remains. Synthetic VM timing is not physical performance.",
+  "independentReviewSha256": "10D8001C491300326882A9D4BB55E75DD7DCF702E2890864C38303F85B435E0B",
+  "brokerOriginalStdoutSha256": "D75B292C65A89CFA97D4D31D96431577AB57350D10EAE2C7F284180FFF47D6C2",
+  "brokerOriginalStdoutBytes": 14358,
+  "exportedStdoutBytes": 14524,
+  "exportLineEndingNote": "Each of 166 original CRLF became CRCRLF during text export; after this sole line-ending transformation, content equals broker embedded original exactly. Both originals preserved."
+}

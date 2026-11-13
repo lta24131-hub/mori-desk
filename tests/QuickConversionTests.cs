@@ -504,9 +504,9 @@ namespace MoriDesk {
    }
   }
   static void EntryContracts(Action<bool,string> check){
-   var asset=EntryMembers("CreateAssetMenu").ToArray();var tools=EntryMembers("CreateToolMenu").ToArray();
+   var asset=EntryMembers("CreateAssetMenu").ToArray();var tools=EntryMembers("ExecuteToolboxAction").ToArray();
    check(asset.Any(member=>member.Name=="CreateQuickConversionMenu")&&!asset.Any(member=>member.Name=="ConvertSelectedFiles"||member.Name=="OpenFileConversion"),"real asset menu reaches the quick submenu and no longer opens the complex inspector");
-   check(!tools.Any(member=>member.Name=="OpenFileConversion"||member.DeclaringType==typeof(FileConversionWindow)),"real tools menu no longer exposes the separate conversion window or inspector workflow");
+   check(!tools.Any(member=>member.Name=="OpenFileConversion"||member.DeclaringType==typeof(FileConversionWindow)),"visible toolbox no longer exposes the separate conversion window or inspector workflow");
    check(!EntryMembers("EnsureFileConversionHost").Any(member=>member.MemberType==MemberTypes.Field&&member.Name=="fileConversionTask"),"legacy host construction cannot add the old top conversion task button");
    var external=EntryMembers("OpenQuickFileConversion").ToArray();
    check(tools.Any(member=>member.Name=="OpenQuickFileConversion")&&external.Any(member=>member.Name=="Show")&&!external.Any(member=>member.Name=="ShowDialog"),"real Tools entry opens the retained quick converter non-modally instead of blocking the library");

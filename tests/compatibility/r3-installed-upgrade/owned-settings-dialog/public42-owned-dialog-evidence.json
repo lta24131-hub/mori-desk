@@ -1,0 +1,28 @@
+{
+  "tag": "v0.1.42-preview",
+  "commit": "9496b4eff7202d91234257989ee44876d5e746d3",
+  "files": [
+    {
+      "path": "modules/library/src/MainWindow.cs",
+      "sha256": "4BF94B6FF7C9ECDD777CC7F63AB4C02B3668132BCF9A54AF6D0F7490939CDF88",
+      "firstLine": 298,
+      "lastLine": 298,
+      "excerpt": "  void ShowSettings(){ShowDeskSettings();}"
+    },
+    {
+      "path": "src/MainWindow.Desk.cs",
+      "sha256": "66829084F1BA7B8591B14E5A4E3565BBC5E4981C7A9A6463715E1EB02545C6A9",
+      "firstLine": 45,
+      "lastLine": 53,
+      "excerpt": "  DeskSettingsWindow deskSettings;\n  void ShowDeskSettings(){OpenDeskSettings(\"general\");}\n  void OpenDeskSettings(string section){\n   if(deskSettings!=null){deskSettings.Select(section);deskSettings.Activate();return;}\n   if(busy){Status(\"当前操作完成后再打开设置。\");return;}\n   var w=new DeskSettingsWindow(Window,PreviewMode,library,ApplyBrowsePreferences);deskSettings=w;\n   try{w.Select(section);w.ShowDialog();}finally{deskSettings=null;}\n   if(w.StorageRequest!=null)ChangeStorage(w.StorageRequest);\n  }"
+    },
+    {
+      "path": "src/DeskSettingsWindow.cs",
+      "sha256": "99EDB5B4733C6F3783C15EA8E8F336A9C0782B50F443DDCF6BD5FCA4AE2AA8BD",
+      "firstLine": 17,
+      "lastLine": 18,
+      "excerpt": "  internal DeskSettingsWindow(Window owner,bool preview,Library library,Action<Settings> applyBrowse=null){\n   this.preview=preview;Owner=owner;Title=\"Nook · 设置\";Width=780;Height=Math.Min(740,SystemParameters.WorkArea.Height-50);MinWidth=660;MinHeight=440;WindowStartupLocation=WindowStartupLocation.CenterOwner;Theme.Attach(this,owner);"
+    }
+  ],
+  "conclusion": "Settings click calls ShowSettings -> ShowDeskSettings -> OpenDeskSettings, creates DeskSettingsWindow with Owner=main window and exact title, then ShowDialog. Original UIA RootElement.Children lookup was not exhaustive for owned modal windows; failure alone does not prove that lookup was the only cause."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "1397-r4-upgrade-lease-reactivate",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\982ECD28E958",
+  "elapsedSeconds": 0.13,
+  "guestUtc": "2026-11-13T16:18:21.1560032Z",
+  "receivedUtc": "20261113T161822120027Z"
+}

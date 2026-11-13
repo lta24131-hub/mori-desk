@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Resume original public42-to-frozen-R3-upgrade after helper-only launcher enumeration failure",
+  "scope": "dedicated-NookTester-VM-only",
+  "original1143RetainedFailed": true,
+  "originalPlanSha256": "46A1DD38A3A7C1A69B72E4879832E330B1ABA224D0F7DE8E79389152EB2DD9C7",
+  "preservedRoot": "C:\\NookLab\\Audit\\upgrade42to45-preserved-20261113-r3",
+  "fixtureRoot": "C:\\NookLab\\Upgrade42To45-20261113-r3",
+  "candidateAppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "candidateSetupSha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994",
+  "runAuthorized": false,
+  "currentState": null,
+  "currentStateRequired": true,
+  "helper": {
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-launcher-race\\upgrade-launcher-race.zip",
+    "sha256": "CDCCBB0C706F0A0B40C51B4EC9289853EFD8567AFF5ACCB0899AB605E2ABA9D3",
+    "bytes": 48151,
+    "members": 6,
+    "guest": "C:\\NookLab\\Audit\\apps\\CDCCBB0C706F",
+    "executable": "InstalledUpgradeDriverGuest.exe",
+    "originalSourceSha256": "B7B111F1936A5D8BE2B45632273653788FC309F1EFD211E300F7D4EAB7C2AF2D",
+    "sourceSha256": "8DCD6CF7BBCCFA49E7B63224FAB9BEBC086E894154693FDFDCF82ED80F22638A",
+    "exeSha256": "1D3CEC7A0964E156AB1B7E23EE13CD7019132B762CE5A0D156EB0E0A0A18B852",
+    "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+    "setupSha256": "15BD55114642B697723731D53D3D1B98ABCBF00F9A399F500FBE26AC16650994",
+    "original1143RetainedFailed": true,
+    "hostExecution": "Compiler/package only",
+    "runAuthorized": false
+  },
+  "preservedSuccessfulStages": [
+    {
+      "task": 1140,
+      "report": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\results\\preserve-result.json",
+      "sha256": "382311C5FCA1B018918EAA1179EE47ADF0D09087744FEBFFB1CF71EBFD5A9698",
+      "rerun": false
+    },
+    {
+      "task": 1141,
+      "report": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\results\\install42-result.json",
+      "sha256": "C252857FA5DAEFC0FBB250598EA9F3BA374006529DF73B1CAD2F01F7B6AA593A",
+      "rerun": false
+    },
+    {
+      "task": 1142,
+      "report": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\results\\fixtureseed42-result.json",
+      "sha256": "06362A8A0546CB357981CD8D90E47D1B46117EB7D1F4D8D4E5B88416BE2D64E4",
+      "rerun": false
+    }
+  ],
+  "stages": [
+    {
+      "report": "launch42-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--launch42"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\CDCCBB0C706F"
+    },
+    {
+      "report": "fixturesnapshot42-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--snapshot42"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\CE69BF0D653E"
+    },
+    {
+      "report": "install45-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--install45",
+        "C:\\NookLab\\Audit\\apps\\FC2DECB42A44\\Nook-Setup.exe"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\CDCCBB0C706F"
+    },
+    {
+      "report": "launch45-result.json",
+      "exe": "InstalledUpgradeDriverGuest.exe",
+      "args": [
+        "--launch45"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\CDCCBB0C706F"
+    },
+    {
+      "report": "fixtureverify45-result.json",
+      "exe": "InstalledUpgradeFixtureGuest.exe",
+      "args": [
+        "--verify45"
+      ],
+      "guestPackage": "C:\\NookLab\\Audit\\apps\\CE69BF0D653E"
+    }
+  ],
+  "failurePolicy": "Stop on any failure and preserve evidence; no automatic rollback, deletion, reseed or replay of completed installation stages.",
+  "originalFailure": {
+    "task": 1143,
+    "report": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-journey\\results\\launch42-result.json",
+    "sha256": "081A2BE449D290EDE0EE884A5771F62C708E8CEC27D8E927F0AB3C4D10408B80",
+    "retainedFailed": true
+  }
+}

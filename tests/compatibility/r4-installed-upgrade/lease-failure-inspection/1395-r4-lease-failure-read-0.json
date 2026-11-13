@@ -1,0 +1,9 @@
+{
+  "id": "1395-r4-lease-failure-read-0",
+  "type": "read",
+  "status": "passed",
+  "text": "{\"vmGuard\":true,\"userGuard\":true,\"pid\":1156,\"maxSeconds\":3600,\"globalPowerPlanChanged\":false,\"productExecuted\":false,\"utc\":\"2026-11-13T15:50:19.5709915Z\"}",
+  "elapsedSeconds": 0.25,
+  "guestUtc": "2026-11-13T15:52:04.9084786Z",
+  "receivedUtc": "20261113T155205868751Z"
+}

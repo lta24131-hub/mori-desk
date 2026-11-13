@@ -1,0 +1,17 @@
+{
+  "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-prepare-owned-dialog\\prepare-owned-dialog.zip",
+  "sha256": "3ECC8CC986439221E9C47C2115326BAE9D8B241E94007E19ED472EDF0FC29C83",
+  "guest": "C:\\NookLab\\Audit\\apps\\3ECC8CC98643",
+  "executable": "InstalledUpgradeDriverGuest.exe",
+  "args": [
+    "--prepare-browser42"
+  ],
+  "report": "prepare-browser42-result.json",
+  "sourceSha256": "634DD34E836ED08DD1C55AC80776B2D404BE43BD5EEBFD08195CBCFA85E5036D",
+  "exeSha256": "6C71E191AD383268D80A7AB9464F501380628E3D56CFE17CAD6A5FC6EF6C62A1",
+  "original1253RetainedFailed": true,
+  "existing42InstallationReused": true,
+  "otherStagesMustUseOriginal95618": true,
+  "hostExecution": "Compiler/package only",
+  "runAuthorized": false
+}

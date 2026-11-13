@@ -1,0 +1,9 @@
+{
+  "id": "1324-r3-after1304-cleanup-evidence-deploy",
+  "type": "deploy",
+  "status": "passed",
+  "app": "C:\\NookLab\\Audit\\apps\\D346F3ABB346",
+  "elapsedSeconds": 0.19,
+  "guestUtc": "2026-11-13T15:13:48.4305584Z",
+  "receivedUtc": "20261113T151349418525Z"
+}

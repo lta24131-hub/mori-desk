@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "candidateSetupSha256": "366A3208B1BEC55594CF7B8E07F9050AC48A3895BD9DD311D5504A1005AC5772",
+  "scope": "Actual public42-to-frozen-R4 installation in dedicated VM using generated fixtures; no physical desktop, taskbar click or real Chrome collection acceptance.",
+  "stages": [
+    {
+      "taskId": "1381-r4-seed42",
+      "outerReportSha256": "FB854B655595B5E1E25497B531B64B52679B6B85A81FC155B9F953D6081116FD",
+      "reportSha256": "838A15A83EB9DFC31C4370C5F8C483EE55A633ADD1517C8BF8703115A441CB2C",
+      "passed": true,
+      "checks": 27,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1382-r4-launch42",
+      "outerReportSha256": "4B09C069B56741ACF2471520D2B7C9DDA111052C92F1D708492FFA1D924EE4BC",
+      "reportSha256": "BF3D77E7B499ACA5B5602C571A6C377DFD1B40A66A51C651936F18821667A427",
+      "passed": true,
+      "checks": 17,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1383-r4-snapshot42",
+      "outerReportSha256": "05CB17DDBF3133FBA3030FDBFEFDC023590FC4F4DC56382000461DC79E9333FA",
+      "reportSha256": "B628029F7B102004CD74B71AF0D932917B550F45CE83E9C7F0A40AEDC84E62FD",
+      "passed": true,
+      "checks": 28,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1384-r4-real-upgrade",
+      "outerReportSha256": "02B54F4445DA36C379C5858751DA7A803B2D57EEA0720F43A7F9320178A3A209",
+      "reportSha256": "FDE2A72D1E4151E5473DF39A6714CBDFF69C10C858EF6ED4EEA84AC061F0B602",
+      "passed": true,
+      "checks": 38,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1385-r4-launch45",
+      "outerReportSha256": "24254306C931C311F56DF65C4B7E7DB26E798BF8F6F91812AE2C0AC0989B9E3E",
+      "reportSha256": "A88EC49E80CAD2926CB83DE0441263109CBB10981C990DFFDE51ED31D5D242BE",
+      "passed": true,
+      "checks": 17,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1386-r4-verify45",
+      "outerReportSha256": "BC89597A7EC4B57488AD77015C38966CAA6B734C825D75C9A014764D08E97022",
+      "reportSha256": "F53AE1973EE5A65538233EB7BEE078A1477F692A1B99E588517BE4CA3096F2D1",
+      "passed": true,
+      "checks": 30,
+      "outerExitCode": 0
+    },
+    {
+      "taskId": "1387-r4-final-inventory",
+      "outerReportSha256": "48BD7EA507DA4940E09ECA6E535F11D4DF8A264A5A469C54FD531067AF4995D8",
+      "reportSha256": "BF3B42C0B134C702BB2DFC8B62F2B90375C3A294D44864727A684AE3C2499127",
+      "passed": true,
+      "checks": 0,
+      "outerExitCode": 0
+    }
+  ],
+  "baselineReviewSha256": "28D71C986608B530B22B4CD95D78014DF6378621C6F9888AD2BFE2431C7F4535",
+  "healthyGateSha256": "48D26C109B72450EF2580D2F011C51B9B0C1987E3ED6A5C505DA26E3D0BE66CA",
+  "upgradeProgressSha256": "17A7C0FC2836EAF9E41148F36D530A70CAABA4E508ADC20992FF0097000BA9E1",
+  "allRawBrokerAndExtractedBytesMatch": true,
+  "actualNoArgumentInstaller": true,
+  "actualWizardSteps": 4,
+  "startupReceiptAndNativeWindowVerified": true,
+  "old42DirectoryRemoved": true,
+  "productCleanupComplete": true,
+  "sameFixedLauncherSha256": "58F1D00650E3F7DD9EB93C7D382894BDDDD6B339053152D8E1979A5DBC2E0895",
+  "normalExitAndOwnedJobDrainVerified": true,
+  "generatedAssetCount": 1,
+  "generatedCanvasImages": 1,
+  "generatedPinCount": 1,
+  "pinActive": false,
+  "nondefaultStoragePathsPreserved": true,
+  "settingsMembershipCanvasPinAndOriginalResourceBytesPreserved": true,
+  "finalInventoryNoProcesses": true,
+  "displayLeasesReleasedNormally": true,
+  "original1304RetainedFailed": true,
+  "actualUpgradeScopePassed": true,
+  "installationElapsedSeconds": 509.14808719999996,
+  "installationFirstCommittedSeconds": 384.633066,
+  "realChromeCollectionAccepted": false,
+  "hostProductExecuted": false
+}

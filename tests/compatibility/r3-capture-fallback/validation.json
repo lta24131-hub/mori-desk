@@ -1,0 +1,18 @@
+{
+  "original943Passed": false,
+  "fixed55PerformancePassed": false,
+  "functionalStatus": "Task1229 passed 24 independent functional fallback/lifecycle checks in VM; no unchanged55ms performance pass",
+  "packageSha256": "B54604473E5D6619DF3FB870B596A70786987A85445E84E315D37EDF690CB7C3",
+  "reviewSha256": "8B27ECCAE422D683180020904F69217FFBB73B08D51F46D36E66D7596884F004",
+  "physicalProductExecution": false,
+  "vmSupplement": {
+    "task": 1229,
+    "passed": true,
+    "checks": 24,
+    "reportSha256": "09E2D053EF6F6B142BB983EC6B4EE297591189CB00E7D9B371DD5953B27D1E6F",
+    "detailSha256": "E9AD9BC76B6EF520FB344FA131B6E0D834B4252B68A5F00CF346D168A5E0D8AB",
+    "jobActiveAfterStop": 0,
+    "watchdogFired": false,
+    "scope": "Zero-budget result injection for native/manual fallback plus unchanged production55 asynchronous lifecycle. No native capture/hotkey/mouse/display integration claim."
+  }
+}

@@ -24,6 +24,7 @@ namespace MoriDesk {
    var testApp=System.Windows.Application.Current??new System.Windows.Application();testApp.ShutdownMode=System.Windows.ShutdownMode.OnExplicitShutdown;
    Stage("IterationTests.Run");IterationTests.Run(root,Check);Stage("BrowserLocalBridgeTests.Run");BrowserLocalBridgeTests.Run(root,Check);Stage("BrowserCollectionFeedbackTests.Run");BrowserCollectionFeedbackTests.Run(root,Check);Stage("BrowserDesktopFeedbackTests.Run");BrowserDesktopFeedbackTests.Run(root,Check);Stage("BrowserExtensionManagerTests.Run");BrowserExtensionManagerTests.Run(root,Check);Stage("ScreenshotCollectionTests.Run");ScreenshotCollectionTests.Run(root,Check);Stage("LaunchTests.Run");LaunchTests.Run(root,Check);Stage("ReferenceTests.Run");ReferenceTests.Run(root,Check);Stage("LibraryConsistencyTests.Run");LibraryConsistencyTests.Run(root,Check);Stage("ReferenceThumbnailFreshnessTests.Run");ReferenceThumbnailFreshnessTests.Run(root,Check);Stage("MetadataRefreshCacheTests.Run");MetadataRefreshCacheTests.Run(root,Check);Stage("InspectorDraftTests.Run");InspectorDraftTests.Run(root,Check);Stage("BoardTests.Run");BoardTests.Run(root,Check);Stage("ClassicTests.Run");ClassicTests.Run(root,Check);Stage("LocalCollectionTests.Run");LocalCollectionTests.Run(root,Check);Stage("OverviewVisibilityTests.Run");OverviewVisibilityTests.Run(root,Check);Stage("DesktopDropTests.Run");DesktopDropTests.Run(root,Check);Stage("DeskSettingsTests.Run");DeskSettingsTests.Run(root,Check);
    Stage("LibraryRestoreTests.Run");LibraryRestoreTests.Run(root,Check);
+   Stage("LibraryRouteChangeTests.Run");LibraryRouteChangeTests.Run(Path.Combine(root,"library-route-change"),Check);
    Stage("InitialWindowPlacementTests.Run");InitialWindowPlacementTests.Run(Check);
    Stage("InspectorConcurrentMetadataTests.Run");InspectorConcurrentMetadataTests.Run(Path.Combine(root,"inspector-concurrent"),Check);
    Stage("ImageWorkRegressionTests.Run");ImageWorkRegressionTests.Run(Path.Combine(root,"image-work-regressions"),Check);
@@ -44,6 +45,7 @@ namespace MoriDesk {
    Stage("GallerySelectionStabilityTests.Run");GallerySelectionStabilityTests.Run(root,Check);
    Stage("SelectionLookupTests.Run");SelectionLookupTests.Run(root,Check);
    Stage("SvgWorkerProtocolTests.Run");SvgWorkerProtocolTests.Run(Check);
+   Stage("SvgCancellationTests.Run");SvgCancellationTests.Run(Path.Combine(root,"svg-cancellation"),Check);
    Stage("HomepageRedesignTests.Run");HomepageRedesignTests.Run(root,Check);
    Stage("OpenWithRegistrationTests.Run");OpenWithRegistrationTests.Run(Path.Combine(root,"open-with"),Check);
    Stage("ThemePaletteTests.Run");ThemePaletteTests.Run(Path.Combine(root,"theme-palette"),Check);
@@ -84,6 +86,7 @@ namespace MoriDesk {
    Stage("PinHistoryIndexTests.Run");PinHistoryIndexTests.Run(Path.Combine(root,"pin-history-index"),Check);
    Stage("TextWindowPinOutputTests.Run");TextWindowPinOutputTests.Run(Path.Combine(root,"text-window-pin-output"),Check);
    Stage("MiddleDragPanTests.Run");MiddleDragPanTests.Run(Check);
+   Stage("WorkerExitSamplingTests.Run");WorkerExitSamplingTests.Run(Path.Combine(root,"worker-exit-sampling"),Check);
    File.WriteAllText(log,"PASS "+checks+" checks\r\nFixtures: "+root+"\r\n"+DateTime.Now.ToString("O"),Encoding.UTF8);return 0;
   }catch(Exception ex){var diagnostic=new System.Text.StringBuilder();for(var cause=ex;cause!=null;cause=cause.InnerException)foreach(System.Collections.DictionaryEntry entry in cause.Data)if(Convert.ToString(entry.Key).StartsWith("Nook.Worker.",StringComparison.Ordinal))diagnostic.Append(entry.Key).Append('=').Append(entry.Value).AppendLine();File.WriteAllText(log,"FAIL after "+checks+" checks\r\n"+ex+"\r\n"+diagnostic+"Fixtures: "+root,Encoding.UTF8);return 1;}finally{progress.Dispose();progress=null;}}
  }

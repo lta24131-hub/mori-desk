@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "packageSha256": "2B168852E834B2D8950146FB3B33C34627E43FED1505FD19447F3F51AA90BFEE",
+  "sourceSha256": "8A156067C7A891E158FDA13E9F46355CA672912458BA50D15C73A2827AB375E6",
+  "exeSha256": "BA897156FCB619F36234EB97C367EA607127493A0882124A2FB79DDB2ACD87EE",
+  "zipMembers": [
+    "InstalledUpgradePrepareGuest.cs",
+    "InstalledUpgradePrepareGuest.exe",
+    "Mori.exe",
+    "owned-close-native.diff",
+    "provenance.json"
+  ],
+  "zipCrcAndAllBytesVerified": true,
+  "provenanceInputHashesVerified": 7,
+  "sourceBasesVerified": true,
+  "nativeMethodsByteEquivalentInNormalizedSource": [
+    "NativeProcessImage",
+    "CloseLaunchApp",
+    "CandidateImage"
+  ],
+  "unchangedOriginalMethods": [
+    "Guest",
+    "OnlyHelper",
+    "Wait",
+    "NoProduct",
+    "Active",
+    "Windows",
+    "Find",
+    "Invoke",
+    "DriveInstaller",
+    "TrySession",
+    "Session",
+    "CloseApp",
+    "Start",
+    "Install",
+    "Launch",
+    "PreparationSettings"
+  ],
+  "reviewedChange": "Owned settings identity is checked before one normal WindowPattern.Close. After invocation uses only retained native handle lifetime and exact PID/main ownership; main visible+enabled required inside original 6000ms deadline. Exact process image rechecked afterward. No destroying UIA reads. Native normal app close retains exit-zero assertion and original 15000ms deadline. Original Job drain and watchdog unchanged.",
+  "allowedArgs": [
+    "--prepare-browser42"
+  ],
+  "freshPublic42EmptyBrowserOnly": true,
+  "existing1304StateForbidden": true,
+  "installLaunchSeedPreserveUnreachable": true,
+  "original1253_1276_1262FailuresRetained": true,
+  "hostExecution": false,
+  "approval": "Ready for root-authorized fresh baseline plan only; this review is not an execution result."
+}

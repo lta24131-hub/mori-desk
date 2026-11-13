@@ -1,0 +1,42 @@
+{
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "scope": "Only R4 directly affected existing native suites; isolated synthetic VM fixtures, not installation qualification. No original test assertions changed by packaging.",
+  "vmQueueTouched": false,
+  "physicalProductOrTestsExecuted": false,
+  "sourceRecipe": {
+    "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\prepare_r4_native_regressions.py",
+    "sha256": "036BD95BFB3E3BA88177B577DC0265D222DEE5D5275607047848242D9B2C04B8"
+  },
+  "packages": {
+    "maintenance": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-native-regressions\\r4-install-maintenance.zip",
+      "sha256": "DADD17F52A1F83802A3EC36838114BCC23FAEAE523F6490F8974CC164BAE2224",
+      "bytes": 18408687,
+      "members": 36,
+      "guest": "C:\\NookLab\\Audit\\apps\\DADD17F52A1F"
+    },
+    "installerSafety": {
+      "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-native-regressions\\r4-installer-safety.zip",
+      "sha256": "7175954244B6A7FECDA1A76EE3BB4B0C352B90A6159617A36EC71E73AA7D88D2",
+      "bytes": 278537,
+      "members": 29,
+      "guest": "C:\\NookLab\\Audit\\apps\\7175954244B6"
+    }
+  },
+  "commands": [
+    {
+      "package": "maintenance",
+      "exe": "StageGuest.exe",
+      "args": "--run r4-install-maintenance",
+      "report": "r4-install-maintenance.json"
+    },
+    {
+      "package": "installerSafety",
+      "exe": "ExternalGuest.exe",
+      "args": "--run r4-installer-safety",
+      "report": "r4-installer-safety.json",
+      "requires": "C:\\NookLab\\Audit\\apps\\DADD17F52A1F"
+    }
+  ],
+  "wrapperScope": "Unchanged StageGuest; ExternalGuest only product/hash target rebound; both retain Job, independent roots, fail-closed, no retry, preserved fixtures."
+}

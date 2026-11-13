@@ -1,0 +1,31 @@
+{
+  "path": "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r3-upgrade-healthy-v3\\upgrade-healthy-helpers.zip",
+  "sha256": "95618CD835944970114766C2735E37C52074FA0C37792EBC655E8E708A11B0FE",
+  "bytes": 119284,
+  "members": 17,
+  "guest": "C:\\NookLab\\Audit\\apps\\95618CD83594",
+  "sources": [
+    {
+      "name": "InstalledUpgradeDriverGuest",
+      "sha256": "4C6F18CB11C91C3279065E8D5B37374FEEA7BE904AB54984559ADF074AA89354",
+      "exeSha256": "CEBF18090E67B8636EEB8B1E028B126A4384FD9F1E57C0B4C825CBAF56F41725"
+    },
+    {
+      "name": "InstalledUpgradeFixtureGuest",
+      "sha256": "B15C61002C5F39138803DBDA8425A475C7A8EC2569E01A20CE92D43BE013921B",
+      "exeSha256": "663B072C769D445AFCB4EA5FBA05D68598B9DB6A3163233B8E0005A0021DBED3"
+    },
+    {
+      "name": "InstalledUpgradePreserveGuest",
+      "sha256": "ECFF4EA1CE537479935ECBC5DB5FC075A7EB27977966ACCEF1601D75FBBA7EFF",
+      "exeSha256": "2DCB3143604F688233F32C62F7B29A5181EFFB92A9FF9B3AB3C51E8258F03BAC"
+    },
+    {
+      "name": "InstalledUpgradeHealthGuest",
+      "sha256": "6B4D1A18D721F604918344E52DC9C11C6A1FC4533D458CF3BCE2CDCC16FA10D3",
+      "exeSha256": "BEA8ACBA8DB6DB9A63DCFF8A92C347AC5622FBA3385046412B05B00A5B3B0399"
+    }
+  ],
+  "hostExecution": "Compiler/package only",
+  "runAuthorized": false
+}

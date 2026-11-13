@@ -39,7 +39,7 @@ namespace Mori {
    }
    if(string.Equals(ext,".psb",StringComparison.OrdinalIgnoreCase))return Enhanced(path,cancellation);
    if(string.Equals(Path.GetExtension(path),".ai",StringComparison.OrdinalIgnoreCase)){var page=PdfPreview.RenderAsync(path,0,2048,cancellation).GetAwaiter().GetResult();return new PreviewImage(null,FromBitmapSource(page.Bitmap),true);}
-   if(string.Equals(Path.GetExtension(path),".svg",StringComparison.OrdinalIgnoreCase)){int w,h;return new PreviewImage(null,FromBitmapSource(SvgRaster.Render(path,2048,out w,out h)),true);}
+   if(string.Equals(Path.GetExtension(path),".svg",StringComparison.OrdinalIgnoreCase)){int w,h;return new PreviewImage(null,FromBitmapSource(SvgRaster.Render(path,2048,cancellation,out w,out h)),true);}
    var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
    try {
     if(FormatPreviewInfo.NeedsSystemImageCodec(path)){if(stream.Length>256L*1024*1024)throw new NotSupportedException("图片超过 256 MB，请用默认程序打开。");var system=PreviewThumbnail.DecodeWic(stream,path,BitmapCreateOptions.DelayCreation);var source=system.Frames[0];if((long)source.PixelWidth*source.PixelHeight>32L*1024*1024){if(source.Thumbnail==null)throw new NotSupportedException("图像像素过大且没有内嵌缩略图，请用默认程序打开。");var small=FromBitmapSource(source.Thumbnail);stream.Dispose();return new PreviewImage(null,small,true);}stream.Position=0;}

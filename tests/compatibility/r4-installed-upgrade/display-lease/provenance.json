@@ -1,0 +1,34 @@
+{
+  "originalPackageSha256": "26AACDE0AB826765734550CAE9E10C5CA8B6EE5F4096790EE1F343B288C05B4C",
+  "originalSourceSha256": "A80813E7B6ACBE6F02D7939188E8D540D2E25E7E74596B4D87BD75DA9B6BDD5D",
+  "sourceSha256": "3F10C49D85F05B27364EB03BF29153E67866EF5CDE20FA830E2104A1A9E03017",
+  "exeSha256": "2C3DB3C59FEBE4E0A14E257B52D2C2B2548751B68D3BB4BC03F2917505CDD2EF",
+  "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00",
+  "references": [
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+      "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+    },
+    {
+      "path": "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+      "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+    }
+  ],
+  "compileCommand": [
+    "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+    "/nologo",
+    "/optimize+",
+    "/target:exe",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Management.dll",
+    "/r:C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Web.Extensions.dll",
+    "/out:D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-upgrade-display-lease\\DisplayLeaseGuest.exe",
+    "D:\\Nook-DevTestVM\\audit\\20261113-worker-race-rebind\\r4-upgrade-display-lease\\DisplayLeaseGuest.cs"
+  ],
+  "hostExecution": "Compiler only; no helper/product/VM execution",
+  "changes": [
+    "Bound 1200s -> 3600s",
+    "Same VM/user/package guards precede explicit --release-own-lease; CreateNew own-package marker only",
+    "Original loop observes marker then returns normally; finally releases same-thread lease and writes reason receipt",
+    "Line endings normalized; no process killing, power-plan change, desktop input or install action"
+  ]
+}

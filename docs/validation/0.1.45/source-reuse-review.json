@@ -1,0 +1,1193 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-11-13T12:19:04.903005+00:00",
+  "historicalAppSha256": "95122AAA3FB4F69AB2A1D259B74500A71424B2439F8375784E86BCC563237716",
+  "r3AppSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "reviewType": "Manual source/caller scope review with independently verified source seals; not a new runtime or complete call-graph proof",
+  "changedInputCount": 10,
+  "unchangedHistoricalStageSources": 59,
+  "reviewedProductionChanges": [
+    {
+      "path": "modules/library/src/PdfRenderWorker.cs",
+      "r1Sha256": "664A83D831AC952DAC7456E2E0542CFEA1BCA93A04D4B5AA382C97A6DC116790",
+      "r3Sha256": "29CAF2BBC3ED1D049675842D9A65F13E268F751320F928A0192C2960678CC493"
+    },
+    {
+      "path": "modules/library/src/VideoThumbnail.cs",
+      "r1Sha256": "8A47F233DEADEC616DCB2C10CB816FF33974B9C6DE29BF8157AF1570B7C52B99",
+      "r3Sha256": "D7BD19EA8F4D1B2D64E8BA1FC141F35FED27096534E424F91DBA635C53EF1A3A"
+    },
+    {
+      "path": "modules/library/src/WorkerIo.cs",
+      "r1Sha256": "538082ACA98D19A37B85135D731598334A7E30CF1FE927F2B989B2E2537584C8",
+      "r3Sha256": "0A2C3A1B2CCDF1B09B18E3B4A491E45030B1FAE671C67D852F6A98FDA2D4ACE3"
+    },
+    {
+      "path": "src/MainWindow.FileConversion.cs",
+      "r1Sha256": "4581455D5D3C9D1BFA7C0C60748DA73D6BEF91369903FC48C065CB3BD49EE026",
+      "r3Sha256": "2C91047CC19B912564EC6EC588A29361F3D82C3AF23B86F326D7678AA5644361"
+    }
+  ],
+  "exclusions": [
+    "No conversion lifecycle/status wording reuse from this review",
+    "No new MP4 timing, real playback or OCR accuracy pass",
+    "No inherited actual installer/public release qualification",
+    "No R1 video/PDF failed stages treated as passed"
+  ],
+  "scope": "Historical R1 test-source and caller-scope review, never relabelled as R3 runtime. New sampling, actual playback, OCR quality and actual installation require separate evidence.",
+  "stages": [
+    {
+      "name": "IterationTests.Run",
+      "sourceSha256": "892FAAF7E84A1127D98324550A767A47F625572E8C89BB51CD70027D2B24260D",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/IterationTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "596-final45-suite-01",
+          "reportSha256": "EF67BCF403C13ECC76BF4EECDB5895275CC7111BA23CD076A4A453C8C8A901D5",
+          "group": "suite-01",
+          "stage": "MoriDesk.IterationTests.Run",
+          "checks": 34,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrowserLocalBridgeTests.Run",
+      "sourceSha256": "9DC5B3598CED3B88B7B86F681A0B75066FA16D1E4BA21B7CF4AE49FD6C86A15A",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "MP4 header is used only for NativeBridge.Detect MIME/container-kind checks; no VideoThumbnail or PDF render process is invoked.",
+      "source": "tests/BrowserLocalBridgeTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "596-final45-suite-01",
+          "reportSha256": "EF67BCF403C13ECC76BF4EECDB5895275CC7111BA23CD076A4A453C8C8A901D5",
+          "group": "suite-01",
+          "stage": "MoriDesk.BrowserLocalBridgeTests.Run",
+          "checks": 124,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrowserCollectionFeedbackTests.Run",
+      "sourceSha256": "E73231698E202880221C55E781490B82BA07376C3185140DE521A568E0368139",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/BrowserCollectionFeedbackTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "596-final45-suite-01",
+          "reportSha256": "EF67BCF403C13ECC76BF4EECDB5895275CC7111BA23CD076A4A453C8C8A901D5",
+          "group": "suite-01",
+          "stage": "MoriDesk.BrowserCollectionFeedbackTests.Run",
+          "checks": 6,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrowserDesktopFeedbackTests.Run",
+      "sourceSha256": "1EA85B9CE77304B962E8A9974D33948F55FD3B48E92E51CDA9DE433515FAC36A",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/BrowserDesktopFeedbackTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "596-final45-suite-01",
+          "reportSha256": "EF67BCF403C13ECC76BF4EECDB5895275CC7111BA23CD076A4A453C8C8A901D5",
+          "group": "suite-01",
+          "stage": "MoriDesk.BrowserDesktopFeedbackTests.Run",
+          "checks": 11,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrowserExtensionManagerTests.Run",
+      "sourceSha256": "459F7C5ACF3A971070AA974898D5B27BB8C6AD3650622CC0D3B3E0086F82B040",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/BrowserExtensionManagerTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "596-final45-suite-01",
+          "reportSha256": "EF67BCF403C13ECC76BF4EECDB5895275CC7111BA23CD076A4A453C8C8A901D5",
+          "group": "suite-01",
+          "stage": "MoriDesk.BrowserExtensionManagerTests.Run",
+          "checks": 122,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ScreenshotCollectionTests.Run",
+      "sourceSha256": "CE7779C6139BCEE849682361F3EF17043426279373CEF971249AD2D1BA9E5FB8",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/ScreenshotCollectionTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "597-final45-suite-02",
+          "reportSha256": "C979024D09A0E4610B2F7EBD77B00B84BA249A55D116BA64A23A988AEE23FBD1",
+          "group": "suite-02",
+          "stage": "MoriDesk.ScreenshotCollectionTests.Run",
+          "checks": 26,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "LaunchTests.Run",
+      "sourceSha256": "15FFF069F23D7A0F1ADC9F91E8BBD77FFEAB8B5B85D395F4F3F32AC449C2656C",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/LaunchTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "597-final45-suite-02",
+          "reportSha256": "C979024D09A0E4610B2F7EBD77B00B84BA249A55D116BA64A23A988AEE23FBD1",
+          "group": "suite-02",
+          "stage": "MoriDesk.LaunchTests.Run",
+          "checks": 143,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ReferenceTests.Run",
+      "sourceSha256": "7974029BCF0B97D438415536C6D08EC02CBDC6E1785B5E2D341C5598B1CE547C",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "MP4 exists only inside an unscanned directory shortcut. Actual reference thumbnail input is generated PNG; folder preview explicitly refuses scanning children.",
+      "source": "tests/ReferenceTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "597-final45-suite-02",
+          "reportSha256": "C979024D09A0E4610B2F7EBD77B00B84BA249A55D116BA64A23A988AEE23FBD1",
+          "group": "suite-02",
+          "stage": "MoriDesk.ReferenceTests.Run",
+          "checks": 31,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "InitialWindowPlacementTests.Run",
+      "sourceSha256": "0605A11E4DB7F5E5D46901FBEB37D39A75DB2A83575C84DC932084000D44B5BF",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/InitialWindowPlacementTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "600-final45-suite-05",
+          "reportSha256": "76FC47738383621A39E1426E3F82958B5779FD23AB737AEF17F6CDFCDC1B6C07",
+          "group": "suite-05",
+          "stage": "MoriDesk.InitialWindowPlacementTests.Run",
+          "checks": 85,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "InspectorConcurrentMetadataTests.Run",
+      "sourceSha256": "443CF3BA37DC2B3D2F1E1A4C4641EAD48434E071E6938B380EBCB310E2D45C58",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/InspectorConcurrentMetadataTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "600-final45-suite-05",
+          "reportSha256": "76FC47738383621A39E1426E3F82958B5779FD23AB737AEF17F6CDFCDC1B6C07",
+          "group": "suite-05",
+          "stage": "MoriDesk.InspectorConcurrentMetadataTests.Run",
+          "checks": 8,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrandingTests.Run",
+      "sourceSha256": "E3A8AA9FE464358418C0AA8CACE4A2DF39C0D8B944E679C02911FA6374CA4268",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/BrandingTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "602-final45-suite-07",
+          "reportSha256": "60C7396CE45B9ECCADDE5869F2FD7D620D44EFE548691CF4364B467354AD68D9",
+          "group": "suite-07",
+          "stage": "MoriDesk.BrandingTests.Run",
+          "checks": 40,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "AppUpdateServiceTests.Run",
+      "sourceSha256": "D026F65B61B9668DA57CF8ADF3359F3DD31C93E4819D753CE993C896DED1BC3B",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/AppUpdateServiceTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "602-final45-suite-07",
+          "reportSha256": "60C7396CE45B9ECCADDE5869F2FD7D620D44EFE548691CF4364B467354AD68D9",
+          "group": "suite-07",
+          "stage": "MoriDesk.AppUpdateServiceTests.Run",
+          "checks": 47,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "AppUpdatePanelTests.Run",
+      "sourceSha256": "64A95ED3294F14512896D6CE815117FA6481C966701442505740CCC1C1D3EF8D",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/AppUpdatePanelTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "602-final45-suite-07",
+          "reportSha256": "60C7396CE45B9ECCADDE5869F2FD7D620D44EFE548691CF4364B467354AD68D9",
+          "group": "suite-07",
+          "stage": "MoriDesk.AppUpdatePanelTests.Run",
+          "checks": 62,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "AppUpdateCoordinatorTests.Run",
+      "sourceSha256": "3CA864CDBE8AD2CA889A166BEDAF68A55F5BC360B00CB2A0D3AA2ED6BF97088F",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/AppUpdateCoordinatorTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "602-final45-suite-07",
+          "reportSha256": "60C7396CE45B9ECCADDE5869F2FD7D620D44EFE548691CF4364B467354AD68D9",
+          "group": "suite-07",
+          "stage": "MoriDesk.AppUpdateCoordinatorTests.Run",
+          "checks": 76,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "InstalledVersionMaintenanceTests.Run",
+      "sourceSha256": "197773123FA4F52B804CE6ACE413AC232BA5BED5959B37F0E710ECDC8AF5E585",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/InstalledVersionMaintenanceTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "602-final45-suite-07",
+          "reportSha256": "60C7396CE45B9ECCADDE5869F2FD7D620D44EFE548691CF4364B467354AD68D9",
+          "group": "suite-07",
+          "stage": "MoriDesk.InstalledVersionMaintenanceTests.Run",
+          "checks": 60,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "UpdateArtifactMaintenanceTests.Run",
+      "sourceSha256": "E3C84D7945BB2AC1D937EC3206518C0512B1B48E9FD0D86DCAEEF66AF51D66B4",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/UpdateArtifactMaintenanceTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "603-final45-suite-08",
+          "reportSha256": "0F1B62B3CBB9E962C89BF757E2717C56968F4B3B75101CA73F4A7173AB6139C9",
+          "group": "suite-08",
+          "stage": "MoriDesk.UpdateArtifactMaintenanceTests.Run",
+          "checks": 42,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "InstalledTaskbarIdentityTests.Run",
+      "sourceSha256": "E6436423193E8785B0DC8923413CF4FB214447472D3323E41DBF6B147F3B6EA7",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Routing/update/launcher policy and isolated fixture assertions use unchanged implementations. Actual custom-launcher installation, final payload and old-version cleanup still require the distinct R3 upgrade journey.",
+      "source": "tests/InstalledTaskbarIdentityTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "603-final45-suite-08",
+          "reportSha256": "0F1B62B3CBB9E962C89BF757E2717C56968F4B3B75101CA73F4A7173AB6139C9",
+          "group": "suite-08",
+          "stage": "MoriDesk.InstalledTaskbarIdentityTests.Run",
+          "checks": 19,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ReferenceEagleMetadataTests.Run",
+      "sourceSha256": "8B6918BFF4863BE2B4BC0CF5428FAE00DDB7C8FE53DF54D4A5172DD83F0F357E",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/ReferenceEagleMetadataTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "603-final45-suite-08",
+          "reportSha256": "0F1B62B3CBB9E962C89BF757E2717C56968F4B3B75101CA73F4A7173AB6139C9",
+          "group": "suite-08",
+          "stage": "MoriDesk.ReferenceEagleMetadataTests.Run",
+          "checks": 17,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ExportNamingTests.Run",
+      "sourceSha256": "EF75CFDD61D2416A01CFF93562E1BEF15EA1AA30659CF9EABF2856FC6C26C50F",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/ExportNamingTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "603-final45-suite-08",
+          "reportSha256": "0F1B62B3CBB9E962C89BF757E2717C56968F4B3B75101CA73F4A7173AB6139C9",
+          "group": "suite-08",
+          "stage": "MoriDesk.ExportNamingTests.Run",
+          "checks": 11,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ImageBrowserLifecycleTests.Run",
+      "sourceSha256": "C5BF91481323B60AD00E10A3411074CC4673BD5628CE43308497889D00E55B79",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/ImageBrowserLifecycleTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "603-final45-suite-08",
+          "reportSha256": "0F1B62B3CBB9E962C89BF757E2717C56968F4B3B75101CA73F4A7173AB6139C9",
+          "group": "suite-08",
+          "stage": "MoriDesk.ImageBrowserLifecycleTests.Run",
+          "checks": 41,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "GallerySelectionStabilityTests.Run",
+      "sourceSha256": "0D4439AA569B99C92DABC1DEE1E2FF568C7E99609A63E246FEEBD5013F24C446",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/GallerySelectionStabilityTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "605-final45-gallery-0",
+          "reportSha256": "BCAEF2C23145AF729DD629613D9DE79B41CE904F501B0303CB1B5195605679FD",
+          "group": "gallery-0",
+          "stage": "MoriDesk.GallerySelectionStabilityTests.RunSlice",
+          "checks": 270,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        },
+        {
+          "taskId": "606-final45-gallery-1",
+          "reportSha256": "B99A7A3AD9927679A37CCF35BC078F9D320D0104676C448B769EB4F4A6934FD7",
+          "group": "gallery-1",
+          "stage": "MoriDesk.GallerySelectionStabilityTests.RunSlice",
+          "checks": 270,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        },
+        {
+          "taskId": "607-final45-gallery-2",
+          "reportSha256": "E0D272873B84B907B9CB958F33EC7870FE8FB45663BDB93FA1570D50E0E6CA5D",
+          "group": "gallery-2",
+          "stage": "MoriDesk.GallerySelectionStabilityTests.RunSlice",
+          "checks": 270,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        },
+        {
+          "taskId": "608-final45-gallery-3",
+          "reportSha256": "08DC0CD7402B5E27DCDAA6CF1E591FDADB4EDC6BBDD6232E2B18DE139B208213",
+          "group": "gallery-3",
+          "stage": "MoriDesk.GallerySelectionStabilityTests.RunSlice",
+          "checks": 270,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ThemePaletteTests.Run",
+      "sourceSha256": "9263DEF718839D141D211F4C1FD9C971BBD0BF345F37BF16D24F76A37009490A",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Theme/settings/control state or bundled resource assertions use unchanged sealed files. No real PDF/video decoder path or changed conversion collapse status text is asserted.",
+      "source": "tests/ThemePaletteTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "610-final45-suite-11",
+          "reportSha256": "9134A803CAC68C86CA58EFA24BC74DE5183C9243A87498C5D2455784B13F4CAF",
+          "group": "suite-11",
+          "stage": "MoriDesk.ThemePaletteTests.Run",
+          "checks": 76,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "EmbeddedThemeTests.Run",
+      "sourceSha256": "2695C2E24844D0C2BE3056FB517712419E9D6A5B2A6C2F14117EE0BD981ACF85",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Theme/settings/control state or bundled resource assertions use unchanged sealed files. No real PDF/video decoder path or changed conversion collapse status text is asserted.",
+      "source": "tests/EmbeddedThemeTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "610-final45-suite-11",
+          "reportSha256": "9134A803CAC68C86CA58EFA24BC74DE5183C9243A87498C5D2455784B13F4CAF",
+          "group": "suite-11",
+          "stage": "MoriDesk.EmbeddedThemeTests.Run",
+          "checks": 545,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CaptureThemeTests.Run",
+      "sourceSha256": "5CDD539BE8CD8670B26AABD1620AFBEB8C289537C948F3170B9DA02AC3612200",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Theme/settings/control state or bundled resource assertions use unchanged sealed files. No real PDF/video decoder path or changed conversion collapse status text is asserted.",
+      "source": "tests/CaptureThemeTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "610-final45-suite-11",
+          "reportSha256": "9134A803CAC68C86CA58EFA24BC74DE5183C9243A87498C5D2455784B13F4CAF",
+          "group": "suite-11",
+          "stage": "MoriDesk.CaptureThemeTests.Run",
+          "checks": 45,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrowseSettingsTests.Run",
+      "sourceSha256": "FB8FCE700426527AA350666620C395C844EFBA443FBB190DB8C9F2FE520D4978",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Synthetic MP4 is imported as metadata; Library.ImportCore only copies/records data. Main window remains hidden; ThumbnailImage.Load refuses !IsLoaded/!IsVisible. Assertions concern browse settings, metadata and inspector commands, not decoding.",
+      "source": "tests/BrowseSettingsTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "610-final45-suite-11",
+          "reportSha256": "9134A803CAC68C86CA58EFA24BC74DE5183C9243A87498C5D2455784B13F4CAF",
+          "group": "suite-11",
+          "stage": "MoriDesk.BrowseSettingsTests.Run",
+          "checks": 53,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ThumbnailBuildGateTests.Run",
+      "sourceSha256": "FF1E1CC40E791F240F6E8CCE373886076226BC26BDFCABA2FDF2E34306218A3E",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Only the pre-existing VideoThumbnail.FailureCache is touched; that class/implementation is unchanged. No Render or TryReadPrivateMemory invocation.",
+      "source": "tests/ThumbnailBuildGateTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "610-final45-suite-11",
+          "reportSha256": "9134A803CAC68C86CA58EFA24BC74DE5183C9243A87498C5D2455784B13F4CAF",
+          "group": "suite-11",
+          "stage": "MoriDesk.ThumbnailBuildGateTests.Run",
+          "checks": 40,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "VideoControlsTests.Run",
+      "sourceSha256": "79EE00F9A285FA49325951DFF778A57CD98096139142B196E0F11779DCFB9928",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "The Run entry constructs inert controls and invokes pure state/fullscreen/terminal failure handling; it never calls Start. BrowserVolume is a different method, not this historical stage. No decoder startup or thumbnail sampling.",
+      "source": "modules/library/src/VideoControlsTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "611-final45-suite-12",
+          "reportSha256": "630AA8FC0C40A352E949B9CC7F958E5932907B523C524F24B6A31B7BB5FD0FA1",
+          "group": "suite-12",
+          "stage": "Mori.VideoControlsTests.Run",
+          "checks": 52,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "MissingReferenceTests.Run",
+      "sourceSha256": "354F12ABDF16E3C98B2CFB12D9A5F87B9C1E13C9BE1A0912EE89064D807CFF46",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Fake STEP renamed MP4 checks type/route/relink/undo and retained thumbnail stamp. Hidden main window prevents ThumbnailImage.Load. No test assertion relies on video decoding.",
+      "source": "tests/MissingReferenceTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "611-final45-suite-12",
+          "reportSha256": "630AA8FC0C40A352E949B9CC7F958E5932907B523C524F24B6A31B7BB5FD0FA1",
+          "group": "suite-12",
+          "stage": "MoriDesk.MissingReferenceTests.Run",
+          "checks": 38,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "ScreenColorTests.Run",
+      "sourceSha256": "1FBA73F194E5C6C9DE0533FB49CDDF577487D685C5E8A0B27356A6353330C6CB",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Generated raster/reference, metadata, layout or scheduling policy assertions retain identical sources and dependencies. Changed PDF/video sampling is not used for asserted results; MainWindow conversion removed field was never assigned and its method always returned before side effects.",
+      "source": "tests/ScreenColorTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "611-final45-suite-12",
+          "reportSha256": "630AA8FC0C40A352E949B9CC7F958E5932907B523C524F24B6A31B7BB5FD0FA1",
+          "group": "suite-12",
+          "stage": "MoriDesk.ScreenColorTests.Run",
+          "checks": 63,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "MediaBadgeTests.Run",
+      "sourceSha256": "6C942A7255414E7AB4AEAA03BDC80DF51C89DCD958312872BABEA2C1F377F946",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "MP4/PDF extensions are classifier/layout fixtures, not decoded media. The tested badge and metadata structures are unchanged.",
+      "source": "modules/library/src/MediaBadgeTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "611-final45-suite-12",
+          "reportSha256": "630AA8FC0C40A352E949B9CC7F958E5932907B523C524F24B6A31B7BB5FD0FA1",
+          "group": "suite-12",
+          "stage": "Mori.MediaBadgeTests.Run",
+          "checks": 6869,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "DocumentContentTests.Run",
+      "sourceSha256": "7937F36FC97D72DF5AC9AE99AB43C7692FFB402725C6DC25DBF0DC685CF6BF6D",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PDF is explicitly rejected by DocumentContent.Supports. Tested documents are inert text/Office archive extraction and resource budgets, not PDF rendering.",
+      "source": "tests/DocumentContentTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "611-final45-suite-12",
+          "reportSha256": "630AA8FC0C40A352E949B9CC7F958E5932907B523C524F24B6A31B7BB5FD0FA1",
+          "group": "suite-12",
+          "stage": "MoriDesk.DocumentContentTests.Run",
+          "checks": 82,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "SimpleBrowserTests.Run",
+      "sourceSha256": "65BA75DCC986F4587D5CEC20750782FE69AAF1D1D77557230AF951B161678DF5",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/SimpleBrowserTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "614-final45-suite-15",
+          "reportSha256": "F540050AB363E689FB84FD41AF2517C7D0EECF275FC15075D660ED54FFF925F4",
+          "group": "suite-15",
+          "stage": "MoriDesk.SimpleBrowserTests.Run",
+          "checks": 166,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "BrowserWorkspaceTests.Run",
+      "sourceSha256": "786BCD0CEB9097CF10D47F34B5E1370E6EB11B39EAB17A1D60ED5236E0A4BB1D",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Bridge/workspace/collection protocol or UI-state assertions and generated raster/URL inputs use unchanged sources. This reuse does not claim actual Chrome drag collection, network availability or video/PDF playback.",
+      "source": "tests/BrowserWorkspaceTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "614-final45-suite-15",
+          "reportSha256": "F540050AB363E689FB84FD41AF2517C7D0EECF275FC15075D660ED54FFF925F4",
+          "group": "suite-15",
+          "stage": "MoriDesk.BrowserWorkspaceTests.Run",
+          "checks": 34,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "FreeCanvasTests.Run",
+      "sourceSha256": "7339EEF4DB1145AF7228B7BDFDEB9E6AD28ACE7216B28B733308CC41756555DE",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/FreeCanvasTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "614-final45-suite-15",
+          "reportSha256": "F540050AB363E689FB84FD41AF2517C7D0EECF275FC15075D660ED54FFF925F4",
+          "group": "suite-15",
+          "stage": "MoriDesk.FreeCanvasTests.Run",
+          "checks": 183,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasProjectMemoryTests.Run",
+      "sourceSha256": "01B32E8A392C4A9D598DF786E8F59E4C441B698D1C7B02F18692B7AC8F6BD735",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasProjectMemoryTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "614-final45-suite-15",
+          "reportSha256": "F540050AB363E689FB84FD41AF2517C7D0EECF275FC15075D660ED54FFF925F4",
+          "group": "suite-15",
+          "stage": "MoriDesk.CanvasProjectMemoryTests.Run",
+          "checks": 29,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasToolbarTests.Run",
+      "sourceSha256": "4E2F59A868AC5AAB2F2DD4261166A6A795D069A58CCC94DCF0DBCC61B97E4B12",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasToolbarTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "614-final45-suite-15",
+          "reportSha256": "F540050AB363E689FB84FD41AF2517C7D0EECF275FC15075D660ED54FFF925F4",
+          "group": "suite-15",
+          "stage": "MoriDesk.CanvasToolbarTests.Run",
+          "checks": 52,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasProjectsPageTests.Run",
+      "sourceSha256": "C5D5ADF2BC411BB342AFB70CBEE44CBC1F227E46EB08049A821A99F063507A2A",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Fake MP4 is metadata-only and rejected as a canvas image. Library.ImportCore does not render. Hidden main window and pictures/project scope keep video ThumbnailImage.Load inactive. Assertions concern navigation/project gallery, generated PNG canvas images and source preservation.",
+      "source": "tests/CanvasProjectsPageTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "615-final45-suite-16",
+          "reportSha256": "06913CD78BBC56567396DD409BC1BAF3EE02E8776F6BC32AAC06D521E97E6813",
+          "group": "suite-16",
+          "stage": "MoriDesk.CanvasProjectsPageTests.Run",
+          "checks": 79,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasDestinationTests.Run",
+      "sourceSha256": "3757D540334A03AD8B2E2D2BA2991B1C26F34601E23A9A4A86CA7F87F2D34339",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasDestinationTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "615-final45-suite-16",
+          "reportSha256": "06913CD78BBC56567396DD409BC1BAF3EE02E8776F6BC32AAC06D521E97E6813",
+          "group": "suite-16",
+          "stage": "MoriDesk.CanvasDestinationTests.Run",
+          "checks": 27,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasProjectGalleryTests.Run",
+      "sourceSha256": "8661F3E17DFADA3D8D6395BB48CD3D4077B5138809F058E389AD8BA9940616FC",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasProjectGalleryTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "615-final45-suite-16",
+          "reportSha256": "06913CD78BBC56567396DD409BC1BAF3EE02E8776F6BC32AAC06D521E97E6813",
+          "group": "suite-16",
+          "stage": "MoriDesk.CanvasProjectGalleryTests.Run",
+          "checks": 34,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasFallbackSafetyTests.Run",
+      "sourceSha256": "829C368BD2B09D1029548351378DE841F86E0D9051BCA94A27C090D540DF03E1",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasFallbackSafetyTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "615-final45-suite-16",
+          "reportSha256": "06913CD78BBC56567396DD409BC1BAF3EE02E8776F6BC32AAC06D521E97E6813",
+          "group": "suite-16",
+          "stage": "MoriDesk.CanvasFallbackSafetyTests.Run",
+          "checks": 15,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasProjectRefreshTests.Run",
+      "sourceSha256": "F46853FC5EB18BDE7F353E308DAF65DB7E81B2EEC918CA97C52691EA5ACBF5D1",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasProjectRefreshTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "615-final45-suite-16",
+          "reportSha256": "06913CD78BBC56567396DD409BC1BAF3EE02E8776F6BC32AAC06D521E97E6813",
+          "group": "suite-16",
+          "stage": "MoriDesk.CanvasProjectRefreshTests.Run",
+          "checks": 18,
+          "verifiedStagePassed": true,
+          "cleanupVerified": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasTextLayoutTests.Run",
+      "sourceSha256": "7FFD9A231D89EF5CA6D44FC0E4B4995E37FB2D2526A5F1B4CB273078DD3C1EAB",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasTextLayoutTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "619",
+          "checks": 34,
+          "reportSha256": "7677C17521842C2B56D80164CD88F63F02B43CF67ED3E206E9974BD2AD8B556C",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasLineSelectionTests.Run",
+      "sourceSha256": "5B8CF94C931CC1909A7DF97F668F5C56286E362ABEED06B30F5250115A8112BD",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasLineSelectionTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "619",
+          "checks": 42,
+          "reportSha256": "7677C17521842C2B56D80164CD88F63F02B43CF67ED3E206E9974BD2AD8B556C",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "CanvasStyleEditingTests.Run",
+      "sourceSha256": "361DA97A3AF04BC5A974D01AE96D43C95D8C3250D918084D181EEB1F93119B37",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/CanvasStyleEditingTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "619",
+          "checks": 55,
+          "reportSha256": "7677C17521842C2B56D80164CD88F63F02B43CF67ED3E206E9974BD2AD8B556C",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "MatureCanvasStoreTests.Run",
+      "sourceSha256": "2E5E48E43FE32FD635DBA22328EA46CCA169FC6BD9A998C51ECC180BFA852677",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/MatureCanvasStoreTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "619",
+          "checks": 119,
+          "reportSha256": "7677C17521842C2B56D80164CD88F63F02B43CF67ED3E206E9974BD2AD8B556C",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "MatureCanvasImageMetadataTests.Run",
+      "sourceSha256": "B3A4DA9C8567DCD99941CD4CEC40A478E1B7ED7781ED58ABB2F6D3FD75785494",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/MatureCanvasImageMetadataTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "619",
+          "checks": 28,
+          "reportSha256": "7677C17521842C2B56D80164CD88F63F02B43CF67ED3E206E9974BD2AD8B556C",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "MatureCanvasCloseFailureTests.Run",
+      "sourceSha256": "D9C497D93B31B64E139979439D806C4E0096543CE8990021784E47A3417FADB5",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/MatureCanvasCloseFailureTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "620",
+          "checks": 35,
+          "reportSha256": "0F1558514E104A031A66E9092C4B4B2A4D70694638643F24208D10E13F913738",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "MatureCanvasHostTests.Run",
+      "sourceSha256": "FE1A2B5FADD100F21806789015D53DA437583AA62F74201EF242E05BD31113B1",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/MatureCanvasHostTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "620",
+          "checks": 166,
+          "reportSha256": "0F1558514E104A031A66E9092C4B4B2A4D70694638643F24208D10E13F913738",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "MatureCanvasInteractionTests.Run",
+      "sourceSha256": "720018846EF6B47541B41E2F2F0B25191DA4EAE8842475A76637421F44E71537",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Canvas store/model/layout/project assertions and generated raster inputs; changed PDF/video sampler methods are not used for asserted outputs. Production canvas sources/resources and tested assertions retain identical sealed bytes.",
+      "source": "tests/MatureCanvasInteractionTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "620",
+          "checks": 16,
+          "reportSha256": "0F1558514E104A031A66E9092C4B4B2A4D70694638643F24208D10E13F913738",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "AppearanceSettingsTests.Run",
+      "sourceSha256": "AD7FBF755836DF35CFD2E47A25EDEFB310DF110E73B61FB0AB164676C64BE832",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Theme/settings/control state or bundled resource assertions use unchanged sealed files. No real PDF/video decoder path or changed conversion collapse status text is asserted.",
+      "source": "tests/AppearanceSettingsTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "620",
+          "checks": 569,
+          "reportSha256": "0F1558514E104A031A66E9092C4B4B2A4D70694638643F24208D10E13F913738",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "CustomizationTests.Run",
+      "sourceSha256": "95ECE7B70FC14D75F7E58CC0E1B344C8C027CD51E43C1D9208DAFF7D9CA05556",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Theme/settings/control state or bundled resource assertions use unchanged sealed files. No real PDF/video decoder path or changed conversion collapse status text is asserted.",
+      "source": "tests/CustomizationTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "620",
+          "checks": 54,
+          "reportSha256": "0F1558514E104A031A66E9092C4B4B2A4D70694638643F24208D10E13F913738",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "PreviewPreferencesTests.Run",
+      "sourceSha256": "FFBEBB9012C4FEB050D8CE7A82C78AF59B1211B5465683D125A88496DADED1ED",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "Explicit inert fixtures assert Media.Source=null, no decoder/browser/start/timer. Real media resume and loop remain separately failed/pending and are not covered by this reuse.",
+      "source": "tests/PreviewPreferencesTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "621",
+          "checks": 90,
+          "reportSha256": "5C4CFD4B9C44BDC3E8207A208777F61C354BDA9F0663E72C218432CC9DCFFFEA",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "DesktopImagePinTests.Run",
+      "sourceSha256": "2DBD0CA962B07E2F9822DD180D8C16755318F89A8F25A90542FB6507C5A16C68",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/DesktopImagePinTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "621",
+          "checks": 52,
+          "reportSha256": "5C4CFD4B9C44BDC3E8207A208777F61C354BDA9F0663E72C218432CC9DCFFFEA",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "PreviewClipboardTests.Run",
+      "sourceSha256": "F5DEA697F439D3550E1080FCE9C697A27568F5C4A6AC30808558AB0DE5C1A19C",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/PreviewClipboardTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "621",
+          "checks": 85,
+          "reportSha256": "5C4CFD4B9C44BDC3E8207A208777F61C354BDA9F0663E72C218432CC9DCFFFEA",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "PinLifecycleTests.Run",
+      "sourceSha256": "D659F807AA145D6CA6DF2A3B75BDDC27B4E5E522CCCD44135EC26914883AC729",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/PinLifecycleTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "621",
+          "checks": 21,
+          "reportSha256": "5C4CFD4B9C44BDC3E8207A208777F61C354BDA9F0663E72C218432CC9DCFFFEA",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "PinRuntimeTests.Run",
+      "sourceSha256": "7EE721ABD0CE186534B32C3B30ACFACC407C803A0C29A15F63178909173E1FA7",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/PinRuntimeTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "621",
+          "checks": 22,
+          "reportSha256": "5C4CFD4B9C44BDC3E8207A208777F61C354BDA9F0663E72C218432CC9DCFFFEA",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "PinHistoryIndexTests.Run",
+      "sourceSha256": "D2E52BCC678229FBDBDA290A4D48258FA9C0CC9E0CF32B4F1CBD08E7061500E5",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/PinHistoryIndexTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "622",
+          "checks": 10,
+          "reportSha256": "46F1B4DCEF37703D12DCDADE01451E0A8680F66E9197FF54DE87BA390727B6AC",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "TextWindowPinOutputTests.Run",
+      "sourceSha256": "462FDF648795EEA6EAECC29139A637863DE0D89404FCAAA663AF5664A6A9141C",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/TextWindowPinOutputTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "622",
+          "checks": 17,
+          "reportSha256": "46F1B4DCEF37703D12DCDADE01451E0A8680F66E9197FF54DE87BA390727B6AC",
+          "verifiedStagePassed": true
+        }
+      ]
+    },
+    {
+      "name": "MiddleDragPanTests.Run",
+      "sourceSha256": "58E50F9ED5A5E711C8749DF2DD360EC1E0958F8137BD91B868E3A7651C529FC2",
+      "historicalStatus": "passed",
+      "r3Executed": false,
+      "sourceEquivalenceAccepted": true,
+      "reviewedScope": "PNG/bitmap pin, clipboard, lifecycle or drag state assertions use unchanged capture/viewer code. No PDF/video sampling or conversion status copy is involved; native OS shortcut injection is not inferred.",
+      "source": "tests/MiddleDragPanTests.cs",
+      "historicalAttempts": [
+        {
+          "taskId": "622",
+          "checks": 25,
+          "reportSha256": "46F1B4DCEF37703D12DCDADE01451E0A8680F66E9197FF54DE87BA390727B6AC",
+          "verifiedStagePassed": true
+        }
+      ]
+    }
+  ]
+}

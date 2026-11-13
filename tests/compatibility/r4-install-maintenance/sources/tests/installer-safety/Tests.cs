@@ -1,0 +1,350 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.IO.Compression;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+using System.Web.Script.Serialization;
+
+namespace MoriDeskInstaller {
+ internal static class InstallerSafetyTests {
+  static int checks;
+  static void Check(bool value,string message){checks++;if(!value)throw new Exception(message);}
+  static void Rejected(Action action,string message){bool rejected=false;try{action();}catch(ArgumentException){rejected=true;}catch(InvalidDataException){rejected=true;}Check(rejected,message);}
+  static Dictionary<string,object> UpdateData(string executable){return new Dictionary<string,object>{{"schemaVersion",1},{"parentProcessId",20},{"parentExecutable",executable},{"parentStartedUtcTicks",638960000000000000L},{"expectedVersion",Program.InstallerVersion},{"relaunch",true}};}
+  static string Json(Dictionary<string,object> data){return new JavaScriptSerializer().Serialize(data);}
+  static Dictionary<string,object> BackupData(){return new Dictionary<string,object>{{"schemaVersion",1},{"completedUtc",new DateTime(2026,10,16,1,2,3,DateTimeKind.Utc).ToString("O",CultureInfo.InvariantCulture)},{"metadataOnly",true},{"sourceMediaIncluded",false},{"credentialsIncluded",false},{"bytes",1024}};}
+  static Dictionary<string,object> StartupData(string executable){return new Dictionary<string,object>{{"schemaVersion",1},{"expectedVersion",Program.InstallerVersion},{"processId",42},{"startedUtcTicks",638960000000000001L},{"executable",executable}};}
+  static void VersionChecks(){
+   var assembly=typeof(Program).Assembly;var compiled=assembly.GetName().Version;
+   var metadata=(AssemblyFileVersionAttribute)Attribute.GetCustomAttribute(assembly,typeof(AssemblyFileVersionAttribute));
+   Check(compiled.Revision==0&&metadata!=null&&new Version(metadata.Version)==compiled,"installer assembly and file versions agree with the three-field update protocol");
+   Check(Program.InstallerVersion==compiled.ToString(3),"runtime desired version comes from the compiled release, not a stale independent constant");
+   var desired=new Version(Program.InstallerVersion+".0");
+   Check(Program.ShouldReplace(new Version(0,1,31,0),desired,"previous-payload","new-payload",false),"the compiled release can replace the prior 0.1.31 installation");
+   Check(Program.ShouldReplace(new Version(0,1,32,0),desired,"previous-candidate","new-payload",false),"the corrected release can replace the 0.1.32 candidate without bypassing version protection");
+   Check(!Program.ShouldReplace(compiled,desired,"same-payload","same-payload",false),"the identical compiled release remains a no-op");
+   Rejected(()=>Program.ShouldReplace(compiled,desired,"other-payload","new-payload",false),"equal-version different bytes remain rejected");
+   Rejected(()=>Program.ShouldReplace(compiled,desired,"other-payload","new-payload",true),"repair cannot bypass equal-version payload protection");
+   Rejected(()=>Program.ShouldReplace(new Version(compiled.Major,compiled.Minor,compiled.Build+1,0),desired,"future-payload","new-payload",false),"a genuinely newer installation still blocks downgrade");
+   string root=@"C:\Nook-installer-version-fixture\Programs\MoriDesk",executable=Path.Combine(root,"previous","Mori.exe");
+   string updates=@"C:\Nook-installer-version-fixture\updates",request=Path.Combine(updates,"0123456789abcdef0123456789abcdef","request.json");
+   var data=UpdateData(executable);data["expectedVersion"]=compiled.ToString(3);
+   Check(Program.ParseUpdateRequest(Json(data),request,updates,root,10).ExpectedVersion==compiled.ToString(3),"request version generated from release metadata is accepted by the runtime protocol");
+  }
+  static void ManualFlowChecks(){
+   var desired=new Version(0,1,40,0);int recordReads=0,runningChecks=0,verifiedRuns=0;
+   var previous=new MoriDesk.InstalledApplicationDescriptor{version="0.1.38.0"};
+   Func<int> earlyAttempt=()=>Program.RunManualAttempt(()=>{recordReads++;return previous;},desired,()=>{runningChecks++;return true;},()=>{verifiedRuns++;return 7;});
+   Check(earlyAttempt()==Program.ManualNeedsExit&&recordReads==1&&runningChecks==1&&verifiedRuns==0,"known older running app is prompted before payload hashing, progress or replacement lease");
+   foreach(string version in new[]{"0.1.40.0","0.1.41.0"}){
+    previous.version=version;int beforeChecks=runningChecks;
+    Check(earlyAttempt()==7&&runningChecks==beforeChecks,"same/newer installation still reaches complete identity, integrity and version validation without an unnecessary exit: "+version);
+   }
+   previous=null;Check(earlyAttempt()==7,"first/legacy installation uses the complete verified path");
+   previous=new MoriDesk.InstalledApplicationDescriptor{version="0.1.38.0"};
+   bool stillRunning=true;int fullChecks=0,retries=0;
+   int preflightResult=Program.RunManualInstallation(()=>Program.RunManualAttempt(()=>previous,desired,()=>stillRunning,()=>{fullChecks++;return 0;}),()=>{retries++;stillRunning=false;return true;});
+   Check(preflightResult==0&&retries==1&&fullChecks==1,"after exit exactly one full validation runs; preflight never substitutes for it");
+   fullChecks=retries=0;stillRunning=true;
+   preflightResult=Program.RunManualInstallation(()=>Program.RunManualAttempt(()=>previous,desired,()=>stillRunning,()=>{fullChecks++;return 0;}),()=>{retries++;return false;});
+   Check(preflightResult==2&&retries==1&&fullChecks==0,"cancelling early exit performs no verification transaction or installation");
+   bool invalid=false;try{Program.RunManualAttempt(()=>{throw new InvalidDataException("bad record");},desired,()=>true,()=>{fullChecks++;return 0;});}catch(InvalidDataException){invalid=true;}
+   Check(invalid&&fullChecks==0,"invalid installation metadata fails without authorizing an install or requesting exit");
+   previous.version="0.1.38.0";retries=fullChecks=0;
+   preflightResult=Program.RunManualInstallation(()=>Program.RunManualAttempt(()=>previous,desired,()=>true,()=>{fullChecks++;return 7;}),()=>{retries++;previous.version="0.1.41.0";return true;});
+   Check(preflightResult==7&&retries==1&&fullChecks==1,"retry rereads a concurrently changed version and leaves downgrade rejection to full verification");
+   Check(Program.ManualOperation(false,false,true)==InstallerOperation.Install,"first install has its own progress operation");
+   Check(Program.ManualOperation(true,false,true)==InstallerOperation.Update,"an existing version reports update");
+   Check(Program.ManualOperation(true,true,true)==InstallerOperation.Repair,"a damaged known installation reports repair");
+   Check(Program.ManualOperation(true,false,false)==InstallerOperation.VerifyEntrypoints,"identical healthy payload only checks entrypoints");
+   var order=new List<string>();bool held=false,closedAfterRelease=true,promptOutsideLease=true;int attempts=0,prompts=0;
+   int result=Program.RunManualInstallation(()=>InstallerProgress.Run(()=>{
+    attempts++;held=true;order.Add("lease"+attempts);
+    try{return attempts<3?Program.ManualNeedsExit:0;}
+    finally{held=false;order.Add("release"+attempts);}
+   },state=>{order.Add("show");return ()=>{closedAfterRelease&=!held&&state.Snapshot().Finished;order.Add("close");};}),()=>{
+    prompts++;promptOutsideLease&=!held&&order[order.Count-1]=="close";order.Add("retry"+prompts);return true;
+   });
+   Check(result==0&&attempts==3&&prompts==2,"each explicit retry runs a fresh complete installation attempt, including still-running rechecks");
+   Check(closedAfterRelease&&promptOutsideLease&&string.Join(",",order.ToArray())=="show,lease1,release1,close,retry1,show,lease2,release2,close,retry2,show,lease3,release3,close","manual exit prompt occurs only after the installation lease and progress presentation have ended");
+   attempts=prompts=0;result=Program.RunManualInstallation(()=>{attempts++;return Program.ManualNeedsExit;},()=>{prompts++;return false;});
+   Check(result==2&&attempts==1&&prompts==1,"cancelling the exit prompt does not retry, shut down an application or begin a replacement");
+   foreach(int terminal in new[]{0,1,2}){
+    attempts=prompts=0;result=Program.RunManualInstallation(()=>{attempts++;return terminal;},()=>{prompts++;return true;});
+    Check(result==terminal&&attempts==1&&prompts==0,"completed/no-op, failed and cancelled attempts do not ask for an unnecessary exit: "+terminal);
+   }
+   prompts=0;bool failed=false;try{Program.RunManualInstallation(()=>{throw new IOException("synthetic validation failure");},()=>{prompts++;return true;});}catch(IOException){failed=true;}
+   Check(failed&&prompts==0,"validation failure is not disguised as an application-exit request");
+   Rejected(()=>Program.RunManualInstallation(null,()=>true),"missing manual attempt is rejected");
+   Rejected(()=>Program.RunManualInstallation(()=>0,null),"missing retry decision is rejected");
+  }
+  static void ProgressChecks(){
+   long elapsed=20;var state=new InstallerProgressState(()=>elapsed);
+   Check(state.Snapshot().Operation==InstallerOperation.Preparing&&!state.Snapshot().Finished&&InstallerProgress.Title(state.Snapshot()).Contains("准备安装"),"progress begins with a neutral preparation stage");
+   foreach(var operation in new[]{InstallerOperation.Install,InstallerOperation.Update,InstallerOperation.Repair,InstallerOperation.VerifyEntrypoints}){
+    state.SetOperation(operation,"0.1.99");var view=state.Snapshot();
+    Check(view.Operation==operation&&view.Version=="0.1.99"&&InstallerProgress.Title(view)=="Nook · "+InstallerProgress.OperationText(operation)+" · 0.1.99","progress title tracks the verified operation and target version: "+operation);
+   }
+   state.Report("正在校验程序…");var before=state.Snapshot();bool close=state.RequestClose();var waiting=state.Snapshot();
+   Check(!close&&waiting.CloseRequested&&!waiting.Finished&&waiting.Stage==before.Stage&&InstallerProgress.Hint(waiting).Contains("自动关闭")&&InstallerProgress.Hint(waiting).Contains("最小化"),"clicking close exposes an explanation without cancelling, completing or overwriting transaction progress");
+   elapsed=10;Check(state.Snapshot().ElapsedMilliseconds==20,"a backward clock cannot reduce displayed elapsed time");
+   elapsed=30;state.Complete();state.Report("late stage");state.SetOperation(InstallerOperation.Update,"wrong");elapsed=50;var complete=state.Snapshot();
+   Check(state.RequestClose()&&complete.Finished&&complete.ElapsedMilliseconds==30&&complete.Stage==before.Stage&&complete.Operation==before.Operation&&complete.Version==before.Version,"completed progress permits close and ignores late presentation changes");
+   InstallerProgressState observed=null;bool closed=false;int result=InstallerProgress.Run(()=>{InstallerProgress.SetOperation(InstallerOperation.Repair,"0.1.99");InstallerProgress.Report("修复中");return 7;},value=>{observed=value;return ()=>closed=value.Snapshot().Finished;});
+   Check(result==7&&closed&&observed.Snapshot().Operation==InstallerOperation.Repair&&observed.Snapshot().Stage=="修复中","progress returns the transaction result and closes only after marking its presentation complete");
+   bool ran=false;result=InstallerProgress.Run(()=>{ran=true;return 0;},value=>{throw new IOException("synthetic presentation failure");});
+   Check(ran&&result==0,"a failed progress window does not skip the transaction");
+   closed=false;bool failed=false;try{InstallerProgress.Run(()=>{throw new IOException("synthetic rollback");},value=>()=>closed=value.Snapshot().Finished);}catch(IOException){failed=true;}
+   Check(failed&&closed,"transaction failure still completes the progress presentation and propagates to normal error handling");
+  }
+  static void WizardChecks(){
+   var state=new WizardState();Check(!state.Close()&&state.Snapshot().CloseRequested,"close during replacement cannot cancel the transaction");
+   state.Progress(48);state.Progress(11);Check(state.Snapshot().Percent==48,"progress does not move backward");state.Progress(100);Check(state.Snapshot().Percent==99,"only verified completion may display 100 percent");
+   for(int i=0;i<2400;i++)state.Log("file "+i);var logs=state.Snapshot();Check(logs.Lines.Length==WizardState.MaximumLines&&logs.Lines[0].Sequence==1601&&logs.Sequence==2400,"log memory is bounded while sequence stays monotonic");
+   state.Wait(true);Check(state.Close(),"waiting for app exit allows cancelling without a held installation lease");state.Wait(false);Check(!state.Close(),"retry returns to protected transaction state");
+   state.Result("failed","rollback finished",true);state.Complete();state.Progress(100);state.Log("late");Check(state.Snapshot().Failed&&state.Snapshot().Percent==99&&state.Snapshot().Sequence==2401&&state.Close(),"failure never becomes a successful full bar and late updates are ignored");
+   var plan=new InstallerPlan{Location=@"D:\Apps\Nook",Components=new[]{new InstallerComponent{Directory="ocr-engine",Selected=false,Bytes=100},new InstallerComponent{Directory="scroll-capture",Selected=true,Bytes=200}},CoreBytes=50};
+   Check(!plan.Includes(@"OCR-ENGINE\model.bin")&&plan.Includes(@"scroll-capture\main.exe")&&plan.Includes("Mori.exe")&&plan.SelectedBytes==250,"optional installation excludes only whole declared component roots and counts selected bytes");
+   var copy=plan.Copy();copy.Components[0].Selected=true;Check(!plan.Components[0].Selected&&copy.SelectedBytes==350,"UI decisions are deep copies, not live mutable checkbox objects");
+   Check(MoriDesk.InstalledApplicationState.ValidateLocation(@"D:\Apps\Nook")==@"D:\Apps\Nook","custom location accepts dedicated local app folder");
+   foreach(string path in new[]{@"D:\",@"\\server\share\Nook",@"D:\Apps\..\Nook",@"D:\Apps.\Nook",@"D:\Apps\Other",@"D:\Apps\Nook:stream"})Rejected(()=>MoriDesk.InstalledApplicationState.ValidateLocation(path),"ambiguous/non-dedicated install location rejected: "+path);
+   var cleanup=new InstallCleanupView{schemaVersion=1,executable=@"C:\Apps\Nook\0.1.43\Mori.exe",version="0.1.43.0",sequence=2,lines=new[]{new InstallCleanupLine{sequence=1,text="deleted"},new InstallCleanupLine{sequence=2,text="done"}},finished=true,state="complete",summary="No old versions"};
+   Func<string> encode=()=>new JavaScriptSerializer().Serialize(cleanup);
+   Check(Program.ParseCleanupProgress(encode(),cleanup.executable,cleanup.version).finished,"cleanup display accepts a result bound to this exact version and executable");
+   Rejected(()=>Program.ParseCleanupProgress(encode(),@"C:\Other\Mori.exe",cleanup.version),"another installation cannot complete this progress page");
+   cleanup.lines[1].sequence=1;Rejected(()=>Program.ParseCleanupProgress(encode(),cleanup.executable,cleanup.version),"duplicate cleanup log sequence is rejected");cleanup.lines[1].sequence=2;
+   cleanup.state="unknown";Rejected(()=>Program.ParseCleanupProgress(encode(),cleanup.executable,cleanup.version),"unknown final cleanup state cannot claim success");
+   string journalRoot=Path.Combine(Path.GetTempPath(),"Nook-wizard-journal-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(journalRoot);
+   var journal=new InstallCleanupProgress(journalRoot,cleanup.executable,cleanup.version);journal.Log("checking");
+   string journalPath=Path.Combine(journalRoot,InstallCleanupProgress.FileName);
+   Check(File.Exists(journalPath),"first cleanup progress write creates the absent session journal");
+   journal.Log("deleted");journal.Finish("complete","Old program removed");
+   var persisted=Program.ParseCleanupProgress(File.ReadAllText(journalPath),cleanup.executable,cleanup.version);
+   Check(persisted.finished&&persisted.state=="complete"&&persisted.lines.Length==2&&persisted.lines[1].text=="deleted","final cleanup write atomically replaces the journal and flushes buffered lines");
+   // Reproduce the real race: the app publishes the final journal while the
+   // installer has the previous snapshot open. The writer must not lose it.
+   string snapshot=MoriDesk.InstalledCleanupState.ReadReplaceablePhysicalText(journalPath,512*1024,file=>{journal.Finish("complete","Concurrent final result");return journalPath;});
+   Check(Program.ParseCleanupProgress(snapshot,cleanup.executable,cleanup.version).summary=="Old program removed"&&Program.ParseCleanupProgress(File.ReadAllText(journalPath),cleanup.executable,cleanup.version).summary=="Concurrent final result","display reader holds a stable snapshot while final atomic replacement succeeds");
+   using(var locked=new FileStream(journalPath,FileMode.Open,FileAccess.ReadWrite,FileShare.None))Check(Program.ReadCleanupProgress(()=>MoriDesk.InstalledCleanupState.ReadReplaceablePhysicalText(journalPath,512*1024),cleanup.executable,cleanup.version)==null,"temporary journal sharing conflict waits for another poll instead of ending cleanup");
+   Check(Program.ReadCleanupProgress(()=>MoriDesk.InstalledCleanupState.ReadReplaceablePhysicalText(journalPath,512*1024),cleanup.executable,cleanup.version).finished,"polling resumes and observes final completion after the file lock is released");
+   Check(Program.ReadCleanupProgress(()=>{throw new FileNotFoundException();},cleanup.executable,cleanup.version)==null,"absent or atomically replaced journal is retried");
+   Rejected(()=>Program.ReadCleanupProgress(()=>"invalid",cleanup.executable,cleanup.version),"malformed cleanup data is not swallowed as a transient sharing conflict");
+   bool denied=false;try{Program.ReadCleanupProgress(()=>{throw new UnauthorizedAccessException();},cleanup.executable,cleanup.version);}catch(UnauthorizedAccessException){denied=true;}Check(denied,"journal permission failures still fail visibly instead of being retried as progress");
+   bool held=false;int attempts=0,decisions=0;var order=new List<string>();state=new WizardState();
+   int result=InstallerWizard.Execute(state,()=>{Check(!held,"all wizard decisions occur outside the transaction lease");decisions++;order.Add("decision");return true;},()=>{held=true;try{attempts++;order.Add("attempt");return attempts==1?Program.ManualNeedsExit:0;}finally{held=false;}},()=>{Check(!held,"maintenance wait is after release so app cleanup can acquire its lease");order.Add("cleanup");},()=>{Check(!held&&state.Snapshot().Finished,"Finish waits only after release and final result");order.Add("finish");});
+   Check(result==0&&decisions==2&&attempts==2&&string.Join(",",order.ToArray())=="decision,attempt,decision,attempt,cleanup,finish","single wizard retries without reopening windows or holding a lease across human input");
+   attempts=0;result=InstallerWizard.Execute(new WizardState(),()=>false,()=>{attempts++;return 0;},()=>{throw new Exception("unexpected cleanup");},()=>{throw new Exception("unexpected finish");});Check(result==2&&attempts==0,"cancelling before confirmation does no installation or cleanup");
+   state=new WizardState();result=InstallerWizard.Execute(state,()=>true,()=>{throw new IOException("transaction rollback");},()=>{throw new Exception("must not clean on failure");},()=>{});Check(result==1&&state.Snapshot().Failed&&state.Snapshot().Percent<100,"transaction exception remains in same wizard as failure, without cleanup");
+  }
+  static void PayloadPathChecks(){
+   const string root=@"C:\Apps\Nook";string version=Program.InstallerVersion;
+   int folderLength=root.Length+1+Program.CandidateDirectoryName(version).Length;
+   string file259=new string('f',259-folderLength-1),file260=file259+"f";
+   Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",file259});Check(true,"259-character file path passes before any extraction");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",file260}),"260-character file path is rejected before registry or filesystem writes");
+   string directory247=new string('d',247-folderLength-1),directory248=directory247+"d";
+   Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory247+"/"});Check(true,"247-character explicit directory path passes");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory248+"/"}),"248-character explicit directory path is rejected");
+   Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory247+"/x"});Check(true,"247-character implicit parent directory passes");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{"Mori.exe",directory248+"/x"}),"248-character implicit parent is rejected even when the full file path is below 260");
+   const string longest="file-conversion/licenses/nuget/microsoft.extensions.dependencyinjection.abstractions/10.0.12/microsoft.extensions.dependencyinjection.abstractions.nuspec";
+   foreach(string location in new[]{@"C:\Users\ADMIN\AppData\Local\Programs\MoriDesk",@"C:\Users\NookTester\AppData\Local\Programs\MoriDesk",@"D:\Nook"}){
+    Program.ValidatePayloadPathBudget(location,version,new[]{"Mori.exe",longest});Check(true,"normal default or custom path fits the current longest payload member: "+location);
+   }
+   int oldFolder=root.Length+1+Program.CandidateDirectoryName("0.1.44").Length;
+   string oldBoundary=new string('f',259-oldFolder-1);
+   Program.ValidatePayloadPathBudget(root,"0.1.44",new[]{"Mori.exe",oldBoundary});Check(true,"candidate directory follows the actual release version length");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,"0.1.100",new[]{"Mori.exe",oldBoundary}),"a longer future version participates in the path budget");
+   foreach(string bad in new[]{"../outside","/absolute",@"x\..\outside","x:stream","x//empty","x /file"})Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{bad}),"noncanonical ZIP path cannot bypass the budget: "+bad);
+   string unicode=new string('\u56fe',file259.Length);Program.ValidatePayloadPathBudget(root,version,new[]{unicode});Check(true,"Chinese file paths count UTF-16 characters, not UTF-8 bytes");
+   Rejected(()=>Program.ValidatePayloadPathBudget(root,version,new[]{unicode+"图"}),"Chinese paths obey the same 260-character boundary");
+   var plan=new InstallerPlan{Location=root,Version=version,Components=new[]{new InstallerComponent{Directory="file-conversion",Selected=false}}};
+   string optional="file-conversion/"+new string('f',260-folderLength-1-"file-conversion/".Length);
+   using(var stream=new MemoryStream()){
+    using(var zip=new ZipArchive(stream,ZipArchiveMode.Create,true)){zip.CreateEntry("Mori.exe");zip.CreateEntry(optional);}
+    stream.Position=0;Check(!plan.Includes(optional),"test component is actually unselected");
+    Rejected(()=>Program.ValidatePlanPayload(plan,root,stream),"actual ZIP preflight budgets unselected components before installation location can be locked");
+    stream.Position=0;Program.ValidatePlanPayload(plan,@"C:\Nook",stream);Check(true,"same payload can be retried with a shorter path without extracting it or changing the plan");
+   }
+   Check(plan.Location==root&&!plan.LocationLocked&&!plan.Components[0].Selected,"failed and successful path validation leave wizard choices editable and unchanged");
+  }
+  static void StartupChecks(){
+   string executable=@"C:\Generated\Programs\MoriDesk\0.1.24\Mori.exe";
+   Action<string> verify=text=>Program.ValidateStartupReceipt(text,Program.InstallerVersion,executable,42,638960000000000001L);
+   verify(Json(StartupData(executable)));Check(true,"startup receipt binds schema, version, process ID, start ticks and exact new executable");
+   foreach(string key in new[]{"schemaVersion","expectedVersion","processId","startedUtcTicks","executable"}){var data=StartupData(executable);data.Remove(key);Rejected(()=>verify(Json(data)),"all startup receipt identity fields are required: "+key);}
+   foreach(object value in new object[]{null,"1",0,2,1.5}){var data=StartupData(executable);data["schemaVersion"]=value;Rejected(()=>verify(Json(data)),"startup schema cannot be missing, coerced or future");}
+   foreach(object value in new object[]{null,"",Program.InstallerVersion+".0","0.1.23","99.0.0",1}){var data=StartupData(executable);data["expectedVersion"]=value;Rejected(()=>verify(Json(data)),"another version cannot claim this update's startup");}
+   foreach(object value in new object[]{null,"42",0,41,43,1.5}){var data=StartupData(executable);data["processId"]=value;Rejected(()=>verify(Json(data)),"other PID or coerced process ID cannot acknowledge the launched child");}
+   foreach(object value in new object[]{null,"638960000000000001",638960000000000000L,638960000000000002L,0,-1,1.5}){var data=StartupData(executable);data["startedUtcTicks"]=value;Rejected(()=>verify(Json(data)),"PID reuse or missing/coerced process start time cannot acknowledge new startup");}
+   foreach(object value in new object[]{null,"",@"C:\Other\Mori.exe",@"\\server\share\Mori.exe",executable+":stream",executable+"\" --bad"}){var data=StartupData(executable);data["executable"]=value;Rejected(()=>verify(Json(data)),"only exact launched executable may confirm startup");}
+   {var data=StartupData(executable);data["healthy"]=true;Rejected(()=>verify(Json(data)),"unknown receipt fields are not a substitute for strict startup protocol");}
+   foreach(string text in new[]{null,"","null","{broken",new string(' ',4097)})Rejected(()=>verify(text),"invalid or oversized startup receipt cannot report success");
+   int reads=0,delays=0,elapsed=0,verifications=0;
+   bool ready=Program.WaitForStartupReceipt(()=>{reads++;return reads==4?Json(StartupData(executable)):null;},()=>false,()=>false,ms=>{delays++;elapsed+=ms;},text=>{verifications++;verify(text);},30000);
+   Check(ready&&reads==4&&delays==3&&elapsed==300&&verifications==1,"startup waits for valid rendered-main receipt rather than treating process survival as success");
+   reads=delays=elapsed=verifications=0;
+   ready=Program.WaitForStartupReceipt(()=>{reads++;return null;},()=>false,()=>false,ms=>{delays++;elapsed+=ms;},text=>verifications++,30000);
+   Check(!ready&&reads==300&&delays==300&&elapsed==30000&&verifications==0,"startup error dialog staying alive for 30 seconds cannot mark update installed");
+   reads=delays=0;ready=Program.WaitForStartupReceipt(()=>{reads++;return Json(StartupData(executable));},()=>true,()=>false,ms=>delays++,verify,30000);Check(!ready&&reads==0&&delays==0,"child exit prevents receipt inspection and successful update");
+   ready=Program.WaitForStartupReceipt(()=>{reads++;return Json(StartupData(executable));},()=>false,()=>true,ms=>delays++,verify,30000);Check(!ready&&reads==0&&delays==0,"cancelled startup never accepts a stale receipt");
+   int polls=0;ready=Program.WaitForStartupReceipt(()=>Json(StartupData(executable)),()=>++polls>1,()=>false,ms=>{},verify,30000);Check(!ready&&polls==2,"child exiting with its ready receipt is not considered installed");
+   polls=0;ready=Program.WaitForStartupReceipt(()=>Json(StartupData(executable)),()=>false,()=>++polls>1,ms=>{},verify,30000);Check(!ready&&polls==2,"cancellation received together with startup receipt still rolls back update");
+   Rejected(()=>Program.WaitForStartupReceipt(()=>"{bad",()=>false,()=>false,ms=>{},verify,30000),"malformed receipt cannot fall through to successful process-survival check");
+   Rejected(()=>Program.WaitForStartupReceipt(()=>null,()=>false,()=>false,ms=>{},verify,30001),"startup wait is bounded, with no indefinite installer wait");
+   string request=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MoriDesk","updates","0123456789abcdef0123456789abcdef","request.json");
+   var start=Program.RelaunchStart(executable,request,Program.InstallerVersion);
+   Check(!start.UseShellExecute&&start.Arguments==""&&start.EnvironmentVariables["NOOK_UPDATE_REQUEST"]==request&&start.EnvironmentVariables["NOOK_UPDATE_EXPECTED_VERSION"]==Program.InstallerVersion,"update launch passes only fixed per-child session/version environment without shell commands or extra launch modes");
+   Rejected(()=>Program.RelaunchStart(executable,request,"99.0.0"),"update launch cannot spoof a different expected version");
+   Rejected(()=>Program.RelaunchStart(executable,Path.Combine(Path.GetTempPath(),"request.json"),Program.InstallerVersion),"startup receipt request cannot point outside controlled updates root");
+  }
+  static void BackupChecks(){
+   Program.ValidateMetadataBackupMarker(Json(BackupData()));Check(true,"only exact completed metadata-only backup marker is accepted");
+   foreach(string key in new[]{"schemaVersion","completedUtc","metadataOnly","sourceMediaIncluded","credentialsIncluded","bytes"}){var data=BackupData();data.Remove(key);Rejected(()=>Program.ValidateMetadataBackupMarker(Json(data)),"missing backup completion field cannot authorize install: "+key);}
+   foreach(object value in new object[]{null,"1",0,2,true,1.5}){var data=BackupData();data["schemaVersion"]=value;Rejected(()=>Program.ValidateMetadataBackupMarker(Json(data)),"backup marker schema is exactly numeric 1");}
+   foreach(object value in new object[]{null,"","not a timestamp","2026-10-16T01:02:03","2026-10-16T01:02:03.0000000+08:00",42}){var data=BackupData();data["completedUtc"]=value;Rejected(()=>Program.ValidateMetadataBackupMarker(Json(data)),"backup completion must contain an exact roundtrip UTC timestamp");}
+   foreach(string key in new[]{"metadataOnly","sourceMediaIncluded","credentialsIncluded"})foreach(object value in new object[]{null,"true",1,!(bool)BackupData()[key]}){var data=BackupData();data[key]=value;Rejected(()=>Program.ValidateMetadataBackupMarker(Json(data)),"metadata-only and excluded media/credentials flags cannot be coerced or reversed");}
+   foreach(object value in new object[]{null,"1024",-1,1.5,128L*1024*1024+1,true}){var data=BackupData();data["bytes"]=value;Rejected(()=>Program.ValidateMetadataBackupMarker(Json(data)),"backup byte count must be a bounded nonnegative integer");}
+   foreach(long value in new[]{0L,128L*1024*1024}){var data=BackupData();data["bytes"]=value;Program.ValidateMetadataBackupMarker(Json(data));Check(true,"backup byte-count boundary is accepted: "+value);}
+   {var data=BackupData();data["directory"]=@"C:\Other";Rejected(()=>Program.ValidateMetadataBackupMarker(Json(data)),"backup marker cannot supply a different backup target");}
+   foreach(string text in new[]{null,"","null","{broken",new string(' ',4097)})Rejected(()=>Program.ValidateMetadataBackupMarker(text),"malformed or oversized completion marker is rejected");
+   int reads=0;bool rejected=false;
+   try{Program.ValidatePostExitBackup(false,()=>false,()=>reads++);}catch(UpdateCancelledException){rejected=true;}Check(rejected&&reads==0,"backup cannot be inspected or installation authorized before parent has exited");
+   rejected=false;try{Program.ValidatePostExitBackup(true,()=>true,()=>reads++);}catch(UpdateCancelledException){rejected=true;}Check(rejected&&reads==0,"exit arriving with cancellation never reads marker or installs");
+   rejected=false;try{Program.ValidatePostExitBackup(true,()=>false,()=>{reads++;throw new FileNotFoundException("synthetic missing marker");});}catch(UpdateCancelledException){rejected=true;}Check(rejected&&reads==1,"manual exit before a completed backup cancels rather than reporting success");
+   reads=0;Program.ValidatePostExitBackup(true,()=>false,()=>{reads++;Program.ValidateMetadataBackupMarker(Json(BackupData()));});Check(reads==1,"post-exit completed backup is verified exactly once");
+   int polls=0;rejected=false;try{Program.ValidatePostExitBackup(true,()=>++polls>1,()=>reads++);}catch(UpdateCancelledException){rejected=true;}Check(rejected&&polls==2,"cancellation after marker validation still blocks installation");
+   bool linked=false;try{Program.RequirePlainAttributes(FileAttributes.ReparsePoint|FileAttributes.Directory);}catch(IOException){linked=true;}Check(linked,"reparse-point backup directories cannot redirect marker verification");
+   linked=false;try{Program.RequirePlainAttributes(FileAttributes.ReparsePoint|FileAttributes.Normal);}catch(IOException){linked=true;}Check(linked,"reparse-point marker files cannot redirect marker verification");
+   Program.RequirePlainAttributes(FileAttributes.Normal);Check(true,"plain regular backup file attributes are accepted");
+   string sandbox=Path.Combine(Path.GetTempPath(),"Nook-installer-marker-"+Guid.NewGuid().ToString("N")),session=Path.Combine(sandbox,Guid.NewGuid().ToString("N")),backup=Path.Combine(session,"metadata-backup");
+   Directory.CreateDirectory(backup);string marker=Path.Combine(backup,"complete.json");File.WriteAllText(marker,Json(BackupData()));Program.RequireMetadataBackup(session);Check(true,"exact generated session-local metadata-backup/complete.json is accepted");
+   using(var file=new FileStream(marker,FileMode.Open,FileAccess.Write))file.SetLength(4097);Rejected(()=>Program.RequireMetadataBackup(session),"marker over 4096 bytes is rejected before parsing");
+   string absent=Path.Combine(sandbox,Guid.NewGuid().ToString("N"));bool missing=false;try{Program.RequireMetadataBackup(absent);}catch(IOException){missing=true;}Check(missing,"missing session marker cannot be mistaken for completed backup");
+   Console.WriteLine("Generated marker fixtures retained at: "+sandbox);
+  }
+  static void TaskbarShortcutChecks(){
+   string root=Path.Combine(Path.GetTempPath(),"Nook-taskbar-shortcut-"+Guid.NewGuid().ToString("N")),launcher=Path.Combine(root,"Launcher","Mori.exe"),link=Path.Combine(root,"Nook.lnk");
+   Directory.CreateDirectory(Path.GetDirectoryName(launcher));File.Copy(typeof(Program).Assembly.Location,launcher);
+   Program.WriteShortcutFile(link,launcher);
+   Check(MoriDesk.ShellTaskbarProperties.ReadShortcutAppId(link)==MoriDesk.ShellTaskbarProperties.AppId,"installer's real temporary shortcut stores the same explicit AppID as the main window");
+   object shell=null,shortcut=null;try{
+    shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));shortcut=((dynamic)shell).CreateShortcut(link);dynamic value=shortcut;
+    Check((string)value.TargetPath==launcher&&(string)value.Arguments==""&&(string)value.WorkingDirectory==Path.GetDirectoryName(launcher),"writing shortcut identity preserves the stable launch target and never adds version or library arguments");
+    Check((string)value.IconLocation==launcher+",0"&&(string)value.Description=="Nook · 素材、截图、翻译与看图","writing shortcut identity preserves the Nook icon and description");
+   }finally{if(shortcut!=null)System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shortcut);if(shell!=null)System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);}
+   byte[] before=File.ReadAllBytes(link);bool rejected=false;
+   try{Program.PublishShortcut(link,launcher,(temporary,exe)=>{Program.WriteShortcutFile(temporary,exe);throw new IOException("fixture property publication failure");},path=>launcher,path=>{});}catch(IOException){rejected=true;}
+   Check(rejected&&Convert.ToBase64String(before)==Convert.ToBase64String(File.ReadAllBytes(link)),"failed staged shortcut identity publication cannot truncate or replace the existing entrypoint");
+   Console.WriteLine("Generated taskbar shortcut fixture retained at: "+root);
+  }
+  static void CleanupPreparationProgressChecks(){
+   string folder=Path.Combine(Path.GetTempPath(),"Nook-cleanup-progress-"+Guid.NewGuid().ToString("N"));
+   Directory.CreateDirectory(Path.Combine(folder,"child"));
+   string first=Path.Combine(folder,"first.txt"),second=Path.Combine(folder,"child","second.txt");
+   File.WriteAllText(first,"retained first");File.WriteAllText(second,"retained second");
+   var treeType=typeof(InstalledVersionCleanup).GetNestedType("LockedTree",BindingFlags.NonPublic);
+   var constructor=treeType.GetConstructor(BindingFlags.Instance|BindingFlags.NonPublic,null,new[]{typeof(string),typeof(bool),typeof(Action<string>)},null);
+   var messages=new List<string>();bool lastHandlesHeld=false;
+   Action<string> observe=text=>{
+    messages.Add(text);
+    if(!text.StartsWith("已完成位置检查",StringComparison.Ordinal))return;
+    int locked=0;foreach(string path in new[]{first,second})try{using(var write=new FileStream(path,FileMode.Open,FileAccess.Write,FileShare.ReadWrite)){} }catch(IOException){locked++;}
+    lastHandlesHeld=locked==2;
+   };
+   using((IDisposable)constructor.Invoke(new object[]{folder,true,observe})){
+    Check(messages.Count>=2&&messages[0]=="已检查 1 个文件与目录","cleanup preparation reports actual progress before the entire tree is locked");
+    Check(messages[messages.Count-1]=="已完成位置检查，共 4 个文件与目录"&&lastHandlesHeld,"final preparation progress counts actual files/directories while exclusive handles remain held");
+   }
+   foreach(string path in new[]{first,second})using(var writable=new FileStream(path,FileMode.Open,FileAccess.Write,FileShare.None))Check(writable.Length>0,"progress-enabled tree releases each handle after disposal");
+   Check(File.ReadAllText(first)=="retained first"&&File.ReadAllText(second)=="retained second","preparation and display progress never delete or change file contents");
+   using((IDisposable)constructor.Invoke(new object[]{folder,true,(Action<string>)(text=>{throw new IOException("display unavailable");})})){}
+   Check(true,"a failed display callback cannot skip validation or strand owned handles");
+   bool refused=false;messages.Clear();
+   using(var occupied=new FileStream(second,FileMode.Open,FileAccess.Read,FileShare.None)){
+    try{using((IDisposable)constructor.Invoke(new object[]{folder,true,observe})){} }catch(TargetInvocationException error){refused=error.InnerException is IOException;}
+   }
+   Check(refused&&!messages.Exists(text=>text.StartsWith("已完成位置检查",StringComparison.Ordinal)),"blocked preparation retains its failure and never emits successful completion");
+   foreach(string path in new[]{first,second})using(var writable=new FileStream(path,FileMode.Open,FileAccess.Write,FileShare.None))Check(writable.Length>0,"failed preparation releases all previously acquired file handles");
+   Console.WriteLine("Generated cleanup progress fixtures retained at: "+folder);
+  }
+  [STAThread]public static int Main(string[] args){
+   try{
+     VersionChecks();ManualFlowChecks();ProgressChecks();WizardChecks();PayloadPathChecks();TaskbarShortcutChecks();CleanupPreparationProgressChecks();
+    foreach(string product in new[]{"Mori Desk","mori desk","MORI DESK","Nook","nook","NOOK"}){
+     Check(Program.MatchesRunningProcess(20,1,product,"Mori.exe",10,1),"same-session legacy or new product blocks installation: "+product);
+     Check(Program.MatchesRunningProcess(20,1,product,"mori.exe",10,1),"stable original-filename comparison is case insensitive: "+product);
+     Check(!Program.MatchesRunningProcess(10,1,product,"Mori.exe",10,1),"installer never blocks on itself: "+product);
+     Check(Program.MatchesRunningProcess(20,2,product,"Mori.exe",10,1),"an owned running process in another Windows session blocks replacement without being closed: "+product);
+    }
+    foreach(string product in new[]{"Mori Desk","Nook"})foreach(string filename in new[]{null,"","Nook.exe","NookApp.exe","Mori-Desk.exe","MoriDesk.exe","Mori.exe.old","Mori.exe "," Mori.exe","C:\\Other App\\Mori.exe"})
+     Check(!Program.MatchesRunningProcess(20,1,product,filename,10,1),"same-named unrelated product or unknown original identity does not block installation");
+    foreach(string product in new[]{null,"","Mori","MoriDesk","Luma","QingJie","Mori.exe","Mori Desk Helper","Mori Desk Installer","Not Mori Desk","Nook Helper","Nook Installer","Nook Setup","Nook.exe","Not Nook","Nook Desktop"," Nook","Nook ","Mori Desk "})
+     Check(!Program.MatchesRunningProcess(20,1,product,"Mori.exe",10,1),"unrelated, unknown or approximate product does not block installation");
+    // Synthetic absolute paths only: ManagedTarget never inspects a process,
+    // reads a shortcut, or creates/removes any file or directory.
+    string programs=@"C:\Nook-installer-path-fixture\Programs",programRoot=Path.Combine(programs,"MoriDesk");
+    string managed=Path.Combine(programRoot,"0.1.19-20261014000000","Mori.exe");
+    foreach(string product in new[]{"Mori Desk","Nook"}){
+     Check(Program.ManagedTarget(managed,programRoot,product,"Mori.exe"),"controlled installation target accepts old or new product: "+product);
+     Check(Program.ManagedTarget(managed,programRoot+"\\",product,"Mori.exe"),"controlled root trailing separator is accepted: "+product);
+     Check(Program.ManagedTarget(managed.ToUpperInvariant(),programRoot.ToLowerInvariant(),product.ToLowerInvariant(),"mori.exe"),"managed target path and stable metadata are case insensitive: "+product);
+     Check(Program.ManagedTarget(Path.Combine(programRoot,"unused","..","0.1.19-20261014000000","Mori.exe"),programRoot,product,"Mori.exe"),"normalization may remain safely inside the controlled root: "+product);
+     foreach(string target in new[]{null,""," ",programRoot,Path.Combine(programRoot,"0.1.19-20261014000000","Nook.exe"),Path.Combine(programRoot,"0.1.19-20261014000000","Mori.exe.old"),Path.Combine(programs,"MoriDeskOther","0.1.19","Mori.exe"),Path.Combine(programs,"MoriDesk-backup","Mori.exe"),Path.Combine(programs,"Other App","Mori.exe"),Path.Combine(programRoot,"..","Other App","Mori.exe"),Path.Combine(programRoot,"version","..","..","Other App","Mori.exe"),@"C:\Elsewhere\Mori.exe"})
+      Check(!Program.ManagedTarget(target,programRoot,product,"Mori.exe"),"outside, adjacent, escaping or incorrectly named shortcut target is not owned");
+     foreach(string original in new[]{null,"","Nook.exe","MoriDesk.exe","Mori.exe.old"})
+      Check(!Program.ManagedTarget(managed,programRoot,product,original),"managed path alone cannot establish the original product identity");
+    }
+    foreach(string product in new[]{null,"","Mori","Luma","QingJie","Nook Helper","Nook Installer","Other Nook","Nook "})
+     Check(!Program.ManagedTarget(managed,programRoot,product,"Mori.exe"),"managed path and filename cannot claim an unrelated product");
+    Check(!Program.ManagedTarget(managed,null,"Nook","Mori.exe"),"unknown controlled root is rejected without throwing");
+    Check(!Program.ManagedTarget(managed,"","Nook","Mori.exe"),"empty controlled root is rejected without throwing");
+    string updates=@"C:\Nook-installer-path-fixture\MoriDesk\updates",session=Path.Combine(updates,"0123456789abcdef0123456789abcdef"),requestFile=Path.Combine(session,"request.json");
+    var request=Program.ParseUpdateRequest(Json(UpdateData(managed)),requestFile,updates,programRoot,10);
+    Check(request.ParentExecutable==managed&&request.ParentProcessId==20&&request.ParentStartedUtcTicks==638960000000000000L&&request.ExpectedVersion==Program.InstallerVersion&&request.Relaunch,"valid local update request retains only the fixed protocol fields");
+    Check(request.SessionDirectory==session&&request.RequestPath==requestFile,"update records are confined to a fresh single session directory");
+    foreach(string path in new[]{null,"","request.json",@"\\server\share\request.json",Path.Combine(updates,"request.json"),Path.Combine(updates,"not-a-guid","request.json"),Path.Combine(updates,"0123456789abcdef0123456789abcdef","nested","request.json"),Path.Combine(updates+"-other","0123456789abcdef0123456789abcdef","request.json"),Path.Combine(session,"other.json"),requestFile+":stream"})Rejected(()=>Program.UpdateSession(path,updates),"update request rejects unsafe or non-session path");
+    foreach(string path in new[]{"https://github.com/x/setup.exe",@"\\server\share\Mori.exe",@"C:\Other\Mori.exe",Path.Combine(programRoot,"version","Other.exe"),managed+"\" --bad",managed+":stream"}){var values=UpdateData(managed);values["parentExecutable"]=path;Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"update parent cannot be a URL, network path, unrelated executable, or command");}
+    foreach(object value in new object[]{null,"1",0,2,true,1.5}){var values=UpdateData(managed);values["schemaVersion"]=value;Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"schema version must be exact numeric 1");}
+    foreach(object value in new object[]{null,"20",0,-1,10,1.5,int.MaxValue+1L}){var values=UpdateData(managed);values["parentProcessId"]=value;Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"parent process must be bounded, positive, numeric and not the installer");}
+    foreach(object value in new object[]{null,"638960000000000000",0,-1,DateTime.MaxValue.Ticks+1,1.5}){var values=UpdateData(managed);values["parentStartedUtcTicks"]=value;Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"process start time must be numeric UTC ticks, not missing or coerced");}
+    foreach(object value in new object[]{null,"",Program.InstallerVersion+".0","0.0.1","99.0.0",1}){var values=UpdateData(managed);values["expectedVersion"]=value;Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"requested version must exactly match the embedded installer");}
+    foreach(object value in new object[]{null,false,"true",1}){var values=UpdateData(managed);values["relaunch"]=value;Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"update cannot inject a new launch mode");}
+    foreach(string key in new[]{"schemaVersion","parentProcessId","parentExecutable","parentStartedUtcTicks","expectedVersion","relaunch"}){var values=UpdateData(managed);values.Remove(key);Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"all required fields must be present: "+key);}
+    {var values=UpdateData(managed);values["arguments"]="--anything";Rejected(()=>Program.ParseUpdateRequest(Json(values),requestFile,updates,programRoot,10),"unknown update request commands are rejected");}
+    Rejected(()=>Program.ParseUpdateRequest(new string(' ',16385),requestFile,updates,programRoot,10),"oversized update JSON rejected before parsing");
+    Rejected(()=>Program.ParseUpdateRequest("{broken",requestFile,updates,programRoot,10),"invalid JSON never falls through to interactive installation");
+    Check(Program.MatchesUpdateParent(request,20,1,1,managed,"Nook","Mori.exe",request.ParentStartedUtcTicks),"same process path, product, session and start time match");
+    Check(!Program.MatchesUpdateParent(request,20,1,1,managed,"Nook","Mori.exe",request.ParentStartedUtcTicks+1),"PID reuse cannot authorize an update");
+    Check(!Program.MatchesUpdateParent(request,21,1,1,managed,"Nook","Mori.exe",request.ParentStartedUtcTicks),"another PID cannot stand in for the requesting parent");
+    Check(!Program.MatchesUpdateParent(request,20,2,1,managed,"Nook","Mori.exe",request.ParentStartedUtcTicks),"another Windows session cannot authorize update");
+    Check(!Program.MatchesUpdateParent(request,20,1,1,Path.Combine(programRoot,"different","Mori.exe"),"Nook","Mori.exe",request.ParentStartedUtcTicks),"another managed version cannot impersonate the parent");
+    Check(!Program.MatchesUpdateParent(request,20,1,1,managed,"Other Nook","Mori.exe",request.ParentStartedUtcTicks),"product identity is checked in addition to the managed path");
+    Check(Program.OwnStartup("\""+managed+"\" --startup",managed),"only the exact existing own startup command is carried forward");
+    foreach(string command in new[]{null,"",managed,"\""+managed+"\"","\""+managed+"\" --startup --bad","\""+managed+"\" --Startup","\"C:\\Other\\Mori.exe\" --startup"})Check(!Program.OwnStartup(command,managed),"disabled, unrelated or expanded startup commands remain untouched");
+    var restart=Program.RelaunchStart(managed);Check(restart.FileName==managed&&restart.Arguments==""&&!restart.UseShellExecute&&restart.WorkingDirectory==Path.GetDirectoryName(managed),"relaunch uses only a validated local executable with no shell or arguments");
+    Rejected(()=>Program.RelaunchStart("https://github.com/x/setup.exe"),"relaunch rejects arbitrary remote executable targets");
+    int waits=0,totalWait=0;Check(Program.WaitForParentExit(delay=>{waits++;totalWait+=delay;return waits==3;},()=>false,30000)&&waits==3&&totalWait==750,"graceful exit is observed without a kill or a fixed long sleep");
+    waits=0;totalWait=0;Check(!Program.WaitForParentExit(delay=>{waits++;totalWait+=delay;return false;},()=>false,30000)&&waits==120&&totalWait==30000,"an unclosed parent blocks installation after a bounded 30 seconds");
+    waits=0;Check(!Program.WaitForParentExit(delay=>{waits++;return false;},()=>true,30000)&&waits==0,"cancelled handoff never waits, closes or installs anything");
+    Rejected(()=>Program.WaitForParentExit(delay=>false,()=>false,30001),"update cannot request an unbounded parent wait");
+    string root=Path.Combine(Path.GetTempPath(),"MoriDesk-installer-pure-"+Guid.NewGuid().ToString("N"));
+    string previousTemp=Environment.GetEnvironmentVariable("TEMP"),previousTmp=Environment.GetEnvironmentVariable("TMP"),previousData=Environment.GetEnvironmentVariable("MORI_DESK_DATA");
+    string exe=Path.Combine(root,"Mori.exe");var start=Program.VerificationStart(exe,root);
+    Check(start.FileName==exe&&start.Arguments=="--suite-test","verification starts only the extracted suite test");
+    Check(!start.UseShellExecute&&start.CreateNoWindow,"verification is a hidden child with explicit environment");
+    Check(start.EnvironmentVariables["TEMP"]==Path.Combine(root,"runtime-temp"),"verification isolates TEMP");
+    Check(start.EnvironmentVariables["TMP"]==start.EnvironmentVariables["TEMP"],"verification isolates TMP too");
+    Check(start.EnvironmentVariables["MORI_DESK_DATA"]==Path.Combine(root,"test-data","MoriDesk"),"verification isolates personal data separately from program payload");
+    Check(Environment.GetEnvironmentVariable("TEMP")==previousTemp&&Environment.GetEnvironmentVariable("TMP")==previousTmp&&Environment.GetEnvironmentVariable("MORI_DESK_DATA")==previousData,"verification child configuration does not alter the parent process environment");
+    Check(!Directory.Exists(root),"pure guard/configuration tests do not create directories or mutate personal data");
+    BackupChecks();
+    StartupChecks();
+    if(args.Length==1){var metadata=FileVersionInfo.GetVersionInfo(Path.GetFullPath(args[0]));Check(Program.MatchesRunningProcess(20,1,metadata.ProductName,metadata.OriginalFilename,10,1),"real suite assembly metadata matches the guard");Check(new Version(metadata.FileVersion)==typeof(Program).Assembly.GetName().Version,"actual suite file version matches the compiled installer and update protocol");}
+    Console.WriteLine("PASS "+checks+" installer safety checks; no process inspection, registry writes or install performed.");return 0;
+   }catch(Exception error){Console.Error.WriteLine("FAIL after "+checks+" checks: "+error.Message);return 1;}
+  }
+ }
+}

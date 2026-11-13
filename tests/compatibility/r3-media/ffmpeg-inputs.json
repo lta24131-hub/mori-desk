@@ -1,0 +1,56 @@
+{
+  "sourceManifest": "D:\\Nook-DevTestVM\\audit\\20261020\\poster-audit-prepared-20261021-03\\fixture\\fixture-manifest.json",
+  "sourceManifestSha256": "A9C1440898A504591AF958156F26B744C1D617E9A11CA885C09EFDAE154666A5",
+  "files": [
+    {
+      "path": "ffmpeg/bin/avcodec-63.dll",
+      "bytes": 98216448,
+      "sha256": "4D458A276FDA363709ED2AC4AD14AEA122C536E61919FEEBD919D5F8490BE7A9"
+    },
+    {
+      "path": "ffmpeg/bin/avdevice-63.dll",
+      "bytes": 6561792,
+      "sha256": "3E74AA37E9E21DEBCCFAF4AEF24AA2A946854109AC066F78D8C1F984BC82B209"
+    },
+    {
+      "path": "ffmpeg/bin/avfilter-12.dll",
+      "bytes": 106941952,
+      "sha256": "4EC6EB2DB944740C364D93B29D91C9137BEB38D09E923F6ED14F31AA039851DE"
+    },
+    {
+      "path": "ffmpeg/bin/avformat-63.dll",
+      "bytes": 22877696,
+      "sha256": "360E66109B2CE3F02D56CD940E625A6909304EEA1F4D0FCBBBB2D40D74308EE0"
+    },
+    {
+      "path": "ffmpeg/bin/avutil-61.dll",
+      "bytes": 3157504,
+      "sha256": "9230E42B6B8E1FA20EC83AF1EB4C4B2AE90B0C8D7C29093369250EED562372DF"
+    },
+    {
+      "path": "ffmpeg/bin/ffmpeg.exe",
+      "bytes": 633344,
+      "sha256": "B1A495A71491BF208F95043CA06654AD76D59738533EC8FF237A759E29ABD2A3"
+    },
+    {
+      "path": "ffmpeg/bin/ffplay.exe",
+      "bytes": 15964160,
+      "sha256": "857445F0AF49298868A5DF1D71FAE82E471B0915B85F0434A3AD41E5D97984AF"
+    },
+    {
+      "path": "ffmpeg/bin/ffprobe.exe",
+      "bytes": 225792,
+      "sha256": "26283152241767BB54A09009DE2EEA3408549D1840AB3A0725320253557C0532"
+    },
+    {
+      "path": "ffmpeg/bin/swresample-7.dll",
+      "bytes": 484352,
+      "sha256": "1F2A0BDCA315F1A05FE398E7A0D97DB8D0E34BA2A86EC59303BF32BBD9430123"
+    },
+    {
+      "path": "ffmpeg/bin/swscale-10.dll",
+      "bytes": 2423808,
+      "sha256": "AF91DB7F45644157469A110438A8C648314927EC83E334D4CACAC3870D99FABE"
+    }
+  ]
+}

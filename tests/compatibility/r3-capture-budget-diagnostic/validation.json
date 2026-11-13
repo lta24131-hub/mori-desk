@@ -1,0 +1,64 @@
+{
+  "original943Passed": false,
+  "diagnosticStatus": "VM1091 completed diagnostic and explicit-budget geometry observation; original943 remains failed",
+  "productPassed": null,
+  "fixed55PerformancePassed": false,
+  "physicalProductExecution": false,
+  "evidence": {
+    "task": 1091,
+    "reportSha256": "99878D085A3B0F15C50A47F626167669F736634094B9C6B6DC26A5B9AF2FE161",
+    "default55": {
+      "uiThread": 1,
+      "workerThread": 4,
+      "offUiThread": true,
+      "elapsedMilliseconds": 142.06810000000002,
+      "budgetMilliseconds": 55,
+      "Count": 0,
+      "PrepareMilliseconds": 23,
+      "ScanMilliseconds": 35,
+      "ProcessedRows": 209,
+      "TimedOut": true,
+      "PixelFormatConverted": true,
+      "PreparationCompleted": true,
+      "ReadFailed": false,
+      "imageFrozen": true,
+      "imagePixelFormat": "Pbgra32",
+      "originalFifthConditionObserved": false
+    },
+    "explicit2000Geometry": {
+      "uiThread": 1,
+      "workerThread": 4,
+      "offUiThread": true,
+      "elapsedMilliseconds": 45.3104,
+      "budgetMilliseconds": 2000,
+      "Count": 2,
+      "PrepareMilliseconds": 3,
+      "ScanMilliseconds": 40,
+      "ProcessedRows": 399,
+      "TimedOut": false,
+      "PixelFormatConverted": true,
+      "PreparationCompleted": true,
+      "ReadFailed": false,
+      "imageFrozen": true,
+      "imagePixelFormat": "Pbgra32",
+      "rectanglesAt150x120": [
+        {
+          "x": 100,
+          "y": 81,
+          "width": 180,
+          "height": 128
+        },
+        {
+          "x": 39,
+          "y": 31,
+          "width": 522,
+          "height": 338
+        }
+      ]
+    },
+    "syntheticPngSha256": "50EDF3ED5484B43577CDDFCD19ED4B77601D28E74346B65AD1A55F1B88FBCBAD",
+    "diagnosticChecks": 10,
+    "jobActiveProcessesAfterStop": 0,
+    "interpretation": "First scan exhausted the production55 wall-clock budget after23ms preparation and35ms scanning. Outer142ms also includes task/reflection overhead. Same-image second explicit2000 call is warmer geometry-only evidence, not first-call55 performance."
+  }
+}

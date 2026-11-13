@@ -61,8 +61,10 @@ namespace MoriDesk {
      typeof(MainWindow).GetField("backgroundSuspended",Hidden).SetValue(main,false);Call(main,"ResumeBrowser");main.HideBrowser();
      check(((ListBox)main.Window.FindName("Gallery")).ItemsSource!=null&&((ListBox)main.Window.FindName("Gallery")).Items.Count>0,"return after a browser tray cycle rebinds assets instead of showing an empty library");
      main.BrowseBookmark(a.Source);var last=main.BrowserPane;main.SetSection("bookmarks");check(!main.BrowserMode&&last.IsDisposed,"sidebar section switch disposes an active browser");
-     var toolNames=main.CreateToolMenu().Items.OfType<MenuItem>().Select(i=>Convert.ToString(i.Header)).ToArray();
-     check(toolNames.Contains("自由画布…")&&toolNames.Contains("快速浏览网址…"),"canvas and generic browsing remain low-profile tools-menu entries");
+     var projects=main.Window.FindName("CanvasNav") as Button;
+     check(projects!=null&&projects.IsEnabled&&projects.Visibility==Visibility.Visible,"canvas projects remain reachable through the actual sidebar entry");
+     projects.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+     check(main.CanvasProjectsMode&&!main.BrowserMode,"the visible project action opens projects without keeping a hidden browser alive");main.SetSection("bookmarks");
      var menu=main.CreateAssetMenu(a);check(menu.Items.OfType<MenuItem>().Any(i=>Convert.ToString(i.Header)=="快速浏览")&&menu.Items.OfType<MenuItem>().Any(i=>Convert.ToString(i.Header)=="用外部浏览器打开"),"bookmark context menu clearly offers inline and external browsing");
     }finally{main.HideBrowser();main.CloseForReplacement();ThumbnailImage.CurrentLibrary=null;Entry.ClassicEnabled=classic;Theme.Set(theme);}
    }

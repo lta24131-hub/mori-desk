@@ -1,0 +1,15 @@
+{
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "candidateSetupSha256": "366A3208B1BEC55594CF7B8E07F9050AC48A3895BD9DD311D5504A1005AC5772",
+  "fixtureRoot": "C:\\NookLab\\U42R4",
+  "preservedRoot": "C:\\NookLab\\P1304",
+  "noDeletionByHelpers": true,
+  "preserveOld1304Failure": true,
+  "hostProductExecution": false,
+  "preCommitBudgetSeconds": 720,
+  "postCommitBudgetSeconds": 1860,
+  "totalBudgetSeconds": 2580,
+  "watchdogSeconds": 2640,
+  "brokerSeconds": 2700,
+  "budgetReason": "Original R3 failed cleanup before completion; R4 retains production30min/90s. Test now permits actual product policy without changing old failure/assertions."
+}

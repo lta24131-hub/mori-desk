@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "appSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "scope": "Directly affected R4 native regression source; never an actual installation qualification",
+  "productionSnapshots": [
+    {
+      "path": "sources/installer/InstalledVersionCleanup.cs",
+      "bytes": 44074,
+      "sha256": "6BB0250BEDF207884DDB80C75BFF931301A19F2CCC4A128DFEDCD7114A2187D3",
+      "utf8Bom": true,
+      "crlfPairs": 422,
+      "bareLf": 0,
+      "bareCr": 0,
+      "copiedByteForByteFromFrozenPackageSources": true
+    },
+    {
+      "path": "sources/src/InstalledVersionMaintenance.cs",
+      "bytes": 26870,
+      "sha256": "2071C682FF071D5884A53C06CF7FC36A065397E65F16B6AC812E1772AA27EC68",
+      "utf8Bom": true,
+      "crlfPairs": 310,
+      "bareLf": 0,
+      "bareCr": 0,
+      "copiedByteForByteFromFrozenPackageSources": true
+    }
+  ],
+  "recipes": [
+    {
+      "name": "StageGuest",
+      "outputName": "StageGuest.exe",
+      "flags": [
+        "/optimize+",
+        "/target:exe",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "maintenance/StageGuest.cs",
+          "sha256": "67468210AF86B2E6093D1D7625AAB457791E8C8DAD0A4CA217597D48E2B78252"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Xaml.dll",
+          "sha256": "85C02742308406B513F5862951EE8AD1BE767A1907366E7D8823E0519E5C6B2E"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationCore.dll",
+          "sha256": "FDB08CBE85F3112DB74F97B3101D2DF5A9F490FEB1F69913EB9933890C3C2F02"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/PresentationFramework.dll",
+          "sha256": "4CAA23DDBF737C6212088B217566B80727231B594C1848EEFF3DC2B2EA2EC7B3"
+        },
+        {
+          "root": "framework",
+          "relative": "WPF/WindowsBase.dll",
+          "sha256": "65D88AFCF6FD48CF49DC2161E80EFCF35C5F79CC0B1FB027004E4EEB65C6D622"
+        }
+      ],
+      "originalOutputSha256": "7BB7F7067F312A30F82226BAC3B3DC203DA0BA4F43041B3B6FE4F7DF3F6AF91A",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "ExternalGuest",
+      "outputName": "ExternalGuest.exe",
+      "flags": [
+        "/optimize+",
+        "/target:exe",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "installer-safety/ExternalGuest.cs",
+          "sha256": "4F4AB0CAAF4F5924CCED763BDDD69D2B890315D8F4CC4A9AF569A6C60865134B"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Management.dll",
+          "sha256": "6EF29ACDB4D51F0C9F14D2BD668F038A906E0076DB8209602ECB754528831FCC"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        }
+      ],
+      "originalOutputSha256": "8277536564F3467385C533C9FC5CD46E497E7FE28DC092C4CAD7FD8C1F8C7B4E",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    },
+    {
+      "name": "InstallerSafetyTests",
+      "outputName": "InstallerSafetyTests.exe",
+      "flags": [
+        "/target:exe",
+        "/main:MoriDeskInstaller.InstallerSafetyTests",
+        "/platform:x64",
+        "/codepage:65001"
+      ],
+      "sources": [
+        {
+          "path": "sources/installer/Setup.cs",
+          "sha256": "B640E00D7F073FD63301370E6C516BB93BD78C2261B46ACE78FB8D56BF8C728B"
+        },
+        {
+          "path": "sources/installer/InstallerProgress.cs",
+          "sha256": "45FE1D40366B68F43306090005C3B6828341B93D78C76664B7D07B077591DF30"
+        },
+        {
+          "path": "sources/installer/InstallerPlan.cs",
+          "sha256": "158C4ED80FB147411C780213CE70D440B73A570E3279A193BAEB5FBECC39710B"
+        },
+        {
+          "path": "sources/installer/InstallerWizard.cs",
+          "sha256": "72B7BA159B8CCE96A0682F477190ECB14185D31654B6619410C35BD3BB111F34"
+        },
+        {
+          "path": "sources/installer/ReplacementInstall.cs",
+          "sha256": "9DE19CCA4E3BFF22AE060738627645FF98B72BBD2C8D99F3A1C30EBCBBEFDBBC"
+        },
+        {
+          "path": "sources/installer/ReplacementStaging.cs",
+          "sha256": "EE9909F49D14AC39E3F6A9CDD4EC7B7823B3593AC6F19808EA5F3D8CA2CDACC5"
+        },
+        {
+          "path": "sources/installer/InstalledVersionCleanup.cs",
+          "sha256": "6BB0250BEDF207884DDB80C75BFF931301A19F2CCC4A128DFEDCD7114A2187D3"
+        },
+        {
+          "path": "sources/installer/ManualMetadataBackup.cs",
+          "sha256": "8BD91AD17490FC68E4CA4498A2F51B1F3B3F0B11346359962CBC3767DA055464"
+        },
+        {
+          "path": "sources/src/AppUpdateMetadataBackup.cs",
+          "sha256": "B5B9E5E3CD128D1EF42EADAC7E7A5322AB793F5072A8DBDB5E9EB67112A1EFE8"
+        },
+        {
+          "path": "sources/src/InstalledApplicationState.cs",
+          "sha256": "ABF519972B6F5D13DF4B240209FF7E33F422E608F8E6FDC264B26EFAC556914D"
+        },
+        {
+          "path": "sources/src/InstalledCleanupState.cs",
+          "sha256": "FA260C9CF8AD7B1836C787C2B6F0D7BC605CADAFCE34B77E855BB9450D860425"
+        },
+        {
+          "path": "sources/src/OpenWithRegistration.cs",
+          "sha256": "995FBB5C04334F250EA0DD2C77E55210D2A67CE32BC254DD66FD03EE9C4F2CFF"
+        },
+        {
+          "path": "sources/src/ShellVisualRegistration.cs",
+          "sha256": "14B63831235D0C6B3A16893DEA1F10F77AC6D262BD031C170A5AEB8F1DC668EE"
+        },
+        {
+          "path": "sources/src/ShellTaskbarProperties.cs",
+          "sha256": "C786CA014D0899DB7C801036BABB6DE71AC0C3DAC39D5FCC4F3E2D83C28E9563"
+        },
+        {
+          "path": "sources/src/FileFormats.cs",
+          "sha256": "4CDFDDDAFBD05BDE5C9F5EE146FC68D0518644A78BE9C25ADFF8187876E96CCB"
+        },
+        {
+          "path": "sources/src/PhysicalUserContext.cs",
+          "sha256": "24277DA8C835FFB2022265232A5450661A85C3B06655FA6903968870DD9D12EF"
+        },
+        {
+          "path": "sources/tests/installer-safety/Tests.cs",
+          "sha256": "50EF568BE64D4D26B2885D73A1D3A6A58BB8CD17B009BA625297877E0C20C7E6"
+        }
+      ],
+      "references": [
+        {
+          "root": "framework",
+          "relative": "System.dll",
+          "sha256": "2B3C17C6208A0B4B6BEB94E1A066F99BA06CDB2EA919479E99D47E8C6D96DC71"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Core.dll",
+          "sha256": "8B898BED54AE8CC61F9C58CC3EB062724F8357D2BDDA338B5D363654ECFF333D"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Drawing.dll",
+          "sha256": "E16F7ABEAD4AFDE7F03B82E5869C5544043BE2EAE29647A9DE5F565D61A3BD29"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Windows.Forms.dll",
+          "sha256": "8C0F533E089647AEFFB3CE0868F01D696A3FD2893CED5C3570E8438C96613A98"
+        },
+        {
+          "root": "framework",
+          "relative": "System.IO.Compression.dll",
+          "sha256": "C68D37A11A072AFFBB50BBFA7299E6410811A24C946B11F9F430D0A5F66BD2B1"
+        },
+        {
+          "root": "framework",
+          "relative": "System.Web.Extensions.dll",
+          "sha256": "5E6378EDC06F5A61920AAADB2ABA839DD3CF302D6192E08AACD4454BA4CFF0B3"
+        },
+        {
+          "root": "framework",
+          "relative": "Microsoft.CSharp.dll",
+          "sha256": "32AA1DF7E38ADEE2251F1D022352C21942BDDB420FE9D45BD970948A071FACF1"
+        }
+      ],
+      "originalOutputSha256": "CDE56807A8BF8DD9123EF68E63E0B0295785FCEB1E409A771168083BE2D2E211",
+      "compilerSha256": "46809206887326D2D24DB1EFF1F3064DE972C3451ABE766B49111450A5E08E00"
+    }
+  ],
+  "note": "Build outputs may have new compiler-generated identities. Rebind new hashes into fresh reviewed plans; never use an original test pass for rebuilt bytes."
+}

@@ -1,0 +1,78 @@
+{
+  "scope": "host compilation only; execution must be in VM",
+  "executableSha256": "CDE56807A8BF8DD9123EF68E63E0B0295785FCEB1E409A771168083BE2D2E211",
+  "sources": [
+    {
+      "path": "installer/Setup.cs",
+      "sha256": "B640E00D7F073FD63301370E6C516BB93BD78C2261B46ACE78FB8D56BF8C728B"
+    },
+    {
+      "path": "installer/InstallerProgress.cs",
+      "sha256": "45FE1D40366B68F43306090005C3B6828341B93D78C76664B7D07B077591DF30"
+    },
+    {
+      "path": "installer/InstallerPlan.cs",
+      "sha256": "158C4ED80FB147411C780213CE70D440B73A570E3279A193BAEB5FBECC39710B"
+    },
+    {
+      "path": "installer/InstallerWizard.cs",
+      "sha256": "72B7BA159B8CCE96A0682F477190ECB14185D31654B6619410C35BD3BB111F34"
+    },
+    {
+      "path": "installer/ReplacementInstall.cs",
+      "sha256": "9DE19CCA4E3BFF22AE060738627645FF98B72BBD2C8D99F3A1C30EBCBBEFDBBC"
+    },
+    {
+      "path": "installer/ReplacementStaging.cs",
+      "sha256": "EE9909F49D14AC39E3F6A9CDD4EC7B7823B3593AC6F19808EA5F3D8CA2CDACC5"
+    },
+    {
+      "path": "installer/InstalledVersionCleanup.cs",
+      "sha256": "6BB0250BEDF207884DDB80C75BFF931301A19F2CCC4A128DFEDCD7114A2187D3"
+    },
+    {
+      "path": "installer/ManualMetadataBackup.cs",
+      "sha256": "8BD91AD17490FC68E4CA4498A2F51B1F3B3F0B11346359962CBC3767DA055464"
+    },
+    {
+      "path": "src/AppUpdateMetadataBackup.cs",
+      "sha256": "B5B9E5E3CD128D1EF42EADAC7E7A5322AB793F5072A8DBDB5E9EB67112A1EFE8"
+    },
+    {
+      "path": "src/InstalledApplicationState.cs",
+      "sha256": "ABF519972B6F5D13DF4B240209FF7E33F422E608F8E6FDC264B26EFAC556914D"
+    },
+    {
+      "path": "src/InstalledCleanupState.cs",
+      "sha256": "FA260C9CF8AD7B1836C787C2B6F0D7BC605CADAFCE34B77E855BB9450D860425"
+    },
+    {
+      "path": "src/OpenWithRegistration.cs",
+      "sha256": "995FBB5C04334F250EA0DD2C77E55210D2A67CE32BC254DD66FD03EE9C4F2CFF"
+    },
+    {
+      "path": "src/ShellVisualRegistration.cs",
+      "sha256": "14B63831235D0C6B3A16893DEA1F10F77AC6D262BD031C170A5AEB8F1DC668EE"
+    },
+    {
+      "path": "src/ShellTaskbarProperties.cs",
+      "sha256": "C786CA014D0899DB7C801036BABB6DE71AC0C3DAC39D5FCC4F3E2D83C28E9563"
+    },
+    {
+      "path": "src/FileFormats.cs",
+      "sha256": "4CDFDDDAFBD05BDE5C9F5EE146FC68D0518644A78BE9C25ADFF8187876E96CCB"
+    },
+    {
+      "path": "src/PhysicalUserContext.cs",
+      "sha256": "24277DA8C835FFB2022265232A5450661A85C3B06655FA6903968870DD9D12EF"
+    },
+    {
+      "path": "tests/installer-safety/Tests.cs",
+      "sha256": "50EF568BE64D4D26B2885D73A1D3A6A58BB8CD17B009BA625297877E0C20C7E6"
+    },
+    {
+      "path": "tests/installer-safety/run.ps1",
+      "sha256": "B8981452E577C75E024DE6A530B840815BD37981FBC738DF8E6283235621E79C"
+    }
+  ]
+}

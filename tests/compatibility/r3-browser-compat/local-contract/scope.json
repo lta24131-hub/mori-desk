@@ -1,0 +1,14 @@
+{
+  "originalFailedTask": 969,
+  "originalFailureRetained": true,
+  "appSha256": "97B122310B1033BE7EBDA63730F929C256D8D0972CBC3497C7A7D6539CCA50D6",
+  "unchangedSealedFiles": 277,
+  "stage": "browser-local-contract",
+  "independentTestSha256": "6B93F484574D91A8A625260E7DDE7A83484E540B71D93470598207D95F3F1C7B",
+  "originalTestSha256": "1A9D6C4AD07427B7E4B34902254B27F685AA9233AF0D614FC12D00A05D5B7F06",
+  "physicalTestsExecuted": false,
+  "productionChanged": false,
+  "healthyPopupAccepted": false,
+  "actualInstalledHealthAccepted": false,
+  "hostFixtureUnchanged": true
+}

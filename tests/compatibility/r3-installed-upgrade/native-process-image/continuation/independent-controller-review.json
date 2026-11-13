@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "controllerSha256": "D10850F4EA4C3BB8DAA71C2ABEA7FB126300AE5E99C801F9F1831AC07A13EAA9",
+  "approvedGateSha256": "139B363D08D49ECD153716365EB295957300360AD8DB960A6A69004DF981252C",
+  "launchPackageSha256": "7EA84EF4FBE1ABCBC896897BC06F4B4615BFC026149B8F0FDAEE32AE0578EB0E",
+  "launchPackagingReviewSha256": "9B80D094FF2AC429D119ECE5A08C7DF51BAEA231CC573BE9838F5D3F98B8BCB0",
+  "allBoundOfflinePrerequisitesVerified": true,
+  "original1262RetainedFailed": true,
+  "seedOrPreparationRepeated": false,
+  "strictTimeoutNormalCloseJobAndOldFolderRemovalAssertionsPreserved": true,
+  "sentinelGuardAndIdenticalBytesVerified": true,
+  "vmOnly": true,
+  "hostProductExecuted": false,
+  "executionAuthorizedByRoot": true
+}

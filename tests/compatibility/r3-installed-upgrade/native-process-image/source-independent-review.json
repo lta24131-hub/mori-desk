@@ -1,0 +1,19 @@
+{
+  "packageSha256": "D777BCF0556DCA212F292277B02FB26A0023624C19077F61CFB5D9E3588AB06A",
+  "sourceSha256": "371B26653C5506338A99903D7AC76BDD50514F9DDB34AB14D960EA4E1975F705",
+  "helperSha256": "78635AB0695903FD4CEAC27DE0D5952C4F9BC0CACD6953C514BA0726B5A27E88",
+  "zipMembersAndCrcVerified": true,
+  "compileInputsOutputsVerified": true,
+  "originalInstallPrepareAndCloseByteEquivalent": true,
+  "launchAndSpecialCloseOnlyChangeImageProvider": true,
+  "retainedHandlePidVerified": true,
+  "liveQueryFailuresStillFail": true,
+  "exitedCandidatesOnlySkipped": true,
+  "startupTimeoutUnchanged": true,
+  "normalCloseExitCodeAndJobChecksUnchanged": true,
+  "passed": true,
+  "original1262RetainedFailed": true,
+  "otherStagesMustUseOriginal95618": true,
+  "hostExecuted": false,
+  "scope": "Dedicated VM launch42/45-only helper replaces startup module enumeration with native full-image query on retained PID-checked process handles. Hash/path, actual visible window, Job ownership, normal close, zero exit code and drain remain; installation, preparation and seed commands are rejected. Source and payload unchanged."
+}

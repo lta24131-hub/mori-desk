@@ -297,7 +297,6 @@ namespace Mori {
   async void Migrate(){if(busy||!PrepareLibraryChange())return;var dir=FolderPicker("选择 Eagle 的 .library 图库文件夹");if(dir==null)return;if(MessageBox.Show(Window,"将读取并复制所选 Eagle 图库到 Nook。\n\n不会修改或删除 Eagle 的原图库；可能需要较多磁盘空间。\n现在开始吗？","确认复制迁移",MessageBoxButton.YesNo)!=MessageBoxResult.Yes)return;history.Clear();busy=true;try{string result=await Task.Run(()=>library.MigrateEagle(dir,s=>Window.Dispatcher.BeginInvoke(new Action(()=>Status(s)))));bookmarkMode=false;mediaSection="assets";ReloadFolders();Navigate("all");MessageBox.Show(Window,result+"\n网址和 PDF 文档可在左侧对应页面查看。","迁移结果");}catch(Exception ex){MessageBox.Show(Window,ex.Message,"迁移未完成");}finally{busy=false;UpdateBatchActions();}}
   public static string FormatTime(string value){DateTimeOffset time;return DateTimeOffset.TryParse(value,System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out time)?time.LocalDateTime.ToString("yyyy/MM/dd HH:mm"):"—";}
   void ShowSettings(){ShowDeskSettings();}
-  void ShowLibrarySettings(){if(busy){Status("请等待当前导入或导出完成后再更改设置。");return;}var request=SettingsWindow.Show(Window,PreviewMode,library);if(request!=null)ChangeStorage(request);}
   internal Func<MessageBoxResult> PendingInformationChoice;
   bool HasUnsavedMetadata(){var items=Selected();return items.Count==1?(T("Name").Text!=items[0].Name||T("Tags").Text!=items[0].Tags||T("Source").Text!=items[0].Source||T("Notes").Text!=items[0].Notes):items.Count>1&&!string.IsNullOrWhiteSpace(T("Tags").Text);}
   bool PrepareLibraryChange(){
@@ -310,14 +309,14 @@ namespace Mori {
   }
   void ChangeStorage(StorageChangeRequest request){
    if(!PrepareFileConversionLibraryChange())return;
-   if(busy||request==null||LibraryTransfer.SameRoot(request.Path,library.Root)||!PrepareLibraryChange())return;
+   if(busy||request==null||LibraryTransfer.SameRoot(request.Path,library.Root)||!PrepareLibraryRouteChange()||!PrepareLibraryChange())return;
    busy=true;searchTimer.Stop();bool success=false;
    try {
     success=TransferWindow.Run(Window,async (progress,stopped,committing)=>{
      using(await ThumbnailImage.PauseAndDrainAsync()){
       await Task.Run(delegate{
        if(stopped())throw new OperationCanceledException();
-       LibraryTransfer.Transfer(library,request.Path,progress,stopped,delegate(string path){if(stopped())throw new OperationCanceledException();committing();LibraryActivation.Open(path,PreviewMode);});
+       RunLibraryRouteChange(()=>LibraryTransfer.Transfer(library,request.Path,progress,stopped,delegate(string path){if(stopped())throw new OperationCanceledException();committing();LibraryActivation.Open(path,PreviewMode);}));
       });
      }
     });
@@ -326,7 +325,7 @@ namespace Mori {
   }
   internal void ResumeStorageView(){BuildRows();ThumbnailImage.ResumeVisible(Window);}
   void OpenSource(string value){Uri uri;if(!SourceLink.TryParse(value,out uri)){Status("请填写有效的 http 或 https 来源网址");return;}try{Process.Start(new ProcessStartInfo(uri.AbsoluteUri){UseShellExecute=true});}catch(Exception ex){Status("无法打开链接："+ex.Message);}}
-  async void SwitchLibrary(){if(busy||!PrepareFileConversionLibraryChange()||!PrepareLibraryChange())return;var dir=FolderPicker("选择已有图库，或空文件夹创建新图库（不会迁移当前素材）");if(dir==null||LibraryTransfer.SameRoot(dir,library.Root))return;if(!File.Exists(Path.Combine(dir,".mori","library.db"))&&Directory.EnumerateFileSystemEntries(dir).Any()){MessageBox.Show(Window,"创建图库请选择空文件夹，以免和已有文件混在一起。","选择图库");return;}busy=true;Window.IsEnabled=false;bool success=false;try{await Task.Run(()=>LibraryActivation.Open(dir,PreviewMode));success=true;}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法切换图库");}finally{busy=false;Window.IsEnabled=true;}if(success)CloseForReplacement();}
+  async void SwitchLibrary(){if(busy||!PrepareFileConversionLibraryChange()||!PrepareLibraryRouteChange()||!PrepareLibraryChange())return;var dir=FolderPicker("选择已有图库，或空文件夹创建新图库（不会迁移当前素材）");if(dir==null||LibraryTransfer.SameRoot(dir,library.Root))return;if(!File.Exists(Path.Combine(dir,".mori","library.db"))&&Directory.EnumerateFileSystemEntries(dir).Any()){MessageBox.Show(Window,"创建图库请选择空文件夹，以免和已有文件混在一起。","选择图库");return;}busy=true;Window.IsEnabled=false;bool success=false;try{await Task.Run(()=>RunLibraryRouteChange(()=>LibraryActivation.Open(dir,PreviewMode)));success=true;}catch(Exception ex){MessageBox.Show(Window,ex.Message,"无法切换图库");}finally{busy=false;Window.IsEnabled=true;}if(success)CloseForReplacement();}
   static void Menu(ContextMenu menu,string label,Action action){var item=new MenuItem{Header=label};item.Click+=delegate{action();};menu.Items.Add(item);}
   string FolderPicker(string title){using(var dlg=new Forms.FolderBrowserDialog{Description=title,ShowNewFolderButton=true})return dlg.ShowDialog(new WindowHandle(Window))==Forms.DialogResult.OK?dlg.SelectedPath:null;}
   string Prompt(string title,string hint,string value){var dialog=new Window{Owner=Window,Title=title,Width=410,Height=200,ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner,Background=Window.Background,Foreground=Window.Foreground};var box=new TextBox{Text=value,Margin=new Thickness(0,14,0,18),Padding=new Thickness(8)};var ok=new Button{Content="确认",Width=84,Padding=new Thickness(8),IsDefault=true,HorizontalAlignment=HorizontalAlignment.Right};ok.Click+=delegate{dialog.DialogResult=true;};var stack=new StackPanel{Margin=new Thickness(22)};stack.Children.Add(new TextBlock{Text=hint,TextWrapping=TextWrapping.Wrap});stack.Children.Add(box);stack.Children.Add(ok);Theme.Attach(dialog,Window);dialog.Content=stack;dialog.Loaded+=delegate{box.Focus();box.SelectAll();};dialog.PreviewKeyDown+=delegate(object s,KeyEventArgs e){if(e.Key==Key.Escape)dialog.Close();};return dialog.ShowDialog()==true?box.Text:null;}

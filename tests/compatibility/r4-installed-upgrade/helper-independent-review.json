@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "helperZipSha256": "0D9E59A64489FC4B4FD05AECD89F1765E60BC3B9CD58E3585584FF745FE39E55",
+  "setupZipSha256": "969E0720E227A4A7ECA28EBFDC2A0CD65EF5A7EE96BF73E8B08771F4111A98D0",
+  "candidateAppSha256": "A26E4E47DF3474355622B4E5C0C31F823D3F57F1A7D8DF6BFA4221765D66FB22",
+  "candidateSetupSha256": "366A3208B1BEC55594CF7B8E07F9050AC48A3895BD9DD311D5504A1005AC5772",
+  "zipCrcAndAllHelperBytesVerified": true,
+  "zipMemberCount": 22,
+  "sources": [
+    {
+      "name": "InstalledUpgradeDriverGuest",
+      "sourceSha256": "878BFBD92713075489834E70157A647F4BB6DA72465E1A14A0390F03FD6AB23C",
+      "exeSha256": "71BD35CDC069409AAA1A4CE10BBF9D3F18C7D915239F723807EC470B7CE99834",
+      "verifiedInputs": 7,
+      "originSha256": "8A156067C7A891E158FDA13E9F46355CA672912458BA50D15C73A2827AB375E6"
+    },
+    {
+      "name": "InstalledUpgradeFixtureGuest",
+      "sourceSha256": "B09EBD62E1EF3B4BF08B913FC91ECE6C4CC1B6E15563EE4F14F76B13D674336A",
+      "exeSha256": "6C99C8D780C2EDC79BCE7E5C4CE287A214F80829D459F4C30F7E7C80D0AA3D17",
+      "verifiedInputs": 8,
+      "originSha256": "B15C61002C5F39138803DBDA8425A475C7A8EC2569E01A20CE92D43BE013921B"
+    },
+    {
+      "name": "InstalledUpgradePreserveGuest",
+      "sourceSha256": "25BD1774C360E366743A778DB0D132FDE328C909D112C115B696D75B3E460CD4",
+      "exeSha256": "FED3D99A406C4BC6150875734E510F8BC3BA661E1FC62A26A83EACAE418E55AA",
+      "verifiedInputs": 4,
+      "originSha256": "ECFF4EA1CE537479935ECBC5DB5FC075A7EB27977966ACCEF1601D75FBBA7EFF"
+    },
+    {
+      "name": "InstalledUpgradeHealthGuest",
+      "sourceSha256": "C2A54FAF7B9975583D4048AAA069507BA92E5AA066BB79E8A514B350ED5011FC",
+      "exeSha256": "AE2EE2505776F5FCECF05B3360940A14DC5C2E53A846E132172992042B5F00D3",
+      "verifiedInputs": 4,
+      "originSha256": "6B4D1A18D721F604918344E52DC9C11C6A1FC4533D458CF3BCE2CDCC16FA10D3"
+    },
+    {
+      "name": "InstalledUpgradeInventoryGuest",
+      "sourceSha256": "FAEE92F5E6ECC2921C986F39F46924C17F3A1A3FB8E0E4A03B88A8A5DED3BCAB",
+      "exeSha256": "B4A4C6C74066BD536E8B7E67300A99F194D35BDAA9387F4EED5137A335C3E057",
+      "verifiedInputs": 4,
+      "originSha256": "DE1297569B8FD77FDACF377F108E82D57D8E8E1BAADB66C72FA95A95A9CCE08B"
+    }
+  ],
+  "inventory1361Sha256": "6355E2D576A79F7F488AE0F5D236D609AE904CA83911296E8AE4CB0C9036376F",
+  "inventoryRawOuterMatches": true,
+  "healthInventorySource": "Identical after line-ending normalization; raw hashes separately verified.",
+  "preserveScope": "Fresh C:\\NookLab\\P1304 only; same-volume exact default VM program/data and two owned shortcuts. Revalidate source physical paths, identities and metadata with no product/browser processes; external old R3 fixture stays in place. No deletion/overwrite. Partial failure stops.",
+  "driverScope": "Real no-argument setup, original UI assertions, native retained process-image/owned settings close fix, normal exit0 and Job1. R4-only720/1860/2580 total and2640 watchdog. Old42 original budgets retained.",
+  "setupScope": "Setup-only package deployed once; explicit later install command. Not a helper cache reuse package.",
+  "historicalFailure1304Preserved": true,
+  "hostExecuted": false,
+  "notExecutionResult": true
+}

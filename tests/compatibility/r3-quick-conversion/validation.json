@@ -1,0 +1,14 @@
+{
+  "original931Passed": false,
+  "supplement": {
+    "task": 1005,
+    "passed": false,
+    "reportSha256": "DEA89F219AEA5A421BA377B676A77175F05967CCD3A400CD214665436894584B",
+    "checksPassedBeforeFailure": 1,
+    "reason": "Exact-signature helper entered original RunReal, then first JPG capabilities phase exceeded original 20-second test bound at 20015ms. Production 45-second timeout was not reached; conversion assertions after capabilities were not reached.",
+    "childrenStopped": true,
+    "jobActiveProcessesAfterStop": 0,
+    "watchdogFired": false
+  },
+  "hostProductExecution": false
+}

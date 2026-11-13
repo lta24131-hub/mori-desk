@@ -1,0 +1,66 @@
+{
+  "original966Passed": false,
+  "original967Passed": false,
+  "original969Passed": false,
+  "supplements": {
+    "preferences": {
+      "task": 1051,
+      "passed": true,
+      "tests": 9,
+      "reportSha256": "AD6E5DF5C6A96E6B024CFBE401A20AB7E1F31460480B9B9A477EFB26642E2FD6",
+      "jobActiveAfterStop": 0,
+      "original966RetainedFailed": true
+    },
+    "lifecycleV1": {
+      "task": 1061,
+      "passed": false,
+      "reportSha256": "1B4AC9B14081E3ECE308EF077A9B776717D5173C9B92AFD03F22714EC30C921C",
+      "jobActiveAfterStop": 0,
+      "reason": "Final save-count fixture treated feedback native calls as save and concurrently lost append; original failure retained. Original update integration was not reached.",
+      "newSupplement": "1111 lifecycle passed independently; overall1111 failed original update-integration fixture"
+    },
+    "localContract": {
+      "task": 1071,
+      "passed": true,
+      "reportSha256": "1881E49CC12D70E50EA2686E653A5CBDBFC5E98B80236F20B3FD2308F26419E4",
+      "jobActiveAfterStop": 0,
+      "original969RetainedFailed": true,
+      "healthyPopupAccepted": false,
+      "actualInstalledHealthAccepted": false,
+      "scope": "Independent negative installed-context guard plus original real authenticated local collection and C# host library validation"
+    },
+    "lifecycleV2": {
+      "task": 1111,
+      "passed": false,
+      "lifecyclePassed": true,
+      "updateIntegrationPassed": false,
+      "reportSha256": "E6960A3DBDD8A2B3FC819F25056EB441846D19A6C351F52D5DF47DE0EB830BB7",
+      "detailSha256": "ACB517866885D768BA60F2E5B190F56B29AD5A9B7FB62D962DBB7ED6049185B2",
+      "originalPowerShellResultSha256": "60257E74E8F6D6EEAFBDB34A12E6B78A5E861A062A9A74904B549B7ACAE5A3FE",
+      "jobActiveAfterStop": 0,
+      "original967RetainedFailed": true,
+      "original1061RetainedFailed": true,
+      "reason": "Original update-integration fixture rejects the current collectionFeedback action at its save-only assertion. Lifecycle stage passed; no whole-package pass claimed."
+    },
+    "updateFeedback": {
+      "status": "Task1232 passed the isolated real Edge MV3 update-integration supplement",
+      "original1111RetainedFailed": true,
+      "lifecycle1111PassedAndNotRerun": true,
+      "packageSha256": "6BBD811C9F22A6C7F16CC2858C9F3D8110B712A1A760CD7803A1AB96BAAE5913",
+      "evidence": {
+        "task": 1232,
+        "passed": true,
+        "reportSha256": "687016CFDD3D1092BB02B0551B65A10C2D07A3941B0E04FBD8C90041DA3B3702",
+        "detailReserializedSha256": "D76ACA325B63DF85637219673097B36464FFD5C7927AC8AC76478D6336C60B52",
+        "originalPowerShellResultSha256": "6AEC686F62FBC78CE07A240FADEBBD189887055A7B321C300CEFA53B18778426",
+        "semanticEqualityVerified": true,
+        "integrationElapsedSeconds": 28.5552207,
+        "jobActiveAfterStop": 0,
+        "original1111RetainedFailed": true,
+        "actualInstalledBrowserAccepted": false,
+        "scope": "Isolated actual Edge MV3; synthetic bridge explicitly models progress/save/success. Not actual installed-host/browser acceptance."
+      }
+    }
+  },
+  "physicalProductExecution": false
+}
