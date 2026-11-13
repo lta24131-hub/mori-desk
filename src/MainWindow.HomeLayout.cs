@@ -14,6 +14,7 @@ namespace Mori {
    // never changes this choice, so browsing does not reflow on each click.
    homeInspectorExplicit=sidebars.RightVisible;
    homeLayoutReady=true;
+   B("GalleryUp").Click+=delegate{NavigateUp();};
    B("HomeAdd").Click+=delegate{ShowHomeMenu(B("HomeAdd"),CreateHomeAddMenu());};
    B("HomeTypePicker").Click+=delegate{ShowHomeMenu(B("HomeTypePicker"),CreateHomeTypeMenu());};
    B("HomeView").Click+=delegate{ShowHomeMenu(B("HomeView"),CreateGalleryMenu());};
@@ -82,6 +83,7 @@ namespace Mori {
   }
   void UpdateHomeNavigation(){
    if(!homeLayoutReady)return;
+   UpdateParentNavigation();
    string navigation=sidebars.LeftVisible?"收起导航栏":"显示导航栏";B("HomeNavigationToggle").ToolTip=navigation+" · Ctrl+Alt+1";System.Windows.Automation.AutomationProperties.SetName(B("HomeNavigationToggle"),navigation);
    bool local=LocalCollectionsActive;Find<ComboBox>("MediaFilter").Visibility=Visibility.Collapsed;
    B("HomeTypePicker").Visibility=!bookmarkMode&&!local?Visibility.Visible:Visibility.Collapsed;

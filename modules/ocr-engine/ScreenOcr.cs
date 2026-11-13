@@ -1,26 +1,87 @@
+using System.Diagnostics;
+using Microsoft.ML.OnnxRuntime;
 using RapidOcrNet;
 using SkiaSharp;
 using STranslate.Core;
 using STranslate.Plugin;
 
 internal sealed record ScreenWord(string Text, string Prefix, int Line, SKRect Box, double Confidence, int Tile = -1);
-internal sealed record ScreenLine(string Text, SKRect Box);
+internal sealed record ScreenLine(string Text, SKRect Box)
+{
+    internal ScreenWord[] Words { get; init; } = [];
+}
 internal sealed record ScreenParagraph(string Text, SKRect Box, ScreenLine[] Lines);
 internal sealed record ScreenPage(ScreenWord[] Words, ScreenParagraph[] Paragraphs);
 
 internal sealed class ScreenOcr : IDisposable
 {
-    internal const string Identity = "rapidocrnet-4.2.0-ppocrv5-ch-screen2x-layout4";
+    internal const string Identity = "rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5";
     private readonly RapidOcr engine = new();
+    private readonly int recognitionParallelism;
+    private readonly ScreenOcrDiagnostics? diagnostics;
 
-    internal ScreenOcr()
+    // The worker always uses these production defaults. Diagnostic options are
+    // accepted only by the separate VM-gated command, never via worker input.
+    internal ScreenOcr() : this(2, 1, null, null, null, null, null) { }
+
+    internal ScreenOcr(ScreenOcrDiagnostics diagnostics, int modelThreads, int recognitionParallelism,
+        string? recognizerPath = null, string? dictionaryPath = null, int? allowSpinning = null,
+        string graphOptimization = "extended")
+        : this(modelThreads, recognitionParallelism, diagnostics, recognizerPath, dictionaryPath, allowSpinning, graphOptimization) { }
+
+    private ScreenOcr(int modelThreads, int recognitionParallelism, ScreenOcrDiagnostics? diagnostics,
+        string? recognizerPath, string? dictionaryPath, int? allowSpinning, string? graphOptimization)
     {
+        if (modelThreads is not (1 or 2) || recognitionParallelism is not (1 or 2))
+            throw new ArgumentOutOfRangeException(nameof(modelThreads), "Diagnostic thread counts must be 1 or 2.");
+        if (allowSpinning is not (null or 0 or 1) || (allowSpinning.HasValue && diagnostics is null))
+            throw new ArgumentOutOfRangeException(nameof(allowSpinning), "Only diagnostics may override thread spinning with 0 or 1.");
+        if ((diagnostics is null && graphOptimization is not null) ||
+            (diagnostics is not null && graphOptimization is not ("extended" or "all")))
+            throw new ArgumentOutOfRangeException(nameof(graphOptimization), "Only diagnostics may select extended or all graph optimization.");
+        this.recognitionParallelism = recognitionParallelism;
+        this.diagnostics = diagnostics;
         var model = Path.Combine(AppContext.BaseDirectory, "models", "ch-v5");
+        diagnostics?.Stage("model-verification-start");
+        long started = diagnostics is null ? 0 : Stopwatch.GetTimestamp();
         VerifyModels(model);
-        engine.InitModels(Path.Combine(model, "ch_PP-OCRv5_mobile_det.onnx"),
-            Path.Combine(model, "ch_ppocr_mobile_v2.0_cls_infer.onnx"),
-            Path.Combine(model, "ch_PP-OCRv5_rec_mobile_infer.onnx"),
-            Path.Combine(model, "ppocrv5_dict.txt"), 2);
+        if (diagnostics is not null) diagnostics.ModelVerificationMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        diagnostics?.Stage("model-initialization-start");
+        started = diagnostics is null ? 0 : Stopwatch.GetTimestamp();
+        string detector = Path.Combine(model, "ch_PP-OCRv5_mobile_det.onnx");
+        string classifier = Path.Combine(model, "ch_ppocr_mobile_v2.0_cls_infer.onnx");
+        string recognizer = recognizerPath ?? Path.Combine(model, "ch_PP-OCRv5_rec_mobile_infer.onnx");
+        string dictionary = dictionaryPath ?? Path.Combine(model, "ppocrv5_dict.txt");
+        if (diagnostics is not null)
+        {
+            using var sessionOptions = RapidOcr.GetDefaultSessionOptions(modelThreads);
+            sessionOptions.GraphOptimizationLevel = graphOptimization == "all"
+                ? GraphOptimizationLevel.ORT_ENABLE_ALL : GraphOptimizationLevel.ORT_ENABLE_EXTENDED;
+            if (allowSpinning is int spinning)
+            {
+                string setting = spinning == 0 ? "0" : "1";
+                sessionOptions.AddSessionConfigEntry("session.intra_op.allow_spinning", setting);
+                sessionOptions.AddSessionConfigEntry("session.inter_op.allow_spinning", setting);
+            }
+            diagnostics.SessionOptions = new ScreenOcrSessionOptionsDiagnostic(
+                graphOptimization!, sessionOptions.GraphOptimizationLevel.ToString(), (int)sessionOptions.GraphOptimizationLevel,
+                sessionOptions.ExecutionMode.ToString(), sessionOptions.IntraOpNumThreads, sessionOptions.InterOpNumThreads,
+                allowSpinning, allowSpinning.HasValue);
+            diagnostics.Stage("model-session-options", diagnostics.SessionOptions);
+            engine.InitModels(detector, classifier, recognizer, dictionary, sessionOptions);
+        }
+        else
+        {
+            // Production retains the original overload and every upstream
+            // setting. Diagnostic options never reach the worker constructor.
+            engine.InitModels(detector, classifier, recognizer, dictionary, modelThreads);
+        }
+        if (diagnostics is not null) diagnostics.ModelInitializationMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        diagnostics?.Stage("model-initialization-complete", new
+        {
+            modelThreads, recognitionParallelism, allowSpinning, graphOptimization,
+            spinningConfiguration = allowSpinning.HasValue ? "explicit" : "upstream-native-default-unspecified"
+        });
     }
 
     internal ScreenPage Read(SKBitmap source, CancellationToken cancel)
@@ -35,17 +96,51 @@ internal sealed class ScreenOcr : IDisposable
             cancel.ThrowIfCancellationRequested();
             int left = Math.Max(0, core.Left - 64), top = Math.Max(0, core.Top - 64);
             var region = new SKRectI(left, top, Math.Min(source.Width, core.Right + 64), Math.Min(source.Height, core.Bottom + 64));
+            var timing = diagnostics?.BeginTile(tileId, core, region);
+            long phaseStarted = timing is null ? 0 : Stopwatch.GetTimestamp();
+            var content = ScreenOcrRegionPlan.ContentRegion(source, region, cancel);
+            if (timing is not null) timing.RegionPlanningMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            if (content == null)
+            {
+                if (timing is not null) { timing.Skipped = true; diagnostics!.FinishTile(timing); }
+                tileId++; continue;
+            }
+            region = content.Value; left = region.Left; top = region.Top;
+            if (timing is not null)
+            {
+                timing.Content = ScreenOcrDiagnosticRect.From(region);
+                timing.DetectorBitmapWidth = region.Width * 2;
+                timing.DetectorBitmapHeight = region.Height * 2;
+                diagnostics!.Stage("tile-render-start", new { tileId });
+                phaseStarted = Stopwatch.GetTimestamp();
+            }
             using var tile = new SKBitmap(region.Width * 2, region.Height * 2, SKColorType.Bgra8888, SKAlphaType.Opaque);
             using (var canvas = new SKCanvas(tile))
             {
                 canvas.Clear(SKColors.White);
                 canvas.DrawImage(sourceImage, region, new SKRect(0, 0, tile.Width, tile.Height), new SKSamplingOptions(SKCubicResampler.Mitchell));
             }
-            var result = engine.Detect(tile, RapidOcrOptions.Default with
+            if (timing is not null) timing.TileRenderMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+            var options = RapidOcrOptions.Default with
             {
                 ImgResize = Math.Max(tile.Width, tile.Height) + 100,
-                UnClipRatio = 1.2f, DoAngle = false, ReturnWordBox = true, TextScore = .5f
-            }, cancel);
+                UnClipRatio = 1.2f, DoAngle = false, ReturnWordBox = true, TextScore = .5f,
+                RecMaxDegreeOfParallelism = recognitionParallelism
+            };
+            RapidOcrNet.OcrResult result;
+            if (timing is null) result = engine.Detect(tile, options, cancel);
+            else
+            {
+                diagnostics!.Stage("tile-detect-start", new { tileId, imgResize = options.ImgResize, recognitionParallelism });
+                phaseStarted = Stopwatch.GetTimestamp();
+                var progress = diagnostics.CreateProgress(timing, phaseStarted);
+                try { result = engine.Detect(tile, options, progress, cancel); }
+                finally { timing.DetectCallWallMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds; }
+                diagnostics.DetectCompleted(timing, result);
+                diagnostics.Stage("tile-word-mapping-start", new { tileId });
+                phaseStarted = Stopwatch.GetTimestamp();
+            }
+            int tileStartWordCount = words.Count;
             foreach (var block in result.TextBlocks)
             {
                 if (string.IsNullOrWhiteSpace(block.Text) || !block.Text.Any(char.IsLetterOrDigit)) continue;
@@ -69,9 +164,27 @@ internal sealed class ScreenOcr : IDisposable
                 }
                 if (words.Count > count) lineId++;
             }
+            if (timing is not null)
+            {
+                timing.WordMappingMs = Stopwatch.GetElapsedTime(phaseStarted).TotalMilliseconds;
+                timing.KeptWordCount = words.Count - tileStartWordCount;
+                diagnostics!.FinishTile(timing);
+            }
             tileId++;
         }
-        return Layout(MergeTileFragments(words));
+        if (diagnostics is null) return Layout(MergeTileFragments(words));
+        diagnostics.Stage("tile-fragment-merge-start");
+        long mergeStarted = Stopwatch.GetTimestamp();
+        var merged = MergeTileFragments(words);
+        diagnostics.FragmentMergeMs = Stopwatch.GetElapsedTime(mergeStarted).TotalMilliseconds;
+        diagnostics.WordsBeforeFragmentMerge = words.Count;
+        diagnostics.WordsAfterFragmentMerge = merged.Count;
+        diagnostics.Stage("layout-start");
+        long layoutStarted = Stopwatch.GetTimestamp();
+        var page = Layout(merged);
+        diagnostics.LayoutMs = Stopwatch.GetElapsedTime(layoutStarted).TotalMilliseconds;
+        diagnostics.Stage("layout-complete", new { words = page.Words.Length, paragraphs = page.Paragraphs.Length });
+        return page;
     }
 
     internal static List<ScreenWord> MergeTileFragments(List<ScreenWord> words)
@@ -131,32 +244,67 @@ internal sealed class ScreenOcr : IDisposable
     {
         var ordered = words.GroupBy(w => w.Line).OrderBy(g => g.Min(w => w.Box.Top)).ThenBy(g => g.Min(w => w.Box.Left)).ToArray();
         var contents = new List<OcrContent>();
+        var contentWords = new Dictionary<OcrContent, ScreenWord[]>();
         foreach (var group in ordered)
         {
             var line = group.OrderBy(w => w.Box.Left).ToArray();
             var box = new SKRect(line.Min(w => w.Box.Left), line.Min(w => w.Box.Top), line.Max(w => w.Box.Right), line.Max(w => w.Box.Bottom));
-            contents.Add(new() { Text = string.Concat(line.Select(w => w.Prefix + w.Text)).Trim(), BoxPoints = Corners(box) });
+            var content = new OcrContent { Text = string.Concat(line.Select(w => w.Prefix + w.Text)).Trim(), BoxPoints = Corners(box) };
+            contents.Add(content);
+            contentWords.Add(content, line);
         }
         // Chinese version/date labels must not get absorbed into an English
         // description. The upstream analyzer still decides columns/paragraphs.
         var blocks = contents.GroupBy(c => c.Text.Count(ch => ch is >= '\u3400' and <= '\u9fff') >= 2)
             .SelectMany(group => OcrLayoutAnalyzer.AnalyzeBlocks(group.ToArray(), LayoutAnalysisMode.Smart))
-            .OrderBy(b => b.BoxPoints.Min(p => p.Y)).ThenBy(b => b.BoxPoints.Min(p => p.X));
-        var paragraphs = blocks.Select(b =>
+            .OrderBy(b => b.BoxPoints.Min(p => p.Y)).ThenBy(b => b.BoxPoints.Min(p => p.X)).ToArray();
+        var lineBoxes = blocks.Select(b => b.LineBoxPoints.Select(Bounds).OrderBy(box => box.Top).ThenBy(box => box.Left).ToArray()).ToArray();
+        var blockWords = blocks.Select(_ => new List<ScreenWord>()).ToArray();
+        var sourceBlocks = new Dictionary<OcrContent, List<int>>();
+        for (int index = 0; index < blocks.Length; index++) foreach (var content in blocks[index].SourceContents.Distinct())
         {
-            var lines = b.LineBoxPoints.Select(Bounds).OrderBy(box=>box.Top).ThenBy(box=>box.Left)
-                .SelectMany(box=>PhysicalLines(words.Where(w=>box.Contains(w.Box.MidX,w.Box.MidY))))
-                .OrderBy(l=>l.Box.Top).ThenBy(l=>l.Box.Left).ToArray();
-            return new ScreenParagraph(string.Join("\n",lines.Select(l=>l.Text)),Bounds(b.BoxPoints),lines);
-        }).SelectMany(SplitHeading).ToArray();
+            if (!sourceBlocks.TryGetValue(content, out var owners)) sourceBlocks.Add(content, owners = []);
+            owners.Add(index);
+        }
+        foreach (var entry in sourceBlocks) foreach (var word in contentWords[entry.Key])
+        {
+            // Numbered-list slices share an original detector source. Resolve
+            // every candidate before falling back, so the first slice cannot
+            // claim words explicitly covered by the second slice's line box.
+            int owner = entry.Value.FirstOrDefault(index => lineBoxes[index].Any(box => box.Contains(word.Box.MidX, word.Box.MidY)), -1);
+            blockWords[owner >= 0 ? owner : entry.Value[0]].Add(word);
+        }
+        var paragraphs = blocks.Select((b, index) =>
+        {
+            // The analyzer already assigned detector contents to this block.
+            // A union rectangle can contain a separate label or column; never
+            // re-import its words when reconstructing paragraphs or selection.
+            var members = blockWords[index].Distinct<ScreenWord>(ReferenceEqualityComparer.Instance).ToArray();
+            var remaining = new HashSet<ScreenWord>(members, ReferenceEqualityComparer.Instance);
+            var physical = new List<ScreenLine>();
+            foreach (var box in lineBoxes[index])
+            {
+                var rowWords = members.Where(w => remaining.Contains(w) && box.Contains(w.Box.MidX, w.Box.MidY)).ToArray();
+                physical.AddRange(PhysicalLines(rowWords));
+                remaining.ExceptWith(rowWords);
+            }
+            // Only words uncovered by all blocks of their own source use this
+            // fallback. They still enter the translated paragraph, not merely
+            // the selectable transcript.
+            physical.AddRange(PhysicalLines(remaining));
+            var lines = physical.OrderBy(l => l.Box.Top).ThenBy(l => l.Box.Left).ToArray();
+            var bounds = lines.Length == 0 ? Bounds(b.BoxPoints) : new SKRect(lines.Min(l => l.Box.Left), lines.Min(l => l.Box.Top), lines.Max(l => l.Box.Right), lines.Max(l => l.Box.Bottom));
+            return new ScreenParagraph(string.Join("\n",lines.Select(l=>l.Text)),bounds,lines);
+        }).Where(p => p.Lines.Length > 0).SelectMany(SplitHeading)
+            .OrderBy(p => p.Box.Top).ThenBy(p => p.Box.Left).ToArray();
         // Detector blocks are not physical reading lines: a single sentence
         // can arrive as six fragments with slightly different top coordinates.
         // Use the analyzed line boxes for both selection and the OCR transcript.
-        var readingWords = new List<ScreenWord>();var used = new HashSet<ScreenWord>();int readingLine = 0;
+        var readingWords = new List<ScreenWord>();var used = new HashSet<ScreenWord>(ReferenceEqualityComparer.Instance);int readingLine = 0;
         foreach (var paragraph in paragraphs) foreach (var line in paragraph.Lines)
         {
             ScreenWord? previous = null;
-            foreach (var word in words.Where(w => !used.Contains(w) && line.Box.Contains(w.Box.MidX,w.Box.MidY)).OrderBy(w => w.Box.Left))
+            foreach (var word in line.Words)
             {
                 string prefix = previous == null ? "" : previous.Line == word.Line ? word.Prefix :
                     NeedsSpace(previous.Text.LastOrDefault(),word.Text.FirstOrDefault()) ? " " : "";
@@ -177,7 +325,7 @@ internal sealed class ScreenOcr : IDisposable
         {
             var row=rows.LastOrDefault();
             var anchor=row==null?null:row.OrderBy(w=>w.Box.MidY).ElementAt(row.Count/2);
-            if(anchor==null||Math.Abs(word.Box.MidY-anchor.Box.MidY)>Math.Min(word.Box.Height,anchor.Box.Height)*.45f)
+            if(anchor==null||!SameReadingRow(word.Box,anchor.Box))
             {row=new();rows.Add(row);}
             row!.Add(word);
         }
@@ -189,8 +337,20 @@ internal sealed class ScreenOcr : IDisposable
                     NeedsSpace(previous.Text.LastOrDefault(),word.Text.FirstOrDefault())?" ":"";
                 previous=word;return prefix+word.Text;
             }));
-            yield return new(text,new(row.Min(w=>w.Box.Left),row.Min(w=>w.Box.Top),row.Max(w=>w.Box.Right),row.Max(w=>w.Box.Bottom)));
+            yield return new(text,new(row.Min(w=>w.Box.Left),row.Min(w=>w.Box.Top),row.Max(w=>w.Box.Right),row.Max(w=>w.Box.Bottom))) { Words = ordered };
         }
+    }
+    private static bool SameReadingRow(SKRect word, SKRect anchor)
+    {
+        float smaller = Math.Min(word.Height, anchor.Height);
+        if (Math.Abs(word.MidY - anchor.MidY) <= smaller * .45f) return true;
+        // Mixed font sizes shift centers despite sharing a baseline. Only
+        // accept the extra case for separated inline boxes of different sizes
+        // whose bottoms closely agree; stacked rows still remain separate.
+        return Math.Max(word.Height, anchor.Height) >= smaller * 1.4f &&
+            Math.Max(word.Left - anchor.Right, anchor.Left - word.Right) >= 0 &&
+            Math.Min(word.Bottom, anchor.Bottom) - Math.Max(word.Top, anchor.Top) >= smaller * .75f &&
+            Math.Abs(word.Bottom - anchor.Bottom) <= Math.Max(2, smaller * .2f);
     }
     private static bool NeedsSpace(char previous,char next) => (previous < 0x2e80 && next < 0x2e80) ||
         previous is >= '\uac00' and <= '\ud7a3' || next is >= '\uac00' and <= '\ud7a3';

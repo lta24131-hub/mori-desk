@@ -8,7 +8,7 @@ function Assert-OcrComponent([string]$Directory){
   if(!(Test-Path -LiteralPath (Join-Path $root $required) -PathType Leaf)){throw ('Missing OCR component file: '+$required)}
  }
  $metadata=Get-Content -LiteralPath (Join-Path $root 'component.json') -Raw|ConvertFrom-Json
- if($metadata.schemaVersion -ne 1 -or $metadata.component -ne 'ocr-engine' -or $metadata.protocol -ne 3 -or $metadata.engineIdentity -ne 'rapidocrnet-4.2.0-ppocrv5-ch-screen2x-layout4'){throw 'Unsupported OCR component version.'}
+ if($metadata.schemaVersion -ne 1 -or $metadata.component -ne 'ocr-engine' -or $metadata.protocol -ne 3 -or $metadata.engineIdentity -ne 'rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5'){throw 'Unsupported OCR component version.'}
  if(@($metadata.files).Count -lt 15){throw 'OCR component inventory is incomplete.'}
  foreach($item in $metadata.files){
   $file=[IO.Path]::GetFullPath((Join-Path $root $item.path))

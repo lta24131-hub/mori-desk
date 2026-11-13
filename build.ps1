@@ -16,6 +16,7 @@ foreach($component in @('image-codecs','pdf-text','preview-support')){
  if(Test-Path -LiteralPath (Join-Path $componentPath 'config')){Copy-Item -LiteralPath (Join-Path $componentPath 'config') -Destination $noticePath -Recurse -Force}
 }
 Copy-Item -LiteralPath "$suiteRoot\dependencies\PREVIEW-NOTICES.md" -Destination $output -Force
+Copy-Item -LiteralPath "$suiteRoot\dependencies\symspell\SymSpell.dll" -Destination $output -Force
 $refs=@('System.dll','System.Core.dll','System.Security.dll','System.Drawing.dll','System.Windows.Forms.dll','System.Net.Http.dll','System.Web.Extensions.dll','System.Xaml.dll','System.Xml.dll','System.IO.Compression.dll','System.IO.Compression.FileSystem.dll','Microsoft.CSharp.dll','System.Runtime.WindowsRuntime.dll','System.Runtime.InteropServices.WindowsRuntime.dll','System.Runtime.dll','System.ObjectModel.dll','System.Threading.Tasks.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }
 $refs+=@('PresentationCore.dll','PresentationFramework.dll','WindowsBase.dll','WindowsFormsIntegration.dll') | ForEach-Object { '/r:'+(Join-Path $framework ('WPF\'+$_)) }
 $refs+=@('Windows.Foundation.winmd','Windows.Globalization.winmd','Windows.Media.winmd','Windows.Graphics.winmd','Windows.Storage.winmd','Windows.Data.winmd') | ForEach-Object { '/r:'+(Join-Path $env:WINDIR ('System32\WinMetadata\'+$_)) }
@@ -25,6 +26,7 @@ $standardFacade=Join-Path $framework 'netstandard.dll'
 if(!(Test-Path -LiteralPath $standardFacade)){$standardFacade=Join-Path $framework 'Facades\netstandard.dll'}
 $refs+='/r:'+$standardFacade
 $refs+='/r:'+(Join-Path $framework 'System.Xml.Linq.dll')
+$refs+='/r:'+(Join-Path $output 'SymSpell.dll')
 $sources=@(Get-ChildItem "$suiteRoot\modules\library\src\*.cs"; Get-ChildItem "$suiteRoot\modules\capture\src\*.cs" | Where-Object Name -ne 'AssemblyInfo.cs'; Get-ChildItem "$suiteRoot\src\*.cs"; Get-ChildItem "$suiteRoot\tests\*.cs") | ForEach-Object FullName
 $sources+=Join-Path $suiteRoot 'installer\InstalledVersionCleanup.cs'
 $resources=@(
@@ -36,6 +38,7 @@ $resources=@(
  '/resource:'+$suiteRoot+'\assets\nook-256.png,QingJie.Icon.png'
  '/resource:'+$suiteRoot+'\modules\capture\offline\catalog.json,QingJie.OfflineCatalog.json'
  '/resource:'+$suiteRoot+'\modules\capture\offline\worker.py,QingJie.OfflineWorker.py'
+ '/resource:'+$suiteRoot+'\modules\capture\data\frequency_dictionary_en_82_765.txt,QingJie.EnglishFrequency.txt'
 )
 $compilerArgs=@('/nologo','/target:winexe','/main:MoriDesk.Entry','/platform:x64','/optimize+','/codepage:65001',('/out:'+$output+'\Mori.exe'),('/win32icon:'+$suiteRoot+'\assets\mori.ico'),('/win32manifest:'+$suiteRoot+'\modules\library\app.manifest'))+$resources+$refs+$sources
 # A response file avoids Windows' command-line limit as the suite grows.

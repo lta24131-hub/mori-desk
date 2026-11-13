@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -120,7 +120,7 @@ namespace MoriDeskInstaller {
     gate.SessionOwnershipVerified=true;gate.Uncommitted=StageNeverActivated(session,original);
     gate.ExpectedManifestSha256=record.ManifestSha256;gate.ExpectedExecutableSha256=record.ExecutableSha256;
     return gate;
-   });return true;
+   },InstallerProgress.Log);return true;
   }
   static void TryCleanupAbandonedStages(){
    // Called only inside the installation-wide lease. This is NOT an age/size

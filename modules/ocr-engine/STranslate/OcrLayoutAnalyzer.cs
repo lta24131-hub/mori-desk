@@ -578,7 +578,7 @@ internal static class OcrLayoutAnalyzer
                 Text = JoinTextWithSpacing(itemLines),
                 BoxPoints = CreateBoxPoints(bounds)
             };
-            var splitItem = LayoutItem.TryCreate(content, sourceIndex);
+            var splitItem = LayoutItem.TryCreate(content, sourceIndex, item.SourceContent);
             if (splitItem != null)
                 splitItems.Add(splitItem);
         }
@@ -1148,7 +1148,7 @@ internal static class OcrLayoutAnalyzer
                 Text = JoinParagraphText(Lines),
                 BoxPoints = CreateBoxPoints(bounds),
                 LineBoxPoints = Lines.Select(line => CreateBoxPoints(line.Bounds)).ToList(),
-                SourceContents = Lines.SelectMany(line => line.Items.Select(item => item.Content)).ToArray(),
+                SourceContents = Lines.SelectMany(line => line.Items.Select(item => item.SourceContent)).ToArray(),
                 Source = OcrLayoutSource.Smart,
                 Confidence = Confidence
             };
@@ -1181,9 +1181,10 @@ internal static class OcrLayoutAnalyzer
 
     private sealed class LayoutItem
     {
-        private LayoutItem(OcrContent content, Bounds bounds, int index)
+        private LayoutItem(OcrContent content, Bounds bounds, int index, OcrContent sourceContent)
         {
             Content = content;
+            SourceContent = sourceContent;
             Bounds = bounds;
             Index = index;
             Text = content.Text.Trim();
@@ -1191,13 +1192,15 @@ internal static class OcrLayoutAnalyzer
 
         internal OcrContent Content { get; }
 
+        internal OcrContent SourceContent { get; }
+
         internal Bounds Bounds { get; }
 
         internal int Index { get; }
 
         internal string Text { get; }
 
-        internal static LayoutItem? TryCreate(OcrContent content, int index)
+        internal static LayoutItem? TryCreate(OcrContent content, int index, OcrContent? sourceContent = null)
         {
             if (string.IsNullOrWhiteSpace(content.Text) || content.BoxPoints.Count == 0)
                 return null;
@@ -1205,7 +1208,7 @@ internal static class OcrLayoutAnalyzer
             var bounds = Bounds.From(content.BoxPoints);
             return bounds.Width <= 0 || bounds.Height <= 0
                 ? null
-                : new LayoutItem(content, bounds, index);
+                : new LayoutItem(content, bounds, index, sourceContent ?? content);
         }
     }
 

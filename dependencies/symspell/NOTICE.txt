@@ -1,0 +1,20 @@
+SymSpell 6.7.3 by Wolf Garbe
+https://github.com/wolfgarbe/SymSpell/tree/v6.7.3
+https://www.nuget.org/packages/SymSpell/6.7.3
+Unmodified netstandard2.0 binary from the NuGet package; MIT license in LICENSE.txt.
+
+English frequency dictionary (frequency_dictionary_en_82_765.txt)
+Unmodified dictionary distributed with SymSpell 6.7.3, embedded into Nook.
+The dictionary combines Google Books Ngram frequencies and SCOWL word lists.
+Upstream attribution: https://github.com/wolfgarbe/SymSpell/tree/v6.7.3#frequency-dictionary
+Google Books Ngram data: http://storage.googleapis.com/books/ngrams/books/datasetsv2.html
+Google Books data license: Creative Commons Attribution 3.0 Unported
+https://creativecommons.org/licenses/by/3.0/
+SCOWL by Kevin Atkinson and contributors: https://wordlist.aspell.net/
+Full SCOWL copyright/permission notices are in SCOWL-Copyright.txt.
+The dictionary data is not covered solely by SymSpell's MIT code license.
+
+Nook uses bounded one-edit candidate lookup; it does not use automatic compound
+rewriting, segmentation, or the larger bigram dictionary. OCR confidence,
+literal protection, exact occurrence alignment and visual confusion checks
+are Nook-specific policies, not guarantees supplied by SymSpell.

@@ -123,7 +123,8 @@ namespace MoriDeskInstaller {
    return candidate;
   }
   static byte[] StableLauncherBytes(){
-   byte[] bytes;using(var resource=Assembly.GetExecutingAssembly().GetManifestResourceStream("MoriDesk.Launcher.exe")){
+   string resourceName=SamePath(ProgramRoot,InstalledApplicationState.DefaultProgramRoot)?"MoriDesk.Launcher.exe":"MoriDesk.CustomLauncher.exe";
+   byte[] bytes;using(var resource=Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)){
     if(resource==null||resource.Length<1024||resource.Length>2*1024*1024)throw new InvalidDataException("安装包缺少固定启动入口。");
     using(var output=new MemoryStream()){resource.CopyTo(output);bytes=output.ToArray();}
    }
@@ -275,6 +276,7 @@ namespace MoriDeskInstaller {
      committed=true;
     });
     UpdateRecord(request,"result.json","installed","Nook 已更新。原启动入口、资料位置和设置保留，正在清理已确认的旧程序。");
+    cleanupSession=request.SessionDirectory;
    }catch(Exception error){
     if(committed){ // Durable pointer is authority even if the receipt write failed.
      try{UpdateRecord(request,"result.json","installed","Nook 已替换成功，完成记录稍后恢复；旧程序暂不清理。");}catch{}

@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
 using Microsoft.Win32.SafeHandles;
+using Microsoft.Win32;
 
 namespace MoriDesk {
  public sealed class BusyInstallationException:IOException {
@@ -27,7 +28,26 @@ namespace MoriDesk {
   const int MaximumRecordBytes=4096;
   [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern SafeFileHandle CreateFile(string path,uint access,uint share,IntPtr security,uint disposition,uint flags,IntPtr template);
   [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern uint GetFinalPathNameByHandle(SafeFileHandle handle,StringBuilder path,uint size,uint flags);
-  public static string ProgramRoot {get{PhysicalUserContext.RequireDefault();return Path.Combine(Path.GetDirectoryName(PhysicalUserContext.DefaultRoot),"Programs","MoriDesk");}}
+  public const string LocationKey="Software\\Nook\\Installation";
+  public static string DefaultProgramRoot {get{PhysicalUserContext.RequireDefault();return Path.Combine(Path.GetDirectoryName(PhysicalUserContext.DefaultRoot),"Programs","MoriDesk");}}
+  public static string ProgramRoot {get{
+   PhysicalUserContext.RequireDefault();
+   using(var key=Registry.CurrentUser.OpenSubKey(LocationKey)){
+    object value=key==null?null:key.GetValue("ProgramRoot",null,RegistryValueOptions.DoNotExpandEnvironmentNames);
+    if(value==null)return DefaultProgramRoot;
+    if(!(value is string))throw new InvalidDataException("安装位置记录无效，请运行安装器修复。");
+    string root=ValidateLocation((string)value);
+    using(new PathLocks(root))return root;
+   }
+  }}
+  public static string ValidateLocation(string path){
+   if(string.IsNullOrWhiteSpace(path)||path.Length>180)throw new InvalidDataException("请选择较短的本机安装路径。");
+   string raw=path.Replace('/','\\').TrimEnd('\\');
+   if(raw.Length<4||raw.Substring(3).Split('\\').Any(p=>p.Length==0||p=="."||p==".."||p.EndsWith(".",StringComparison.Ordinal)||p.EndsWith(" ",StringComparison.Ordinal)))throw new InvalidDataException("安装目录不能包含跳转、空段或结尾空格。");
+   string root=Root(raw);
+   if(!string.Equals(Path.GetFileName(root),"Nook",StringComparison.OrdinalIgnoreCase)&&!string.Equals(Path.GetFileName(root),"MoriDesk",StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("请使用名为 Nook 的独立程序文件夹。");
+   return root;
+  }
   public static string LauncherPath(string root){return Path.Combine(Root(root),"Launcher","Mori.exe");}
   public static string ResolveExecutable(string root,InstalledApplicationDescriptor value){Validate(value);return Path.Combine(Root(root),value.executable);}
   internal static string Root(string root){

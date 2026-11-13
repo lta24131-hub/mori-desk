@@ -117,15 +117,73 @@ internal static class TranslationContextTests {
         var serializer=new JavaScriptSerializer();
         string oldKey="image:device-context-v2:tencent:zh:"+serializer.Serialize(source);
         string newKey=Translation.ImageCacheKey(source,"zh","tencent");
-        Check(newKey.StartsWith("image:indexed-regions-v8-softwraps:",StringComparison.Ordinal)&&newKey!=oldKey,"image cache identity invalidates results from before paragraph soft-wrap normalization");
+        Check(newKey.StartsWith("image:indexed-regions-v12-evidence-lexicon:",StringComparison.Ordinal)&&newKey!=oldKey,"image cache identity invalidates results from before evidence-gated OCR correction");
         var cache=new TranslationCache();cache.Put(oldKey,output);
         Check(cache.Get(newKey)==null,"old wrong cached translation cannot satisfy the new policy key");
+        cache.Put("image:indexed-regions-v11-sentence-context:tencent:zh:"+serializer.Serialize(source),output);
+        Check(cache.Get(newKey)==null,"previous sentence-context results cannot bypass the new OCR evidence policy");
         cache.Put(newKey,result);Check(cache.Get(newKey).SequenceEqual(result),"new-policy result remains cacheable");
         Check(Translation.ImageCacheKey(source,"en","tencent")!=newKey&&Translation.ImageCacheKey(source,"zh","google")!=newKey,"image cache still isolates target languages and providers");
-        Check(Translation.TextCacheKey("hello","zh","tencent")=="text:tencent:zh:auto:hello","ordinary text-translation cache identity is unchanged");
+        Check(Translation.TextCacheKey("hello","zh","tencent")=="text:keep-abbreviations-v1:tencent:zh:auto:hello","selected-text cache invalidates results from before abbreviation preservation");
+        TextAbbreviationTests();
+        foreach(var pair in new[]{
+            new[]{"I keep getting Al responses. I asked for cancellation and refund","I keep getting Al responses. I asked for cancellation and refund"},
+            new[]{"Al-generated art","Al-generated art"},
+            new[]{"An Al powered assistant","An Al powered assistant"},
+            new[]{"Al\nchatbots","Al chatbots"},
+            new[]{"Al-ASSISTED writing","Al-ASSISTED writing"}}){
+            Check(Translation.ImageTranslationInput(pair[0])==pair[1],"plain string input cannot correct ambiguous spelling without OCR evidence: "+pair[0]);
+        }
+        foreach(var input in new[]{"Al said hello.","I asked Al for a refund.","Al's responses are helpful.","Al Gore","Al alloy","Al model","AL responses","Call Al.","AI responses","https://example.com/Al-generated","my_Al-generated","Al₂O₃"})Check(Translation.ImageTranslationInput(input)==input,"names chemistry URLs and uncertain spellings retain source: "+input);
+        var ambiguousSource=new[]{"I keep getting Al responses. I asked for cancellation and refund"};
+        string sent=null;int translations=0;
+        var acronymResult=Translation.TranslateImageCore(ambiguousSource,CancellationToken.None,(request,language,token)=>{translations++;sent=request[0];return Task.FromResult(new[]{"这是提供方译文"});}).GetAwaiter().GetResult();
+        Check(translations==1&&sent==ambiguousSource[0]&&ambiguousSource[0].Contains("Al responses")&&acronymResult[0]=="这是提供方译文","string-only image pipeline preserves ambiguous Al and provider wording without extra requests");
+        Check(Translation.KeepImageAbbreviations(ambiguousSource,new[]{"我收到人工智能的回复"},"zh")[0]=="我收到人工智能的回复","abbreviation postprocessing cannot reintroduce an evidence-free Al to AI correction");
+        var explicitSource=new[]{"I keep getting AI responses. I asked for cancellation and refund"};
+        var abbreviationResult=Translation.TranslateImageCore(explicitSource,CancellationToken.None,(request,language,token)=>{
+            Check(request.Count==1&&request[0]=="I keep getting AI responses. I asked for cancellation and refund","abbreviation keeps entire sentence and context in one provider input");
+            return Task.FromResult(new[]{"我一直收到人工智能的回复。我要求取消和退款"});
+        }).GetAwaiter().GetResult();
+        Check(abbreviationResult[0]=="我一直收到AI的回复。我要求取消和退款","an explicit AI source preserves the abbreviation without rewriting the surrounding sentence");
+        Check(Translation.ImageCacheKey(explicitSource,"zh","tencent")!=Translation.ImageCacheKey(ambiguousSource,"zh","tencent"),"corrected and uncorrected input copies cannot share a cached result");
+        foreach(var pair in new[]{new[]{"UI","用户界面"},new[]{"UX","用户体验"},new[]{"API","应用程序编程接口"},new[]{"CPU","中央处理器"},new[]{"GPU","图形处理单元"},new[]{"PDF","便携式文档格式"},new[]{"USB","通用串行总线"}}){
+            Check(Translation.KeepImageAbbreviations(new[]{"Use the "+pair[0]+" here."},new[]{"在这里使用"+pair[1]+"。"},"zh")[0]=="在这里使用"+pair[0]+"。","common technical abbreviation stays recognizable: "+pair[0]);
+        }
+        foreach(var word in new[]{"AI","UI","UX","API","CPU","GPU","PDF","USB"})Check(Translation.TranslateImageCore(new[]{word},CancellationToken.None,(request,language,token)=>{throw new Exception("Standalone abbreviation should not request translation");}).GetAwaiter().GetResult()[0]==word,"standalone abbreviation requires no provider call: "+word);
+        foreach(var sourceText in new[]{"Artificial intelligence is useful.","AI means artificial intelligence.","AI 与人工智能","PAID work","ai responses","Al said hello."})Check(Translation.KeepImageAbbreviations(new[]{sourceText},new[]{"人工智能"},"zh")[0]=="人工智能","full terms names lowercase text and embedded letters are not blindly replaced: "+sourceText);
+        Check(Translation.KeepImageAbbreviations(new[]{"AI and AI"},new[]{"AI和人工智能"},"zh")[0]=="AI和AI","mixed preserved and expanded repetitions retain all occurrences");
+        Check(Translation.KeepImageAbbreviations(new[]{"AI"},new[]{"人工智能和人工智能"},"zh")[0]=="人工智能和人工智能","ambiguous occurrence alignment does not rewrite unrelated expanded terms");
+        Check(Translation.KeepImageAbbreviations(new[]{"AI"},new[]{"artificial intelligence"},"en")[0]=="artificial intelligence","Chinese abbreviation preference does not rewrite English provider wording");
         RetryTests();
         var lazyClient=typeof(Translation).GetField("client",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static).GetValue(null);
         Check(!(bool)lazyClient.GetType().GetProperty("IsValueCreated").GetValue(lazyClient,null),"the production HTTP client was never constructed during these checks");
+    }
+    static void TextAbbreviationTests(){
+        string source="Use the AI assistant to read the PDF.\nKeep the original file.";int calls=0;
+        var result=Translation.TranslateTextCore(source,CancellationToken.None,(batch,language,token)=>{
+            calls++;Check(batch.Count==1&&batch[0]==source,"selected-text translation sends the entire sentence with original paragraph breaks");
+            return Task.FromResult(new[]{"使用人工智能助手阅读便携式文档格式。\n保留原始文件。"});
+        }).GetAwaiter().GetResult();
+        Check(calls==1&&result=="使用AI助手阅读PDF。\n保留原始文件。","selected and whole-image translation share the abbreviation preference without extra requests");
+        foreach(var word in new[]{"AI","UI","UX","API","CPU","GPU","PDF","USB"}){
+            var kept=Translation.TranslateTextCore(" "+word+" ",CancellationToken.None,(batch,language,token)=>{throw new Exception("Literal abbreviation must not request translation");}).GetAwaiter().GetResult();
+            Check(kept==" "+word+" ","selected standalone abbreviation completes locally and keeps whitespace: "+word);
+        }
+        var name=Translation.TranslateTextCore("Al responses",CancellationToken.None,(batch,language,token)=>{
+            Check(batch[0]=="Al responses","ordinary selected text does not apply OCR spelling guesses");return Task.FromResult(new[]{"艾尔的回复"});
+        }).GetAwaiter().GetResult();
+        Check(name=="艾尔的回复","a selected person's name is not converted into a technical abbreviation");
+        var english=Translation.TranslateTextCore("AI",CancellationToken.None,(batch,language,token)=>{throw new Exception("No request needed");},"en").GetAwaiter().GetResult();
+        Check(english=="AI","standalone English abbreviation also needs no round trip");
+        foreach(var malformed in new[]{new string[0],new[]{"ok","extra"},new[]{""},null}){
+            bool failed=false;try{Translation.TranslateTextCore("Please translate this",CancellationToken.None,(batch,language,token)=>Task.FromResult(malformed)).GetAwaiter().GetResult();}catch(InvalidOperationException){failed=true;}
+            Check(failed,"malformed selected-text output is rejected before caching or display");
+        }
+        using(var stop=new CancellationTokenSource()){
+            bool cancelled=false;try{Translation.TranslateTextCore("Use AI",stop.Token,(batch,language,token)=>{stop.Cancel();return Task.FromResult(new[]{"使用人工智能"});}).GetAwaiter().GetResult();}catch(OperationCanceledException){cancelled=true;}
+            Check(cancelled,"cancelled selected-text response cannot commit abbreviation processing or cached success");
+        }
     }
     static int Main(){try{MainTests();Console.WriteLine("PASS "+checks+" isolated translation-context checks; no network, UI or models");return 0;}catch(Exception error){Console.Error.WriteLine(error);return 1;}}
 }

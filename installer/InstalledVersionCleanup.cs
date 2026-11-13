@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -12,6 +12,32 @@ using System.Web.Script.Serialization;
 using Microsoft.Win32.SafeHandles;
 
 namespace MoriDeskInstaller {
+ // Display-only, bounded per-update journal. It never authorizes deletion.
+ // Final state is bound to the exact launched executable and update session.
+ internal sealed class InstallCleanupProgress {
+  internal const string FileName="installer-cleanup.json";
+  readonly string session,executable,version;readonly Stopwatch clock=Stopwatch.StartNew();
+  readonly Queue<InstallCleanupLine> lines=new Queue<InstallCleanupLine>();long sequence,lastWrite=-1000;
+  internal InstallCleanupProgress(string session,string executable,string version){this.session=session;this.executable=executable;this.version=version;}
+  internal void Log(string text){if(string.IsNullOrWhiteSpace(text))return;lines.Enqueue(new InstallCleanupLine{sequence=++sequence,text=text.Length>600?text.Substring(0,600):text});while(lines.Count>500)lines.Dequeue();Write(false,null,null);}
+  internal void Finish(string state,string summary){Write(true,state,summary);}
+  void Write(bool final,string state,string summary){
+   if(!final&&clock.ElapsedMilliseconds-lastWrite<200)return;lastWrite=clock.ElapsedMilliseconds;
+   try{
+    InstalledVersionCleanup.Plain(session);
+    string target=Path.Combine(session,FileName),temporary=target+"."+Guid.NewGuid().ToString("N")+".tmp";
+    // The first progress record does not exist yet. Validate existing leaves
+    // without treating an absent new journal as an unsafe installation path.
+    if(!InstalledVersionCleanup.ConfirmedMissing(target))InstalledVersionCleanup.Plain(target);
+    var report=new InstallCleanupView{schemaVersion=1,executable=executable,version=version,finished=final,state=state,summary=summary,sequence=sequence,lines=lines.ToArray()};
+    byte[] bytes=Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(report));
+    try{using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush();}if(File.Exists(target))File.Replace(temporary,target,null);else File.Move(temporary,target);}
+    finally{if(File.Exists(temporary))File.Delete(temporary);}
+   }catch(Exception error){Trace.WriteLine("Installer cleanup display deferred: "+error.GetType().Name);}
+  }
+ }
+ internal sealed class InstallCleanupLine {public long sequence;public string text;}
+ internal sealed class InstallCleanupView {public int schemaVersion;public string executable,version,state,summary;public bool finished;public long sequence;public InstallCleanupLine[] lines;}
  // The caller owns startup/shortcut/native-host verification. No registry,
  // process manipulation, user-data discovery or recursive delete happens here.
  internal sealed class InstalledCleanupGate {
@@ -86,7 +112,7 @@ namespace MoriDeskInstaller {
    if(string.IsNullOrWhiteSpace(path)||path.Length<4||!char.IsLetter(path[0])||path[1]!=':'||(path[2]!='\\'&&path[2]!='/')||path.Substring(2).IndexOf(':')>=0||path.IndexOfAny(new[]{'"','\0','\r','\n'})>=0)throw new InvalidDataException("仅允许完整本地安装路径。");
    return Path.GetFullPath(path).TrimEnd('\\','/');
   }
-  static void Plain(string path){
+  internal static void Plain(string path){
    for(string part=Full(path);!string.IsNullOrEmpty(part);part=Path.GetDirectoryName(part))
     if((File.GetAttributes(part)&FileAttributes.ReparsePoint)!=0)throw new IOException("安装目录含链接，未清理旧版本。");
   }
@@ -267,8 +293,9 @@ namespace MoriDeskInstaller {
    if(!manifest.files.Keys.Any(name=>Names.Equals(name,"Mori.exe")))throw new InvalidDataException("安装清单未包含主程序。");return manifest;
   }
   internal static void MarkDelete(SafeFileHandle handle){var disposition=new Disposition{DeleteFile=1};if(!SetFileInformationByHandle(handle,4,ref disposition,4))throw WinError("文件仍在使用或删除被阻止，可稍后重试。");}
-  static void DeleteFile(LockedTree tree,string path){var stream=tree.Files[path];MarkDelete(stream.SafeFileHandle);stream.Dispose();}
-  static void DeleteOne(string root,string folder,Action validateState,Action<byte[],InstalledPayloadManifest> verifyOwnership=null){
+  static void Progress(Action<string> report,string message){try{if(report!=null)report(message);}catch{}}
+  static void DeleteFile(LockedTree tree,string path,Action<string> report,string root){var stream=tree.Files[path];MarkDelete(stream.SafeFileHandle);stream.Dispose();Progress(report,"清理文件："+Relative(root,path));}
+  static void DeleteOne(string root,string folder,Action validateState,Action<byte[],InstalledPayloadManifest> verifyOwnership=null,Action<string> report=null){
    Child(root,folder);validateState();
    string marker=Path.Combine(folder,ManifestName),progressPath=Path.Combine(folder,ProgressName),journalPath=JournalPath(root,folder);
    string executable=Path.Combine(folder,"Mori.exe");
@@ -295,28 +322,29 @@ namespace MoriDeskInstaller {
     foreach(var file in tree.Files)if(!allowed.Contains(Relative(folder,file.Key)))throw new IOException("旧安装目录含清单外文件，已保留，需先核对。");
     var expectedDirectories=new HashSet<string>(manifest.directories,Names);foreach(var directory in tree.Directories.Skip(1))if(!expectedDirectories.Contains(Relative(folder,directory.Key)))throw new IOException("旧安装目录含未知文件夹，已保留。");
     if(!resuming&&tree.Directories.Count-1!=expectedDirectories.Count)throw new IOException("旧版文件夹不完整，未删除。");
-    foreach(var file in manifest.files){FileStream opened;if(!tree.Files.TryGetValue(Resolve(folder,file.Key),out opened)){if(!resuming)throw new IOException("旧版文件不完整，不能确认目录归属，未删除。");}else if(Hash(opened)!=file.Value)throw new IOException("旧版文件与安装清单不同（可能已单独更新插件），已保留待核对。");}
+    foreach(var file in manifest.files){Progress(report,"核对旧文件："+file.Key);FileStream opened;if(!tree.Files.TryGetValue(Resolve(folder,file.Key),out opened)){if(!resuming)throw new IOException("旧版文件不完整，不能确认目录归属，未删除。");}else if(Hash(opened)!=file.Value)throw new IOException("旧版文件与安装清单不同（可能已单独更新插件），已保留待核对。");}
     if(!tree.Files.ContainsKey(executable)&&!resuming)throw new InvalidDataException("旧版主程序缺失，未删除。");
     validateState();
     if(journal==null){WriteNew(journalPath,new InstalledCleanupJournal{schemaVersion=1,directory=Path.GetFileName(folder),manifestSha256=digest,manifestJson=new UTF8Encoding(false,true).GetString(manifestBytes)});journal=new FileStream(OpenLocked(journalPath,false,true),FileAccess.Read);if(Hash(JournalManifest(journal,folder))!=digest)throw new IOException("外置清理记录未能完成核对。");}
     if(!localProgress){WriteNew(progressPath,new InstalledCleanupProgress{schemaVersion=1,directory=Path.GetFileName(folder),manifestSha256=digest});tree.Files.Add(progressPath,new FileStream(OpenLocked(progressPath,false,true),FileAccess.Read));}
     // The executable and records go last so a sharing violation early in the
     // pass leaves a provable, retryable inventory. No broad delete is used.
-    foreach(string path in tree.Files.Keys.Where(path=>!Names.Equals(path,executable)&&!Names.Equals(path,marker)&&!Names.Equals(path,progressPath)).ToArray())DeleteFile(tree,path);
-    foreach(var directory in tree.Directories.AsEnumerable().Reverse().Where(d=>!Names.Equals(d.Key,folder))){MarkDelete(directory.Value);directory.Value.Dispose();}
+    foreach(string path in tree.Files.Keys.Where(path=>!Names.Equals(path,executable)&&!Names.Equals(path,marker)&&!Names.Equals(path,progressPath)).ToArray())DeleteFile(tree,path,report,root);
+    foreach(var directory in tree.Directories.AsEnumerable().Reverse().Where(d=>!Names.Equals(d.Key,folder))){MarkDelete(directory.Value);directory.Value.Dispose();Progress(report,"清理目录："+Relative(root,directory.Key));}
     foreach(string remaining in Directory.EnumerateFileSystemEntries(folder))if(!Names.Equals(remaining,executable)&&!Names.Equals(remaining,marker)&&!Names.Equals(remaining,progressPath))throw new IOException("清理期间出现新文件，已保留并暂停；核对后可重试。");
-    if(tree.Files.ContainsKey(executable))DeleteFile(tree,executable);
-    DeleteFile(tree,progressPath);if(tree.Files.ContainsKey(marker))DeleteFile(tree,marker);
+    if(tree.Files.ContainsKey(executable))DeleteFile(tree,executable,report,root);
+    DeleteFile(tree,progressPath,report,root);if(tree.Files.ContainsKey(marker))DeleteFile(tree,marker,report,root);
     MarkDelete(tree.Directories[0].Value);tree.Directories[0].Value.Dispose();
    }
    if(!ConfirmedMissing(folder))throw new IOException("旧版目录仍存在，未将清理标记为完成。");
+   Progress(report,"已删除旧程序目录："+Path.GetFileName(folder));
    MarkDelete(journal.SafeFileHandle);journal.Dispose();journal=null;
    }finally{if(journal!=null)journal.Dispose();}
   }
-  internal static void RemoveAbandonedStage(string programRoot,string currentExecutable,string stageDirectory,Func<string,InstalledAbandonedStageGate> gate){
+  internal static void RemoveAbandonedStage(string programRoot,string currentExecutable,string stageDirectory,Func<string,InstalledAbandonedStageGate> gate,Action<string> report=null){
    if(gate==null)throw new ArgumentNullException("gate");
    string root=Full(programRoot),current=currentExecutable==null?null:Full(currentExecutable),stage=Full(stageDirectory),currentFolder=current==null?null:Path.GetDirectoryName(current);
-   if(!Names.Equals(Path.GetFileName(root),"MoriDesk")||(current!=null&&!Names.Equals(Path.GetFileName(current),"Mori.exe")))throw new InvalidDataException("不是受管 Nook 安装目录。");
+   if((!Names.Equals(Path.GetFileName(root),"MoriDesk")&&!Names.Equals(Path.GetFileName(root),"Nook"))||(current!=null&&!Names.Equals(Path.GetFileName(current),"Mori.exe")))throw new InvalidDataException("不是受管 Nook 安装目录。");
    if(current!=null)Child(root,currentFolder);Child(root,stage);if(Names.Equals(currentFolder,stage))throw new InvalidDataException("当前版本不能作为遗留暂存版本清理。");
    string expectedManifest=null,expectedExecutable=null;
    Action validate=()=>{
@@ -330,7 +358,7 @@ namespace MoriDeskInstaller {
    };
    using(var rootLock=OpenLocked(root,true,false))using(var currentLock=current==null?null:new FileStream(OpenLocked(current,false,false),FileAccess.Read))using(var journals=new JournalScope(root)){
     if(current!=null)Identity(current,FolderVersion(currentFolder));validate();
-    if(!ConfirmedMissing(stage)){DeleteOne(root,stage,validate,verify);return;}
+    if(!ConfirmedMissing(stage)){DeleteOne(root,stage,validate,verify,report);return;}
     // A crash may remove the exact stage before retiring its external record.
     // Only this explicitly authorized target's journal is inspected or removed.
     string journalPath=JournalPath(root,stage);if(ConfirmedMissing(journalPath))return;
@@ -339,9 +367,9 @@ namespace MoriDeskInstaller {
     }
    }
   }
-  internal static InstalledCleanupResult Cleanup(string programRoot,string currentExecutable,Func<string,InstalledCleanupGate> gate,Func<string,bool> certifyLegacy=null){
+  internal static InstalledCleanupResult Cleanup(string programRoot,string currentExecutable,Func<string,InstalledCleanupGate> gate,Func<string,bool> certifyLegacy=null,Action<string> report=null){
    if(gate==null)throw new ArgumentNullException("gate");string root=Full(programRoot),current=Full(currentExecutable),currentFolder=Path.GetDirectoryName(current);
-   if(!Names.Equals(Path.GetFileName(root),"MoriDesk")||!Names.Equals(Path.GetFileName(current),"Mori.exe"))throw new InvalidDataException("不是受管 Nook 安装目录。");
+   if((!Names.Equals(Path.GetFileName(root),"MoriDesk")&&!Names.Equals(Path.GetFileName(root),"Nook"))||!Names.Equals(Path.GetFileName(current),"Mori.exe"))throw new InvalidDataException("不是受管 Nook 安装目录。");
    Child(root,currentFolder);var result=new InstalledCleanupResult();
    using(var rootLock=OpenLocked(root,true,false))using(var currentLock=new FileStream(OpenLocked(current,false,false),FileAccess.Read))using(var journals=new JournalScope(root)){
     Version currentVersion=FolderVersion(currentFolder);Identity(current,currentVersion);
@@ -358,7 +386,7 @@ namespace MoriDeskInstaller {
        Gate(gate(folder),current,folder);
        if(!certifyLegacy(folder)){result.Skipped.Add(new InstalledCleanupItem(folder,"legacy-version-without-manifest"));continue;}
       }
-      DeleteOne(root,folder,()=>Gate(gate(folder),current,folder));result.Deleted.Add(new InstalledCleanupItem(folder,"deleted"));
+      DeleteOne(root,folder,()=>Gate(gate(folder),current,folder),null,report);result.Deleted.Add(new InstalledCleanupItem(folder,"deleted"));
      }catch(Exception error){if(error is IOException||error is InvalidDataException||error is UnauthorizedAccessException||error is ArgumentException||error is System.ComponentModel.Win32Exception)result.Pending.Add(Pending(folder,error));else throw;}
     }
     // A crash after directory removal but before journal removal is completed

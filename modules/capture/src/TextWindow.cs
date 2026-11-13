@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -18,6 +19,7 @@ namespace QingJie {
         BitmapSource translatedImage;
         ImageTranslationResult imageTranslation;
         readonly Image picture=new Image {Name="OcrPicture",Stretch=Stretch.Fill};
+        readonly ImageTranslationSweep translationSweep=new ImageTranslationSweep();
         readonly OcrHighlights highlights=new OcrHighlights {Cursor=Cursors.IBeam};
         readonly TextBox original=new TextBox {Name="RecognizedText",IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,FontSize=14,Padding=new Thickness(16,18,14,12),BorderThickness=new Thickness(0),IsInactiveSelectionHighlightEnabled=true,SelectionOpacity=.65};
         readonly TextBox result=new TextBox {Name="SelectedTranslation",IsReadOnly=true,AcceptsReturn=true,TextWrapping=TextWrapping.Wrap,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,MaxHeight=150,MinHeight=40,BorderThickness=new Thickness(0),Padding=new Thickness(8),FontSize=14};
@@ -34,6 +36,10 @@ namespace QingJie {
         readonly Button translateSelection,translatePicture,showText,copyResult,correctText;
         readonly Button captureReturn,captionClose,copyImage,saveImage,pinImage;
         internal Func<BitmapSource,CancellationToken,Task> PinOutput=(source,token)=>AppState.Pins.NewAsync(source,token);
+        internal Func<IList<string>,CancellationToken,string,string,Task<string[]>> TranslateImage=Translation.TranslateImage;
+        internal Func<OcrPage,IList<TranslationRegion>,CancellationToken,Task<string[]>> PrepareImage=OcrTranslationInput.PrepareAsync;
+        internal Func<BitmapSource,IList<TranslationRegion>,IList<string>,CancellationToken,Task<ImageTranslationResult>> RenderImage=ImageTranslation.RenderAsync;
+        internal Func<string,CancellationToken,string,string,Task<string>> TranslateText=Translation.Translate;
         Action exitCapture;
         bool outputBusy;
         readonly CancellationTokenSource cancel=new CancellationTokenSource();
@@ -88,7 +94,7 @@ namespace QingJie {
             saveImage=Symbol("\uE74E","保存图片",async()=>await SaveImageAsync());bar.Children.Add(saveImage);
             var columns=new Grid();columns.ColumnDefinitions.Add(new ColumnDefinition());columns.ColumnDefinitions.Add(sidebarColumn);Grid.SetRow(columns,1);root.Children.Add(columns);
             var imageArea=Ui.Theme(new Grid {Name="OcrImageArea"},Panel.BackgroundProperty,"Canvas");columns.Children.Add(imageArea);imageArea.Children.Add(scroll);
-            var drawing=new Grid {Width=image.PixelWidth,Height=image.PixelHeight};picture.Source=image;drawing.Children.Add(picture);drawing.Children.Add(highlights);
+            var drawing=new Grid {Width=image.PixelWidth,Height=image.PixelHeight};picture.Source=image;drawing.Children.Add(picture);drawing.Children.Add(translationSweep);drawing.Children.Add(highlights);
             preview=new Viewbox {Child=drawing,Stretch=Stretch.Fill};scroll.Content=preview;scroll.SizeChanged+=(s,e)=>{if(fitMode)Fit();};
             scroll.PreviewMouseWheel+=(s,e)=>{if((Keyboard.Modifiers&ModifierKeys.Control)!=0){ChangeZoom(zoom*(e.Delta>0?1.12:1/1.12));e.Handled=true;}};
             statusCard=new Border {Child=status,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(4),HorizontalAlignment=HorizontalAlignment.Left,VerticalAlignment=VerticalAlignment.Bottom,Margin=new Thickness(12),MaxWidth=480,Visibility=Visibility.Collapsed};Ui.Theme(statusCard,Border.BackgroundProperty,"Surface");Ui.Theme(statusCard,Border.BorderBrushProperty,"Border");imageArea.Children.Add(statusCard);
@@ -109,7 +115,7 @@ namespace QingJie {
             original.SelectionChanged+=(s,e)=>{ResetSelectedTranslation();selectionActions.Visibility=original.SelectionLength>0?Visibility.Visible:Visibility.Collapsed;correctText.IsEnabled=OcrCorrection.FindRegion(page,original.SelectionStart,original.SelectionLength)>=0;HighlightSelected();};
             Loaded+=async(s,e)=>{Fit();try{await EnsureOcr();}catch(Exception ex){if(!closed)Status(ex.Message);}};
             if(allowTranslation)AppState.TranslationProviderChanged+=RefreshProvider;
-            Closed+=(s,e)=>{closed=true;exitCapture=null;AppState.TranslationProviderChanged-=RefreshProvider;cancel.Cancel();picture.Source=null;translatedImage=null;imageTranslation=null;highlights.SetSelection(null,0,0);};
+            Closed+=(s,e)=>{closed=true;exitCapture=null;AppState.TranslationProviderChanged-=RefreshProvider;cancel.Cancel();translationSweep.Stop();picture.Source=null;translatedImage=null;imageTranslation=null;highlights.SetSelection(null,0,0);};
             PreviewKeyDown+=async(s,e)=>{if(e.Key==Key.Escape){ExitTextView();e.Handled=true;}else if(e.Key==Key.Enter&&(Keyboard.Modifiers&ModifierKeys.Control)!=0){TranslateSelected();e.Handled=true;}else if(e.Key==Key.S&&(Keyboard.Modifiers&ModifierKeys.Control)!=0){e.Handled=true;await SaveImageAsync();}};
         }
         internal void AttachCaptureReturn(Action exit){
@@ -185,7 +191,7 @@ namespace QingJie {
             HighlightSelected();ImageTranslationStatus();
         }
         internal async Task<OcrPage> EnsureOcr(){
-            if(page!=null)return page;if(ocrTask==null){Status("正在本机识别文字…");ocrTask=recognize(image,cancel.Token);}var request=ocrTask;OcrPage read;
+            if(page!=null)return page;if(ocrTask==null){if(imageRequest==null)Status("正在本机识别文字…");ocrTask=recognize(image,cancel.Token);}var request=ocrTask;OcrPage read;
             try{read=await request;}catch{if(ocrTask==request)ocrTask=null;throw;}if(closed)return read;
             if(page==null){page=read;original.Text=page.Text;ClearStatus();if(page.Words.Count==0)Status("未识别到文字，原图保留。");}return page;
         }
@@ -193,9 +199,20 @@ namespace QingJie {
             if(closed||!allowTranslation)return;
             if(imageRequest!=null)return;if(translatedImage!=null){showTranslated=!showTranslated;picture.Source=Displayed;Mark(translatePicture,showTranslated);HighlightSelected();ImageTranslationStatus();return;}
             var request=CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);imageRequest=request;string target=translationTarget,provider=Translation.Provider;translatePicture.IsEnabled=false;
-            try{var text=await EnsureOcr();request.Token.ThrowIfCancellationRequested();if(closed||text.Words.Count==0)return;Status(Translation.ProgressText);var regions=ImageTranslation.Regions(text);var translated=await Translation.TranslateImage(regions.Select(r=>r.Text).ToArray(),request.Token,target,provider);if(closed||imageRequest!=request||request.IsCancellationRequested||translationTarget!=target||Translation.Provider!=provider)return;ApplyImageTranslation(ImageTranslation.RenderWithStatus(image,regions,translated),false);}
+            try{
+                status.Text="";statusCard.Visibility=Visibility.Collapsed;
+                translationSweep.Start(new Size(image.PixelWidth,image.PixelHeight),Rect.Empty);
+                var text=await EnsureOcr();request.Token.ThrowIfCancellationRequested();if(closed||text.Words.Count==0)return;
+                statusCard.Visibility=Visibility.Collapsed;var regions=ImageTranslation.Regions(text);translationSweep.SetRegions(regions);
+                var input=await PrepareImage(text,regions,request.Token);request.Token.ThrowIfCancellationRequested();
+                var translated=await TranslateImage(input,request.Token,target,provider);
+                if(closed||imageRequest!=request||request.IsCancellationRequested||translationTarget!=target||Translation.Provider!=provider)return;
+                var rendered=await RenderImage(image,regions,translated,request.Token);
+                await translationSweep.RevealAsync(rendered.Image,request.Token);
+                if(!closed&&imageRequest==request)ApplyImageTranslation(rendered,false);
+            }
             catch(OperationCanceledException){if(!closed&&imageRequest==request&&!request.IsCancellationRequested)Status("翻译超时，原图保留。可再次点击翻译。");}catch(Exception ex){if(!closed&&imageRequest==request)Status(ex.Message);}
-            finally{if(imageRequest==request){imageRequest=null;if(!closed)translatePicture.IsEnabled=true;}request.Dispose();}
+            finally{if(imageRequest==request){translationSweep.Stop();imageRequest=null;if(!closed)translatePicture.IsEnabled=true;}request.Dispose();}
         }
         void FitStandaloneToWorkArea(object sender,EventArgs args){
             SourceInitialized-=FitStandaloneToWorkArea;
@@ -213,7 +230,7 @@ namespace QingJie {
             Native.SetWindowPos(handle,IntPtr.Zero,bounds.X,bounds.Y,bounds.Width,bounds.Height,0x0014);
         }
         void ResetSelectedTranslation(){if(selectionRequest!=null){selectionRequest.Cancel();selectionRequest=null;}translateSelection.IsEnabled=true;if(showingImageTranscript&&imageTranslation!=null)return;result.Clear();copyResult.IsEnabled=false;resultCard.Visibility=Visibility.Collapsed;}
-        void ChangeTarget(string language){translationTarget=Translation.TargetLanguage(language);if(imageRequest!=null){imageRequest.Cancel();imageRequest=null;}imageTranslation=null;showingImageTranscript=false;imageTranslationActions.Visibility=Visibility.Collapsed;ResetSelectedTranslation();translatedImage=null;showTranslated=false;picture.Source=image;translatePicture.IsEnabled=true;Mark(translatePicture,false);ClearStatus();HighlightSelected();}
+        void ChangeTarget(string language){translationTarget=Translation.TargetLanguage(language);if(imageRequest!=null){imageRequest.Cancel();imageRequest=null;}translationSweep.Stop();imageTranslation=null;showingImageTranscript=false;imageTranslationActions.Visibility=Visibility.Collapsed;ResetSelectedTranslation();translatedImage=null;showTranslated=false;picture.Source=image;translatePicture.IsEnabled=true;Mark(translatePicture,false);ClearStatus();HighlightSelected();}
         void RefreshProvider(){ChangeTarget(translationTarget);}
         internal void CorrectRegion(int index,string text){
             var corrected=OcrCorrection.Apply(page,index,text);
@@ -238,7 +255,7 @@ namespace QingJie {
         async void TranslateSelected(){
             if(closed||!allowTranslation)return;
             string selected=original.SelectedText;if(string.IsNullOrWhiteSpace(selected)||selectionRequest!=null)return;var request=CancellationTokenSource.CreateLinkedTokenSource(cancel.Token);selectionRequest=request;string target=translationTarget,provider=Translation.Provider;showingImageTranscript=false;resultHeading.Text="所选译文";translateSelection.IsEnabled=false;copyResult.IsEnabled=false;resultCard.Visibility=Visibility.Visible;result.Text="正在翻译所选文字…";
-            try{string translated=await Translation.Translate(selected,request.Token,target,provider);if(!closed&&selectionRequest==request&&!request.IsCancellationRequested&&translationTarget==target&&Translation.Provider==provider){result.Text=translated;copyResult.IsEnabled=true;}}
+            try{string translated=await TranslateText(Translation.ImageTranslationInput(selected),request.Token,target,provider);if(!closed&&selectionRequest==request&&!request.IsCancellationRequested&&translationTarget==target&&Translation.Provider==provider){result.Text=translated;copyResult.IsEnabled=true;}}
             catch(OperationCanceledException){if(!closed&&selectionRequest==request&&!request.IsCancellationRequested)result.Text="请求超时，请重试。";}catch(Exception ex){if(!closed&&selectionRequest==request)result.Text=ex.Message;}
             finally{if(selectionRequest==request){selectionRequest=null;if(!closed)translateSelection.IsEnabled=true;}request.Dispose();}
         }

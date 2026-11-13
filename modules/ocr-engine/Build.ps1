@@ -37,7 +37,7 @@ foreach($file in @('LICENSE.txt','ThirdPartyNotices.txt')){Copy-Item -LiteralPat
 $inventory=@(Get-ChildItem -LiteralPath $output -File -Recurse | Where-Object Extension -ne '.pdb' | ForEach-Object {
  @{path=$_.FullName.Substring($output.Length+1).Replace('\','/');bytes=$_.Length;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
 })
-@{schemaVersion=1;component='ocr-engine';protocol=3;engineIdentity='rapidocrnet-4.2.0-ppocrv5-ch-screen2x-layout4';files=$inventory}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $output 'component.json') -Encoding UTF8
+@{schemaVersion=1;component='ocr-engine';protocol=3;engineIdentity='rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5';files=$inventory}|ConvertTo-Json -Depth 6|Set-Content -LiteralPath (Join-Path $output 'component.json') -Encoding UTF8
 . (Join-Path $PSScriptRoot 'Validate-Component.ps1')
 Assert-OcrComponent $output
 Write-Output ('Built OCR component: '+$output)

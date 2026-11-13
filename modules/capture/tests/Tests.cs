@@ -274,6 +274,10 @@ class Tests {
         SynchronizationContext.SetSynchronizationContext(null);
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
+        if(args.Length==1&&args[0]=="--translation-sweep-only"){
+            SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext());
+            Finish(ImageTranslationSweepTests.Run(Check));Console.WriteLine(count+" translation sweep checks passed.");return 0;
+        }
         Finish(TranslationRegionMappingTests.Run(Check));
         StructuredOcrTests.Run(Check);
         CaptureTests.Run(Check);

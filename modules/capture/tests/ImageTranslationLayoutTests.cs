@@ -54,10 +54,96 @@ internal static class ImageTranslationLayoutTests {
         return count;
     }
     static void Png(BitmapSource bitmap,string filename){using(var stream=File.Create(Path.Combine(sandbox,filename))){var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));encoder.Save(stream);}}
+    static Rect DarkBounds(BitmapSource image,Rect box){
+        var pixels=Pixels(image);var bounds=Rect.Empty;
+        for(int y=(int)box.Top;y<box.Bottom;y++)for(int x=(int)box.Left;x<box.Right;x++){
+            int i=(y*image.PixelWidth+x)*4;
+            if(pixels[i]<100&&pixels[i+1]<100&&pixels[i+2]<100)bounds.Union(new Rect(x,y,1,1));
+        }
+        return bounds;
+    }
     static void Throws<T>(Action action,string name) where T:Exception{bool caught=false;try{action();}catch(T){caught=true;}Check(caught,name);}
     static void Tests(){
         Check(!typeof(ImageTranslationLayoutTests).Assembly.GetReferencedAssemblies().Any(a=>a.Name=="Tesseract"||a.Name=="Mori"||a.Name=="System.Net.Http"||a.Name=="PresentationFramework"),
             "standalone host references no OCR, application, network client or window UI assembly");
+        Run("Use verified blank space for readable single-line translation",()=>{
+            var box=new Rect(20,20,75,26);var source=Source(240,100,Tuple.Create(box,Colors.Black));
+            var blocked=Source(240,100,Tuple.Create(box,Colors.Black),Tuple.Create(new Rect(103,18,30,30),Colors.Blue));
+            var open=ImageTranslation.RenderWithStatus(source,new[]{Region(box)},new[]{"打开所有设置项"});
+            var limited=ImageTranslation.RenderWithStatus(blocked,new[]{Region(box)},new[]{"打开所有设置项"});
+            var a=DarkBounds(open.Image,new Rect(18,18,120,30));var b=DarkBounds(limited.Image,new Rect(18,18,83,30));
+            Check(open.UnplacedCount==0&&limited.UnplacedCount==0,"both layouts retain the complete translation");
+            Check(a.Height>b.Height&&a.Right>103,"safe blank space produces observably larger text instead of a tiny label");
+            Check(Math.Abs(a.Left-b.Left)<=1,"readable label keeps its original left alignment");
+            OutsideUnchanged(blocked,limited.Image,new[]{new Rect(14,18,87,30)},"unrecognized coloured content blocks expansion");
+            var neighbour=Region(new Rect(104,20,40,26),"AI");
+            var protectedResult=ImageTranslation.RenderWithStatus(source,new[]{Region(box),neighbour},new[]{"打开所有设置项","AI"});
+            OutsideUnchanged(source,protectedResult.Image,new[]{new Rect(14,18,85.5,30)},"adjacent OCR label blocks expansion");
+            var diagonal=Region(new Rect(103,6,60,16),"AI");
+            var diagonalResult=ImageTranslation.RenderWithStatus(source,new[]{Region(box),diagonal},new[]{"打开所有设置项","AI"});
+            OutsideUnchanged(source,diagonalResult.Image,new[]{new Rect(14,18,87,30)},"diagonal neighbour also blocks same-height expansion");
+            Png(open.Image,"readable-blank-space.png");Png(limited.Image,"readable-protected-art.png");
+        });
+        Run("Unfittable translation cannot erase unrecognized artwork",()=>{
+            var box=new Rect(40,40,50,18);var art=new Rect(98,35,10,24);
+            var source=Source(240,100,Tuple.Create(box,Colors.Black),Tuple.Create(art,Colors.Blue));
+            var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box)},new[]{"打开设置并保存更改"});
+            Check(result.Transcript=="打开设置并保存更改","unfittable source box retains full transcript");
+            Check(ColorCount(result.Image,art,false)==ColorCount(source,art,false),"expanded fallback never erases unrecognized artwork");
+            Check(result.UnplacedCount==0,"verified empty lower space still allows the complete translation");
+            Png(result.Image,"safe-expanded-fallback.png");
+        });
+        Run("Lower unrecognized content blocks fallback growth",()=>{
+            var box=new Rect(40,40,50,18);var rightArt=new Rect(98,35,10,24);var lowerArt=new Rect(36,62,58,6);
+            var source=Source(240,100,Tuple.Create(box,Colors.Black),Tuple.Create(rightArt,Colors.Blue),Tuple.Create(lowerArt,Colors.Blue));
+            const string text="打开设置并保存更改";
+            var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box)},new[]{text});
+            Check(result.UnplacedCount==1&&result.Transcript==text,"blocked right and lower space report a complete transcript fallback");
+            Check(ReferenceEquals(source,result.Image),"blocked expansion returns the original bitmap");
+            Unchanged(source,result.Image,"unrecognized lower artwork");
+        });
+        Run("Transparent lower pixels block otherwise white fallback space",()=>{
+            const int width=240,height=100;var box=new Rect(40,40,50,18);var rightArt=new Rect(98,35,10,24);
+            var pixels=Pixels(Source(width,height,Tuple.Create(box,Colors.Black),Tuple.Create(rightArt,Colors.Blue)));
+            // Preserve white RGB so alpha alone must stop the blank-space scan.
+            for(int y=62;y<68;y++)for(int x=36;x<94;x++)pixels[(y*width+x)*4+3]=128;
+            var source=BitmapSource.Create(width,height,96,96,PixelFormats.Bgra32,null,pixels,width*4);source.Freeze();
+            const string text="打开设置并保存更改";
+            var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box)},new[]{text});
+            Check(result.UnplacedCount==1&&result.Transcript==text,"semi-transparent lower space is not treated as opaque blank background");
+            Check(ReferenceEquals(source,result.Image),"transparent blocked fallback avoids bitmap recomposition");
+            Unchanged(source,result.Image,"semi-transparent lower pixels");
+        });
+        Run("Lower unchanged OCR label blocks fallback growth",()=>{
+            var box=new Rect(40,40,50,18);var rightArt=new Rect(98,35,10,24);
+            var source=Source(240,100,Tuple.Create(box,Colors.Black),Tuple.Create(rightArt,Colors.Blue));
+            var neighbour=Region(new Rect(36,62,58,12),"AI");
+            // The neighbouring pixels are white: geometry must protect the OCR
+            // label even when its ink is too faint or absent in this fixture.
+            const string text="打开设置并保存更改";
+            var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box),neighbour},new[]{text,"AI"});
+            Check(result.UnplacedCount==1&&result.Transcript==text+"\n\nAI","only the blocked changed region is unplaced while the neighbouring label stays valid");
+            Check(ReferenceEquals(source,result.Image),"lower OCR protection prevents a speculative repaint");
+            Unchanged(source,result.Image,"unchanged lower OCR label");
+        });
+        Run("Lower-right obstacle still permits original-width fallback",()=>{
+            var box=new Rect(40,40,50,18);var art=new Rect(98,61,10,6);
+            var source=Source(240,100,Tuple.Create(box,Colors.Black),Tuple.Create(art,Colors.Blue));
+            const string text="打开设置并保存更改";
+            var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box)},new[]{text});
+            Check(result.Transcript==text,"lower-right obstacle retains the full transcript");
+            Check(ColorCount(result.Image,art,false)==ColorCount(source,art,false),"lower-right artwork is never erased to make the translation fit");
+            Check(result.UnplacedCount==0,"safe original-width lower space is used when a wider lower rectangle is blocked");
+            OutsideUnchanged(source,result.Image,new[]{new Rect(36,38,58,28)},"original-width lower fallback");
+            Png(result.Image,"safe-narrow-lower-fallback.png");
+        });
+        Run("Unchanged regions preserve status without a repaint",()=>{
+            var source=Source();var same=Region(new Rect(20,20,30,20),"AI");
+            var invalid=Region(new Rect(-60,-60,20,20),"PDF");
+            var result=ImageTranslation.RenderWithStatus(source,new[]{same,invalid,null},new[]{"AI","PDF",""});
+            Check(ReferenceEquals(source,result.Image)&&result.UnplacedCount==2,"no-paint result keeps original image and invalid-region counts");
+            Check(result.Transcript=="AI\n\nPDF\n\n","no-paint result retains all transcript entries");
+        });
         Run("Interleaved multi-column paragraph geometry",()=>{
             var page=new OcrPage();
             page.Words.AddRange(new[]{Word("left one",0,20,20),Word("right one",1,220,20.5),Word("left two",2,20,38),Word("right two",3,220,38.5),Word("left three",4,20,56),Word("right three",5,220,56.5)});
@@ -108,7 +194,7 @@ internal static class ImageTranslationLayoutTests {
             var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box)},new[]{text});Common(source,result,"newlines");
             Check(result.UnplacedCount==0&&result.Transcript==text,"short explicit newline content fits and transcript preserves line breaks");
             Check(!Pixels(source).SequenceEqual(Pixels(result.Image)),"placed multiline text actually changes image pixels");
-            var allowed=box;allowed.Inflate(2,2);OutsideUnchanged(source,result.Image,new[]{allowed},"multiline fit");
+            var allowed=box;allowed.Inflate(8,2);OutsideUnchanged(source,result.Image,new[]{allowed},"multiline fit");
             Png(result.Image,"multiline-fit.png");
         });
         Run("Null and empty translation entries",()=>{
@@ -135,7 +221,7 @@ internal static class ImageTranslationLayoutTests {
             var source=Source();string text="edge text";
             var result=ImageTranslation.RenderWithStatus(source,new[]{Region(new Rect(-5,20,100,24))},new[]{text});Common(source,result,"edge box");
             Check(result.Transcript==text,"partly clipped source geometry retains full transcript");
-            OutsideUnchanged(source,result.Image,new[]{new Rect(0,18,97,28)},"edge box");
+            OutsideUnchanged(source,result.Image,new[]{new Rect(0,18,103,28)},"edge box");
         });
         Run("Empty source geometry",()=>{
             var source=Source();string text="empty geometry transcript";
@@ -173,7 +259,7 @@ internal static class ImageTranslationLayoutTests {
             var source=Source();var regions=new[]{Region(new Rect(20,20,100,24)),Region(new Rect(124,20,100,24))};
             var result=ImageTranslation.RenderWithStatus(source,regions,new[]{"one","two"});Common(source,result,"touching padded footprints");
             Check(result.UnplacedCount==0,"zero-area contact between padded footprints does not reject otherwise fitting labels");
-            var allowed=regions.Select(r=>{var box=r.Box;box.Inflate(2,2);return box;}).ToArray();OutsideUnchanged(source,result.Image,allowed,"touching padded footprints");
+            var allowed=regions.Select(r=>{var box=r.Box;box.Inflate(8,2);return box;}).ToArray();OutsideUnchanged(source,result.Image,allowed,"touching padded footprints");
         });
         Run("Missing region retains translation",()=>{
             var source=Source();string text="translation without valid geometry";
@@ -228,8 +314,19 @@ internal static class ImageTranslationLayoutTests {
             Check(!Pixels(source).SequenceEqual(Pixels(result.Image)),"per-line color test performs actual replacement, not fallback");
             Check(ColorCount(result.Image,page.Words[0].Box,true)>15&&ColorCount(result.Image,page.Words[0].Box,false)==0,"first line retains red rather than paragraph-wide color");
             Check(ColorCount(result.Image,page.Words[1].Box,false)>15&&ColorCount(result.Image,page.Words[1].Box,true)==0,"second line retains blue rather than paragraph-wide color");
-            var allowed=regions[0].Box;allowed.Inflate(2,2);OutsideUnchanged(source,result.Image,new[]{allowed},"line colors");
+            var allowed=regions[0].Box;allowed.Inflate(8,2);OutsideUnchanged(source,result.Image,new[]{allowed},"line colors");
             Png(source,"source-line-colors.png");Png(result.Image,"translated-line-colors.png");
+        });
+        Run("OCR underestimates final glyph edge",()=>{
+            var box=new Rect(19,16.5,228.5,37);var remnant=new Rect(251,24,2,20);var neighbour=new Rect(259,20,20,30);
+            var source=Source(320,80,Tuple.Create(remnant,Colors.Black),Tuple.Create(neighbour,Colors.Blue));
+            var result=ImageTranslation.RenderWithStatus(source,new[]{Region(box),Region(neighbour,"preserved")},new[]{"中文","preserved"});
+            Check(result.UnplacedCount==0,"underestimated OCR edge translates while adjacent unchanged region stays valid");
+            var pixels=Pixels(result.Image);bool clear=true;
+            for(int y=24;y<44;y++)for(int x=251;x<253;x++)for(int c=0;c<3;c++)if(pixels[(y*320+x)*4+c]!=255)clear=false;
+            Check(clear,"final source glyph stem outside OCR box is fully erased instead of leaving a vertical bar");
+            Check(ColorCount(result.Image,neighbour,false)==ColorCount(source,neighbour,false),"nearby preserved blue content is not erased by glyph-edge padding");
+            var allowed=box;allowed.Inflate(8,2);OutsideUnchanged(source,result.Image,new[]{allowed},"bounded edge cleanup");
         });
         Run("Legacy Render wrapper compatibility",()=>{
             var source=Source();var regions=new[]{Region(new Rect(20,20,180,28))};var text=new[]{"short translated text"};

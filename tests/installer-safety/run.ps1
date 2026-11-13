@@ -1,4 +1,4 @@
-param([string]$SuiteExecutable,[string]$OutputDirectory,[switch]$CompileOnly,[switch]$RunInVirtualMachine)
+﻿param([string]$SuiteExecutable,[string]$OutputDirectory,[switch]$CompileOnly,[switch]$RunInVirtualMachine)
 $ErrorActionPreference='Stop'
 if($CompileOnly -and $RunInVirtualMachine){throw 'Choose compilation only or VM execution, not both.'}
 $suiteRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
@@ -11,7 +11,7 @@ $testExecutable=Join-Path $OutputDirectory 'InstallerSafetyTests.exe'
 # Keep this list aligned with the installer compilation in package.ps1: the
 # tests exercise the real shared implementation, not a reduced stale subset.
 $sources=@(
- 'installer\Setup.cs','installer\InstallerProgress.cs','installer\ReplacementInstall.cs',
+ 'installer\Setup.cs','installer\InstallerProgress.cs','installer\InstallerPlan.cs','installer\InstallerWizard.cs','installer\ReplacementInstall.cs',
  'installer\ReplacementStaging.cs','installer\InstalledVersionCleanup.cs','installer\ManualMetadataBackup.cs',
  'src\AppUpdateMetadataBackup.cs','src\InstalledApplicationState.cs','src\InstalledCleanupState.cs',
  'src\OpenWithRegistration.cs','src\ShellVisualRegistration.cs','src\ShellTaskbarProperties.cs','src\FileFormats.cs','src\PhysicalUserContext.cs',

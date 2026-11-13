@@ -1,12 +1,12 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
 [assembly: AssemblyTitle("Nook")]
 [assembly: AssemblyProduct("Nook")]
-[assembly: AssemblyVersion("0.1.42.0")]
-[assembly: AssemblyFileVersion("0.1.42.0")]
+[assembly: AssemblyVersion("0.1.44.0")]
+[assembly: AssemblyFileVersion("0.1.44.0")]
 namespace MoriDesk {
  public static class Entry {
   public static bool InteractiveShell;

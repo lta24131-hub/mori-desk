@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.IO.Compression;
 using System.Reflection;
@@ -15,8 +15,8 @@ using Microsoft.Win32;
 using MoriDesk;
 [assembly: AssemblyTitle("Nook Installer")]
 [assembly: AssemblyProduct("Nook Installer")]
-[assembly: AssemblyVersion("0.1.42.0")]
-[assembly: AssemblyFileVersion("0.1.42.0")]
+[assembly: AssemblyVersion("0.1.44.0")]
+[assembly: AssemblyFileVersion("0.1.44.0")]
 namespace MoriDeskInstaller {
  internal sealed class UpdateRequest {
   internal string RequestPath,SessionDirectory,ParentExecutable,ExpectedVersion;
@@ -32,7 +32,7 @@ namespace MoriDeskInstaller {
   // otherwise make a new payload look like a same-version overwrite.
   static readonly string Version=typeof(Program).Assembly.GetName().Version.ToString(3);
   internal static string InstallerVersion {get{return Version;}}
-  static string ProgramRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk");}}
+  static string ProgramRoot {get{return InstalledApplicationState.ProgramRoot;}}
   static string UpdatesRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"MoriDesk","updates");}}
   internal static bool ProductIdentity(string productName,string originalFilename){return (string.Equals(productName,"Mori Desk",StringComparison.OrdinalIgnoreCase)||string.Equals(productName,"Nook",StringComparison.OrdinalIgnoreCase))&&string.Equals(originalFilename,"Mori.exe",StringComparison.OrdinalIgnoreCase);}
   internal static bool MatchesRunningProcess(int processId,int sessionId,string productName,string originalFilename,int installerId,int installerSession){return processId!=installerId&&ProductIdentity(productName,originalFilename);}
@@ -58,9 +58,9 @@ namespace MoriDeskInstaller {
   }
   static string Extract(string folder,bool installed=false){
    using(var source=Assembly.GetExecutingAssembly().GetManifestResourceStream("MoriDesk.Payload.zip"))
-    return ExtractPayload(folder,source,installed?(Action<string,IEnumerable<string>,IEnumerable<string>>)InstalledVersionCleanup.WriteManifest:null);
+    return ExtractPayload(folder,source,installed?(Action<string,IEnumerable<string>,IEnumerable<string>>)InstalledVersionCleanup.WriteManifest:null,installed?selectedPlan:null);
   }
-  internal static string ExtractPayload(string folder,Stream source,Action<string,IEnumerable<string>,IEnumerable<string>> seal){
+  internal static string ExtractPayload(string folder,Stream source,Action<string,IEnumerable<string>,IEnumerable<string>> seal,InstallerPlan plan=null){
    if(!LocalAbsolutePath(folder)||source==null)throw new InvalidDataException("安装目录或安装包无效。");
    folder=Path.GetFullPath(folder).TrimEnd('\\','/');PlainPath(folder);
    // Never bless an existing directory as installer-owned. The seal below
@@ -68,11 +68,13 @@ namespace MoriDeskInstaller {
    if(Directory.Exists(folder)||File.Exists(folder))throw new IOException("安装目标已存在，未覆盖或认领其中的文件。");
    Directory.CreateDirectory(folder);PlainPath(folder);string prefix=folder+"\\";
    var files=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var directories=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+   long written=0,total=plan==null?0:plan.SelectedBytes;
    using(var zip=new ZipArchive(source,ZipArchiveMode.Read,true))foreach(var entry in zip.Entries){
     string relative=entry.FullName.Replace('/','\\');bool directory=relative.EndsWith("\\",StringComparison.Ordinal);if(directory)relative=relative.TrimEnd('\\');
     if(string.IsNullOrWhiteSpace(relative)||Path.IsPathRooted(relative)||relative.IndexOfAny(new[]{':','\0','\r','\n'})>=0)throw new InvalidDataException("安装包路径异常。");
     foreach(string part in relative.Split('\\'))if(part.Length==0||part=="."||part==".."||part.EndsWith(".",StringComparison.Ordinal)||part.EndsWith(" ",StringComparison.Ordinal))throw new InvalidDataException("安装包路径不规范。");
     if(string.Equals(relative,InstalledVersionCleanup.ManifestName,StringComparison.OrdinalIgnoreCase)||string.Equals(relative,InstalledVersionCleanup.ProgressName,StringComparison.OrdinalIgnoreCase)||string.Equals(relative,InstalledVersionCleanup.JournalDirectoryName,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("安装包不能自带安装归属记录。");
+    if(plan!=null&&!plan.Includes(relative))continue;
     string file=Path.GetFullPath(Path.Combine(folder,relative));if(!file.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new InvalidDataException("安装包路径越界。");PlainPath(file);
     string parent=directory?file:Path.GetDirectoryName(file);
     for(string part=parent;!string.Equals(part,folder,StringComparison.OrdinalIgnoreCase);part=Path.GetDirectoryName(part))directories.Add(part.Substring(prefix.Length));
@@ -80,13 +82,14 @@ namespace MoriDeskInstaller {
     if(directory)continue;
     if(!files.Add(relative))throw new InvalidDataException("安装包包含重复文件。");
     using(var input=entry.Open())using(var output=new FileStream(file,FileMode.CreateNew,FileAccess.Write,FileShare.None))input.CopyTo(output);
+    written+=entry.Length;InstallerProgress.Log("已解压："+relative);if(total>0)InstallerProgress.Percent(10+(int)(written*50/total));
    }
    string executable=Path.Combine(folder,"Mori.exe");if(!files.Contains("Mori.exe")||!File.Exists(executable))throw new InvalidDataException("安装包缺少程序。");
    if(seal!=null){InstallerProgress.Report("正在核对并记录新版文件…");seal(folder,files,directories);}return executable;
   }
   static string ShortcutTarget(string location){object shell=null,link=null;try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));link=((dynamic)shell).CreateShortcut(location);return Convert.ToString(((dynamic)link).TargetPath);}finally{if(link!=null)Marshal.FinalReleaseComObject(link);if(shell!=null)Marshal.FinalReleaseComObject(shell);}}
   internal static bool ManagedTarget(string target,string programRoot,string product,string originalFilename){try{return !string.IsNullOrWhiteSpace(target)&&Path.GetFullPath(target).StartsWith(Path.GetFullPath(programRoot).TrimEnd('\\')+"\\",StringComparison.OrdinalIgnoreCase)&&ProductIdentity(product,originalFilename)&&string.Equals(Path.GetFileName(target),"Mori.exe",StringComparison.OrdinalIgnoreCase);}catch(ArgumentException){return false;}catch(NotSupportedException){return false;}catch(PathTooLongException){return false;}}
-  static bool OwnsShortcut(string location){try{string target=ShortcutTarget(location);if(!File.Exists(target))return false;var info=FileVersionInfo.GetVersionInfo(target);return ManagedTarget(target,Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk"),info.ProductName,info.OriginalFilename);}catch{return false;}}
+  static bool OwnsShortcut(string location){try{string target=ShortcutTarget(location);if(!File.Exists(target))return false;var info=FileVersionInfo.GetVersionInfo(target);return ManagedTarget(target,InstalledApplicationState.ProgramRoot,info.ProductName,info.OriginalFilename);}catch{return false;}}
   static void GuardShortcut(string location){if(File.Exists(location)&&!OwnsShortcut(location))throw new IOException("已有同名快捷方式不属于本软件，未覆盖：\n"+location+"\n请先改名保留该快捷方式，再重新安装。");}
   static void RemoveOwnedLegacyShortcut(string location){if(File.Exists(location)&&OwnsShortcut(location)){try{File.Delete(location);}catch(IOException){}catch(UnauthorizedAccessException){}}}
   static void Shortcut(string location,string exe){PublishShortcut(location,exe,WriteShortcutFile,ShortcutTarget,GuardShortcut);}
@@ -314,7 +317,7 @@ namespace MoriDeskInstaller {
   static int Verify(){try{string temp=Path.Combine(Path.GetTempPath(),"MoriDesk-install-check-"+Guid.NewGuid().ToString("N"));string exe=Extract(temp);var start=VerificationStart(exe,temp);Directory.CreateDirectory(start.EnvironmentVariables["TEMP"]);Directory.CreateDirectory(start.EnvironmentVariables["MORI_DESK_DATA"]);using(var process=Process.Start(start)){process.WaitForExit();return process.ExitCode;}}catch{return 1;}}
   static string pendingMessage,pendingTitle;static MessageBoxIcon pendingIcon;
   internal const int ManualNeedsExit=3;
-  static void QueueInstallerMessage(string text,string title,MessageBoxIcon icon){pendingMessage=text;pendingTitle=title;pendingIcon=icon;}
+  static void QueueInstallerMessage(string text,string title,MessageBoxIcon icon){pendingMessage=text;pendingTitle=title;pendingIcon=icon;InstallerProgress.Result(title.Replace("Nook · ",""),text,icon==MessageBoxIcon.Error,icon==MessageBoxIcon.Warning);}
   static void ShowInstallerMessage(){if(pendingMessage!=null)MessageBox.Show(pendingMessage,pendingTitle,MessageBoxButtons.OK,pendingIcon);}
   // Each attempt includes progress-window shutdown and lease disposal. Human
   // waits must remain outside both: browser collections and normal app saves
@@ -343,19 +346,23 @@ namespace MoriDeskInstaller {
    // Never hold the installation lease while waiting for a human. Otherwise
    // a forgotten confirmation/result dialog blocks browser collections and
    // the public launcher even though no replacement is in progress.
-   if(MessageBox.Show("准备安装 Nook "+Version+"。\n\n已安装时会自动识别为更新或修复；无需更新且程序完好时只核对启动入口，不另装一套。\n新版确认可以启动后替换当前版本，再清理已核验的旧程序。\n素材、分类、贴图、画布、保存位置和设置均保留，Windows 默认应用选择保持不变。\n如果需要退出正在运行的 Nook，安装器会提示你保存并退出。","Nook · 安装与维护",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK)return 0;
-   return RunManualInstallation(()=>{pendingMessage=pendingTitle=null;return RunManualAttempt(()=>InstalledApplicationState.ReadRecordForRepair(ProgramRoot),new Version(Version+".0"),HasRunningMoriDesk,()=>InstallerProgress.Run(()=>WithReplacementLease(Install)));},RetryManualAfterExit);
+   return InstallerWizard.Run(ReadPlan(),false,ValidatePlan,plan=>{
+    if(selectedPlan==null)selectedPlan=plan;
+    pendingMessage=pendingTitle=null;
+    return WithSelectedLocation(()=>RunManualAttempt(()=>InstalledApplicationState.ReadRecordForRepair(ProgramRoot),new Version(Version+".0"),HasRunningMoriDesk,()=>WithReplacementLease(Install)));
+   },WaitForCleanup);
   }
   [STAThread] static int Main(string[] args){Application.EnableVisualStyles();
    try{int result=Dispatch(args,MoriDesk.PhysicalUserContext.RequireInstalledContext,Verify,
-    request=>InstallerProgress.Run(()=>WithReplacementLease(()=>Update(request))),ConfirmManualInstallation);ShowInstallerMessage();return result;}
-   catch(Exception error){MessageBox.Show("安装未开始。\n"+error.Message,"Nook · 安装未完成",MessageBoxButtons.OK,MessageBoxIcon.Error);return 1;}
+    request=>InstallerWizard.Run(ReadPlan(),true,ValidatePlan,plan=>{selectedPlan=plan;return WithReplacementLease(()=>Update(request));},WaitForCleanup),ConfirmManualInstallation);return result;}
+   catch(Exception error){var fallback=new InstallerPlan{Version=Version,Location="",LocationLocked=true,Components=new InstallerComponent[0]};return InstallerWizard.Run(fallback,true,p=>p.Location,p=>{InstallerProgress.Result("安装未开始",error.Message,true);return 1;},null);}
   }
   static int Install(){
    UpdateRequest request=null;InstallerOperation operation=InstallerOperation.Install;
    try{
     InstallerProgress.Report("正在检查现有版本和安装包…");
     bool repair;var previous=ExistingApplicationForRepair(out repair);
+    if(ComponentsChanged(previous))repair=true;
     InstallerProgress.Report("正在校验安装包…");string digest=PayloadDigest();
     bool apply=ShouldReplace(previous==null?null:new Version(previous.version),new Version(Version+".0"),previous==null?null:previous.payloadSha256,digest,repair);
     operation=ManualOperation(previous!=null,repair,apply);InstallerProgress.SetOperation(operation,Version);

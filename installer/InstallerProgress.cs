@@ -33,8 +33,12 @@ namespace MoriDeskInstaller {
  }
  internal static class InstallerProgress {
   [ThreadStatic] static InstallerProgressState current;
-  internal static void Report(string stage){try{var state=current;if(state!=null)state.Report(stage);}catch(Exception){}}
-  internal static void SetOperation(InstallerOperation operation,string version){try{var state=current;if(state!=null)state.SetOperation(operation,version);}catch(Exception){}}
+  [ThreadStatic] internal static WizardState Wizard;
+  internal static void Log(string text){if(Wizard!=null)Wizard.Log(text);}
+  internal static void Percent(int value){if(Wizard!=null)Wizard.Progress(value);}
+  internal static void Result(string title,string text,bool error=false,bool warning=false){if(Wizard!=null)Wizard.Result(title,text,error,warning);}
+  internal static void Report(string stage){try{if(Wizard!=null)Wizard.Report(stage);var state=current;if(state!=null)state.Report(stage);}catch(Exception){}}
+  internal static void SetOperation(InstallerOperation operation,string version){try{if(Wizard!=null)Wizard.SetOperation(operation,version);var state=current;if(state!=null)state.SetOperation(operation,version);}catch(Exception){}}
   internal static string OperationText(InstallerOperation operation){
    switch(operation){case InstallerOperation.Install:return "安装";case InstallerOperation.Update:return "更新";case InstallerOperation.Repair:return "修复";case InstallerOperation.VerifyEntrypoints:return "核对启动入口";default:return "准备安装";}
   }

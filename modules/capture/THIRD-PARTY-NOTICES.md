@@ -22,6 +22,8 @@ Tencent and Google translation services are external services, not bundled open-
 
 ## Structured screenshot OCR and translation overlays
 
+- SymSpell 6.7.3 by Wolf Garbe: MIT code, unmodified netstandard2.0 binary. https://github.com/wolfgarbe/SymSpell/tree/v6.7.3 . The embedded English dictionary combines Google Books Ngram (CC BY 3.0) and SCOWL data; code and data have separate license notices in `symspell/`. Nook only applies a bounded set of candidates with OCR word evidence and protects the original OCR transcript.
+
 - RapidOcrNet 4.2.0 and PaddleOCR PP-OCRv5 mobile Chinese/English models: Apache-2.0. The short-lived `ocr-engine` component carries pinned model hashes and all dependency notices.
 - STranslate layout analyzer: MIT, copyright 2022 zggsong, pinned revision `75f616a257bcf34d78d8929152fb579886d1d8e5`. https://github.com/STranslate/STranslate
 - Nook's measured overlay rendering adapts the layout approach to .NET Framework, adding bounded region expansion and an always-available transcript. Full MIT text is retained in `licenses/STranslate-MIT.txt`.

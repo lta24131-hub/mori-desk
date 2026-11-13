@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -72,7 +72,7 @@ namespace MoriDesk {
     AppUpdateRegistration registration;
     if(main==null||!main.Dispatcher.CheckAccess()||!main.IsLoaded||!main.IsVisible||!windows.TryGetValue(main,out registration)||registration.Preview()||!Entry.InteractiveShell)return false;
     Version current=typeof(Entry).Assembly.GetName().Version;if(expectedVersion!=VersionText(current))return false;
-    string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),programRoot=Path.Combine(local,"Programs","MoriDesk"),session=StartupSession(requestPath,Path.Combine(local,"MoriDesk","updates"));
+    string local=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),programRoot=InstalledApplicationState.ProgramRoot,session=StartupSession(requestPath,Path.Combine(local,"MoriDesk","updates"));
     PlainPath(requestPath);string request=ReadSessionRecord(session,"request.json");ValidateStartupRequest(request,expectedVersion,programRoot);
     string ready=ReadSessionRecord(session,"ready.json");ReadRecord(ready,current,"ready");
     if(File.Exists(Path.Combine(session,"cancel.request"))||File.Exists(Path.Combine(session,"result.json"))||File.Exists(Path.Combine(session,"startup-ready.json")))return false;

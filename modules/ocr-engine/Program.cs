@@ -14,7 +14,9 @@ internal static class Program
         if (args.Length == 1 && args[0].StartsWith("--ocr-worker=", StringComparison.Ordinal)) return PipeWorker.Execute(args[0][13..]);
         try
         {
-            if (args.Length != 1 || (args[0] != "--benchmark" && args[0] != "--screen" && args[0] != "--tiles" && args[0] != "--url-seam" && args[0] != "--layout-fixtures") ||
+            if (args.Length > 0 && args[0] == "--phase-diagnostic")
+                return ScreenOcrDiagnosticCommand.Run(args[1..]);
+            if (args.Length != 1 || (args[0] != "--benchmark" && args[0] != "--screen" && args[0] != "--tiles" && args[0] != "--url-seam" && args[0] != "--layout-fixtures" && args[0] != "--layout-regressions" && args[0] != "--region-fixtures") ||
                 !Environment.UserName.Equals("NookTester", StringComparison.OrdinalIgnoreCase) ||
                 !AppContext.BaseDirectory.StartsWith(@"C:\NookLab\Audit\apps\", StringComparison.OrdinalIgnoreCase) ||
                 !(Environment.GetEnvironmentVariable("MORI_DESK_DATA") ?? "").StartsWith(@"C:\NookLab\Audit\data\", StringComparison.OrdinalIgnoreCase))
@@ -23,6 +25,8 @@ internal static class Program
             else if(args[0]=="--tiles") TileBenchmark();
             else if(args[0]=="--url-seam") UrlSeamBenchmark();
             else if(args[0]=="--layout-fixtures") LayoutFixtures();
+            else if(args[0]=="--layout-regressions") ScreenLayoutRegressionFixtures.Run();
+            else if(args[0]=="--region-fixtures") ScreenRegionRegressionFixtures.Run();
             else Benchmark();
             return 0;
         }

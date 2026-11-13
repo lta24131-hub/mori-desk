@@ -21,7 +21,7 @@
     { "path": "modules/library/src/Settings.Storage.cs", "sha256": "d02b533a36439e888406736b79a66c5ad9044ee233fc7b551547e57efd4454b2" },
     { "path": "modules/library/src/Settings.Customization.cs", "sha256": "bdcebc67192f9fcc6de4d7ae1e2c4a76692ddd2da873c2622e5fe6676eea9251" },
     { "path": "modules/capture/src/Core.cs", "sha256": "f37efc53676a0a29e6017e7aa9e433fc93118e7daf3a35b18412f086d9aa2ea1" },
-    { "path": "modules/capture/src/PinStore.cs", "sha256": "dc1e5086db8aa046a3506eb1b059ad24e1551da203d58096f581ade6bce087e1" },
+    { "path": "modules/capture/src/PinStore.cs", "sha256": "ddb0ede70db90efb5a7a0aba5c2ba8f96962011945c4f767f5a96a99396bd624" },
     { "path": "src/FreeCanvasStore.cs", "sha256": "680b4b3f42553ce1b0a604856c36266c4606f38713936195dca907c58d7ecdf8" },
     { "path": "src/MatureCanvasStore.cs", "sha256": "d5c18593cf8a65303455c4773011b90a3ac8fe1bb743966f7c5263c1f195e9ee" },
     { "path": "modules/library/src/Library.ThumbnailRecovery.cs", "sha256": "9994407b0890252dc250a06c26fdc135a5c5abc7fc0d1936cc5bcb370afc61b8" },

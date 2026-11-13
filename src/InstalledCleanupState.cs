@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -45,7 +45,7 @@ namespace MoriDesk {
    return CaptureWith(currentExecutable,programRoot,()=>{
     PhysicalUserContext.RequireDefault();
     if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA")))throw new InvalidOperationException("alternate-data-context");
-    string expected=Path.Combine(Path.GetDirectoryName(PhysicalUserContext.DefaultRoot),"Programs","MoriDesk");
+    string expected=InstalledApplicationState.ProgramRoot;
     if(!Same(programRoot,expected))throw new InvalidDataException("unexpected-program-root");
     using(OpenPhysical(currentExecutable,0,null)){
      var identity=FileVersionInfo.GetVersionInfo(currentExecutable);
@@ -71,7 +71,7 @@ namespace MoriDesk {
   internal static InstalledCleanupSnapshot CaptureBeforeFirstCommit(string candidateExecutable,string programRoot,IEnumerable<string> protectedPaths=null){
    return CaptureBeforeFirstCommitWith(candidateExecutable,programRoot,()=>{
     PhysicalUserContext.RequireInstalledContext();
-    string expected=Path.Combine(Path.GetDirectoryName(PhysicalUserContext.DefaultRoot),"Programs","MoriDesk");
+    string expected=InstalledApplicationState.ProgramRoot;
     ValidateBeforeFirstCommitPaths(candidateExecutable,programRoot,expected);NoLinks(programRoot);
     string folder=Path.GetDirectoryName(candidateExecutable);if(Exists(folder))NoLinks(folder);
    },()=>Exists(Path.Combine(programRoot,InstalledApplicationState.FileName)),Collect,protectedPaths);
@@ -170,11 +170,14 @@ namespace MoriDesk {
    for(var at=new DirectoryInfo(Path.GetDirectoryName(Path.GetFullPath(path)));at!=null;at=at.Parent)if((at.Attributes&FileAttributes.ReparsePoint)!=0)throw new InvalidDataException("linked-parent");
   }
   static string ActualPath(FileStream file){var text=new StringBuilder(32768);uint size=GetFinalPathNameByHandle(file.SafeFileHandle,text,(uint)text.Capacity,0);if(size==0||size>=text.Capacity)throw new IOException("unverified-physical-file");return text.ToString();}
-  static FileStream OpenPhysical(string path,long maximum,Func<FileStream,string> observe){
-   path=LocalPath(path);NoLinks(path);var file=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
+  static FileStream OpenPhysical(string path,long maximum,Func<FileStream,string> observe,bool allowReplacement=false){
+   path=LocalPath(path);NoLinks(path);var file=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read|(allowReplacement?FileShare.Delete:0));
    try{if(!PhysicalUserContext.SamePhysicalFile(path,(observe??ActualPath)(file))||(maximum>0&&file.Length>maximum))throw new InvalidDataException("unexpected-physical-file");return file;}catch{file.Dispose();throw;}
   }
   internal static string ReadPhysicalText(string path,long maximum,Func<FileStream,string> observe=null){using(var file=OpenPhysical(path,maximum,observe))using(var reader=new StreamReader(file,Encoding.UTF8,true))return reader.ReadToEnd();}
+  // Only display journals opt into atomic replacement while reading a stable
+  // file handle. Ownership/registration evidence retains the stricter default.
+  internal static string ReadReplaceablePhysicalText(string path,long maximum,Func<FileStream,string> observe=null){using(var file=OpenPhysical(path,maximum,observe,true))using(var reader=new StreamReader(file,Encoding.UTF8,true))return reader.ReadToEnd();}
   internal static string ReadShortcut(string path,Func<string,string> readTarget=null,Func<FileStream,string> observe=null){
    using(OpenPhysical(path,4*1024*1024,observe)){
     if(readTarget!=null)return readTarget(path);
@@ -218,7 +221,7 @@ namespace MoriDesk {
    }
    if(recurse)foreach(string child in Directory.EnumerateDirectories(directory))Links(result,child,true,requireCurrent,seen,ref count);
   }
-  static bool IsManagedDefaultTarget(string target){return Inside(target,Path.Combine(Path.GetDirectoryName(PhysicalUserContext.DefaultRoot),"Programs","MoriDesk"));}
+  static bool IsManagedDefaultTarget(string target){return Inside(target,InstalledApplicationState.ProgramRoot);}
   static IEnumerable<InstalledCleanupProcess> Processes(){
    var result=new List<InstalledCleanupProcess>();
    foreach(var process in Process.GetProcesses())using(process){

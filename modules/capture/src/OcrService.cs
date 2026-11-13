@@ -8,7 +8,8 @@ using Windows.Media.Ocr;
 using Windows.Graphics.Imaging;
 
 namespace QingJie {
-    public sealed class WordBox { public string Text; public Rect Box; public int Line; public int TextStart; public string Prefix; public double Confidence=1; }
+    public enum OcrConfidenceSource { Unknown, Model, User }
+    public sealed class WordBox { public string Text; public Rect Box; public int Line; public int TextStart; public string Prefix; public double Confidence=1; public OcrConfidenceSource ConfidenceSource; }
     public sealed class OcrPage { public string Text; public string Notice; public List<WordBox> Words = new List<WordBox>(); public List<TranslationRegion> TranslationRegions=new List<TranslationRegion>(); }
     public static class OcrService {
         public static void IndexText(OcrPage page){var text=new System.Text.StringBuilder();int line=-1;foreach(var word in page.Words){if(text.Length>0){if(line!=word.Line)text.AppendLine();else if(word.Prefix!=null)text.Append(word.Prefix);else if(word.Text.Length>0&&Geometry.NeedsWordSpace(text[text.Length-1],word.Text[0]))text.Append(' ');}word.TextStart=text.Length;text.Append(word.Text);line=word.Line;}page.Text=text.ToString();}

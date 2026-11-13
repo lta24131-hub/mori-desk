@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -137,28 +137,31 @@ namespace MoriDesk {
    if(!Entry.InteractiveShell||!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MORI_DESK_DATA"))||Interlocked.CompareExchange(ref scheduled,1,0)!=0)return;
    // Low-priority maintenance must never hide/terminate the user's main window.
    Task.Run(async ()=>{
-    string local=null;
+    string local=null;InstallCleanupProgress display=null;
+    Action<string,string,InstalledCleanupResult> publish=(status,reason,result)=>{Publish(local,status,reason,result,notify);if(display!=null)display.Finish(status,SummaryFromReport(ReportJson(status,reason,result)));};
     try{
      PhysicalUserContext.RequireDefault();local=Path.GetDirectoryName(PhysicalUserContext.DefaultRoot);
-     string executable=typeof(Entry).Assembly.Location,root=Path.Combine(local,"Programs","MoriDesk");
-     if(!OpenWithRegistration.ManagedPath(executable,root)){Publish(local,"not-applicable","unmanaged-install",null,notify);return;}
-     if(!File.Exists(Path.Combine(Path.GetDirectoryName(executable),InstalledVersionCleanup.ManifestName))){Publish(local,"review-required","current-without-manifest",null,notify);return;}
+     string executable=typeof(Entry).Assembly.Location,root=InstalledApplicationState.ProgramRoot;
+     if(!OpenWithRegistration.ManagedPath(executable,root)){publish("not-applicable","unmanaged-install",null);return;}
+     if(!File.Exists(Path.Combine(Path.GetDirectoryName(executable),InstalledVersionCleanup.ManifestName))){publish("review-required","current-without-manifest",null);return;}
      bool updateLaunch=!string.IsNullOrEmpty(updateRequest)||!string.IsNullOrEmpty(expectedVersion);string session=null;
      if(updateLaunch){
-      if(string.IsNullOrEmpty(updateRequest)||string.IsNullOrEmpty(expectedVersion)){Publish(local,"deferred","incomplete-update-session",null,notify);return;}
-      if(!ExpectedVersionMatches(expectedVersion,typeof(Entry).Assembly.GetName().Version)){Publish(local,"deferred","running-version-mismatch",null,notify);return;}
+      if(string.IsNullOrEmpty(updateRequest)||string.IsNullOrEmpty(expectedVersion)){publish("deferred","incomplete-update-session",null);return;}
+      if(!ExpectedVersionMatches(expectedVersion,typeof(Entry).Assembly.GetName().Version)){publish("deferred","running-version-mismatch",null);return;}
       session=AppUpdateCoordinator.StartupSession(updateRequest,Path.Combine(local,"MoriDesk","updates"));
+      display=new InstallCleanupProgress(session,executable,typeof(Entry).Assembly.GetName().Version.ToString());display.Log("正在等待版本切换确认…");
      }
      Func<bool> cancelled=()=>session!=null&&File.Exists(Path.Combine(session,"cancel.request"));
      Func<string> read=()=>session==null?null:ReadCommit(Path.Combine(session,"result.json"));
      if(!await WaitForCommitAsync(updateLaunch,read,expectedVersion,cancelled,()=>Task.Delay(500),80).ConfigureAwait(false)){
-      Publish(local,"deferred",cancelled()?"update-cancelled":"update-not-committed",null,notify);return;
+      publish("deferred",cancelled()?"update-cancelled":"update-not-committed",null);return;
      }
      string expectedIdentity=null;
      Func<bool> committed=()=>!updateLaunch||CommittedUpdate(read(),expectedVersion);
      Func<bool> ready=()=>integrationReady==null||integrationReady();
      // A rendered library is not proof that a configured browser bridge works.
      // Keep the old payload if postcommit connection recovery has not completed.
+     if(display!=null)display.Log("正在检查启动入口与浏览器连接…");
      if(integrationReady!=null){
       for(int attempt=0;attempt<40&&!integrationReady();attempt++)await Task.Delay(500).ConfigureAwait(false);
      }
@@ -192,7 +195,7 @@ namespace MoriDesk {
             new[]{Path.Combine(local,"Nook","ConversionComponents")},ValidateProtectedPath);
            var state=InstalledCleanupState.Capture(executable,root,paths);
            return CleanupGate(executable,state,!cancelled()&&committed()&&ready(),paths);
-          },InstalledLegacyPayloadCatalog.TryCertify);
+          },InstalledLegacyPayloadCatalog.TryCertify,display==null?null:(Action<string>)display.Log);
           // Reuse the healthy-install gate and lease. Downloads/backups live
           // inside dataRoot, so protect its actual user-content children plus
           // BOTH live and saved storage routes instead of excluding dataRoot.
@@ -206,6 +209,7 @@ namespace MoriDesk {
            };
            var protectedArtifacts=ProtectedRoutes(Path.Combine(Entry.DataRoot,"capture"),libraryPath,saved,Mori.Settings.DefaultConversionOutputPath,new[]{Path.Combine(local,"Nook","ConversionComponents"),Path.Combine(Entry.DataRoot,"free-canvas"),Path.Combine(Entry.DataRoot,"browser")},ValidateProtectedPath);
            var pass=UpdateArtifactMaintenance.Clean(Path.Combine(Entry.DataRoot,"updates"),typeof(Entry).Assembly.GetName().Version,DateTime.UtcNow,protectedArtifacts,artifactGuard);
+           if(display!=null)display.Log("已清理历史下载 "+pass.downloads+" 项、过期备份 "+pass.backups+" 项。");
            artifacts.downloads+=pass.downloads;artifacts.backups+=pass.backups;artifacts.bytes+=pass.bytes;artifacts.retained=pass.retained;
            UpdateArtifactMaintenance.SaveReport(Entry.DataRoot,artifacts);
            if(pass.retry)return new InstalledMaintenanceAttempt(StateFor(result),ReasonFor(result),result){ArtifactRetry=true};
@@ -216,12 +220,12 @@ namespace MoriDesk {
        }
       }catch(BusyInstallationException){return new InstalledMaintenanceAttempt("deferred","maintenance-busy");}
       catch(Exception error){if(InstalledVersionCleanup.RetryFor(error)==InstalledCleanupRetry.FileInUse)return new InstalledMaintenanceAttempt("deferred","file-occupation");throw;}
-     },()=>Task.Delay(30000)).ConfigureAwait(false);
-     Publish(local,outcome.State,outcome.Reason,outcome.Result,notify);
+     },()=>{if(display!=null)display.Log("部分文件仍在使用，30 秒后复查一次…");return Task.Delay(30000);}).ConfigureAwait(false);
+     publish(outcome.State,outcome.Reason,outcome.Result);
     }catch(Exception error){
      // No raw exception message, credential, document or full path in reports.
      Trace.WriteLine("Nook version cleanup deferred: "+error.GetType().Name);
-     if(local!=null)Publish(local,"failed","maintenance-error",null,notify);
+     if(local!=null)publish("failed","maintenance-error",null);
      else Notify(notify,"无法确认清理环境，未清理旧版本；当前版本和资料保留。");
     }
    });

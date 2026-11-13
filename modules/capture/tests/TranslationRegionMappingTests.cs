@@ -53,7 +53,25 @@ internal static class TranslationRegionMappingTests {
         sent.Clear();var withNames=await Translation.TranslateImageCore(new[]{"Use SolidCraft and Discord for support."},CancellationToken.None,(batch,language,token)=>{
             sent.AddRange(batch);return Task.FromResult(batch.Select(t=>t.Replace("Use","使用").Replace("and","和").Replace("for support.","获取帮助。")).ToArray());
         });
-        check(sent.All(t=>!t.Contains("SolidCraft")&&!t.Contains("Discord"))&&withNames[0]=="使用 SolidCraft 和 Discord 获取帮助。","inline product names remain literal while surrounding instructions translate");
+        check(sent.SequenceEqual(new[]{"Use SolidCraft and Discord for support."})&&withNames[0]=="使用 SolidCraft 和 Discord 获取帮助。","inline names retain full sentence context in a single provider request");
+        sent.Clear();var natural=await Translation.TranslateImageCore(new[]{"Unlike Discord, GitHub is not where I chat with friends."},CancellationToken.None,(batch,language,token)=>{
+            sent.AddRange(batch);return Task.FromResult(new[]{"我在Discord上与朋友聊天，而GitHub并不是聊天的地方。"});
+        });
+        check(sent.Count==1&&natural[0]=="我在Discord上与朋友聊天，而GitHub并不是聊天的地方。","natural reordered translation with Chinese touching names needs no fallback");
+        foreach(var damaged in new[]{"用开放人工智能检查。","用MyOpenAI检查。","用OpenAIs检查。","用OpenAI和OpenAI检查。","用openai检查。"}){
+            calls=0;sent.Clear();var repaired=await Translation.TranslateImageCore(new[]{"Use OpenAI to check.","Save the file."},CancellationToken.None,(batch,language,token)=>{
+                calls++;sent.AddRange(batch);return Task.FromResult(calls==1?new[]{damaged,"保存文件。"}:batch.Select(t=>t=="Use"?"使用":t=="to check."?"检查。":"意外请求").ToArray());
+            });
+            check(calls==2&&repaired.SequenceEqual(new[]{"使用 OpenAI 检查。","保存文件。"})&&sent.SequenceEqual(new[]{"Use OpenAI to check.","Save the file.","Use","to check."}),"only the region with renamed, embedded, repeated or recased names falls back");
+        }
+        calls=0;var repeated=await Translation.TranslateImageCore(new[]{"OpenAI works with OpenAI."},CancellationToken.None,(batch,language,token)=>{
+            calls++;return Task.FromResult(calls==1?new[]{"OpenAI合作。"}:new[]{"合作"});
+        });
+        check(calls==2&&repeated[0]=="OpenAI 合作 OpenAI.","a missing second name is restored without collapsing repeated occurrences");
+        calls=0;using(var cancel=new CancellationTokenSource()){
+            bool stopped=false;try{await Translation.TranslateImageCore(new[]{"Use OpenAI to check."},cancel.Token,(batch,language,token)=>{calls++;cancel.Cancel();return Task.FromResult(new[]{"损坏名称"});});}catch(OperationCanceledException){stopped=true;}
+            check(stopped&&calls==1,"cancellation never starts literal fallback after a damaged provider reply");
+        }
         sent.Clear();var wrapped=new[]{"Sketch, constrain and build solids on an editable\nfeature timeline: change a dimension and the model rebuilds.","First paragraph.\n\nSecond paragraph.","- First item\n  continues here.\n- Second item","参数化模型\n可以修改尺寸"};
         await Translation.TranslateImageCore(wrapped,CancellationToken.None,(batch,language,token)=>{sent.AddRange(batch);return Task.FromResult(batch.Select(t=>"译："+t).ToArray());});
         check(sent[0]=="Sketch, constrain and build solids on an editable feature timeline: change a dimension and the model rebuilds.","physical OCR line wraps reach the provider as one complete sentence");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -99,7 +99,7 @@ namespace MoriDesk {
   }
   static bool CanAutoUpdateHere(){
    try{
-    string executable=Assembly.GetExecutingAssembly().Location,programRoot=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk");
+    string executable=Assembly.GetExecutingAssembly().Location,programRoot=InstalledApplicationState.ProgramRoot;
     if(!IsManagedUpdateLocation(executable,programRoot))return false;
     AppUpdateCoordinator.PlainPath(executable);return true;
    }catch(ArgumentException){return false;}catch(IOException){return false;}catch(InvalidDataException){return false;}catch(UnauthorizedAccessException){return false;}catch(System.Security.SecurityException){return false;}catch(NotSupportedException){return false;}

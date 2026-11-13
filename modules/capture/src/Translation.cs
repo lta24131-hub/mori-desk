@@ -25,15 +25,37 @@ namespace QingJie {
         static string ProviderCacheKey(string provider){provider=ResolveProvider(provider);return provider=="offline"?provider+":"+OfflinePacks.CacheIdentity:provider;}
         static HttpClient CreateClient(){ServicePointManager.SecurityProtocol|=SecurityProtocolType.Tls12;var c=new HttpClient(new HttpClientHandler{UseProxy=false}){Timeout=TimeSpan.FromSeconds(12),MaxResponseContentBufferSize=1024*1024};c.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0");c.DefaultRequestHeaders.Referrer=new Uri("https://transmart.qq.com/");return c;}
         internal static string TargetLanguage(string target){if(target!="zh"&&target!="en")throw new ArgumentException("请选择译成中文或英文。","target");return target;}
-        internal static string TextCacheKey(string text,string target,string provider=null){return "text:"+ProviderCacheKey(provider)+":"+TargetLanguage(target)+":"+SourceLanguage(text)+":"+text;}
+        internal static string TextCacheKey(string text,string target,string provider=null){return "text:keep-abbreviations-v1:"+ProviderCacheKey(provider)+":"+TargetLanguage(target)+":"+SourceLanguage(text)+":"+text;}
         // Image terminology policy is part of the result, not just the provider.
         // Old cached mistranslations must not bypass an updated context policy.
-        const string ImageContextVersion="indexed-regions-v8-softwraps";
+        internal const string ImageContextVersion="indexed-regions-v12-evidence-lexicon";
+        const string ImageLiteralPattern=@"(?i:https?://|www\.)[^\s<>\[\]()""]+(?:\r?\n[^\s<>\[\]()""]*/[^\s<>\[\]()""]*)?|(?<![\p{L}\p{N}_])(?:GitHub|GitLab|OpenAI|ChatGPT|Discord|macOS|FreeBSD|[A-Z][a-z]+(?:[A-Z][a-z]+)+)(?![\p{L}\p{N}_])";
+        static readonly string[][] imageAbbreviations={
+            new[]{"AI","artificial intelligence","人工智能"},
+            new[]{"UI","user interface","用户界面"},
+            new[]{"UX","user experience","用户体验"},
+            new[]{"API","application programming interface","应用程序编程接口","应用程序接口","应用编程接口"},
+            new[]{"CPU","central processing unit","中央处理单元","中央处理器"},
+            new[]{"GPU","graphics processing unit","图形处理单元","图形处理器"},
+            new[]{"PDF","portable document format","可移植文档格式","便携式文档格式"},
+            new[]{"USB","universal serial bus","通用串行总线"}
+        };
         internal static string ImageCacheKey(IList<string> texts,string target,string provider=null){return "image:"+ImageContextVersion+":"+ProviderCacheKey(provider)+":"+TargetLanguage(target)+":"+new JavaScriptSerializer().Serialize(texts);}
         public static async Task<string> Translate(string text,CancellationToken cancel,string targetLanguage="zh",string provider=null) {
             cancel.ThrowIfCancellationRequested();if(string.IsNullOrWhiteSpace(text))throw new InvalidOperationException("请先选择要翻译的文字。");
             provider=ResolveProvider(provider);string key=TextCacheKey(text,targetLanguage,provider);var saved=cache.Get(key);if(saved!=null)return saved[0];
-            var result=await TranslateMany(new[]{text},cancel,SourceLanguage(text),targetLanguage,provider);cancel.ThrowIfCancellationRequested();cache.Put(key,result);return result[0];
+            var result=await TranslateTextCore(text,cancel,(batch,language,token)=>TranslateMany(batch,token,language,targetLanguage,provider),targetLanguage);cancel.ThrowIfCancellationRequested();cache.Put(key,new[]{result});return result;
+        }
+        internal static async Task<string> TranslateTextCore(string text,CancellationToken cancel,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,string targetLanguage="zh"){
+            cancel.ThrowIfCancellationRequested();TargetLanguage(targetLanguage);
+            if(string.IsNullOrWhiteSpace(text))throw new InvalidOperationException("请先选择要翻译的文字。");
+            if(text.Length>10000)throw new InvalidOperationException("文字区域太大，请分区域翻译。");
+            if(imageAbbreviations.Any(term=>text.Trim()==term[0]))return text;
+            // General text keeps its spelling and paragraph breaks. OCR callers
+            // normalize their own payload before sharing this preference.
+            var source=new[]{text};var output=await translate(source,SourceLanguage(text),cancel);cancel.ThrowIfCancellationRequested();
+            if(output==null||output.Length!=1||string.IsNullOrWhiteSpace(output[0]))throw new InvalidOperationException("译文不完整，请重试。");
+            return KeepAbbreviations(source,output,targetLanguage)[0];
         }
         public static string SourceLanguage(string text){
             if(text.Count(Geometry.IsHangul)>=2)return "ko";
@@ -55,7 +77,7 @@ namespace QingJie {
             // Translating a Chinese-only UI label back into Chinese can corrupt
             // dates, version punctuation and OCR's uncertain button outlines.
             // Keep genuine foreign-language content on the normal route.
-            return !text.Any(c=>char.IsLetter(c)&&(target!="zh"||c<'\u3400'||c>'\u9fff'))||
+            return imageAbbreviations.Any(term=>text.Trim()==term[0])||!text.Any(c=>char.IsLetter(c)&&(target!="zh"||c<'\u3400'||c>'\u9fff'))||
                 Regex.IsMatch(text.Trim(),@"^(?:GitHub|GitLab|OpenAI|ChatGPT|macOS|Windows|Linux|FreeBSD|Discord)(?:\s+\S)?$",RegexOptions.IgnoreCase)||
                 Regex.IsMatch(text.Trim(),@"^[A-Z][a-z]+(?:[A-Z][a-z]+)+$");
         }
@@ -76,13 +98,41 @@ namespace QingJie {
         // bracketed numbers are content, never control markers sent to a translator.
         internal static async Task<string[]> TranslateImageCore(IList<string> texts,CancellationToken cancel,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,string targetLanguage="zh",Func<string,string,CancellationToken,Task<string>> retryUntranslated=null){
             cancel.ThrowIfCancellationRequested();ValidateImage(texts);TargetLanguage(targetLanguage);
+            var matches=texts.Select(text=>Regex.Matches(text,ImageLiteralPattern,RegexOptions.CultureInvariant).Cast<Match>().ToArray()).ToArray();
+            var translated=texts.ToArray();
+            // Translate complete sentences, including product names, first.
+            // URLs stay local; rejected/missing names alone use the exact-literal
+            // fallback. No invented placeholders or sentence-specific rewrites.
+            var direct=Enumerable.Range(0,texts.Count).Where(i=>!matches[i].Any(m=>IsImageLink(m.Value))).ToArray();
+            if(direct.Length>0){
+                var values=await TranslateImageBatches(direct.Select(i=>texts[i]).ToArray(),cancel,translate,targetLanguage,retryUntranslated);
+                for(int i=0;i<direct.Length;i++)translated[direct[i]]=values[i];
+            }
+            var fallback=Enumerable.Range(0,texts.Count).Where(i=>matches[i].Any(m=>IsImageLink(m.Value))||!ImageNamesIntact(matches[i],translated[i])).ToArray();
+            if(fallback.Length>0){
+                var values=await TranslateLiteralImageRegions(fallback.Select(i=>texts[i]).ToArray(),cancel,translate,targetLanguage,retryUntranslated);
+                for(int i=0;i<fallback.Length;i++)translated[fallback[i]]=values[i];
+            }
+            cancel.ThrowIfCancellationRequested();return RestoreImageRegions(texts,KeepImageAbbreviations(texts,targetLanguage=="zh"?DeviceTerms(texts,translated):translated,targetLanguage),targetLanguage);
+        }
+        static bool IsImageLink(string text){return text.StartsWith("http://",StringComparison.OrdinalIgnoreCase)||text.StartsWith("https://",StringComparison.OrdinalIgnoreCase)||text.StartsWith("www.",StringComparison.OrdinalIgnoreCase);}
+        static bool ImageNamesIntact(IEnumerable<Match> names,string translated){
+            foreach(var group in names.GroupBy(m=>m.Value,StringComparer.Ordinal)){
+                // Chinese translation can touch a Latin name without a space.
+                // Latin identifier boundaries still reject renamed/embedded tokens.
+                string pattern=@"(?<![A-Za-z0-9_])"+Regex.Escape(group.Key)+@"(?![A-Za-z0-9_])";
+                if(Regex.Matches(translated,pattern,RegexOptions.CultureInvariant).Count!=group.Count())return false;
+            }
+            return true;
+        }
+        static async Task<string[]> TranslateLiteralImageRegions(IList<string> texts,CancellationToken cancel,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,string targetLanguage,Func<string,string,CancellationToken,Task<string>> retryUntranslated){
             // Links are literal data. Keep them locally rather than trusting a
             // provider to preserve placeholder markers or URL spelling. Only
             // prose segments go through the same indexed, bounded batching.
             var pieces=new List<string>();var joins=new List<int[]>();var literal=new HashSet<int>();
             foreach(string source in texts){
                 var indices=new List<int>();int end=0;
-                foreach(Match match in Regex.Matches(source,@"(?i:https?://|www\.)[^\s<>\[\]()""]+(?:\r?\n[^\s<>\[\]()""]*/[^\s<>\[\]()""]*)?|(?<![\p{L}\p{N}_])(?:GitHub|GitLab|OpenAI|ChatGPT|Discord|macOS|FreeBSD|[A-Z][a-z]+(?:[A-Z][a-z]+)+)(?![\p{L}\p{N}_])",RegexOptions.CultureInvariant)){
+                foreach(Match match in Regex.Matches(source,ImageLiteralPattern,RegexOptions.CultureInvariant)){
                     if(match.Index>end){indices.Add(pieces.Count);pieces.Add(source.Substring(end,match.Index-end));}
                     indices.Add(pieces.Count);literal.Add(pieces.Count);pieces.Add(match.Value);end=match.Index+match.Length;
                 }
@@ -103,6 +153,9 @@ namespace QingJie {
                 }
                 cancel.ThrowIfCancellationRequested();return joins.Select(indices=>string.Concat(indices.Select(i=>result[i]))).ToArray();
             }
+            return await TranslateImageBatches(texts,cancel,translate,targetLanguage,retryUntranslated);
+        }
+        static async Task<string[]> TranslateImageBatches(IList<string> texts,CancellationToken cancel,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,string targetLanguage,Func<string,string,CancellationToken,Task<string>> retryUntranslated){
             var translated=texts.ToArray();var batches=new List<int[]>();var current=new List<int>();int length=0;string language=null;
             for(int i=0;i<texts.Count;i++){
                 if(PreserveImageRegion(texts[i],targetLanguage))continue;
@@ -118,16 +171,44 @@ namespace QingJie {
             }
             cancel.ThrowIfCancellationRequested();
             if(targetLanguage=="zh"&&retryUntranslated!=null)translated=await RetryUntranslatedEnglish(texts,translated,cancel,retryUntranslated);
-            cancel.ThrowIfCancellationRequested();return RestoreImageRegions(texts,targetLanguage=="zh"?DeviceTerms(texts,translated):translated,targetLanguage);
+            cancel.ThrowIfCancellationRequested();return translated;
+        }
+        internal static string[] KeepImageAbbreviations(IList<string> sources,IList<string> translated,string targetLanguage){
+            return KeepAbbreviations(sources.Select(ImageTranslationInput).ToArray(),translated,targetLanguage);
+        }
+        static string[] KeepAbbreviations(IList<string> sources,IList<string> translated,string targetLanguage){
+            // Send the complete sentence to the provider, so abbreviations do
+            // not split its grammar/context. Restore only known expansions of
+            // abbreviations actually present in this source region. Ambiguous
+            // occurrence counts or explicit long-form wording stay untouched.
+            return translated.Select((value,index)=>{
+                if(targetLanguage!="zh")return value;
+                string source=sources[index];
+                foreach(var term in imageAbbreviations){
+                    if(source.IndexOf(term[0],StringComparison.Ordinal)<0)continue;
+                    string pattern=@"(?<![A-Za-z0-9_])"+term[0]+@"(?![A-Za-z0-9_])";
+                    int expected=Regex.Matches(source,pattern).Count;
+                    if(expected==0||source.IndexOf(term[1],StringComparison.OrdinalIgnoreCase)>=0||term.Skip(2).Any(source.Contains))continue;
+                    string expansions=string.Join("|",term.Skip(2).Select(Regex.Escape));
+                    int expanded=Regex.Matches(value,expansions).Count;
+                    if(expanded>0&&expanded+Regex.Matches(value,pattern).Count==expected)value=Regex.Replace(value,expansions,term[0]);
+                }
+                return value;
+            }).ToArray();
         }
         static async Task TranslateIndexedBatch(IList<string> sources,string[] destination,int[] indices,Func<IList<string>,string,CancellationToken,Task<string[]>> translate,SemaphoreSlim slots,CancellationTokenSource stop){
             await slots.WaitAsync(stop.Token);
             try{
-                var input=indices.Select(i=>ImageProse(sources[i])).ToArray();
+                var input=indices.Select(i=>ImageTranslationInput(sources[i])).ToArray();
                 var output=await translate(input,SourceLanguage(input[0]),stop.Token);stop.Token.ThrowIfCancellationRequested();
                 if(output==null||output.Length!=indices.Length||output.Any(string.IsNullOrWhiteSpace))throw new InvalidOperationException("译文不完整，已保留原图，请重试。");
                 for(int i=0;i<indices.Length;i++)destination[indices[i]]=output[i];
             }catch{stop.Cancel();throw;}finally{slots.Release();}
+        }
+        internal static string ImageTranslationInput(string source){
+            // Spelling belongs to OcrTranslationInput, where model evidence is
+            // available. String-only/selected/manual text must not be guessed.
+            return ImageProse(source);
         }
         internal static string ImageProse(string source){
             // OCR rows describe screen geometry, not sentence boundaries. Feed

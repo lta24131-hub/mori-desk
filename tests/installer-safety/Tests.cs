@@ -98,6 +98,45 @@ namespace MoriDeskInstaller {
    closed=false;bool failed=false;try{InstallerProgress.Run(()=>{throw new IOException("synthetic rollback");},value=>()=>closed=value.Snapshot().Finished);}catch(IOException){failed=true;}
    Check(failed&&closed,"transaction failure still completes the progress presentation and propagates to normal error handling");
   }
+  static void WizardChecks(){
+   var state=new WizardState();Check(!state.Close()&&state.Snapshot().CloseRequested,"close during replacement cannot cancel the transaction");
+   state.Progress(48);state.Progress(11);Check(state.Snapshot().Percent==48,"progress does not move backward");state.Progress(100);Check(state.Snapshot().Percent==99,"only verified completion may display 100 percent");
+   for(int i=0;i<2400;i++)state.Log("file "+i);var logs=state.Snapshot();Check(logs.Lines.Length==WizardState.MaximumLines&&logs.Lines[0].Sequence==1601&&logs.Sequence==2400,"log memory is bounded while sequence stays monotonic");
+   state.Wait(true);Check(state.Close(),"waiting for app exit allows cancelling without a held installation lease");state.Wait(false);Check(!state.Close(),"retry returns to protected transaction state");
+   state.Result("failed","rollback finished",true);state.Complete();state.Progress(100);state.Log("late");Check(state.Snapshot().Failed&&state.Snapshot().Percent==99&&state.Snapshot().Sequence==2401&&state.Close(),"failure never becomes a successful full bar and late updates are ignored");
+   var plan=new InstallerPlan{Location=@"D:\Apps\Nook",Components=new[]{new InstallerComponent{Directory="ocr-engine",Selected=false,Bytes=100},new InstallerComponent{Directory="scroll-capture",Selected=true,Bytes=200}},CoreBytes=50};
+   Check(!plan.Includes(@"OCR-ENGINE\model.bin")&&plan.Includes(@"scroll-capture\main.exe")&&plan.Includes("Mori.exe")&&plan.SelectedBytes==250,"optional installation excludes only whole declared component roots and counts selected bytes");
+   var copy=plan.Copy();copy.Components[0].Selected=true;Check(!plan.Components[0].Selected&&copy.SelectedBytes==350,"UI decisions are deep copies, not live mutable checkbox objects");
+   Check(MoriDesk.InstalledApplicationState.ValidateLocation(@"D:\Apps\Nook")==@"D:\Apps\Nook","custom location accepts dedicated local app folder");
+   foreach(string path in new[]{@"D:\",@"\\server\share\Nook",@"D:\Apps\..\Nook",@"D:\Apps.\Nook",@"D:\Apps\Other",@"D:\Apps\Nook:stream"})Rejected(()=>MoriDesk.InstalledApplicationState.ValidateLocation(path),"ambiguous/non-dedicated install location rejected: "+path);
+   var cleanup=new InstallCleanupView{schemaVersion=1,executable=@"C:\Apps\Nook\0.1.43\Mori.exe",version="0.1.43.0",sequence=2,lines=new[]{new InstallCleanupLine{sequence=1,text="deleted"},new InstallCleanupLine{sequence=2,text="done"}},finished=true,state="complete",summary="No old versions"};
+   Func<string> encode=()=>new JavaScriptSerializer().Serialize(cleanup);
+   Check(Program.ParseCleanupProgress(encode(),cleanup.executable,cleanup.version).finished,"cleanup display accepts a result bound to this exact version and executable");
+   Rejected(()=>Program.ParseCleanupProgress(encode(),@"C:\Other\Mori.exe",cleanup.version),"another installation cannot complete this progress page");
+   cleanup.lines[1].sequence=1;Rejected(()=>Program.ParseCleanupProgress(encode(),cleanup.executable,cleanup.version),"duplicate cleanup log sequence is rejected");cleanup.lines[1].sequence=2;
+   cleanup.state="unknown";Rejected(()=>Program.ParseCleanupProgress(encode(),cleanup.executable,cleanup.version),"unknown final cleanup state cannot claim success");
+   string journalRoot=Path.Combine(Path.GetTempPath(),"Nook-wizard-journal-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(journalRoot);
+   var journal=new InstallCleanupProgress(journalRoot,cleanup.executable,cleanup.version);journal.Log("checking");
+   string journalPath=Path.Combine(journalRoot,InstallCleanupProgress.FileName);
+   Check(File.Exists(journalPath),"first cleanup progress write creates the absent session journal");
+   journal.Log("deleted");journal.Finish("complete","Old program removed");
+   var persisted=Program.ParseCleanupProgress(File.ReadAllText(journalPath),cleanup.executable,cleanup.version);
+   Check(persisted.finished&&persisted.state=="complete"&&persisted.lines.Length==2&&persisted.lines[1].text=="deleted","final cleanup write atomically replaces the journal and flushes buffered lines");
+   // Reproduce the real race: the app publishes the final journal while the
+   // installer has the previous snapshot open. The writer must not lose it.
+   string snapshot=MoriDesk.InstalledCleanupState.ReadReplaceablePhysicalText(journalPath,512*1024,file=>{journal.Finish("complete","Concurrent final result");return journalPath;});
+   Check(Program.ParseCleanupProgress(snapshot,cleanup.executable,cleanup.version).summary=="Old program removed"&&Program.ParseCleanupProgress(File.ReadAllText(journalPath),cleanup.executable,cleanup.version).summary=="Concurrent final result","display reader holds a stable snapshot while final atomic replacement succeeds");
+   using(var locked=new FileStream(journalPath,FileMode.Open,FileAccess.ReadWrite,FileShare.None))Check(Program.ReadCleanupProgress(()=>MoriDesk.InstalledCleanupState.ReadReplaceablePhysicalText(journalPath,512*1024),cleanup.executable,cleanup.version)==null,"temporary journal sharing conflict waits for another poll instead of ending cleanup");
+   Check(Program.ReadCleanupProgress(()=>MoriDesk.InstalledCleanupState.ReadReplaceablePhysicalText(journalPath,512*1024),cleanup.executable,cleanup.version).finished,"polling resumes and observes final completion after the file lock is released");
+   Check(Program.ReadCleanupProgress(()=>{throw new FileNotFoundException();},cleanup.executable,cleanup.version)==null,"absent or atomically replaced journal is retried");
+   Rejected(()=>Program.ReadCleanupProgress(()=>"invalid",cleanup.executable,cleanup.version),"malformed cleanup data is not swallowed as a transient sharing conflict");
+   bool denied=false;try{Program.ReadCleanupProgress(()=>{throw new UnauthorizedAccessException();},cleanup.executable,cleanup.version);}catch(UnauthorizedAccessException){denied=true;}Check(denied,"journal permission failures still fail visibly instead of being retried as progress");
+   bool held=false;int attempts=0,decisions=0;var order=new List<string>();state=new WizardState();
+   int result=InstallerWizard.Execute(state,()=>{Check(!held,"all wizard decisions occur outside the transaction lease");decisions++;order.Add("decision");return true;},()=>{held=true;try{attempts++;order.Add("attempt");return attempts==1?Program.ManualNeedsExit:0;}finally{held=false;}},()=>{Check(!held,"maintenance wait is after release so app cleanup can acquire its lease");order.Add("cleanup");},()=>{Check(!held&&state.Snapshot().Finished,"Finish waits only after release and final result");order.Add("finish");});
+   Check(result==0&&decisions==2&&attempts==2&&string.Join(",",order.ToArray())=="decision,attempt,decision,attempt,cleanup,finish","single wizard retries without reopening windows or holding a lease across human input");
+   attempts=0;result=InstallerWizard.Execute(new WizardState(),()=>false,()=>{attempts++;return 0;},()=>{throw new Exception("unexpected cleanup");},()=>{throw new Exception("unexpected finish");});Check(result==2&&attempts==0,"cancelling before confirmation does no installation or cleanup");
+   state=new WizardState();result=InstallerWizard.Execute(state,()=>true,()=>{throw new IOException("transaction rollback");},()=>{throw new Exception("must not clean on failure");},()=>{});Check(result==1&&state.Snapshot().Failed&&state.Snapshot().Percent<100,"transaction exception remains in same wizard as failure, without cleanup");
+  }
   static void StartupChecks(){
    string executable=@"C:\Generated\Programs\MoriDesk\0.1.24\Mori.exe";
    Action<string> verify=text=>Program.ValidateStartupReceipt(text,Program.InstallerVersion,executable,42,638960000000000001L);
@@ -170,7 +209,7 @@ namespace MoriDeskInstaller {
   }
   [STAThread]public static int Main(string[] args){
    try{
-    VersionChecks();ManualFlowChecks();ProgressChecks();TaskbarShortcutChecks();
+    VersionChecks();ManualFlowChecks();ProgressChecks();WizardChecks();TaskbarShortcutChecks();
     foreach(string product in new[]{"Mori Desk","mori desk","MORI DESK","Nook","nook","NOOK"}){
      Check(Program.MatchesRunningProcess(20,1,product,"Mori.exe",10,1),"same-session legacy or new product blocks installation: "+product);
      Check(Program.MatchesRunningProcess(20,1,product,"mori.exe",10,1),"stable original-filename comparison is case insensitive: "+product);

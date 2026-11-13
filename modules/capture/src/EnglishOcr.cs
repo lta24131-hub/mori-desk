@@ -58,11 +58,15 @@ namespace QingJie {
                         if(string.IsNullOrWhiteSpace(text)||!it.TryGetBoundingBox(PageIteratorLevel.Word,out b))continue;
                         var box=new System.Windows.Rect(b.X1/ratio,b.Y1/ratio,b.Width/ratio,b.Height/ratio);
                         text=text.Trim();int start=lineText.IndexOf(text,textEnd,StringComparison.Ordinal);
+                        double confidence=it.GetConfidence(PageIteratorLevel.Word)/100.0;
+                        bool hasConfidence=!double.IsNaN(confidence)&&confidence>=0&&confidence<=1;
                         // Tesseract can expose each Korean syllable as a Word even
                         // though its line transcript correctly has no space there.
                         if(start==textEnd&&line.Words.Count>0&&text.Any(JoinedScript)&&line.Words.Last().Text.Any(JoinedScript)){
                             var previous=line.Words.Last();previous.Text+=text;previous.Box=Rect.Union(previous.Box,box);
-                        }else line.Words.Add(new WordBox{Text=text,Box=box});
+                            if(hasConfidence&&previous.ConfidenceSource==OcrConfidenceSource.Model)previous.Confidence=Math.Min(previous.Confidence,confidence);
+                            else {previous.Confidence=1;previous.ConfidenceSource=OcrConfidenceSource.Unknown;}
+                        }else line.Words.Add(new WordBox{Text=text,Box=box,Confidence=hasConfidence?confidence:1,ConfidenceSource=hasConfidence?OcrConfidenceSource.Model:OcrConfidenceSource.Unknown});
                         if(start>=0)textEnd=start+text.Length;
                         line.Bounds.Union(box);
                     }while(it.Next(PageIteratorLevel.Word));

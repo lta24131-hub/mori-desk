@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -15,7 +15,7 @@ namespace MoriDesk {
  public static class OpenWithRegistration {
   internal const string ApplicationKey="Software\\Classes\\Applications\\Mori.exe";
   internal static readonly string[] SupportedExtensions=FileFormats.PreviewExtensions();
-  static string ManagedRoot {get{return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Programs","MoriDesk");}}
+  static string ManagedRoot {get{return InstalledApplicationState.ProgramRoot;}}
   [DllImport("shell32.dll")] static extern void SHChangeNotify(uint eventId,uint flags,IntPtr item1,IntPtr item2);
   static void NotifyShell(){SHChangeNotify(0x08000000,0,IntPtr.Zero,IntPtr.Zero);}
   internal static bool TryRepairCurrentInstallation(){

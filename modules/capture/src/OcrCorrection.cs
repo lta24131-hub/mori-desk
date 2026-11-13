@@ -31,7 +31,7 @@ namespace QingJie {
             int first=indices[0];var old=page.Words[first];
             text=text.Trim().Replace("\r\n","\n").Replace('\r','\n');
             page.Words.RemoveRange(first,indices.Length);
-            page.Words.Insert(first,new WordBox{Text=text,Box=region.Box,Line=old.Line,Prefix=old.Prefix,Confidence=1});
+            page.Words.Insert(first,new WordBox{Text=text,Box=region.Box,Line=old.Line,Prefix=old.Prefix,Confidence=1,ConfidenceSource=OcrConfidenceSource.User});
             region.Text=text;
             // Keep the physical line boxes for erasing the original lettering.
             OcrService.IndexText(page);return page;

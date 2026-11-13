@@ -1,4 +1,4 @@
-param([string]$BuildDirectory='dist',[switch]$IncludeExperimentalFileConversion,[string]$LauncherDirectory='dependencies\update-launcher-v1')
+﻿param([string]$BuildDirectory='dist',[switch]$IncludeExperimentalFileConversion,[string]$LauncherDirectory='dependencies\update-launcher-v1',[string]$CustomLauncherDirectory='dependencies\custom-launcher-v1')
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
 . (Join-Path $suiteRoot 'tools\Assert-UpdateDataContract.ps1')
@@ -11,6 +11,12 @@ $launcherRecord=Get-Content -LiteralPath $provenance -Raw | ConvertFrom-Json
 if($launcherRecord.schemaVersion -ne 1 -or $launcherRecord.protocolVersion -ne 1 -or $launcherRecord.sha256 -ne (Get-FileHash -LiteralPath $launcher -Algorithm SHA256).Hash){throw 'Stable launcher provenance mismatch'}
 $launcherIdentity=[Diagnostics.FileVersionInfo]::GetVersionInfo($launcher)
 if($launcherIdentity.ProductName -ne 'Nook' -or $launcherIdentity.OriginalFilename -ne 'Mori.exe' -or $launcherIdentity.FileVersion -ne '1.0.0.1'){throw 'Unexpected stable launcher identity'}
+$customRoot=if([IO.Path]::IsPathRooted($CustomLauncherDirectory)){$CustomLauncherDirectory}else{Join-Path $suiteRoot $CustomLauncherDirectory}
+$customLauncher=Join-Path $customRoot 'Mori.exe'
+$customRecord=Get-Content -LiteralPath (Join-Path $customRoot 'launcher-provenance.json') -Raw | ConvertFrom-Json
+if($customRecord.schemaVersion -ne 1 -or $customRecord.protocolVersion -ne 1 -or $customRecord.sha256 -ne (Get-FileHash -LiteralPath $customLauncher -Algorithm SHA256).Hash){throw 'Custom location launcher provenance mismatch'}
+$customIdentity=[Diagnostics.FileVersionInfo]::GetVersionInfo($customLauncher)
+if($customIdentity.ProductName -ne 'Nook' -or $customIdentity.OriginalFilename -ne 'Mori.exe' -or $customIdentity.FileVersion -ne '1.0.0.1'){throw 'Unexpected custom location launcher identity'}
 . (Join-Path $suiteRoot 'modules\file-conversion\Validate-Component.ps1')
 $buildPath=if([IO.Path]::IsPathRooted($BuildDirectory)){$BuildDirectory}else{Join-Path $suiteRoot $BuildDirectory}
 . (Join-Path $suiteRoot 'modules\shell-preview\Validate-Component.ps1')
@@ -84,8 +90,11 @@ $payload=Join-Path $releaseRoot 'Nook'
 New-Item -ItemType Directory -Force $payload | Out-Null
 $files=@('Mori.exe','Mori.exe.config','ExCSS.dll','Svg.dll','Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2.Wpf.dll','WebView2Loader.dll','System.Buffers.dll','System.Memory.dll','System.Numerics.Vectors.dll','System.Runtime.CompilerServices.Unsafe.dll','Tesseract.dll','qingjie-icon.png')
 $files+=@('Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dll','UglyToad.PdfPig.dll','UglyToad.PdfPig.Core.dll','UglyToad.PdfPig.DocumentLayoutAnalysis.dll','UglyToad.PdfPig.Fonts.dll','UglyToad.PdfPig.Package.dll','UglyToad.PdfPig.Tokenization.dll','UglyToad.PdfPig.Tokens.dll','Microsoft.Bcl.HashCode.dll','PREVIEW-NOTICES.md','CanvasIcons-NOTICE.txt')
+$files+=@('SymSpell.dll')
 foreach($file in $files){Copy-Item -LiteralPath (Join-Path $buildPath $file) -Destination $payload}
 foreach($folder in @('x64','tessdata','web','browser-extension','svg-licenses','webview2-licenses','model-licenses','image-codecs','pdf-text','preview-support','scroll-capture','shell-preview')){Copy-Item -LiteralPath (Join-Path $buildPath $folder) -Destination $payload -Recurse}
+foreach($notice in @('LICENSE.txt','NOTICE.txt','SCOWL-Copyright.txt')){if(!(Test-Path -LiteralPath (Join-Path $buildPath ('symspell\'+$notice)))){throw ('Missing OCR dictionary notice: '+$notice)}}
+Copy-Item -LiteralPath (Join-Path $buildPath 'symspell') -Destination $payload -Recurse
 Assert-ShellPreviewComponent (Join-Path $payload 'shell-preview')
 Copy-OcrComponent (Join-Path $buildPath 'ocr-engine') (Join-Path $payload 'ocr-engine')
 Assert-OcrComponent (Join-Path $payload 'ocr-engine')
@@ -115,7 +124,7 @@ Assert-NoMachineSecrets $payload
 Compress-Archive -Path "$payload\*" -DestinationPath $zip -CompressionLevel Optimal
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $refs=@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.IO.Compression.dll','System.Web.Extensions.dll','Microsoft.CSharp.dll') | ForEach-Object { '/r:'+(Join-Path $framework $_) }
-& "$framework\csc.exe" /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 ('/out:'+$releaseRoot+'\Nook-Setup.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/resource:'+$zip+',MoriDesk.Payload.zip') ('/resource:'+$launcher+',MoriDesk.Launcher.exe') @refs "$suiteRoot\installer\Setup.cs" "$suiteRoot\installer\InstallerProgress.cs" "$suiteRoot\installer\ReplacementInstall.cs" "$suiteRoot\installer\ReplacementStaging.cs" "$suiteRoot\installer\InstalledVersionCleanup.cs" "$suiteRoot\installer\ManualMetadataBackup.cs" "$suiteRoot\src\AppUpdateMetadataBackup.cs" "$suiteRoot\src\InstalledApplicationState.cs" "$suiteRoot\src\InstalledCleanupState.cs" "$suiteRoot\src\OpenWithRegistration.cs" "$suiteRoot\src\ShellVisualRegistration.cs" "$suiteRoot\src\ShellTaskbarProperties.cs" "$suiteRoot\src\FileFormats.cs" "$suiteRoot\src\PhysicalUserContext.cs"
+& "$framework\csc.exe" /nologo /target:winexe /platform:x64 /optimize+ /codepage:65001 ('/out:'+$releaseRoot+'\Nook-Setup.exe') ('/win32icon:'+$suiteRoot+'\assets\mori.ico') ('/resource:'+$zip+',MoriDesk.Payload.zip') ('/resource:'+$launcher+',MoriDesk.Launcher.exe') ('/resource:'+$customLauncher+',MoriDesk.CustomLauncher.exe') @refs "$suiteRoot\installer\Setup.cs" "$suiteRoot\installer\InstallerProgress.cs" "$suiteRoot\installer\InstallerPlan.cs" "$suiteRoot\installer\InstallerWizard.cs" "$suiteRoot\installer\ReplacementInstall.cs" "$suiteRoot\installer\ReplacementStaging.cs" "$suiteRoot\installer\InstalledVersionCleanup.cs" "$suiteRoot\installer\ManualMetadataBackup.cs" "$suiteRoot\src\AppUpdateMetadataBackup.cs" "$suiteRoot\src\InstalledApplicationState.cs" "$suiteRoot\src\InstalledCleanupState.cs" "$suiteRoot\src\OpenWithRegistration.cs" "$suiteRoot\src\ShellVisualRegistration.cs" "$suiteRoot\src\ShellTaskbarProperties.cs" "$suiteRoot\src\FileFormats.cs" "$suiteRoot\src\PhysicalUserContext.cs"
 if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
 $installerVersion=[System.Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $releaseRoot 'Nook-Setup.exe')).FileVersion
 if([version]$installerVersion -ne [version]$buildVersion){throw 'Installer and application versions do not match. Update both before publishing an installable release.'}

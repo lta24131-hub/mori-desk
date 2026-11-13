@@ -167,6 +167,7 @@ namespace Mori {
    if(HandleBrowserKey(e))return;
    if(boardMode){boardPage.HandleKey(e);return;}
    if(referenceMode){referencePage.HandleKey(e);return;}
+   if(HandleParentNavigationKey(e,Keyboard.Modifiers))return;
    if(HandleGalleryViewKey(e))return;
    if(Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase){if(e.Key==Key.Escape){Find<ListBox>("Gallery").Focus();e.Handled=true;}return;}
    if(e.Key==Key.Home&&Keyboard.Modifiers==ModifierKeys.Control&&Find<ListBox>("Gallery").IsKeyboardFocusWithin){ReturnGalleryToTop();e.Handled=true;return;}

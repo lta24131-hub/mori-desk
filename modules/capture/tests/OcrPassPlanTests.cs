@@ -35,7 +35,7 @@ internal static class OcrPassPlanTests {
             new WordBox { Text = text, Box = new Rect(0, 0, width, 20), Line = 0 } } };
     }
     static StubLine Line(string text, float confidence = 95, int x = 0, int y = 0, int width = 100, int height = 20) {
-        return new StubLine(text, confidence, new StubWord(text, x, y, width, height));
+        return new StubLine(text, confidence, new StubWord(text, x, y, width, height, confidence));
     }
     static OcrPage Improve(OcrPage original, string languages = "", double ratio = 1) {
         return EnglishOcr.Improve(new OcrPixels(), ratio, original, languages).GetAwaiter().GetResult();
@@ -68,6 +68,24 @@ internal static class OcrPassPlanTests {
                 " explicitly expected passes; observed=" + observed);
             Check(string.Join("|", StubOcr.Languages) == "eng", "default creates only English engine");
             Check(StubOcr.Events.Last() == "pix:dispose", "pixels outlive all engines and pages");
+        });
+        Run("Word confidence remains distinct from line confidence", () => {
+            Plan("eng", PageSegMode.SparseText, new StubLine("uncertain certain", 98,
+                new StubWord("uncertain", 0, 0, 49, 20, 42), new StubWord("certain", 51, 0, 49, 20, 99)));
+            var result = Improve(Original());
+            ExpectedText(result, "uncertain certain", "accepted line retains both individual word scores");
+            Check(result.Words.Count == 2 && result.Words[0].Confidence == .42 && result.Words[1].Confidence == .99 &&
+                result.Words.All(w => w.ConfidenceSource == OcrConfidenceSource.Model),
+                "line score 98 is never substituted for word scores 42 and 99");
+        });
+        Run("Unavailable word confidence is not invented from a valid line", () => {
+            Plan("eng", PageSegMode.SparseText, new StubLine("unknown clear", 98,
+                new StubWord("unknown", 0, 0, 49, 20, -1), new StubWord("clear", 51, 0, 49, 20, 87)));
+            var result = Improve(Original());
+            ExpectedText(result, "unknown clear", "unknown score does not discard recognized text");
+            Check(result.Words[0].ConfidenceSource == OcrConfidenceSource.Unknown && result.Words[0].Confidence == 1 &&
+                result.Words[1].ConfidenceSource == OcrConfidenceSource.Model && result.Words[1].Confidence == .87,
+                "unknown word score stays unknown despite high line confidence and another valid word score");
         });
         Run("Optional Korean and Japanese plans", () => {
             OcrLanguagePacks.Install("kor", "jpn");
@@ -271,11 +289,13 @@ internal static class OcrPassPlanTests {
         Run("Joined Korean syllable words", () => {
             OcrLanguagePacks.Install("kor");
             Plan("kor", PageSegMode.Auto, new StubLine("가나다라", 95,
-                new StubWord("가나", 0, 0, 40, 20), new StubWord("다라", 40, 0, 40, 20)));
+                new StubWord("가나", 0, 0, 40, 20, 61), new StubWord("다라", 40, 0, 40, 20, 88)));
             var result = Improve(Original(), "kor");
             ExpectedText(result, "가나다라", "line transcript controls Korean word joining");
             Check(result.Words.Count == 1 && result.Words[0].Box == new Rect(0, 0, 80, 20),
                 "joined syllables retain one word and union of their original boxes");
+            Check(result.Words[0].Confidence == .61 && result.Words[0].ConfidenceSource == OcrConfidenceSource.Model,
+                "joining syllables retains the minimum constituent score instead of line confidence");
         });
         Run("English failure releases resources", () => {
             StubOcr.ThrowOnProcess = "eng:SparseText";
@@ -309,7 +329,8 @@ internal static class OcrPassPlanTests {
 // probing, installation, image decoding or Windows OCR. The behavior under test
 // (pass scheduling, confidence/script gates and merge) is real EnglishOcr.cs.
 namespace QingJie {
-    public sealed class WordBox { public string Text; public Rect Box; public int Line, TextStart; }
+    public enum OcrConfidenceSource { Unknown, Model, User }
+    public sealed class WordBox { public string Text; public Rect Box; public int Line, TextStart; public double Confidence = 1; public OcrConfidenceSource ConfidenceSource; }
     public sealed class OcrPage { public string Text; public List<WordBox> Words = new List<WordBox>(); }
     internal sealed class OcrPixels { public Pix TesseractBitmap() { return new Pix(); } }
     public static class Geometry {
@@ -373,8 +394,8 @@ namespace Tesseract {
         public Rect(int x, int y, int width, int height) { X1 = x; Y1 = y; Width = width; Height = height; }
     }
     internal sealed class StubWord {
-        public readonly string Text; public readonly Rect Bounds;
-        public StubWord(string text, int x, int y, int width, int height) { Text = text; Bounds = new Rect(x, y, width, height); }
+        public readonly string Text; public readonly Rect Bounds; public readonly float Confidence;
+        public StubWord(string text, int x, int y, int width, int height, float confidence = 95) { Text = text; Bounds = new Rect(x, y, width, height); Confidence = confidence; }
     }
     internal sealed class StubLine {
         public readonly string Text; public readonly float Confidence; public readonly StubWord[] Words;
@@ -434,7 +455,7 @@ namespace Tesseract {
         internal ResultIterator(StubLine[] lines) { this.lines = lines; StubOcr.IteratorCreates++; }
         public void Begin() { line = word = 0; }
         public bool IsAtBeginningOf(PageIteratorLevel ignored) { return word == 0; }
-        public float GetConfidence(PageIteratorLevel ignored) { return line < lines.Length ? lines[line].Confidence : 0; }
+        public float GetConfidence(PageIteratorLevel level) { return line >= lines.Length ? 0 : level == PageIteratorLevel.TextLine ? lines[line].Confidence : lines[line].Words[word].Confidence; }
         public string GetText(PageIteratorLevel level) {
             if (line >= lines.Length) return null;
             return level == PageIteratorLevel.TextLine ? lines[line].Text : lines[line].Words[word].Text;
