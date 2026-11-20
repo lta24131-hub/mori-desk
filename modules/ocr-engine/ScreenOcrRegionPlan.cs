@@ -29,13 +29,15 @@ internal static class ScreenOcrRegionPlan
         for (int y = region.Top; y < region.Bottom; y++)
         {
             if ((y & 31) == 0) cancel.ThrowIfCancellationRequested();
-            var row = pixels.Slice(y * stride, source.Width);
-            for (int x = region.Left; x < region.Right; x++)
-            {
-                if (row[x] == background) continue;
-                left = Math.Min(left, x); right = Math.Max(right, x + 1);
-                top = Math.Min(top, y); bottom = Math.Max(bottom, y + 1);
-            }
+            var row = pixels.Slice(y * stride + region.Left, region.Width);
+            // Bounds need only the first/last different pixel in each row.
+            // These exact span searches avoid visiting the interior of textured
+            // rows pixel by pixel; they never sample or apply a colour tolerance.
+            int first = row.IndexOfAnyExcept(background);
+            if (first < 0) continue;
+            left = Math.Min(left, region.Left + first);
+            right = Math.Max(right, region.Left + row.LastIndexOfAnyExcept(background) + 1);
+            top = Math.Min(top, y); bottom = y + 1;
         }
         if (left >= right) return null;
         var content = new SKRectI(Math.Max(region.Left, left - ContextPixels), Math.Max(region.Top, top - ContextPixels),

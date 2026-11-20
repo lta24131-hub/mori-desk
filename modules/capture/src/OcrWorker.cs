@@ -18,38 +18,143 @@ using System.Runtime.InteropServices;
 namespace QingJie {
     // Same EXE/model, short-lived process: no OCR engines retained by the tray app.
     // Local user-only pipe, lossless pixels, no screenshot files or network traffic.
-    public static class OcrWorker {
+    public static partial class OcrWorker {
         const int Magic=0x514A4F32,StructuredMagic=0x514A4F33,LocalConfidenceMagic=0x514A4F34,MaxPixels=64000000;
         internal static int RequestTimeoutMilliseconds=90000;
         static string ModernWorker {get{return Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"ocr-engine","Nook.Ocr.exe");}}
+        static readonly Lazy<byte[]> pairedManifest=new Lazy<byte[]>(()=>{
+            using(var resource=typeof(OcrWorker).Assembly.GetManifestResourceStream("QingJie.VerifiedOcrManifest.json"))
+                return resource==null ? null : ReadManifestBytes(resource);
+        });
+        static byte[] ReadManifestBytes(Stream stream){
+            long length=stream.Length;
+            if(length<1||length>1024*1024)throw new InvalidDataException();
+            using(var reader=new BinaryReader(stream,Encoding.UTF8,true)){
+                var bytes=reader.ReadBytes((int)length);
+                if(bytes.Length!=length)throw new EndOfStreamException();
+                return bytes;
+            }
+        }
+        internal static void ValidateManifestProtocol(byte[] actual,byte[] paired){
+            // Only an exact match to the fully verified bundled manifest skips parsing.
+            if(paired!=null&&actual.Length==paired.Length){
+                int i=0;
+                while(i<actual.Length&&actual[i]==paired[i])i++;
+                if(i==actual.Length)return;
+            }
+            ValidateUnpairedManifest(actual);
+        }
+        static void ValidateUnpairedManifest(byte[] actual){
+            using(var reader=new StreamReader(new MemoryStream(actual),Encoding.UTF8,true)){
+                var data=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(reader.ReadToEnd());
+                if(Convert.ToInt32(data["schemaVersion"])!=1||Convert.ToInt32(data["protocol"])!=3||Convert.ToString(data["component"])!="ocr-engine"||Convert.ToString(data["engineIdentity"])!="rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5")throw new InvalidDataException();
+            }
+        }
         internal static bool UsesModernEngine(string language){
             if(!string.IsNullOrEmpty(language))return false;
             string folder=Path.GetDirectoryName(ModernWorker);if(!Directory.Exists(folder))return false;
             string manifest=Path.Combine(folder,"component.json");
             try{
-                if(!File.Exists(ModernWorker)||!File.Exists(manifest)||new FileInfo(manifest).Length>1024*1024)throw new InvalidDataException();
-                var data=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(File.ReadAllText(manifest));
-                if(Convert.ToInt32(data["schemaVersion"])!=1||Convert.ToInt32(data["protocol"])!=3||Convert.ToString(data["component"])!="ocr-engine"||Convert.ToString(data["engineIdentity"])!="rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5")throw new InvalidDataException();
+                if(!File.Exists(ModernWorker))throw new InvalidDataException();
+                using(var file=File.OpenRead(manifest))ValidateManifestProtocol(ReadManifestBytes(file),pairedManifest.Value);
                 return true;
             }catch(Exception e){throw new InvalidDataException("文字识别组件不完整，请修复或更新 Nook。原图已保留。",e);}
         }
         static readonly SemaphoreSlim queue=new SemaphoreSlim(1,1);
+        static readonly SemaphoreSlim shortLines=new SemaphoreSlim(1,1);
         static readonly OcrResultCache cache=new OcrResultCache();
-        public static async Task<OcrPage> Read(BitmapSource source,CancellationToken cancel){
+        // Switching among a few menus should not evict full-page readings.
+        // Keep only verified line transcripts and their boxes in this small history.
+        static readonly OcrResultCache verifiedLines=new OcrResultCache(capacity:12);
+        public static Task<OcrPage> Read(BitmapSource source,CancellationToken cancel){return ReadCore(source,cancel,false);}
+        internal static Task<OcrPage> ReadForTranslation(BitmapSource source,CancellationToken cancel){return ReadCore(source,cancel,true);}
+        internal static Task<OcrPage> ReadForTranslationObserved(BitmapSource source,CancellationToken cancel,Action<string> trace,int budget){
+            return ReadCore(source,cancel,true,trace,budget);
+        }
+        static async Task<OcrPage> ReadCore(BitmapSource source,CancellationToken cancel,bool translation,Action<string> trace=null,int budget=0){
             cancel.ThrowIfCancellationRequested();
+            if(trace!=null)trace("read-entry");
             if(source==null)throw new ArgumentNullException("source");
             if((long)source.PixelWidth*source.PixelHeight>MaxPixels)throw new InvalidOperationException("图片过大，请缩小截图区域后重试。");
             if(!source.IsFrozen){source=source.Clone();source.Freeze();}
-            string language=OcrLanguagePacks.EffectiveSelectionKey;
-            await queue.WaitAsync(cancel);
-            try{return await Task.Run(()=>{
-                string key=(UsesModernEngine(language)?"rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5:":"windows-tesseract-v1:")+language+":"+OcrResultCache.Fingerprint(source,cancel);var saved=cache.Get(key);cancel.ThrowIfCancellationRequested();if(saved!=null)return saved;
-                var result=Run(source,cancel,language);cancel.ThrowIfCancellationRequested();cache.Put(key,result);return result;
-            },cancel);}finally{queue.Release();}
+            // The language preference loads JSON and checks optional model files. Do not
+            // do that on the dispatcher that is showing the screenshot/result controls.
+            return await Task.Run(async()=>{
+                if(trace!=null)trace("language-enter");
+                string language=OcrLanguagePacks.EffectiveSelectionKey;
+                if(trace!=null)trace("language-ready");
+                string key=null,verifiedKey=null;
+                Int32Rect bounds=Int32Rect.Empty;
+                bool modern=false;
+                // A second capture can start while a viewer is still recognizing a
+                // large page. A proven short translation needs no model process.
+                if(translation&&VerifiedLineOcr.MayContainShortLine(source)){
+                    modern=UsesModernEngine(language);
+                    key=CacheKey(source,language,modern,trace,cancel);
+                    var line=modern?VerifiedLineOcr.ShortSelection(source,cancel,out bounds):null;
+                    if(line!=null){
+                        // Identical ink with different uniform outer margins has
+                        // the same verified text. Store word boxes local to that ink.
+                        verifiedKey="verified-line-v2:"+(bounds.IsEmpty?key:CacheKey(line,language,modern,null,cancel));
+                        // A different screenshot may still be verifying. A finished
+                        // reading of these exact pixels needs neither worker slot.
+                        var cached=CachedReading(key,verifiedKey,bounds);
+                        if(cached!=null){cancel.ThrowIfCancellationRequested();return cached;}
+                        await shortLines.WaitAsync(cancel).ConfigureAwait(false);
+                        try{
+                            cancel.ThrowIfCancellationRequested();
+                            var saved=CachedReading(key,verifiedKey,bounds);
+                            if(saved!=null){cancel.ThrowIfCancellationRequested();return saved;}
+                            var quick=await VerifiedLineOcr.TryReadObserved(line,cancel,trace,budget).ConfigureAwait(false);
+                            cancel.ThrowIfCancellationRequested();
+                            if(quick!=null){
+                                verifiedLines.Put(verifiedKey,quick);
+                                if(trace!=null)trace("quick-complete");
+                                return PositionVerifiedLine(quick,bounds);
+                            }
+                        }finally{shortLines.Release();}
+                    }
+                }
+                await queue.WaitAsync(cancel).ConfigureAwait(false);
+                try{
+                    if(trace!=null)trace("queue-acquired");
+                    if(key==null){
+                        modern=UsesModernEngine(language);
+                        key=CacheKey(source,language,modern,trace,cancel);
+                    }
+                    var saved=CachedReading(key,verifiedKey,bounds);
+                    cancel.ThrowIfCancellationRequested();
+                    if(saved!=null)return saved;
+                    var result=RunWithWorker(source,cancel,language,modern,(name,attempt)=>StartInfo(name,modern),RequestTimeoutMilliseconds);
+                    cancel.ThrowIfCancellationRequested();
+                    cache.Put(key,result);
+                    return result;
+                }finally{queue.Release();}
+            },cancel).ConfigureAwait(false);
         }
-        static OcrPage Run(BitmapSource source,CancellationToken cancel,string language){
-            bool modern=UsesModernEngine(language);
-            return RunWithWorker(source,cancel,language,modern,(name,attempt)=>new ProcessStartInfo(modern?ModernWorker:typeof(Program).Assembly.Location,"--ocr-worker="+name){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,WorkingDirectory=modern?Path.GetDirectoryName(ModernWorker):AppDomain.CurrentDomain.BaseDirectory},RequestTimeoutMilliseconds);
+        static OcrPage CachedReading(string fullKey,string lineKey,Int32Rect crop){
+            var full=cache.Get(fullKey);
+            if(full!=null||lineKey==null)return full;
+            return PositionVerifiedLine(verifiedLines.Get(lineKey),crop);
+        }
+        static OcrPage PositionVerifiedLine(OcrPage page,Int32Rect crop){
+            if(page==null||crop.IsEmpty)return page;
+            foreach(var word in page.Words)word.Box.Offset(crop.X,crop.Y);
+            foreach(var region in page.TranslationRegions){
+                region.Box.Offset(crop.X,crop.Y);
+                foreach(var line in region.SourceLines)line.Box.Offset(crop.X,crop.Y);
+            }
+            return page;
+        }
+        static string CacheKey(BitmapSource source,string language,bool modern,Action<string> trace,CancellationToken cancel){
+            if(trace!=null)trace("component-ready");
+            string engine=modern?"rapidocrnet-4.2.0-ppocrv5-ch-screen2x-trim1-layout5":"windows-tesseract-v1";
+            string key=engine+":"+language+":"+OcrResultCache.Fingerprint(source,cancel);
+            if(trace!=null)trace("fingerprint-ready");
+            return key;
+        }
+        static ProcessStartInfo StartInfo(string name,bool modern){
+            return new ProcessStartInfo(modern?ModernWorker:typeof(Program).Assembly.Location,"--ocr-worker="+name){UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,WorkingDirectory=modern?Path.GetDirectoryName(ModernWorker):AppDomain.CurrentDomain.BaseDirectory};
         }
         // The same deadline covers startup, transfer, response and the one permitted
         // recovery. The factory also lets the VM runner use real faulting processes
@@ -88,8 +193,7 @@ namespace QingJie {
         static int Remaining(Stopwatch clock,int timeoutMilliseconds,int maximum){return (int)Math.Max(0,Math.Min(maximum,timeoutMilliseconds-clock.ElapsedMilliseconds));}
         static OcrPage RunAttempt(BitmapSource source,string language,bool modern,Func<string,int,ProcessStartInfo> startWorker,int attempt,CancellationToken token,Stopwatch clock,int timeoutMilliseconds,Action<Process> beforeResume){
             string name="QingJie-OCR-"+Guid.NewGuid().ToString("N");
-            var security=new PipeSecurity();security.SetAccessRuleProtection(true,false);using(var identity=WindowsIdentity.GetCurrent())security.AddAccessRule(new PipeAccessRule(identity.User,PipeAccessRights.FullControl,AccessControlType.Allow));
-            using(var pipe=new NamedPipeServerStream(name,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous,65536,65536,security)){
+            using(var pipe=CreateUserPipe(name)){
                 token.ThrowIfCancellationRequested();
                 using(var worker=WorkerProcess.Start(startWorker(name,attempt),beforeResume)){
                     var process=worker.Process;var exited=new TaskCompletionSource<bool>();
@@ -106,10 +210,7 @@ namespace QingJie {
                         connection.GetAwaiter().GetResult();
                         using(var writer=new BinaryWriter(pipe,Encoding.UTF8,true))using(var reader=new BinaryReader(response,Encoding.UTF8,true)){
                             writer.Write(modern?StructuredMagic:Magic);writer.Write(source.PixelWidth);writer.Write(source.PixelHeight);writer.Write(language);writer.Write(OcrLanguagePacks.TestFolder??"");
-                            var bgra=new FormatConvertedBitmap(source,PixelFormats.Bgra32,null,0);bgra.Freeze();int stride=checked(source.PixelWidth*4);
-                            // Stream small strips rather than duplicate the entire screenshot.
-                            var strip=new byte[checked(stride*Math.Min(32,source.PixelHeight))];
-                            for(int y=0;y<source.PixelHeight;y+=32){token.ThrowIfCancellationRequested();int rows=Math.Min(32,source.PixelHeight-y);bgra.CopyPixels(new Int32Rect(0,y,source.PixelWidth,rows),strip,stride,0);writer.Write(strip,0,stride*rows);}writer.Flush();
+                            WriteBitmapRows(writer,source,token);
                             var page=ReadResult(reader);
                             token.ThrowIfCancellationRequested();return page;
                         }
@@ -131,6 +232,21 @@ namespace QingJie {
                     }
                 }
             }
+        }
+        static NamedPipeServerStream CreateUserPipe(string name){
+            var security=new PipeSecurity();security.SetAccessRuleProtection(true,false);
+            using(var identity=WindowsIdentity.GetCurrent())security.AddAccessRule(new PipeAccessRule(identity.User,PipeAccessRights.FullControl,AccessControlType.Allow));
+            return new NamedPipeServerStream(name,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous,65536,65536,security);
+        }
+        static void WriteBitmapRows(BinaryWriter writer,BitmapSource source,CancellationToken token){
+            var bgra=source.Format==PixelFormats.Bgra32?source:new FormatConvertedBitmap(source,PixelFormats.Bgra32,null,0);
+            int stride=checked(source.PixelWidth*4);var strip=new byte[checked(stride*Math.Min(32,source.PixelHeight))];
+            for(int y=0;y<source.PixelHeight;y+=32){
+                token.ThrowIfCancellationRequested();int rows=Math.Min(32,source.PixelHeight-y);
+                bgra.CopyPixels(new Int32Rect(0,y,source.PixelWidth,rows),strip,stride,0);
+                writer.Write(strip,0,stride*rows);
+            }
+            writer.Flush();
         }
         sealed class WorkerFailure:IOException {
             internal readonly bool Recoverable;internal bool WorkerStopped;

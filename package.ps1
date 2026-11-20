@@ -90,7 +90,7 @@ $payload=Join-Path $releaseRoot 'Nook'
 New-Item -ItemType Directory -Force $payload | Out-Null
 $files=@('Mori.exe','Mori.exe.config','ExCSS.dll','Svg.dll','Microsoft.Web.WebView2.Core.dll','Microsoft.Web.WebView2.Wpf.dll','WebView2Loader.dll','System.Buffers.dll','System.Memory.dll','System.Numerics.Vectors.dll','System.Runtime.CompilerServices.Unsafe.dll','Tesseract.dll','qingjie-icon.png')
 $files+=@('Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dll','UglyToad.PdfPig.dll','UglyToad.PdfPig.Core.dll','UglyToad.PdfPig.DocumentLayoutAnalysis.dll','UglyToad.PdfPig.Fonts.dll','UglyToad.PdfPig.Package.dll','UglyToad.PdfPig.Tokenization.dll','UglyToad.PdfPig.Tokens.dll','Microsoft.Bcl.HashCode.dll','PREVIEW-NOTICES.md','CanvasIcons-NOTICE.txt')
-$files+=@('SymSpell.dll')
+$files+=@('SymSpell.dll','Nook.LineOcr.exe')
 foreach($file in $files){Copy-Item -LiteralPath (Join-Path $buildPath $file) -Destination $payload}
 foreach($folder in @('x64','tessdata','web','browser-extension','svg-licenses','webview2-licenses','model-licenses','image-codecs','pdf-text','preview-support','scroll-capture','shell-preview')){Copy-Item -LiteralPath (Join-Path $buildPath $folder) -Destination $payload -Recurse}
 foreach($notice in @('LICENSE.txt','NOTICE.txt','SCOWL-Copyright.txt')){if(!(Test-Path -LiteralPath (Join-Path $buildPath ('symspell\'+$notice)))){throw ('Missing OCR dictionary notice: '+$notice)}}

@@ -7,6 +7,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media.Imaging;
 
 namespace QingJie {
     // A translation-only copy. Never edit OCR text, geometry, clipboard text or cache.
@@ -37,7 +39,25 @@ namespace QingJie {
                 yield return new ProtectedRange{Start=start,End=Math.Min(text.Length,i+1)};
             }
         }
-        static readonly HashSet<string> uiWords=new HashSet<string>(("settings language translation translate translated original image images text recognition recognize clipboard download upload file files folder folders browser screenshot screenshots preview select selected selection copy paste save cancel close open update install remove search display window toolbar privacy password account notification notifications appearance preferences connection advanced general enabled disabled").Split(' '),StringComparer.Ordinal);
+        const string ReviewedUiTerms="settings language translation translate translated original image images text recognition recognize clipboard download upload file files folder folders browser screenshot screenshots preview select selected selection copy paste save cancel close open update install remove search display window toolbar privacy password account notification notifications appearance preferences connection advanced general enabled disabled";
+        static readonly HashSet<string> uiWords=new HashSet<string>(ReviewedUiTerms.Split(' '),StringComparer.Ordinal);
+        static readonly HashSet<string> visualSpellings=VisualSpellings();
+        static HashSet<string> VisualSpellings(){
+            var spellings=new HashSet<string>(StringComparer.Ordinal);
+            foreach(string term in uiWords){
+                if(term.Length<5||term.Length>24)continue;
+                var chars=term.ToCharArray();
+                for(int i=0;i<chars.Length;i++){
+                    if(term[i]!='l'&&term[i]!='i')continue;
+                    foreach(char c in "liI"){
+                        chars[i]=c;string source=new string(chars);
+                        if(VisualConfusion(source,term))spellings.Add(source);
+                    }
+                    chars[i]=term[i];
+                }
+            }
+            return spellings;
+        }
         sealed class Lexicon {
             internal readonly HashSet<string> Known=new HashSet<string>(StringComparer.Ordinal);
             internal readonly SymSpell Candidates=new SymSpell(128,1,7);
@@ -49,8 +69,8 @@ namespace QingJie {
                         if(split<=0||!long.TryParse(line.Substring(split+1),NumberStyles.Integer,CultureInfo.InvariantCulture,out count))continue;
                         string word=line.Substring(0,split);Known.Add(word);
                         // Frequency cannot distinguish names (e.g. Michael) from
-                        // prose. The full vocabulary only excludes real words;
-                        // automatic candidates are reviewed interface vocabulary.
+                        // prose. This is the exact upstream projection needed for
+                        // candidate generation and the known-real-word veto.
                         if(word.Length>=5&&word.Length<=24&&uiWords.Contains(word))Candidates.CreateDictionaryEntry(word,count);
                     }
                 }
@@ -63,13 +83,109 @@ namespace QingJie {
             // OCR can be very confident about the wrong I/l glyph. Only these
             // exact candidates may use local semantic evidence above the usual
             // spelling threshold; confidence alone never authorizes a change.
-            return ModelWord(word)&&(word.Confidence<.92||((word.Text??"").IndexOf("Al",StringComparison.Ordinal)>=0&&tokens.Matches(word.Text).Cast<Match>().Any(m=>TechnologyToken(m.Value))));
+            if(!ModelWord(word))return false;
+            string value=word.Text;if(string.IsNullOrEmpty(value))return false;
+            // The evidence pass only accepts a box with one ASCII-alphanumeric
+            // token. Punctuation is allowed; a score shared by two tokens isn't.
+            int first=-1,end=0;
+            for(int i=0;i<value.Length;i++){
+                char c=value[i];if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||(c>='0'&&c<='9')))continue;
+                if(first<0)first=i;else if(end!=i)return false;
+                end=i+1;
+            }
+            if(first<0||end-first>24)return false;
+            string token=first==0&&end==value.Length?value:value.Substring(first,end-first);
+            return TechnologyToken(token)||(word.Confidence<.90&&CouldCorrectSpelling(token));
         }
         internal static Task<string[]> PrepareAsync(OcrPage page,IList<TranslationRegion> regions,CancellationToken cancel){
             if(page==null||regions==null)throw new ArgumentNullException();
             cancel.ThrowIfCancellationRequested();
             if(!page.Words.Any(NeedsAnalysis))return Task.FromResult(regions.Select(r=>r.Text).ToArray());
             return Task.Run(()=>Prepare(page,regions,cancel),cancel);
+        }
+        // Only the small ambiguous model label needs a second reading. The rest
+        // of the page, including tiny footnotes, always uses the primary OCR.
+        internal static Task<string[]> PrepareImageAsync(BitmapSource source,OcrPage page,IList<TranslationRegion> regions,CancellationToken cancel){
+            return PrepareImageWithEvidenceAsync(source,page,regions,cancel,ConfirmModelLabel);
+        }
+        internal static async Task<string[]> PrepareImageWithEvidenceAsync(BitmapSource source,OcrPage page,IList<TranslationRegion> regions,CancellationToken cancel,Func<BitmapSource,TranslationRegion,WordBox[],string,CancellationToken,Task<bool>> verify){
+            var values=await PrepareAsync(page,regions,cancel).ConfigureAwait(false);
+            if(source==null||!source.IsFrozen)return values;
+            int index=-1;Match match=null;
+            for(int i=0;i<values.Length;i++){
+                if(values[i].IndexOf("Al model ",StringComparison.Ordinal)<0)continue;
+                var header=Translation.ModelLabelHeader.Match(values[i]);
+                if(!header.Success||header.Groups["tag"].Value!="Al"||!Regex.IsMatch(values[i],@"\b(?:files?|documents?|prompts?|chatbots?|inference|training|tokens?)\b",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant)||
+                   Regex.IsMatch(values[i],@"\b(?:alloy|alumin(?:ium|um)|oxide|metal|surname|Gore|Pacino|Smith)\b",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant))continue;
+                if(index>=0)return values;index=i;match=header;
+            }
+            if(index<0)return values;
+            var region=regions[index];var words=page.Words.Where(w=>OcrCorrection.Contains(region,w)).Take(3).ToArray();string number=match.Groups["number"].Value;
+            if(words.Length!=3||words.Any(w=>!ModelWord(w)||w.Line!=words[0].Line)||words[0].Text!="Al"||words[1].Text!="model"||
+                !Regex.IsMatch(words[2].Text??"", "^"+number+@"(?:[:：])?$")||regions.Count(r=>OcrCorrection.Contains(r,words[0]))!=1)return values;
+            if(await verify(source,region,words,number,cancel).ConfigureAwait(false)){
+                int pos=match.Groups["tag"].Index;values[index]=values[index].Remove(pos,2).Insert(pos,"AI");
+            }
+            cancel.ThrowIfCancellationRequested();return values;
+        }
+        static readonly SemaphoreSlim verificationSlot=new SemaphoreSlim(1,1);
+        static async Task<bool> ConfirmModelLabel(BitmapSource image,TranslationRegion region,WordBox[] words,string number,CancellationToken cancel){
+            cancel.ThrowIfCancellationRequested();if(!verificationSlot.Wait(0))return false;
+            var lifetime=CancellationTokenSource.CreateLinkedTokenSource(cancel);var token=lifetime.Token;
+            // A first-use OS recognizer can exceed two seconds on the software
+            // VM. Only this already-qualified ambiguous header pays this budget.
+            const int budget=3000;lifetime.CancelAfter(budget);
+            var work=Task.Run(async()=>{
+                try{
+                    token.ThrowIfCancellationRequested();int x=0,y=0,width=image.PixelWidth,height=image.PixelHeight;
+                    if(width>640||height>200){
+                        var b=region.Box;if(b.IsEmpty||!(b.Width<=600&&b.Height<=160))return false;
+                        x=Math.Max(0,(int)Math.Floor(b.Left)-12);y=Math.Max(0,(int)Math.Floor(b.Top)-12);
+                        width=Math.Min(image.PixelWidth,(int)Math.Ceiling(b.Right)+12)-x;height=Math.Min(image.PixelHeight,(int)Math.Ceiling(b.Bottom)+12)-y;
+                    }
+                    if(width<=0||height<=0||width>640||height>200)return false;
+                    var installed=Windows.Media.Ocr.OcrEngine.AvailableRecognizerLanguages;
+                    var preferred=installed.Where(l=>l.LanguageTag.StartsWith("zh",StringComparison.OrdinalIgnoreCase)).Concat(installed.Where(l=>l.LanguageTag.StartsWith("en",StringComparison.OrdinalIgnoreCase)));
+                    var engine=preferred.Select(l=>Windows.Media.Ocr.OcrEngine.TryCreateFromLanguage(l)).FirstOrDefault(e=>e!=null);
+                    if(engine==null||Math.Max(width,height)*3>Windows.Media.Ocr.OcrEngine.MaxImageDimension)return false;
+                    BitmapSource slice=image;if(x!=0||y!=0||width!=image.PixelWidth||height!=image.PixelHeight){var crop=new CroppedBitmap(image,new Int32Rect(x,y,width,height));crop.Freeze();slice=crop;}
+                    token.ThrowIfCancellationRequested();var pix=new OcrPixels(OcrService.Prepare(slice,3));
+                    using(var bitmap=pix.WindowsBitmap()){
+                        var op=engine.RecognizeAsync(bitmap);var reply=new TaskCompletionSource<Windows.Media.Ocr.OcrResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        op.Completed=(a,s)=>{try{if(s==Windows.Foundation.AsyncStatus.Canceled)reply.TrySetCanceled();else reply.TrySetResult(a.GetResults());}catch(Exception e){reply.TrySetException(e);}};
+                        // Some OS versions complete/dispose the operation while
+                        // a timeout callback is being dispatched. Cancellation
+                        // is best effort; never throw out of a timer callback.
+                        using(token.Register(()=>{try{op.Cancel();}catch(Exception){}})){
+                            var result=await reply.Task.ConfigureAwait(false);token.ThrowIfCancellationRequested();
+                            foreach(var line in result.Lines)for(int i=0;i+2<line.Words.Count;i++){
+                                if(line.Words[i].Text!="AI")continue;
+                                var boxes=new Rect[3];for(int k=0;k<3;k++){var b=line.Words[i+k].BoundingRect;boxes[k]=new Rect(x+b.X/3,y+b.Y/3,b.Width/3,b.Height/3);}
+                                if(ConfirmsModelHeader(words,number,line.Words[i].Text,line.Words[i+1].Text,line.Words[i+2].Text,boxes))return true;
+                            }
+                        }
+                    }
+                    return false;
+                }catch(OperationCanceledException){return false;}
+                // This is optional visual corroboration, never the primary OCR.
+                // A missing capability, damaged local engine, or rejected input
+                // means "can't verify", not a failure to translate the rest.
+                catch(Exception){return false;}
+                finally{lifetime.Dispose();verificationSlot.Release();}
+            });
+            // A platform recognition which is slow to acknowledge cancellation
+            // must neither delay the user nor allocate a second native recognizer.
+            var done=await Task.WhenAny(work,Task.Delay(budget,cancel)).ConfigureAwait(false);
+            cancel.ThrowIfCancellationRequested();return done==work&&await work.ConfigureAwait(false);
+        }
+        internal static bool ConfirmsModelHeader(WordBox[] words,string number,string tag,string noun,string seenNumber,Rect[] local){
+            if(tag!="AI"||noun!="model"||seenNumber.TrimEnd(':','：')!=number||words.Length!=3||local.Length!=3)return false;
+            for(int k=0;k<3;k++){
+                var original=words[k].Box;var box=local[k];var overlap=Rect.Intersect(original,box);
+                if(overlap.IsEmpty||overlap.Width<=0||overlap.Height<=0||
+                    overlap.Width<.45*Math.Max(original.Width,box.Width)||overlap.Height<.45*Math.Max(original.Height,box.Height))return false;
+            }
+            return true;
         }
         internal static string[] Prepare(OcrPage page,IList<TranslationRegion> regions,CancellationToken cancel){
             if(page==null||regions==null)throw new ArgumentNullException();
@@ -162,6 +278,11 @@ namespace QingJie {
             if(word[0]<'a'||word[0]>'z'||word.Any(c=>!(c>='a'&&c<='z')&&c!='I')||
                 (start>0&&(context[start-1]=='\''||context[start-1]=='\u2019'||context[start-1]=='-'))||tail.StartsWith("-",StringComparison.Ordinal)||
                 Regex.IsMatch(tail,@"^['\u2019]s\b"))return word;
+            // Only reviewed UI words can ever be returned by the dictionary, and
+            // the final filter requires exactly one visual substitution. Do the
+            // necessary membership check first. A low score alone does not
+            // warrant a spelling lookup, even on pages with one eligible word.
+            if(!CouldCorrectSpelling(word))return word;
             Lexicon dict;
             try{dict=lexicon.Value;}catch(IOException){return word;}catch(TypeInitializationException){return word;}
             string lower=word.ToLowerInvariant();
@@ -170,6 +291,9 @@ namespace QingJie {
                 .Where(c=>VisualConfusion(word,c.term)).Select(c=>c.term).Distinct().Take(2).ToArray();
             if(candidates.Length!=1)return word;
             return candidates[0];
+        }
+        internal static bool CouldCorrectSpelling(string source){
+            return visualSpellings.Contains(source);
         }
         internal static bool VisualConfusion(string source,string candidate){
             // One visually plausible substitution, not arbitrary spellchecking.

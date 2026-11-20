@@ -178,6 +178,18 @@ class Tests {
         for(int i=0;i<pixels.Length;i+=4){int gray=(int)(pixels[i]*.0722+pixels[i+1]*.7152+pixels[i+2]*.2126);gray=(gray*pixels[i+3]+255*(255-pixels[i+3]))/255;if(dark>samples*.6)gray=255-gray;pixels[i]=pixels[i+1]=pixels[i+2]=(byte)gray;pixels[i+3]=255;}
         var normalized=BitmapSource.Create(width,height,96,96,PixelFormats.Bgra32,null,pixels,width*4);normalized.Freeze();var scaled=new TransformedBitmap(normalized,new ScaleTransform(ratio,ratio));scaled.Freeze();return scaled;
     }
+    static void PreparedAlphaPixels(){
+        // Neither odd-width rows nor a very wide image may reset global
+        // dark-sample positions or lose partially transparent pixels.
+        foreach(var size in new[]{new Int32Rect(0,0,377,47),new Int32Rect(0,0,8201,3)}){
+            int stride=size.Width*4;
+            var data=new byte[stride*size.Height];new Random(size.Width).NextBytes(data);
+            var image=BitmapSource.Create(size.Width,size.Height,96,96,PixelFormats.Bgra32,null,data,stride);
+            image.Freeze();
+            Check(SamePixels(LegacyPrepare(image,1),OcrService.Prepare(image,1)),
+                "every grayscale sample including the last row preserves alpha compositing at width "+size.Width);
+        }
+    }
     static bool SamePixels(BitmapSource a,BitmapSource b){if(a.PixelWidth!=b.PixelWidth||a.PixelHeight!=b.PixelHeight)return false;var bytesA=new byte[a.PixelWidth*a.PixelHeight*4];var bytesB=new byte[bytesA.Length];new FormatConvertedBitmap(a,PixelFormats.Bgra32,null,0).CopyPixels(bytesA,a.PixelWidth*4,0);new FormatConvertedBitmap(b,PixelFormats.Bgra32,null,0).CopyPixels(bytesB,b.PixelWidth*4,0);return bytesA.SequenceEqual(bytesB);}
     static class IconResources {
         internal delegate bool EnumNameProc(IntPtr module,IntPtr type,IntPtr name,IntPtr parameter);
@@ -274,9 +286,32 @@ class Tests {
         SynchronizationContext.SetSynchronizationContext(null);
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
-        if(args.Length==1&&args[0]=="--translation-sweep-only"){
+        if(args.Length==2&&args[0]=="--busy-translation"){
+            Finish(BusyTranslationTests.Run(args[1],Check));Console.WriteLine(count+" busy-worker translation checks passed.");return 0;
+        }
+        if(args.Length==2&&args[0]=="--real-screen-glyphs"){
+            RealScreenGlyphTests.Run(args[1],Check);Console.WriteLine(count+" real desktop glyph checks passed.");return 0;
+        }
+        if(args.Length==2&&args[0]=="--browser-line-evidence"){
+            BrowserLineEvidenceTests.Run(args[1],Check);Console.WriteLine(count+" browser screenshot evidence checks passed.");return 0;
+        }
+        if(args.Length==2&&args[0]=="--short-line-session"){
+            ShortLineSessionTests.Run(args[1],Check);Console.WriteLine(count+" isolated text session checks passed.");return 0;
+        }
+        if(args.Length>=2&&args[0]=="--live-capture-translation-timing"){
             SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext());
-            Finish(ImageTranslationSweepTests.Run(Check));Console.WriteLine(count+" translation sweep checks passed.");return 0;
+            Finish(ScreenshotTranslationTiming.RunSequence(args.Skip(1)));return 0;
+        }
+        if(args.Length>=3&&args[0]=="--live-browser-translation-timing"){
+            SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext());
+            Finish(BrowserTranslationTiming.Run(args[1],args.Skip(2)));return 0;
+        }
+        if(args.Length==1&&(args[0]=="--screenshot-translation-only"||args[0]=="--translation-sweep-only")){
+            SynchronizationContext.SetSynchronizationContext(new System.Windows.Threading.DispatcherSynchronizationContext());
+            PreparedAlphaPixels();
+            Finish(CaptureTranslationInteractionTests.Run(Check));
+            Finish(ScreenshotTranslationExperienceTests.Run(Check));
+            VerifiedLineOcrTests.Run(Check);DesktopLineEvidenceTests.Run(Check);Console.WriteLine(count+" screenshot translation checks passed.");return 0;
         }
         Finish(TranslationRegionMappingTests.Run(Check));
         StructuredOcrTests.Run(Check);

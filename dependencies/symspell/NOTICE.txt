@@ -4,7 +4,9 @@ https://www.nuget.org/packages/SymSpell/6.7.3
 Unmodified netstandard2.0 binary from the NuGet package; MIT license in LICENSE.txt.
 
 English frequency dictionary (frequency_dictionary_en_82_765.txt)
-Unmodified dictionary distributed with SymSpell 6.7.3, embedded into Nook.
+The unmodified upstream dictionary distributed with SymSpell 6.7.3 is kept
+in the source tree. Nook embeds only the reviewed OCR interface terms and
+their possible known-word matches, with upstream frequencies unchanged.
 The dictionary combines Google Books Ngram frequencies and SCOWL word lists.
 Upstream attribution: https://github.com/wolfgarbe/SymSpell/tree/v6.7.3#frequency-dictionary
 Google Books Ngram data: http://storage.googleapis.com/books/ngrams/books/datasetsv2.html

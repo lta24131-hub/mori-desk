@@ -3,6 +3,10 @@ using SkiaSharp;
 
 internal static class ScreenRegionRegressionFixtures
 {
+    sealed class FragmentedPixels(byte[] bytes) : MemoryStream(bytes)
+    {
+        public override int Read(Span<byte> buffer) => base.Read(buffer[..Math.Min(7, buffer.Length)]);
+    }
     internal static void Run()
     {
         var checks = new List<object>(); int failed = 0;
@@ -71,6 +75,53 @@ internal static class ScreenRegionRegressionFixtures
             allPixelsPreserved &= plan.HasValue && points.All(p => plan.Value.Contains(p.X, p.Y));
         }
         Check("all nonbackground pixels survive randomized sparse/dense positions", allPixelsPreserved);
+
+        bool exactBounds = true;
+        var sub = new SKRectI(43, 19, 368, 222);
+        for (int i = 0; i < 48; i++)
+        {
+            bitmap.Erase(SKColors.White);
+            bitmap.SetPixel(sub.Left - 1, sub.Top + 15, SKColors.Black);
+            int x = random.Next(60, 240), y = random.Next(26, 140);
+            int w = random.Next(1, 96), h = random.Next(1, 37);
+            bitmap.SetPixel(x, y, SKColors.Black);
+            bitmap.SetPixel(x + w - 1, y + h - 1, new SKColor(254, 255, 255));
+            var expected = new SKRectI(Math.Max(sub.Left, x - 32), Math.Max(sub.Top, y - 32),
+                Math.Min(sub.Right, x + w + 32), Math.Min(sub.Bottom, y + h + 32));
+            exactBounds &= ScreenOcrRegionPlan.ContentRegion(bitmap, sub, default) == expected;
+        }
+        Check("exact bounds of narrow, off-centre and faint end pixels match scalar geometry", exactBounds);
+
+        var blank = new UniformOpaqueScan();
+        Check("no input is not a completed blank image", !blank.OnlyBackground);
+        blank.Observe([0, 0, 0, 255, 0, 0, 0, 255]); blank.Observe([0, 0, 0, 255]);
+        Check("exactly matching opaque strips are blank", blank.OnlyBackground);
+        blank.Observe([0, 0, 0, 255, 0, 0, 1, 255]); blank.Observe([0, 0, 0, 255]);
+        Check("one faint pixel at a strip's last position permanently requires OCR", !blank.OnlyBackground);
+        var alpha = new UniformOpaqueScan(); alpha.Observe([255, 255, 255, 254]);
+        Check("uniform translucency must go through normal composition and OCR", !alpha.OnlyBackground);
+
+        var wire = new byte[17 * 35 * 4 + 1];
+        for(int i = 0; i < wire.Length - 1; i += 4){wire[i] = 11;wire[i+1] = 22;wire[i+2] = 33;wire[i+3] = 255;}
+        wire[^5] = 12;wire[^1] = 0x7b; // one changed pixel, then an out-of-band sentinel
+        foreach(int stride in new[]{68,80}){
+            using var target = new SKBitmap(new SKImageInfo(17,35,SKColorType.Bgra8888,SKAlphaType.Unpremul),stride);
+            target.GetPixelSpan().Fill(0xc7);
+            using var reader = new BinaryReader(new FragmentedPixels(wire));
+            var scan = PipeWorker.ReadPixels(reader,target);
+            var pixels = target.GetPixelSpan();bool equal = true;
+            for(int y=0;y<35;y++){
+                equal &= pixels.Slice(y*stride,68).SequenceEqual(wire.AsSpan(y*68,68));
+                if(stride>68 && y<34) equal &= pixels.Slice(y*stride+68,stride-68).IndexOfAnyExcept((byte)0xc7)<0;
+            }
+            Check("fragmented transport preserves every byte, final odd strip, stride padding and frame boundary: "+stride,
+                equal && !scan.OnlyBackground && reader.ReadByte()==0x7b);
+        }
+        using(var target=new SKBitmap(17,35,SKColorType.Bgra8888,SKAlphaType.Unpremul))
+        using(var truncated=new BinaryReader(new FragmentedPixels(wire[..^2]))){
+            bool rejected=false;try{PipeWorker.ReadPixels(truncated,target);}catch(EndOfStreamException){rejected=true;}
+            Check("missing final pixel byte cannot yield a partial OCR image",rejected);
+        }
 
         var fixtures = new List<object>();
         foreach (string name in new[] { "short-card", "craft", "lexicon-pipeline", "mixed-size-bilingual" })

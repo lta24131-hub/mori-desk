@@ -73,6 +73,7 @@ internal static class TranslationContextTests {
         Check(!Translation.CanCacheImageTranslation(new[]{"Choose your path"},new string[0],"zh")&&!Translation.CanCacheImageTranslation(new[]{"Choose your path"},new[]{""},"zh"),"incomplete or blank image responses are never cache-eligible");
     }
     static void MainTests(){
+        ExactCommandTests();
         var source=new[]{"Made for your next shot.","Independent\nframing.","Choose your path.","Stay with the action.","Fold for the\nnext shoot.","Follow","Parallel","Orbit","Your height.\nYour shot.","Manual height adjustment","Independent\nwheel travel."};
         var output=new[]{"为你的下一个镜头做准备。","独立\n框定。","选择路径。","继续行动。","盖牌\n下一次射击。","遵循","平行","轨道","你的身高。\n该你了。","手动高度调节","独立轮行程。"};
         var result=Terms(source,output);
@@ -117,7 +118,15 @@ internal static class TranslationContextTests {
         var serializer=new JavaScriptSerializer();
         string oldKey="image:device-context-v2:tencent:zh:"+serializer.Serialize(source);
         string newKey=Translation.ImageCacheKey(source,"zh","tencent");
-        Check(newKey.StartsWith("image:indexed-regions-v12-evidence-lexicon:",StringComparison.Ordinal)&&newKey!=oldKey,"image cache identity invalidates results from before evidence-gated OCR correction");
+        Check(Translation.ImageCacheKey(new[]{"a:2:b"},"zh","tencent")!=Translation.ImageCacheKey(new[]{"a","2:b"},"zh","tencent")&&
+              Translation.ImageCacheKey(new[]{"ab","c"},"zh","tencent")!=Translation.ImageCacheKey(new[]{"a","bc"},"zh","tencent"),
+              "separate regions and a single literal never collide");
+        var tricky=new[]{"Please close the window.","a \"quoted\" path\\with\nlines\tand\u0001","🖼\u2028图片","a,b","</script>"};
+        var encodedRequest=serializer.DeserializeObject(Translation.RequestJson(tricky,"test\"language","en")) as System.Collections.Generic.Dictionary<string,object>;
+        var payload=(System.Collections.Generic.Dictionary<string,object>)encodedRequest["source"];
+        Check((string)payload["lang"]=="test\"language"&&((object[])payload["text_list"]).Cast<string>().SequenceEqual(tricky)&&
+              (string)((System.Collections.Generic.Dictionary<string,object>)encodedRequest["target"])["lang"]=="en","provider payload round trips quotes, controls, emoji, separators and every region in order");
+        Check(newKey.StartsWith("image:indexed-regions-v13-model-label:",StringComparison.Ordinal)&&newKey!=oldKey,"image cache identity invalidates results from before checked model labels");
         var cache=new TranslationCache();cache.Put(oldKey,output);
         Check(cache.Get(newKey)==null,"old wrong cached translation cannot satisfy the new policy key");
         cache.Put("image:indexed-regions-v11-sentence-context:tencent:zh:"+serializer.Serialize(source),output);
@@ -155,9 +164,66 @@ internal static class TranslationContextTests {
         Check(Translation.KeepImageAbbreviations(new[]{"AI and AI"},new[]{"AI和人工智能"},"zh")[0]=="AI和AI","mixed preserved and expanded repetitions retain all occurrences");
         Check(Translation.KeepImageAbbreviations(new[]{"AI"},new[]{"人工智能和人工智能"},"zh")[0]=="人工智能和人工智能","ambiguous occurrence alignment does not rewrite unrelated expanded terms");
         Check(Translation.KeepImageAbbreviations(new[]{"AI"},new[]{"artificial intelligence"},"en")[0]=="artificial intelligence","Chinese abbreviation preference does not rewrite English provider wording");
+        foreach(string tag in new[]{"AI","Al","A1"})Check(Translation.KeepImageAbbreviations(new[]{tag+" model 12: keep all files."},new[]{"模型12：保留所有文件。"},"zh")[0]==tag+" 模型12：保留所有文件。","restore precisely the original label, without guessing ambiguous letters: "+tag);
+        foreach(string candidateText in new[]{"模型13：保留文件。","A1 型号12：保留文件。","不需要模型12：保留文件。","模型12有12个文件。","模型12：这些是 AI 文件。"})Check(Translation.KeepImageAbbreviations(new[]{"AI model 12: keep all files."},new[]{candidateText},"zh")[0]==candidateText,"without a matching unambiguous omission, never insert letters: "+candidateText);
         RetryTests();
+        SchedulingTests().GetAwaiter().GetResult();
         var lazyClient=typeof(Translation).GetField("client",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static).GetValue(null);
         Check(!(bool)lazyClient.GetType().GetProperty("IsValueCreated").GetValue(lazyClient,null),"the production HTTP client was never constructed during these checks");
+    }
+    static void ExactCommandTests(){
+        var commandSource=new[]{"Save As…","New folder","SELECT ALL","copy image"};
+        var snapshot=(string[])commandSource.Clone();
+        // Both real entry points must finish without setting up a provider,
+        // reading user settings or requiring an earlier/cache-priming request.
+        var image=Translation.TranslateImage(commandSource,CancellationToken.None,"zh","tencent");
+        Check(image.IsCompleted&&image.GetAwaiter().GetResult().SequenceEqual(new[]{"另存为…","新建文件夹","全选","复制图片"}),"whole menus of known commands translate immediately, keeping order and ellipsis");
+        var selection=Translation.TranslateScreenshotSelection("打开文件位置",CancellationToken.None,"en","tencent");
+        Check(selection.IsCompleted&&selection.GetAwaiter().GetResult()=="Open file location","selected screenshot text also resolves a complete command directly in reverse");
+        var reverse=Translation.TranslateImage(new[]{"另存为...","全部保存"},CancellationToken.None,"en","tencent");
+        Check(reverse.IsCompleted&&reverse.GetAwaiter().GetResult().SequenceEqual(new[]{"Save as...","Save all"}),"reverse menu translation preserves three typed dots");
+        image.Result[0]="mutated";
+        Check(commandSource.SequenceEqual(snapshot)&&Translation.ExactScreenshotCommands(new[]{"Save As…"},"zh","tencent")[0]=="另存为…","caller mutation cannot alter source or dictionary values");
+        foreach(string mismatch in new[]{"Select all files","Select  all","Select all.","selectAll","Select All (Ctrl+A)","C:\\copy image","Copy image.png","Copy image2","Save as Al","Open","Back","Select\nall","<Copy image>","Save\u00a0as","sAvE aS","Copy image图片","Switch on the light."})
+            Check(Translation.ExactScreenshotCommands(new[]{mismatch},"zh","tencent")==null,"sentence, shortcut, identifier or uncertain OCR never becomes a command: "+mismatch);
+        foreach(string provider in new[]{"offline","google","another"})Check(Translation.ExactScreenshotCommands(new[]{"New folder"},"zh",provider)==null,"alternative provider bypassed by no local command: "+provider);
+        Check(Translation.StandaloneWordMeaning("Open","zh","tencent")=="打开 / 开放"&&Translation.StandaloneWordMeaning("copy","zh","tencent")=="复制 / 副本"&&Translation.StandaloneWordMeaning("Save","zh","tencent")=="保存 / 挽救","isolated dictionary entries keep the interface and ordinary senses");
+        foreach(var item in new[]{"Download 下载","Upload 上传","Install 安装","Uninstall 卸载","Rename 重命名","Undo 撤销","Redo 重做","Retry 重试"}){
+            string[] pair=item.Split(' ');
+            Check(Translation.StandaloneWordMeaning(pair[0],"zh","tencent")==pair[1]&&Translation.StandaloneWordMeaning(pair[0].ToLowerInvariant(),"zh","tencent")==pair[1]&&Translation.StandaloneWordMeaning(pair[0]+".","zh","tencent")==null,
+                "an isolated interface verb has a local gloss without rewriting prose: "+pair[0]);
+        }
+        foreach(var word in new[]{"Open.","OPEN"," Open","Open air","GitHub","SetTings","AI","Al"})
+            Check(Translation.StandaloneWordMeaning(word,"zh","tencent")==null,"dictionary never normalizes punctuated, mixed-case or unknown words: "+word);
+        Check(Translation.StandaloneWordMeaning("Save","zh","offline")==null&&Translation.StandaloneWordMeaning("Save","zh","google")==null&&Translation.StandaloneWordMeaning("Save","en","tencent")==null,"literal word lookup honors provider selection and target language");
+        Check(Translation.ExactScreenshotCommands(new[]{"New folder","ordinary prose"},"zh","tencent")==null,"mixed-content screenshots stay together on their usual contextual provider");
+        Check(Translation.ExactScreenshotCommands(new[]{"New folder"},"en","tencent")==null&&Translation.ExactScreenshotCommands(new[]{"新建文件夹"},"zh","tencent")==null,"source and target are not inverted or guessed");
+        using(var cts=new CancellationTokenSource()){cts.Cancel();Check(Translation.TranslateImage(new[]{"New folder"},cts.Token,"zh","tencent").IsCanceled&&Translation.TranslateScreenshotSelection("New folder",cts.Token,"zh","tencent").IsCanceled,"already cancelled screenshot requests never yield local results");}
+    }
+    static async Task SchedulingTests(){
+        // Use manually released requests, not elapsed-time assumptions or live providers.
+        var inputs=new[]{"one","two","three"};int calls=0;
+        var releases=inputs.Select(x=>new TaskCompletionSource<string>()).ToArray();
+        var third=new TaskCompletionSource<bool>();
+        var job=Translation.TranslateIndependentRegions(inputs,CancellationToken.None,(text,token)=>{
+            int i=Array.IndexOf(inputs,text);Interlocked.Increment(ref calls);if(i==2)third.TrySetResult(true);return releases[i].Task;
+        });
+        Check(calls==2,"two Google paragraphs start without waiting for the first reply");
+        releases[1].SetResult("B");if(await Task.WhenAny(third.Task,Task.Delay(2000))!=third.Task)throw new Exception("free region lane did not start next paragraph");
+        releases[2].SetResult("C");releases[0].SetResult("A");
+        Check((await job).SequenceEqual(new[]{"A","B","C"}),"out-of-order individual replies retain their original paragraphs");
+        int distinctCalls=0;var repeated=new[]{"Open","Save","Open","open"," Open","Save"};
+        var deduplicated=await Translation.TranslateIndependentRegions(repeated,CancellationToken.None,(text,token)=>{Interlocked.Increment(ref distinctCalls);return Task.FromResult("译:"+text);});
+        Check(distinctCalls==4&&deduplicated.SequenceEqual(repeated.Select(x=>"译:"+x)),"identical independent labels need one request; case, leading whitespace and every output position survive");
+        using(var stop=new CancellationTokenSource()){
+            calls=0;var cancelled=Translation.TranslateIndependentRegions(inputs,stop.Token,async(text,token)=>{Interlocked.Increment(ref calls);await Task.Delay(Timeout.Infinite,token);return text;});
+            stop.Cancel();bool observed=false;try{await cancelled;}catch(OperationCanceledException){observed=true;}
+            Check(observed&&calls==2,"cancelling stops both lanes without sending queued text");
+        }
+        var labels=Enumerable.Range(1,85).Select(i=>"Label "+i).ToArray();int online=0,offline=0;
+        var bounded=await Translation.TranslateImageCore(labels,CancellationToken.None,(batch,lang,token)=>{online++;return Task.FromResult(batch.Select(value=>"译"+value).ToArray());});
+        var together=await Translation.TranslateImageCore(labels,CancellationToken.None,(batch,lang,token)=>{offline++;return Task.FromResult(batch.Select(value=>"译"+value).ToArray());},"zh",null,500);
+        Check(online==3&&offline==1&&bounded.SequenceEqual(together),"85 short labels keep identical placement with one offline model job instead of three");
     }
     static void TextAbbreviationTests(){
         string source="Use the AI assistant to read the PDF.\nKeep the original file.";int calls=0;

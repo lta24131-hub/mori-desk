@@ -29,6 +29,15 @@ namespace QingJie {
         // One full-size render at a time bounds scratch bitmap memory across
         // capture, recognition and pins. Waiting requests remain cancellable.
         static readonly SemaphoreSlim renderSlot=new SemaphoreSlim(1,1);
+        internal static string[] TranslateWholeLabel(OcrPage page,IList<TranslationRegion> regions,string target,string provider){
+            if(regions.Count!=1)return null;
+            var region=regions[0];
+            if(region.Lines!=1||region.SourceLines.Count!=1||region.SourceLines[0].Text!=region.Text||page.Text!=region.Text)return null;
+            string value=Translation.ExactScreenshotCommand(region.Text,target,provider);
+            if(value==null&&page.Words.Count==1&&page.Words[0].Text==region.Text)
+                value=Translation.StandaloneWordMeaning(region.Text,target,provider);
+            return value==null?null:new[]{value};
+        }
         static TranslationRegion Line(IList<WordBox> words,Rect box){
             var text=Geometry.JoinWords(words);var line=new TranslationRegion{Text=text,Box=box};
             line.SourceLines.Add(new TranslationSourceLine{Text=text,Box=box});return line;

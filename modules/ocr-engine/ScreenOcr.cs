@@ -324,7 +324,9 @@ internal sealed class ScreenOcr : IDisposable
         foreach(var word in source.OrderBy(w=>w.Box.MidY).ThenBy(w=>w.Box.Left))
         {
             var row=rows.LastOrDefault();
-            var anchor=row==null?null:row.OrderBy(w=>w.Box.MidY).ElementAt(row.Count/2);
+            // The outer loop already appends in stable MidY order. The middle
+            // item is the same anchor without sorting this growing row again.
+            var anchor=row==null?null:row[row.Count/2];
             if(anchor==null||!SameReadingRow(word.Box,anchor.Box))
             {row=new();rows.Add(row);}
             row!.Add(word);
@@ -371,6 +373,7 @@ internal sealed class ScreenOcr : IDisposable
         }
         yield return paragraph;
     }
+    internal static void VerifyInstalledModels() => VerifyModels(Path.Combine(AppContext.BaseDirectory, "models", "ch-v5"));
     private static void VerifyModels(string directory)
     {
         using var manifest=typeof(ScreenOcr).Assembly.GetManifestResourceStream("Nook.Ocr.Models.json")!;

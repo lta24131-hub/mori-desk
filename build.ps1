@@ -1,6 +1,7 @@
 param([switch]$Test,[switch]$CaptureTests,[string]$OutputDirectory='dist',[string]$ScrollCaptureDirectory,[string]$FileConversionDirectory,[string]$ShellPreviewDirectory,[string]$OcrEngineDirectory)
 $ErrorActionPreference='Stop'
 $suiteRoot=$PSScriptRoot
+& "$suiteRoot\modules\capture\data\Get-CompactOcrLexicon.ps1" -Check
 $framework='C:\Windows\Microsoft.NET\Framework64\v4.0.30319'
 $output=if([IO.Path]::IsPathRooted($OutputDirectory)){[IO.Path]::GetFullPath($OutputDirectory)}else{Join-Path $suiteRoot $OutputDirectory}
 New-Item -ItemType Directory -Force $output | Out-Null
@@ -38,8 +39,18 @@ $resources=@(
  '/resource:'+$suiteRoot+'\assets\nook-256.png,QingJie.Icon.png'
  '/resource:'+$suiteRoot+'\modules\capture\offline\catalog.json,QingJie.OfflineCatalog.json'
  '/resource:'+$suiteRoot+'\modules\capture\offline\worker.py,QingJie.OfflineWorker.py'
- '/resource:'+$suiteRoot+'\modules\capture\data\frequency_dictionary_en_82_765.txt,QingJie.EnglishFrequency.txt'
+ '/resource:'+$suiteRoot+'\modules\capture\data\ocr-ui-frequency.txt,QingJie.EnglishFrequency.txt'
 )
+if($OcrEngineDirectory){
+ . (Join-Path $suiteRoot 'modules\ocr-engine\Validate-Component.ps1')
+ $ocrTarget=Join-Path $output 'ocr-engine'
+ # Copy-OcrComponent verifies both the source and the copied payload, including model hashes.
+ Copy-OcrComponent ([IO.Path]::GetFullPath($OcrEngineDirectory)) $ocrTarget
+ $resources+='/resource:'+(Join-Path $ocrTarget 'component.json')+',QingJie.VerifiedOcrManifest.json'
+}else{
+ if(Test-Path -LiteralPath (Join-Path $output 'ocr-engine')){throw 'An old OCR engine is present. Use a fresh output directory.'}
+ Write-Warning 'Modern OCR omitted from this development build. Release packaging requires -OcrEngineDirectory.'
+}
 $compilerArgs=@('/nologo','/target:winexe','/main:MoriDesk.Entry','/platform:x64','/optimize+','/codepage:65001',('/out:'+$output+'\Mori.exe'),('/win32icon:'+$suiteRoot+'\assets\mori.ico'),('/win32manifest:'+$suiteRoot+'\modules\library\app.manifest'))+$resources+$refs+$sources
 # A response file avoids Windows' command-line limit as the suite grows.
 # It is build-local and is not part of the release payload allowlist.
@@ -47,6 +58,7 @@ $responseFile=Join-Path $output 'compile.rsp'
 [IO.File]::WriteAllLines($responseFile,[string[]]($compilerArgs | ForEach-Object {'"'+$_+'"'}),(New-Object Text.UTF8Encoding($false)))
 & "$framework\csc.exe" ('@'+$responseFile)
 if($LASTEXITCODE -ne 0){throw 'Suite build failed'}
+& "$suiteRoot\modules\capture\line-worker\Build.ps1" -OutputDirectory $output -TesseractAssembly (Join-Path $output 'Tesseract.dll')
 Copy-Item "$suiteRoot\modules\library\App.config" "$output\Mori.exe.config" -Force
 Copy-Item -LiteralPath "$suiteRoot\assets\nook-256.png" -Destination "$output\qingjie-icon.png" -Force
 New-Item -ItemType Directory -Force "$output\web" | Out-Null
@@ -98,18 +110,6 @@ if($ShellPreviewDirectory){
  Copy-Item -LiteralPath $shellSource -Destination $shellTarget -Recurse
  Assert-ShellPreviewComponent $shellTarget
 }else{Write-Warning 'Shell previews omitted from this development build. Release packaging requires -ShellPreviewDirectory.'}
-if($OcrEngineDirectory){
- . (Join-Path $suiteRoot 'modules\ocr-engine\Validate-Component.ps1')
- $ocrSource=[IO.Path]::GetFullPath($OcrEngineDirectory)
- Assert-OcrComponent $ocrSource
- $ocrTarget=Join-Path $output 'ocr-engine'
- if(Test-Path -LiteralPath $ocrTarget){throw 'Use a fresh output directory for OCR.'}
- Copy-OcrComponent $ocrSource $ocrTarget
- Assert-OcrComponent $ocrTarget
-}else{
- if(Test-Path -LiteralPath (Join-Path $output 'ocr-engine')){throw 'An old OCR engine is present. Use a fresh output directory.'}
- Write-Warning 'Modern OCR omitted from this development build. Release packaging requires -OcrEngineDirectory.'
-}
 if($Test){$testProcess=Start-Process "$output\Mori.exe" -ArgumentList '--suite-test' -Wait -PassThru -WindowStyle Hidden;if($testProcess.ExitCode -ne 0){throw 'Suite tests failed'}}
 if($CaptureTests){
  $captureTestSources=Get-ChildItem "$suiteRoot\modules\capture\tests\*.cs" | ForEach-Object FullName

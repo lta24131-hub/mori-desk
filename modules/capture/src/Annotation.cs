@@ -118,6 +118,14 @@ namespace QingJie {
         public BitmapSource Export(bool annotated=true,bool translated=true) {
             if(Selection.IsEmpty||Selection.Width<2||Selection.Height<2)throw new InvalidOperationException("请先框选截图区域。");
             var crop=Geometry.PixelCrop(Selection,ScaleX,ScaleY,Image.PixelWidth,Image.PixelHeight);
+            // Recognition needs the untouched source pixels, not a second full-size
+            // WPF render on the input thread. Keep the old DPI normalization otherwise.
+            if(!annotated&&!translated&&Image.IsFrozen&&Image.DpiX==96&&Image.DpiY==96){
+                if(crop.X==0&&crop.Y==0&&crop.Width==Image.PixelWidth&&crop.Height==Image.PixelHeight)return Image;
+                // The independent viewer can outlive the capture; detach a partial
+                // crop rather than keeping the entire desktop bitmap alive with it.
+                var source=new WriteableBitmap(new CroppedBitmap(Image,crop));source.Freeze();return source;
+            }
             var visual=new DrawingVisual();
             using(var d=visual.RenderOpen()) {
                 d.DrawImage(new CroppedBitmap(Image,crop),new Rect(0,0,crop.Width,crop.Height));

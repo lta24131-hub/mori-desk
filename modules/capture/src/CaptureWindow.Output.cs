@@ -25,7 +25,7 @@ namespace QingJie {
     public sealed partial class CaptureWindow {
         internal ICaptureOutputActions OutputActions=new CaptureOutputActions();
         internal Action<TextWindow> PresentTextViewer;
-        internal Func<BitmapSource,CancellationToken,Task<OcrPage>> ReadCaptureOcr=OcrService.Read;
+        internal Func<BitmapSource,CancellationToken,Task<OcrPage>> ReadCaptureOcr=OcrWorker.ReadForTranslation;
         readonly CancellationTokenSource outputLifetime=new CancellationTokenSource();
         TextWindow captureTextViewer;
 
@@ -74,7 +74,13 @@ namespace QingJie {
         void ReadText(bool translate){
             if(!CanEditCapture||(translate?!captureFeatures.Translation:!captureFeatures.Ocr))return;
             if(translate){TranslateInPlace();return;}
-            Guard(()=>OpenCaptureTextViewer(new TextWindow(surface.Export(false,false),translationTarget,allowTranslation:captureFeatures.Translation,allowPin:captureFeatures.Pin)));
+            if(imageTranslationResult!=null){ViewFullTranslation();return;}
+            Guard(()=>{
+                // Recognition already completed even if the provider or bitmap layout did
+                // not. Hand off only this exact crop's OCR; do not start a second worker.
+                var knownPage=recognizedSelection==surface.Selection?recognizedPage:null;
+                OpenCaptureTextViewer(new TextWindow(surface.Export(false,false),translationTarget,knownPage,null,null,allowTranslation:captureFeatures.Translation,allowPin:captureFeatures.Pin));
+            });
         }
         internal void OpenCaptureTextViewer(TextWindow viewer){
             if(viewer==null)throw new ArgumentNullException("viewer");

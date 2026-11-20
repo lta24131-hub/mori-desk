@@ -21,6 +21,63 @@ public static class OcrLexiconTests {
         page.TranslationRegions.Add(new TranslationRegion{Text=source,Box=new Rect(0,0,Math.Max(1,index)*100,20)});return page;
     }
     static string Prepare(OcrPage page){return OcrTranslationInput.Prepare(page,ImageTranslation.Regions(page),CancellationToken.None)[0];}
+    static bool DictionaryLoaded(){
+        var field=typeof(OcrTranslationInput).GetField("lexicon",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+        var lazy=field.GetValue(null);return (bool)lazy.GetType().GetProperty("IsValueCreated").GetValue(lazy,null);
+    }
+    static void CheckColdGate(){
+        Check(!DictionaryLoaded(),"begin without the large spelling dictionary");
+        var ordinary=Page("the little lantern glows under cloudy skies",.71);
+        Check(Prepare(ordinary)==ordinary.Text&&!DictionaryLoaded(),"unrelated low-score words including l/i do not load the spelling dictionary");
+        Check(Prepare(Page("Al summary",.7))=="AI summary"&&!DictionaryLoaded(),"contextual acronym repair is independent of the spelling dictionary");
+        Check(Prepare(Page("settlngs",.99))=="settlngs"&&!DictionaryLoaded(),"no cold load for a high-confidence visually eligible word");
+        var field=typeof(OcrTranslationInput).GetField("uiWords",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+        var terms=((IEnumerable<string>)field.GetValue(null)).Where(w=>w.Length>=5&&w.Length<=24).ToArray();
+        int eligible=0;
+        foreach(var target in terms)for(int pos=0;pos<target.Length;pos++)foreach(char c in "abcdefghijklmnopqrstuvwxyzI"){
+            var source=target.Substring(0,pos)+c+target.Substring(pos+1);
+            if(!OcrTranslationInput.VisualConfusion(source,target))continue;
+            eligible++;if(!OcrTranslationInput.CouldCorrectSpelling(source))throw new Exception("lost eligible UI correction: "+source+" => "+target);
+        }
+        Check(eligible>0&&!DictionaryLoaded(),"every one-letter UI correction that passes the final predicate also passes the cold gate");
+        var dense=Page(string.Join(" ",Enumerable.Repeat("按钮 图片 ordinary lantern",100)),.71);
+        var immediate=OcrTranslationInput.PrepareAsync(dense,dense.TranslationRegions,CancellationToken.None);
+        Check(immediate.IsCompleted&&immediate.Result[0]==dense.Text&&!DictionaryLoaded(),"dense low-confidence unrelated and Chinese text needs no evidence worker or spelling dictionary");
+    }
+    static void CheckProjection(Dictionary<string,object> report){
+        var field=typeof(OcrTranslationInput).GetField("uiWords",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+        var terms=(HashSet<string>)field.GetValue(null);
+        var oracle=new SymSpell(128,1,7);var known=new HashSet<string>(StringComparer.Ordinal);
+        var upstream=File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"frequency-full-reference.txt"));
+        foreach(string row in upstream){
+            int sep=row.LastIndexOf(' ');long count;if(sep<=0||!long.TryParse(row.Substring(sep+1),out count))continue;
+            var word=row.Substring(0,sep);known.Add(word);
+            if(word.Length>=5&&word.Length<=24&&terms.Contains(word))oracle.CreateDictionaryEntry(word,count);
+        }
+        Check(known.Count>82000,"full unmodified upstream vocabulary is available only to the oracle");
+        var domain=new HashSet<string>(terms.Where(w=>w.Length>=5&&w.Length<=24),StringComparer.Ordinal);
+        foreach(string term in terms.Where(w=>w.Length>=5&&w.Length<=24))
+            for(int i=0;i<term.Length;i++){
+                if(term[i]!='l'&&term[i]!='i')continue;
+                foreach(char c in "liI")domain.Add(term.Substring(0,i)+c+term.Substring(i+1));
+            }
+        var retain=new HashSet<string>(domain.Select(w=>w.ToLowerInvariant()),StringComparer.Ordinal);
+        using(var stream=typeof(OcrTranslationInput).Assembly.GetManifestResourceStream("QingJie.EnglishFrequency.txt"))
+        using(var reader=new StreamReader(stream)){
+            var rows=reader.ReadToEnd().Split(new[]{'\r','\n'},StringSplitOptions.RemoveEmptyEntries);
+            Check(rows.SequenceEqual(upstream.Where(row=>retain.Contains(row.Substring(0,row.LastIndexOf(' '))))),"embedded projection preserves every and only relevant known term, in original order and with original frequency");
+            report["embeddedLexiconBytes"]=stream.Length;report["embeddedLexiconRows"]=rows.Length;
+        }
+        foreach(string input in domain){
+            string expected=input,lower=input.ToLowerInvariant();
+            if(input[0]>='a'&&input[0]<='z'&&!known.Contains(lower)){
+                var alternatives=oracle.Lookup(lower,SymSpell.Verbosity.Closest,1).Where(x=>OcrTranslationInput.VisualConfusion(input,x.term)).Select(x=>x.term).Distinct().ToArray();
+                if(alternatives.Length==1)expected=alternatives[0];
+            }
+            Check(Prepare(Page(input))==expected,"full dictionary and compact vocabulary give the same decision: "+input);
+        }
+        report["upstreamDistinctWords"]=known.Count;report["allAdmissibleOrExactSpellings"]=domain.Count;
+    }
     static bool SameSource(OcrPage page,OcrPage copy){
         return page.Text==copy.Text&&page.Notice==copy.Notice&&page.Words.Count==copy.Words.Count&&page.TranslationRegions.Count==copy.TranslationRegions.Count&&
             page.Words.Zip(copy.Words,(a,b)=>a.Text==b.Text&&a.Box==b.Box&&a.Line==b.Line&&a.TextStart==b.TextStart&&a.Prefix==b.Prefix&&a.Confidence.Equals(b.Confidence)&&a.ConfidenceSource==b.ConfidenceSource).All(s=>s)&&
@@ -32,7 +89,36 @@ public static class OcrLexiconTests {
         Check(SameSource(page,copy),"source OCR text, word evidence and geometry never changed: "+source);
         evidence.Add(new{source,expected,result,score=double.IsNaN(score)||double.IsInfinity(score)?(object)score.ToString(System.Globalization.CultureInfo.InvariantCulture):score,origin=origin.ToString()});
     }
+    static void ModelLabelCases(){
+        var img=System.Windows.Media.Imaging.BitmapSource.Create(400,80,96,96,System.Windows.Media.PixelFormats.Gray8,null,new byte[400*80],400);img.Freeze();
+        Func<OcrPage,bool,int,string> run=(page,confirm,expectedCalls)=>{
+            int calls=0;var before=OcrResultCache.Copy(page);
+            var result=OcrTranslationInput.PrepareImageWithEvidenceAsync(img,page,page.TranslationRegions,CancellationToken.None,(b,r,words,number,t)=>{
+                calls++;Check(words.Length==3&&number=="12"&&words[0].Text=="Al","only the matched OCR word and its numbered anchor are submitted for corroboration");return Task.FromResult(confirm);
+            }).GetAwaiter().GetResult();
+            Check(calls==expectedCalls&&SameSource(page,before),"source words, scores, and geometry remain unchanged: "+page.Text);return result[0];
+        };
+        string ambiguous="Al model 12: keep all files.";
+        Check(run(Page(ambiguous,.99),true,1)=="AI model 12: keep all files.","independent visual agreement repairs an exact numbered UI heading");
+        Check(run(Page(ambiguous),false,1)==ambiguous,"unavailable or disagreeing secondary recognition never guesses AI");
+        foreach(string raw in new[]{"A1 model 12: keep all files.","Al Gore keeps the files.","Al model 12: aluminum alloy files.","Al model 12: a casting.","Al model: keep all files.","'Al model 12: keep all files.'","Save to Al model 12: keep all files."})Check(run(Page(raw),true,0)==raw,"names, genuine device IDs, chemistry and quoted prose are not silently reinterpreted: "+raw);
+        Check(run(Page(ambiguous,.9,OcrConfidenceSource.User),true,0)==ambiguous,"never override user-confirmed model identifiers");
+        Check(run(Page(ambiguous,.9,OcrConfidenceSource.Unknown),true,0)==ambiguous,"never repair an identifier without primary OCR word evidence");
+        var shifted=Page(ambiguous);shifted.Words[1].Line=1;Check(run(shifted,true,0)==ambiguous,"anchors must share the primary OCR line");
+        var anchor=Page(ambiguous).Words.Take(3).ToArray();var boxes=anchor.Select(w=>w.Box).ToArray();
+        Check(OcrTranslationInput.ConfirmsModelHeader(anchor,"12","AI","model","12：",boxes),"only aligned, independently read anchors confirm the label");
+        Check(!OcrTranslationInput.ConfirmsModelHeader(anchor,"12","A1","model","12",boxes)&&!OcrTranslationInput.ConfirmsModelHeader(anchor,"12","Al","model","12",boxes)&&!OcrTranslationInput.ConfirmsModelHeader(anchor,"12","AI","model","13",boxes),"a system disagreement/another label never confirms AI");
+        boxes[1]=new Rect(boxes[1].X,boxes[1].Y+200,boxes[1].Width,boxes[1].Height);
+        Check(!OcrTranslationInput.ConfirmsModelHeader(anchor,"12","AI","model","12",boxes),"a similar heading on another row is not the original label");
+        boxes[1]=new Rect(0,0,600,300);
+        Check(!OcrTranslationInput.ConfirmsModelHeader(anchor,"12","AI","model","12",boxes),"an enclosing merged image region cannot supply word evidence");
+        var small=new[]{new WordBox{Box=new Rect(11.5,62.5,10,16)},new WordBox{Box=new Rect(27.5,62.5,28.5,16)},new WordBox{Box=new Rect(59.5,62.5,12.5,16)}};
+        var native=new[]{new Rect(34d/3,199d/3,29d/3,26d/3),new Rect(75d/3,199d/3,90d/3,26d/3),new Rect(178d/3,199d/3,32d/3,26d/3)};
+        Check(OcrTranslationInput.ConfirmsModelHeader(small,"12","AI","model","12",native),"actual 11-pixel fixture's primary and 3x native boxes verify the same three words without relaxing overlap");
+    }
     static void MainChecks(){
+        ModelLabelCases();
+        Case("settlngs!","settings!");Case("settlngs/summary","settlngs/summary");
         foreach(var pair in new[]{new[]{"settlngs","settings"},new[]{"translatlon","translation"},new[]{"originaI","original"},new[]{"recognitlon","recognition"},new[]{"cllpboard","clipboard"},new[]{"prevlew","preview"},new[]{"notlfications","notifications"},new[]{"prlvacy","privacy"},new[]{"lnstall","install"},new[]{"dispIay","display"}})Case(pair[0],pair[1]);
         Case("Open the translatlon settlngs","Open the translation settings");
         Case("Al generated art","Al generated art");Case("Al-generated art","Al-generated art");Case("I keep getting Al responses. I asked for cancellation and refund","I keep getting AI responses. I asked for cancellation and refund");
@@ -127,7 +213,9 @@ public static class OcrLexiconTests {
         try{
             if(Environment.UserName!="NookTester"||!root.StartsWith(@"C:\NookLab\Audit\apps\",StringComparison.OrdinalIgnoreCase))throw new Exception("VM only");
             report["policy"]=OcrTranslationInput.Policy;report["startedUtc"]=DateTime.UtcNow.ToString("O");
+            CheckColdGate();
             var first=Page("Open the translatlon settlngs");GC.Collect();long before=GC.GetTotalMemory(true);var timer=Stopwatch.StartNew();string prepared=Prepare(first);timer.Stop();report["firstLoadMs"]=timer.Elapsed.TotalMilliseconds;report["retainedManagedBytes"]=GC.GetTotalMemory(true)-before;Check(prepared=="Open the translation settings","cold dictionary pass corrects known UI words");
+            Check(DictionaryLoaded(),"a genuine low-confidence UI typo still loads and uses the full dictionary");
             MainChecks();
             timer.Restart();for(int i=0;i<1000;i++)Prepare(first);timer.Stop();report["warmPerSmallRegionMs"]=timer.Elapsed.TotalMilliseconds/1000;
             var large=new OcrPage();for(int i=0;i<100;i++){var r=new TranslationRegion{Text="Open the translatlon settlngs",Box=new Rect(0,i*30,400,20)};large.TranslationRegions.Add(r);var row=Page(r.Text);foreach(var w in row.Words){w.Box=new Rect(w.Box.X,i*30,w.Box.Width,20);w.Line=i;large.Words.Add(w);}}
@@ -144,6 +232,7 @@ public static class OcrLexiconTests {
                 localTimings.Add(new{occurrences=count,characters=repeated.Length,words=many.Words.Count,elapsedMs=timer.Elapsed.TotalMilliseconds});
             }
             report["boundedTechnologyContextTimings"]=localTimings;
+            CheckProjection(report);
             report["passed"]=true;return 0;
         }catch(Exception ex){report["passed"]=false;report["error"]=ex.ToString();return 1;}
         finally{report["checks"]=checks;report["cases"]=evidence;File.WriteAllText(Path.Combine(root,"lexicon-tests.json"),new JavaScriptSerializer().Serialize(report));}
