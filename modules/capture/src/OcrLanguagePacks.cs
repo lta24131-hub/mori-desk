@@ -13,6 +13,8 @@ namespace QingJie {
         public override string ToString(){return Name+" · "+(Bytes/1048576.0).ToString("0.0")+" MB";}
     }
     public static class OcrLanguagePacks {
+        const long BundledKoreanBytes=12528128;
+        const string BundledKoreanHash="F888D4038348A0C3D25151E7F452BDA0D74CA275B18CAB146798BCBB94084FFF";
         public static readonly OcrLanguagePack[] Available={
             new OcrLanguagePack{Id="kor",Name="韩文",Bytes=1677415,Sha256="6B85E11D9BBF07863B97B3523B1B112844C43E713DF8B66418A081FD1060B3B2"},
             new OcrLanguagePack{Id="jpn",Name="日文",Bytes=2471260,Sha256="1F5DE9236D2E85F5FDF4B3C500F2D4926F8D9449F28F5394472D9E8D83B91B4D"},
@@ -36,13 +38,37 @@ namespace QingJie {
         // Missing optional files do not disable Chinese/English or reuse stale OCR.
         public static string EffectiveSelectionKey{get{return string.Join("+",ParseSelection(SelectionKey).Where(Installed));}}
         public static string ModelPath(string id){if(Find(id)==null)throw new ArgumentException("Unknown OCR language");return Path.Combine(Folder,id+".traineddata");}
-        public static bool Installed(string id){var pack=Find(id);return pack!=null&&File.Exists(ModelPath(id))&&new FileInfo(ModelPath(id)).Length==pack.Bytes;}
-        public static bool Verify(string path,OcrLanguagePack pack){if(new FileInfo(path).Length!=pack.Bytes)return false;using(var input=File.OpenRead(path))using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(input)).Replace("-","")==pack.Sha256;}
+        static string BundleFolder{get{return Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"tessdata");}}
+        static string ExpectedHash(OcrLanguagePack pack,long bytes){
+            if(bytes==pack.Bytes)return pack.Sha256;
+            return pack.Id=="kor"&&bytes==BundledKoreanBytes?BundledKoreanHash:null;
+        }
+        internal static bool HasBundledKorean{get{
+            var file=new FileInfo(Path.Combine(BundleFolder,"kor.traineddata"));
+            return file.Exists&&file.Length==BundledKoreanBytes;
+        }}
+        internal static string FolderForReading(string id){return id=="kor"&&HasBundledKorean?BundleFolder:Folder;}
+        public static bool Installed(string id){
+            var pack=Find(id);if(pack==null)return false;
+            if(id=="kor"&&HasBundledKorean)return true;
+            var file=new FileInfo(ModelPath(id));return file.Exists&&ExpectedHash(pack,file.Length)!=null;
+        }
+        public static bool Verify(string path,OcrLanguagePack pack){
+            var file=new FileInfo(path);if(!file.Exists)return false;
+            string expected=ExpectedHash(pack,file.Length);if(expected==null)return false;
+            using(var input=file.OpenRead())using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(input)).Replace("-","")==expected;
+        }
+        internal static void RemoveUserModel(string id){string path=ModelPath(id);if(File.Exists(path))File.Delete(path);}
         public static void Import(string path,string id){var pack=Find(id);if(pack==null||!Verify(path,pack))throw new InvalidOperationException("语言包版本或校验不正确，请使用指定的官方语言包。");Directory.CreateDirectory(Folder);Commit(path,ModelPath(id));}
         static void Commit(string source,string target){string pending=target+"."+Guid.NewGuid().ToString("N")+".tmp";try{File.Copy(source,pending);if(File.Exists(target))File.Replace(pending,target,null);else File.Move(pending,target);}finally{if(File.Exists(pending))File.Delete(pending);}}
         public static async Task Install(string id,IProgress<int> progress,CancellationToken cancel){
             var pack=Find(id);if(pack==null)throw new ArgumentException("Unknown OCR language");
+            cancel.ThrowIfCancellationRequested();
             string legacy=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"tessdata",id+".traineddata");
+            if(id=="kor"&&File.Exists(legacy)){
+                if(!Verify(legacy,pack))throw new InvalidDataException("内置韩文模型校验失败，请修复或更新 Nook。");
+                if(HasBundledKorean)return;
+            }
             if(File.Exists(legacy)&&Verify(legacy,pack)){cancel.ThrowIfCancellationRequested();Import(legacy,id);return;}
             Directory.CreateDirectory(Folder);string pending=Path.Combine(Folder,id+"."+Guid.NewGuid().ToString("N")+".download");
             ServicePointManager.SecurityProtocol|=SecurityProtocolType.Tls12;

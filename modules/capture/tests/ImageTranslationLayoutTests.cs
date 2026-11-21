@@ -177,6 +177,29 @@ internal static class ImageTranslationLayoutTests {
             var regions=ImageTranslation.Regions(page);
             Check(regions.Count==2&&regions.All(r=>r.Lines==1),"neighbour labels on one baseline are not joined into a paragraph");
         });
+        Run("Korean prose wraps across loose website line spacing",()=>{
+            var page=new OcrPage();
+            page.Words.AddRange(new[]{
+                Word("오래된 사진 속의 거리를 걷다 보면 그 시절의 풍경이 눈앞에",0,24,34,620,14),
+                Word("그려집니다. 골목을 따라 천천히 걷던 날의 이야기가 여기에서",1,24,62,621,14),
+                Word("시작됩니다.",2,25,90,90,14),
+                Word("사진첩 보기",3,24,118,90,14)});
+            var regions=ImageTranslation.Regions(page);
+            Check(regions.Count==2&&regions[0].Lines==3&&regions[1].Lines==1,"wrapped prose translates as a paragraph and ends before an independent control");
+            Check(regions[0].SourceLines[2].Box==page.Words[2].Box,"short final line keeps the original image coordinates");
+        });
+        Run("Separate Korean fields and sections",()=>{
+            var page=new OcrPage();
+            page.Words.AddRange(new[]{
+                Word("이 화면에서 작가가 수집한 사진들을 다시 살펴봅니다.",0,24,34,560,14),
+                Word("전체 사진 보기",1,24,62,110,14),
+                Word("사진을 다른 폴더로 이동하기 전에 표시할 이름을 정하고",2,24,90,560,14),
+                Word("최근 사용한 폴더",3,78,118,150,14),
+                Word("다음으로 열어 볼 사진을 정하고 다시 책장을 넘기다 보면",4,24,146,560,14),
+                Word("다음 단계 보기",5,24,202,110,14)});
+            var regions=ImageTranslation.Regions(page);
+            Check(regions.Count==6,"terminal punctuation, distinct columns, controls and large gaps remain separate");
+        });
         Run("Adjacent geometric paragraph barrier",()=>{
             var page=new OcrPage();page.Words.AddRange(new[]{Word("same top",0,20,20),Word("다른 언어",1,20,39),Word("same bottom",2,20,58)});
             var regions=ImageTranslation.Regions(page);
@@ -370,6 +393,8 @@ namespace QingJie {
     }
     // Exact script-only SourceLanguage behavior; intentionally no provider API.
     public static class Translation {
+        public static string ExactScreenshotCommand(string label,string target,string provider){return null;}
+        public static string StandaloneWordMeaning(string label,string target,string provider){return null;}
         public static string SourceLanguage(string text){
             if(text.Count(Geometry.IsHangul)>=2)return "ko";
             if(text.Count(c=>OcrLanguagePacks.IsScript(c,"jpn"))>=2)return "ja";

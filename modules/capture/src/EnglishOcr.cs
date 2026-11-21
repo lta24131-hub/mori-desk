@@ -35,7 +35,7 @@ namespace QingJie {
                 var claimed=new Dictionary<List<WordBox>,Line>();
                 foreach(string extraLanguage in OcrLanguagePacks.ParseSelection(extraLanguages)){
                 if(!OcrLanguagePacks.Installed(extraLanguage))continue;
-                using(var engine=new TesseractEngine(OcrLanguagePacks.Folder,extraLanguage,EngineMode.LstmOnly)){
+                using(var engine=new TesseractEngine(OcrLanguagePacks.FolderForReading(extraLanguage),extraLanguage,EngineMode.LstmOnly)){
                     engine.SetVariable("thresholding_method",2);
                     engine.SetVariable("thresholding_kfactor",0.04);
                     var paragraphs=ReadLines(engine,pix,ratio,PageSegMode.Auto);
@@ -48,6 +48,27 @@ namespace QingJie {
                 OcrService.IndexText(result);return result;
             }
         });}
+        // The local worker can try the Korean reader first for a spaced paragraph,
+        // or after the general reader leaves ink unexplained.
+        internal static OcrPage ReadKorean(OcrPixels pixels,double ratio){
+            var result=new OcrPage();
+            var data=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"tessdata");
+            using(var pix=pixels.TesseractBitmap())
+            using(var engine=new TesseractEngine(data,"kor",EngineMode.LstmOnly)){
+                engine.SetVariable("thresholding_method",2);
+                engine.SetVariable("thresholding_kfactor",0.04);
+                var lines=ReadLines(engine,pix,ratio,PageSegMode.Auto).Where(ConfidentKorean).ToList();
+                if(lines.Count==0)lines=ReadLines(engine,pix,ratio,PageSegMode.SparseText).Where(ConfidentKorean).ToList();
+                for(int i=0;i<lines.Count;i++)foreach(var word in lines[i].Words){word.Line=i;result.Words.Add(word);}
+            }
+            OcrService.IndexText(result);
+            return result;
+        }
+        static bool ConfidentKorean(Line line){
+            string text=Geometry.JoinWords(line.Words);
+            int syllables=text.Count(Geometry.IsHangul);
+            return syllables>=2&&syllables>=text.Count(char.IsLetter)*.65&&line.Confidence>=(syllables<5?90:78);
+        }
         static List<Line> ReadLines(TesseractEngine engine,Pix pix,double ratio,PageSegMode mode){
                 var lines=new List<Line>();
                 using(var page=engine.Process(pix,mode))using(var it=page.GetIterator()){

@@ -25,7 +25,7 @@ namespace QingJie {
         public int UnplacedCount;
     }
     public static class ImageTranslation {
-        public const string LayoutPolicy="readable-overlays-v9-safe-fallback";
+        public const string LayoutPolicy="readable-overlays-v10-korean-paragraphs";
         // One full-size render at a time bounds scratch bitmap memory across
         // capture, recognition and pins. Waiting requests remain cancellable.
         static readonly SemaphoreSlim renderSlot=new SemaphoreSlim(1,1);
@@ -75,13 +75,16 @@ namespace QingJie {
                 if(words.Count>0)lines.Add(Line(words,box));
             }
             var result=new List<TranslationRegion>();var active=new List<TranslationRegion>();
+            TranslationSourceLine previousRow=null;
             foreach(var line in lines.OrderBy(l=>l.Box.Top).ThenBy(l=>l.Box.Left)){
                 TranslationRegion previous=null;double nearest=double.MaxValue;string language=RegionLanguage(line.Text);
                 // Only recent line ends are candidates. Another column interleaved
                 // by top coordinate must not split an otherwise adjacent paragraph.
                 for(int i=active.Count-1;i>=0;i--){
                     var candidate=active[i];var last=candidate.SourceLines[candidate.SourceLines.Count-1];double height=last.Box.Height,gap=line.Box.Top-last.Box.Bottom;
-                    if(gap>=height*.65){active.RemoveAt(i);continue;}
+                    if(gap>=height*.65&&!(last==previousRow&&language=="ko"&&WrappedKoreanRow(last,line,gap))){
+                        active.RemoveAt(i);continue;
+                    }
                     // Ink boxes may have very different ascenders/descenders
                     // even at the same font size; tolerate a little overlap,
                     // but never join same-baseline labels or title/body extremes.
@@ -94,8 +97,19 @@ namespace QingJie {
                 }
                 if(previous!=null){previous.Box.Union(line.Box);previous.Text+="\n"+line.Text;previous.Lines++;previous.SourceLines.AddRange(line.SourceLines);}
                 else {result.Add(line);active.Add(line);}
+                previousRow=line.SourceLines[0];
             }
             return result;
+        }
+        // Korean web paragraphs can wrap within a word and use a full line of
+        // leading. Join only adjacent, aligned prose rows with an unfinished
+        // preceding line. Keep compact controls and separate paragraphs apart.
+        static bool WrappedKoreanRow(TranslationSourceLine prior,TranslationRegion next,double gap){
+            double height=prior.Box.Height;
+            if(gap>height*1.6||prior.Box.Width<height*16||next.Box.Height<height*.75||next.Box.Height>height*1.35)return false;
+            string left=prior.Text.TrimEnd(),right=next.Text.TrimStart();
+            return left.Length>0&&right.Length>0&&Geometry.IsHangul(left[left.Length-1])&&Geometry.IsHangul(right[0])&&
+                left.Count(Geometry.IsHangul)>=16&&left.Contains(" ")&&right.Count(Geometry.IsHangul)>=5;
         }
         static Color Background(byte[] pixels,int width,int height,Rect box,out bool simple){
             var counts=new Dictionary<int,int>();var colors=new Dictionary<int,Color>();

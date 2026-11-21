@@ -2,7 +2,8 @@
 
 - Tesseract .NET wrapper 5.2.0, Copyright Charles Weld. Apache License 2.0. https://github.com/charlesw/tesseract
 - Tesseract OCR 5, Apache License 2.0. https://github.com/tesseract-ocr/tesseract
-- English tessdata_fast LSTM model (bundled) and optional Korean, Japanese, Russian, French, German, Spanish, Portuguese, Italian, Arabic, Thai and Vietnamese models (downloaded on request), Apache License 2.0. https://github.com/tesseract-ocr/tessdata_fast (revision 87416418657359cb625c412a48b6e1d6d41c29bd; all covered by the license text in licenses/English-model.txt)
+- English tessdata_fast is bundled. Optional OCR language packs use the same upstream collection at revision 87416418657359cb625c412a48b6e1d6d41c29bd. Apache License 2.0. https://github.com/tesseract-ocr/tessdata_fast
+- The bundled Korean recognizer uses the unmodified tessdata_best Korean LSTM model at revision e12c65a915945e4c28e237a9b52bc4a8f39a0cec. Both model collections use the license in licenses/English-model.txt. Apache License 2.0. https://github.com/tesseract-ocr/tessdata_best
 - Leptonica 1.82.0, BSD-style license. https://github.com/DanBloomberg/leptonica
 
 These unmodified components are distributed in Tesseract.dll, x64/, and tessdata/. Full license texts are in licenses/. No user screenshots are bundled with the software.

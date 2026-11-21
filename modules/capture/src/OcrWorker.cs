@@ -125,12 +125,60 @@ namespace QingJie {
                     var saved=CachedReading(key,verifiedKey,bounds);
                     cancel.ThrowIfCancellationRequested();
                     if(saved!=null)return saved;
-                    var result=RunWithWorker(source,cancel,language,modern,(name,attempt)=>StartInfo(name,modern),RequestTimeoutMilliseconds);
+                    var clock=Stopwatch.StartNew();
+                    bool hasKorean=OcrLanguagePacks.HasBundledKorean;
+                    bool automaticKorean=hasKorean&&Array.IndexOf(OcrLanguagePacks.ParseSelection(language),"kor")<0;
+                    var ink=hasKorean?KoreanOcr.FindSpacedParagraph(source,cancel):null;
+                    OcrPage korean=null;
+                    if(ink!=null){
+                        if(trace!=null)trace("korean-first");
+                        korean=TryReadKorean(source,cancel,Remaining(clock,RequestTimeoutMilliseconds,RequestTimeoutMilliseconds/2),trace);
+                        string reason=null;
+                        if(korean!=null&&KoreanOcr.AccountsForParagraph(ink,korean,out reason)){
+                            cancel.ThrowIfCancellationRequested();
+                            if(trace!=null)trace("korean-complete");
+                            cache.Put(key,korean);return korean;
+                        }
+                        if(reason!=null&&trace!=null)trace("korean-rejected-"+reason);
+                    }
+                    int remaining=Remaining(clock,RequestTimeoutMilliseconds,RequestTimeoutMilliseconds);
+                    OcrPage result;
+                    try{
+                        if(remaining==0)throw new TimeoutException("文字识别超时，原图已保留。");
+                        result=RunWithWorker(source,cancel,language,modern,(name,attempt)=>StartInfo(name,modern),remaining);
+                    }catch(TimeoutException){
+                        cancel.ThrowIfCancellationRequested();
+                        var partial=KoreanOcr.ConfirmedLines(ink,korean);
+                        if(partial==null)throw;
+                        partial.Notice="部分文字已识别，其他区域识别超时。可缩小选区后重试。";
+                        if(trace!=null)trace("korean-partial-after-timeout");
+                        return partial;
+                    }
+                    if(automaticKorean&&KoreanOcr.NeedsSecondReading(source,result,cancel)){
+                        if(trace!=null)trace("korean-review");
+                        if(ink==null)korean=TryReadKorean(source,cancel,Remaining(clock,RequestTimeoutMilliseconds,RequestTimeoutMilliseconds),trace);
+                        if(korean==null){
+                            result.Notice="韩文复核未完成，可重新识别。";
+                            return result;
+                        }
+                        result=KoreanOcr.Merge(result,korean);
+                    }
                     cancel.ThrowIfCancellationRequested();
                     cache.Put(key,result);
                     return result;
                 }finally{queue.Release();}
             },cancel).ConfigureAwait(false);
+        }
+        static OcrPage TryReadKorean(BitmapSource source,CancellationToken cancel,int remaining,Action<string> trace){
+            if(remaining<=0)return null;
+            try{return RunWithWorker(source,cancel,KoreanOcr.WorkerLanguage,false,(name,attempt)=>StartInfo(name,false),remaining);}
+            catch(OperationCanceledException){throw;}
+            catch(Exception error){
+                cancel.ThrowIfCancellationRequested();
+                if(!(error is TimeoutException)&&!(error is IOException)&&!(error is InvalidOperationException))throw;
+                if(trace!=null)trace(error is TimeoutException?"korean-worker-timeout":"korean-worker-failed");
+                return null;
+            }
         }
         static OcrPage CachedReading(string fullKey,string lineKey,Int32Rect crop){
             var full=cache.Get(fullKey);
@@ -347,8 +395,13 @@ namespace QingJie {
                         if(width<=0||height<=0||(long)width*height>MaxPixels)throw new InvalidDataException("Invalid image dimensions");
                         string language=reader.ReadString(),testFolder=reader.ReadString();if(testFolder.Length>0)OcrLanguagePacks.TestFolder=testFolder;
                         var bitmap=ReadBitmap(reader,width,height);
-                        var task=OcrService.ReadLocal(bitmap,language);var frame=new System.Windows.Threading.DispatcherFrame();task.ContinueWith(t=>frame.Continue=false);System.Windows.Threading.Dispatcher.PushFrame(frame);
-                        var page=task.GetAwaiter().GetResult();WriteResult(writer,page);writer.Flush();return 0;
+                        OcrPage page;
+                        if(language==KoreanOcr.WorkerLanguage)page=KoreanOcr.Read(bitmap);
+                        else{
+                            var task=OcrService.ReadLocal(bitmap,language);var frame=new System.Windows.Threading.DispatcherFrame();task.ContinueWith(t=>frame.Continue=false);System.Windows.Threading.Dispatcher.PushFrame(frame);
+                            page=task.GetAwaiter().GetResult();
+                        }
+                        WriteResult(writer,page);writer.Flush();return 0;
                     }catch(Exception ex){writer.Write(Magic);writer.Write(ex.Message);writer.Flush();return 1;}
                 }}catch{return 1;}
             }

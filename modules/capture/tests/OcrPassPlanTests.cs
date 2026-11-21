@@ -366,6 +366,7 @@ namespace QingJie {
         static readonly HashSet<string> installed = new HashSet<string>();
         internal static readonly List<string> InstallChecks = new List<string>();
         public static string Folder { get { return "INERT-OPTIONAL-MODELS-NO-FILES"; } }
+        public static string FolderForReading(string language) { return Folder; }
         internal static void Reset() { installed.Clear(); InstallChecks.Clear(); }
         internal static void Install(params string[] languages) { foreach (var language in languages) installed.Add(language); }
         public static string[] ParseSelection(string selection) {

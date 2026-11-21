@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -109,6 +110,9 @@ internal static class CaptureTranslationInteractionTests {
         check(CaptureWindow.FirstTranslatedLine(sources,new[]{"AI",new string('字',51)+"😀结尾"})==new string('字',51)+"…","a clipped preview cannot split a surrogate pair");
         var image=Pixels();var win=new CaptureWindow(new Snapshot{Image=image,Bounds=new System.Drawing.Rectangle(-240,0,240,120)},null,new CaptureFeatures{Translation=true,SmartSelection=false});
         var surface=Field<ScreenshotSurface>(win,"surface");var button=Field<Button>(win,"translateButton");
+        var glyph=button.Content as ToolIcon;
+        check(glyph!=null&&AutomationProperties.GetName(button)=="翻译选区","capture initially displays the translation tool icon with an accessible action");
+        Func<string,bool> iconAction=hint=>ReferenceEquals(button.Content,glyph)&&Equals(button.ToolTip,hint)&&AutomationProperties.GetName(button)==hint;
         var crop=new Rect(13,11,120,60);surface.Measure(new Size(240,120));surface.Arrange(new Rect(0,0,240,120));surface.Selection=crop;
         var pending=new TaskCompletionSource<OcrPage>();var firstStarted=new TaskCompletionSource<bool>();int reads=0;CancellationToken firstToken=CancellationToken.None;
         var page=Page();var expected=Bytes(new CroppedBitmap(image,new Int32Rect(13,11,120,60)));BitmapSource readCrop=null;
@@ -117,7 +121,7 @@ internal static class CaptureTranslationInteractionTests {
         win.ReadCaptureOcr=(source,token)=>{reads++;readCrop=source;if(reads==1){firstToken=token;firstStarted.TrySetResult(true);return pending.Task;}return Task.FromResult(page);};
         var slot=(SemaphoreSlim)typeof(ImageTranslation).GetField("renderSlot",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null);bool ownsSlot=false;
         try{
-            Click(button);check(button.IsEnabled&&Field<CancellationTokenSource>(win,"translationCancel")!=null&&!surface.ShowTranslation,"capture advertises a cancellable request immediately; source remains visible");
+            Click(button);check(iconAction("正在翻译 · 点击取消")&&button.IsEnabled&&Field<CancellationTokenSource>(win,"translationCancel")!=null&&!surface.ShowTranslation,"capture advertises a cancellable request immediately; source remains visible");
             await Until(()=>firstStarted.Task.IsCompleted,"OCR entry");
             target(1);check(reads==1&&!firstToken.IsCancellationRequested&&Field<string>(win,"translationTarget")=="en","changing target during cold OCR keeps the same worker and request");
             check(readCrop.IsFrozen&&readCrop.PixelWidth==120&&readCrop.PixelHeight==60&&Bytes(readCrop).SequenceEqual(expected),"OCR receives exactly the selected source pixels at their true origin");
@@ -137,13 +141,13 @@ internal static class CaptureTranslationInteractionTests {
             check(reads==2&&surface.TranslationBounds==crop,"retry on the same selection reuses its successful OCR and commits to the correct crop");
             target(1);await Until(()=>surface.ShowTranslation&&Field<CancellationTokenSource>(win,"translationCancel")==null,"switch completed translation");
             check(reads==2&&Field<string>(win,"imageTranslationTarget")=="en","switching the language of a visible result applies without an extra Translate click or OCR run");
-            Click(button);check(!surface.ShowTranslation&&Bytes(surface.Export(false,false)).SequenceEqual(expected),"compare with original immediately restores exact source pixels");
-            Click(button);check(surface.ShowTranslation&&reads==2,"switch back to translated view without another OCR job");
+            Click(button);check(iconAction("查看译图")&&!surface.ShowTranslation&&Bytes(surface.Export(false,false)).SequenceEqual(expected),"compare with original immediately restores exact source pixels");
+            Click(button);check(iconAction("查看原图")&&surface.ShowTranslation&&reads==2,"switch back to translated view without another OCR job");
             typeof(CaptureWindow).GetMethod("ResetTranslation",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(win,null);
             var renderer=win.RenderCaptureTranslation;string[] firstTranslation=null;
             win.RenderCaptureTranslation=(source,regions,values,token)=>{firstTranslation=values as string[];throw new OperationCanceledException();};
             Click(button);await Until(()=>Field<CancellationTokenSource>(win,"translationCancel")==null,"layout timeout");
-            check(firstTranslation!=null&&!surface.ShowTranslation&&status.Visibility==Visibility.Visible&&status.Inlines.OfType<System.Windows.Documents.Hyperlink>().Any()&&(string)button.Content=="重排","layout timeout preserves copyable text, the original image, and a layout-only retry");
+            check(firstTranslation!=null&&!surface.ShowTranslation&&status.Visibility==Visibility.Visible&&status.Inlines.OfType<System.Windows.Documents.Hyperlink>().Any()&&iconAction("重试图片排版，不重新翻译"),"layout timeout preserves copyable text, the original image, and a layout-only retry");
             bool sameTranslation=false;win.RenderCaptureTranslation=(source,regions,values,token)=>{sameTranslation=ReferenceEquals(firstTranslation,values);return renderer(source,regions,values,token);};
             Click(button);await Until(()=>surface.ShowTranslation&&Field<CancellationTokenSource>(win,"translationCancel")==null,"layout-only retry");
             check(sameTranslation&&reads==2,"layout-only retry uses the same returned translation and OCR");win.RenderCaptureTranslation=renderer;

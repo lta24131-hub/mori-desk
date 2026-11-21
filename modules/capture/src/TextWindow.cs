@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
@@ -92,7 +92,7 @@ namespace QingJie {
             bar.Children.Add(Symbol("\uE8A3","放大",()=>ChangeZoom(zoom*1.2)));bar.Children.Add(Symbol("\uE71F","缩小",()=>ChangeZoom(zoom/1.2)));
             bar.Children.Add(Symbol("\uE9A6","适应窗口",()=>{fitMode=true;Fit();}));bar.Children.Add(Symbol("\uE740","实际大小 1:1",()=>ChangeZoom(1)));Separator(bar);
             copyImage=Symbol("\uE8C8","复制图片",async()=>await CopyImageAsync());bar.Children.Add(copyImage);
-            translatePicture=ActionButton("翻译整图",ToggleImageTranslation);translatePicture.Name="ImageTranslationAction";translatePicture.Width=88;translatePicture.Padding=new Thickness(4,0,4,0);RefreshTranslationAction();if(allowTranslation)bar.Children.Add(translatePicture);
+            translatePicture=Symbol("\uE8C1","整图翻译",ToggleImageTranslation);translatePicture.Name="ImageTranslationAction";RefreshTranslationAction();if(allowTranslation)bar.Children.Add(translatePicture);
             if(allowTranslation){var targetMenu=Ui.TranslationTarget(translationTarget,language=>{bool wasTranslating=imageRequest!=null||readyTranslations!=null||imageTranslation!=null;ChangeTarget(language);if(wasTranslating)ToggleImageTranslation();});bar.Children.Add(targetMenu);
                 targetMenu.ContextMenu.PreviewKeyDown+=(s,e)=>{if(e.Key==Key.Escape){e.Handled=true;targetMenu.ContextMenu.IsOpen=false;ExitTextView();}};
             }
@@ -182,8 +182,8 @@ namespace QingJie {
         void ToggleSidebar(){bool show=sidebar.Visibility!=Visibility.Visible;sidebar.Visibility=show?Visibility.Visible:Visibility.Collapsed;sidebarColumn.Width=new GridLength(show?284:0);Mark(showText,show);}
         string AvailableTranscript {get{return imageTranslation!=null?imageTranslation.Transcript:readyTranslations==null?null:string.Join("\n\n",readyTranslations);}}
         void RefreshTranslationAction(){
-            string label=imageRequest!=null?"取消翻译":translatedImage!=null?(showTranslated?"查看原图":"查看译图"):translationFailed?(readyTranslations!=null?"重试排版":"重试翻译"):"翻译整图";
-            translatePicture.Content=label;translatePicture.ToolTip=imageRequest!=null?"正在处理 · 点击取消，原图保留":label;
+            string label=imageRequest!=null?"取消翻译":translatedImage!=null?(showTranslated?"查看原图":"查看译图"):translationFailed?(readyTranslations!=null?"重试排版":"重试翻译"):"整图翻译";
+            translatePicture.ToolTip=imageRequest!=null?"正在处理 · 点击取消，原图保留":label;
             System.Windows.Automation.AutomationProperties.SetName(translatePicture,label);Mark(translatePicture,imageRequest!=null||showTranslated);
         }
         void ShowImageTranscript(){

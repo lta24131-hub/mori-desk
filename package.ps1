@@ -93,6 +93,7 @@ $files+=@('Magick.NET.Core.dll','Magick.NET-Q8-x64.dll','Magick.Native-Q8-x64.dl
 $files+=@('SymSpell.dll','Nook.LineOcr.exe')
 foreach($file in $files){Copy-Item -LiteralPath (Join-Path $buildPath $file) -Destination $payload}
 foreach($folder in @('x64','tessdata','web','browser-extension','svg-licenses','webview2-licenses','model-licenses','image-codecs','pdf-text','preview-support','scroll-capture','shell-preview')){Copy-Item -LiteralPath (Join-Path $buildPath $folder) -Destination $payload -Recurse}
+if((Get-FileHash -LiteralPath (Join-Path $payload 'tessdata\kor.traineddata')).Hash -ne 'F888D4038348A0C3D25151E7F452BDA0D74CA275B18CAB146798BCBB94084FFF'){throw 'The bundled Korean OCR model is missing or differs from the pinned upstream model.'}
 foreach($notice in @('LICENSE.txt','NOTICE.txt','SCOWL-Copyright.txt')){if(!(Test-Path -LiteralPath (Join-Path $buildPath ('symspell\'+$notice)))){throw ('Missing OCR dictionary notice: '+$notice)}}
 Copy-Item -LiteralPath (Join-Path $buildPath 'symspell') -Destination $payload -Recurse
 Assert-ShellPreviewComponent (Join-Path $payload 'shell-preview')

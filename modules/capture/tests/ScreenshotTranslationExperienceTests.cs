@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Automation;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using QingJie;
@@ -22,17 +23,20 @@ internal static class ScreenshotTranslationExperienceTests {
         var source=Solid(255,255,255);var output=Solid(0,200,0);var page=Fixture();
         var viewer=new TextWindow(source,"zh",(image,token)=>Task.FromResult(page)){ShowInTaskbar=false};
         var button=Field<Button>(viewer,"translatePicture");var picture=Field<Image>(viewer,"picture");var status=Field<Border>(viewer,"statusCard");var transcript=Field<TextBox>(viewer,"result");
+        var glyph=button.Content as TextBlock;
+        check(glyph!=null&&glyph.Text=="\uE8C1"&&glyph.FontFamily.Source=="Segoe MDL2 Assets"&&AutomationProperties.GetName(button)=="整图翻译","reader initially displays its translation symbol and accessible action");
+        Func<string,bool> iconAction=label=>ReferenceEquals(button.Content,glyph)&&AutomationProperties.GetName(button)==label;
         var reply=new TaskCompletionSource<string[]>();CancellationToken request=CancellationToken.None;
         viewer.PrepareImage=(p,rs,token)=>Task.FromResult(new[]{p.Text});viewer.TranslateImage=(input,token,to,provider)=>{request=token;return reply.Task;};
         try{
             viewer.Show();await viewer.EnsureOcr();Click(button);
-            check(Equals(button.Content,"取消翻译")&&picture.Source==source&&status.Visibility==Visibility.Collapsed,"pending work keeps original image untouched with cancellation on the toolbar");
+            check(iconAction("取消翻译")&&picture.Source==source&&status.Visibility==Visibility.Collapsed,"pending work keeps original image untouched with cancellation on the toolbar");
             Click(button);reply.SetResult(new[]{"迟到的译文"});await Tick();
             check(request.IsCancellationRequested&&picture.Source==source&&Field<ImageTranslationResult>(viewer,"imageTranslation")==null,"cancelled provider reply cannot change the original image");
             reply=new TaskCompletionSource<string[]>();Click(button);Target(viewer,"en");reply.SetResult(new[]{"旧语言的结果"});await Tick();
             check(request.IsCancellationRequested&&Field<BitmapSource>(viewer,"translatedImage")==null,"changing target invalidates a late provider response");
             reply=new TaskCompletionSource<string[]>();Click(button);reply.SetException(new InvalidOperationException("测试网络错误"));await Tick();
-            check(Equals(button.Content,"重试翻译")&&picture.Source==source&&status.Visibility==Visibility.Visible,"network failure keeps source and exposes retry on the same action");
+            check(iconAction("重试翻译")&&picture.Source==source&&status.Visibility==Visibility.Visible,"network failure keeps source and exposes retry on the same action");
             var render=new TaskCompletionSource<ImageTranslationResult>();CancellationToken renderToken=CancellationToken.None;int calls=0;
             viewer.TranslateImage=(input,token,to,provider)=>{calls++;return Task.FromResult(new[]{"请打开文件。"});};viewer.RenderImage=(i,rs,t,token)=>{renderToken=token;return render.Task;};
             Click(button);await Tick();
@@ -40,10 +44,10 @@ internal static class ScreenshotTranslationExperienceTests {
             Target(viewer,"zh");render.SetResult(new ImageTranslationResult{Image=output,Transcript="旧译文"});await Tick();
             check(renderToken.IsCancellationRequested&&picture.Source==source&&Field<BitmapSource>(viewer,"translatedImage")==null,"target switch during rendering prevents stale output from appearing");
             render=new TaskCompletionSource<ImageTranslationResult>();Click(button);render.SetException(new InvalidOperationException("测试排版失败"));await Tick();
-            check(Equals(button.Content,"重试排版")&&transcript.Text.Contains("请打开文件")&&picture.Source==source,"layout failure retains translated text and enables render-only retry");
+            check(iconAction("重试排版")&&transcript.Text.Contains("请打开文件")&&picture.Source==source,"layout failure retains translated text and enables render-only retry");
             int before=calls;viewer.RenderImage=(i,rs,t,token)=>Task.FromResult(new ImageTranslationResult{Image=output,Transcript="请打开文件。",UnplacedCount=1});Click(button);await Tick();
-            check(calls==before&&picture.Source==output&&Equals(button.Content,"查看原图"),"layout retry commits immediately without repeating OCR or online translation");
-            Click(button);check(picture.Source==source&&Equals(button.Content,"查看译图"),"single click gives original");Click(button);check(picture.Source==output&&calls==before,"single click restores translated image without a network request");
+            check(calls==before&&picture.Source==output&&iconAction("查看原图"),"layout retry commits immediately without repeating OCR or online translation");
+            Click(button);check(picture.Source==source&&iconAction("查看译图"),"single click gives original");Click(button);check(picture.Source==output&&calls==before,"single click restores translated image without a network request");
             var original=Field<TextBox>(viewer,"original");
             var savedProvider=AppState.Settings.TranslationProvider;
             try{

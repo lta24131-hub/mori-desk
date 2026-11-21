@@ -284,6 +284,9 @@ class Tests {
         // Only UI async fixtures install a dispatcher context. Transport tests
         // deliberately block their calling thread and must not capture it.
         SynchronizationContext.SetSynchronizationContext(null);
+        if(args.Length==1&&args[0]=="--korean-ocr-tests"){
+            KoreanOcrTests.Run(Check);Console.WriteLine(count+" automatic Korean OCR checks passed.");return 0;
+        }
         Preferences.TestFilePath=Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"test-settings","settings.json");
         AppState.Settings=new Preferences();
         if(args.Length==2&&args[0]=="--busy-translation"){
@@ -315,6 +318,7 @@ class Tests {
         }
         Finish(TranslationRegionMappingTests.Run(Check));
         StructuredOcrTests.Run(Check);
+        KoreanOcrTests.Run(Check);
         CaptureTests.Run(Check);
         CaptureDrawingExperienceTests.Run(Check);CaptureRenderingPerformanceTests.Run(Check);CaptureHistoryMemoryTests.Run(Check);CaptureInputUsabilityTests.Run(Check);CaptureDirectResizeTests.Run(Check);
         ScrollCaptureStitcherTests.Run(Check);ScrollCaptureSessionTests.Run(Check);ScrollCapturePreviewTests.Run(Check);ExternalScrollCaptureTests.Run(Check);

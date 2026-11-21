@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
@@ -9,7 +8,7 @@ using System.Windows.Media;
 
 namespace QingJie {
     public sealed class SettingsWindow : Window {
-        public SettingsWindow():this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,id=>File.Delete(OcrLanguagePacks.ModelPath(id)))){}
+        public SettingsWindow():this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,OcrLanguagePacks.RemoveUserModel)){}
         internal SettingsWindow(OcrLanguageSelection selection){
             Title="Nook · 截图与翻译设置";Icon=Ui.AppIcon;Width=520;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;FontFamily=new FontFamily("Microsoft YaHei UI");Ui.Theme(this,Window.BackgroundProperty,"Canvas");Ui.Theme(this,Window.ForegroundProperty,"Text");
             var panel=new CaptureSettingsPanel(selection,false);Content=panel;Closed+=(s,e)=>panel.Dispose();
@@ -22,7 +21,7 @@ namespace QingJie {
         readonly TextBlock shortcutStatus=new TextBlock {FontSize=12,Foreground=Ui.Brush("#718078"),TextWrapping=TextWrapping.Wrap};
         ShortcutEditor captureKey,pinKey,translationKey,togglePinsKey;
         readonly OfflinePackPanel offline;readonly OcrLanguagePanel languages;bool disposed;
-        internal CaptureSettingsPanel(bool embedded):this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,id=>File.Delete(OcrLanguagePacks.ModelPath(id))),embedded){}
+        internal CaptureSettingsPanel(bool embedded):this(new OcrLanguageSelection(AppState.Settings,()=>AppState.Settings.SaveChecked(),OcrLanguagePacks.Installed,OcrLanguagePacks.RemoveUserModel),embedded){}
         internal CaptureSettingsPanel(OcrLanguageSelection selection,bool embedded){
             Ui.Theme(this,Control.ForegroundProperty,"Text");
             var panel=new StackPanel {Margin=new Thickness(26,20,26,20)};Content=panel;VerticalScrollBarVisibility=ScrollBarVisibility.Auto;HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled;
